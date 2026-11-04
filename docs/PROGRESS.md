@@ -18,9 +18,9 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 
 ## What's next
 
-1. Build the core flow from PRD v2.0: sign in, share an idea, AI matching, the IP/NDA
-   agreement, and the Virtual Collaboration Hub. The PRD is not in this repository yet;
-   ask Tanny for it before starting.
+1. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
+   owner approving the team, and the Virtual Collaboration Hub with all four phases. The
+   PRD is not in this repository yet; ask Tanny for it before starting.
 2. Add English and French switching to the web app, before the first real screens.
 3. Add a deploy job to CI once the team has Systalink platform access.
 4. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public

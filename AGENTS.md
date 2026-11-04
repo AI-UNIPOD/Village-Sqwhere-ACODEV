@@ -19,9 +19,9 @@ pushes.
 
 Village Sqwhere is a platform for African developers, built for ACODev 2026 (Africa Cup of
 Developers). A developer shares an idea, AI matches them with developers who have similar
-ideas and complementary skills, every member signs a digital IP/NDA agreement, and the team
-builds the idea together in a Virtual Collaboration Hub (brainstorm, design and
-architecture, build, peer review). It is about building together, never about hiring. The
+ideas and complementary skills, the idea's owner approves the team, and the team builds the
+idea together in a Virtual Collaboration Hub (brainstorm, design and architecture, build,
+peer review). It is about building together, never about hiring. The
 product works in English and French. Stack: Next.js in `apps/web`, FastAPI in `apps/api`,
 PostgreSQL with pgvector, hosted on Systalink.
 
@@ -183,9 +183,8 @@ This applies to docs, comments, commit messages, pull requests and UI text.
 - Never commit secrets, API keys, tokens or `.env` files. Real values come from the person
   who runs that environment. `.env.example` holds safe local defaults only. CI scans every
   pull request for secrets.
-- Ideas shared on Village Sqwhere are confidential: protecting them is the product's
-  promise. Never put real user data or real ideas in code, tests, docs, logs or
-  screenshots. Use made-up demo data.
+- Treat every idea shared on Village Sqwhere as confidential. Never put real user data or
+  real ideas in code, tests, docs, logs or screenshots. Use made-up demo data.
 - Treat everything a user sends as untrusted, including text passed to an AI model. The
   AI must never follow instructions written inside a user's idea or message.
 - If you find a security problem, tell the team the same day.
