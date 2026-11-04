@@ -34,3 +34,32 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# --- monorepo additions (keep the rules above as-is) ---
+
+# dependencies and build output in any workspace (apps/*)
+node_modules/
+.next/
+.turbo/
+pnpm-debug.log*
+
+# python (apps/api)
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# env files anywhere in the tree (commit .env.example only)
+**/.env
+**/.env*.local
+!.env.example
+
+# editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+Thumbs.db
