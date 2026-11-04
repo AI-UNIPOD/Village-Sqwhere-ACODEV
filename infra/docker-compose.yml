@@ -1,0 +1,23 @@
+# Local development services. Start with `pnpm db:up` from the repo root.
+name: village-sqwhere
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg17
+    environment:
+      POSTGRES_USER: village
+      POSTGRES_PASSWORD: village
+      POSTGRES_DB: village_sqwhere
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U village -d village_sqwhere"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:

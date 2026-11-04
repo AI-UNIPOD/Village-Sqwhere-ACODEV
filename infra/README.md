@@ -1,0 +1,26 @@
+# infra
+
+Infrastructure for local development and deployment.
+
+## Local database
+
+`docker-compose.yml` runs PostgreSQL 17 with the [pgvector](https://github.com/pgvector/pgvector)
+extension, which the API uses for AI idea matching.
+
+```bash
+pnpm db:up      # start Postgres on localhost:5432
+pnpm db:down    # stop it (data is kept in the db-data volume)
+```
+
+Scripts in `db/init/` run only when the volume is first created. To start from an empty
+database, run `docker compose -f infra/docker-compose.yml down -v`, then `pnpm db:up`.
+
+The local credentials (`village` / `village`) are for development only. They match
+`DATABASE_URL` in the root `.env.example`.
+
+## Deployment (Systalink)
+
+ACODev 2026 requires the app to run on Systalink's platform (platform.systalink.com).
+The deployment setup is still to be written: hosting for `apps/web` and `apps/api`, a
+managed Postgres with pgvector, and environment variables. Add it here, under
+`infra/systalink/`, once the team has platform access.
