@@ -8,6 +8,7 @@ From the repository root:
 pnpm install
 pnpm dev:web      # http://localhost:3000
 pnpm lint:web
+pnpm test:web     # Vitest + Testing Library; tests sit next to the code as *.test.tsx
 pnpm build:web
 ```
 
