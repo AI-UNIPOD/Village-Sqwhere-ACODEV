@@ -63,3 +63,6 @@ htmlcov/
 !.vscode/extensions.json
 .idea/
 Thumbs.db
+
+# Personal reference file
+ACODEV_Reference.md

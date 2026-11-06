@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.router import api_v1_router
 from app.config import CORS_ORIGINS
 
 app = FastAPI(title="Village Sqwhere API", version="0.1.0")
@@ -12,7 +13,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(api_v1_router)
+
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def root_health() -> dict[str, str]:
     return {"status": "ok"}
