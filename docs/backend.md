@@ -1,4 +1,4 @@
-# Village Sqwhere — Backend API Documentation for Frontend
+# Village Sqwhere: Backend API Documentation for Frontend
 
 This document is the dedicated guide for the frontend team (`apps/web`) to interact with the FastAPI backend (`apps/api`). It is updated with every new feature and change.
 
@@ -94,8 +94,8 @@ Search or browse active technologies, frameworks, and tools.
 
 * **Authentication:** None
 * **Query Parameters:**
-  * `q` *(optional, string, 1–40 chars)*: Case-insensitive prefix search (e.g., `?q=py` returns Python, PyTorch).
-  * `limit` *(optional, integer, 1–50, default: 20)*: Maximum number of results to return.
+  * `q` *(optional, string, 1 to 40 chars)*: Case-insensitive prefix search (e.g., `?q=py` returns Python, PyTorch).
+  * `limit` *(optional, integer, 1 to 50, default: 20)*: Maximum number of results to return.
 * **Success Response (200 OK):**
   ```json
   {
@@ -117,20 +117,21 @@ Search or browse active technologies, frameworks, and tools.
 ### 🔐 Authentication
 
 #### `POST /v1/auth/oauth/{provider}/start`
-Initiates the OAuth + PKCE sign-in flow for GitHub or Bitbucket.
+Starts the OAuth + PKCE sign-in flow. Only GitHub works today.
 
 * **Authentication:** None
 * **Path Parameters:**
-  * `provider`: `github` or `bitbucket`
+  * `provider`: `github` (`bitbucket` is planned, and returns `503` until it is built)
 * **Request Body:**
   ```json
   {
     "intent": "login",
-    "redirect_uri": "http://localhost:3000/auth/callback",
+    "redirect_uri": "http://localhost:8000/v1/auth/oauth/github/callback",
     "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
     "code_challenge_method": "S256"
   }
   ```
+  `redirect_uri` is the API's callback URL, the same one registered on the GitHub OAuth app.
 * **Success Response (200 OK):**
   ```json
   {
@@ -140,27 +141,25 @@ Initiates the OAuth + PKCE sign-in flow for GitHub or Bitbucket.
     }
   }
   ```
-* **Frontend Flow:** Redirect the user's browser to `authorize_url`.
+* **Error Response (503):** `PROVIDER_NOT_CONFIGURED` when the provider is not set up on this server (for GitHub: `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are missing).
+* **Frontend Flow:** Redirect the user's browser to `authorize_url` within 10 minutes. The `state` in it works once.
 
 #### `GET /v1/auth/oauth/{provider}/callback`
-Handles the redirect back from GitHub or Bitbucket.
+Handles the redirect back from GitHub.
 
 * **Authentication:** None
-* **Path Parameters:**
-  * `provider`: `github` or `bitbucket`
 * **Query Parameters:**
-  * `code`: One-time authorization code from the provider.
-  * `state`: The CSRF state generated in `start`.
-* **Behavior:** 
-  * In production with GitHub credentials: exchanges code with GitHub, upserts user profile in Postgres, and redirects.
-  * In development mode: generates a local test login code.
-  * **Response:** HTTP `302 Found` redirecting the browser to `http://localhost:3000/auth/callback?login_code=lc_...`
+  * `code`: One-time authorization code from GitHub.
+  * `state`: The state from `start`. It must have been issued by this server, for this provider, in the last 10 minutes, and not used before.
+* **Behavior:** exchanges `code` with GitHub, creates or updates the user in Postgres, then redirects the browser with HTTP `302 Found`:
+  * On success: `http://localhost:3000/auth/callback?login_code=lc_...` (the code is random, works once, and expires after 5 minutes).
+  * On failure: `http://localhost:3000/auth/callback?error=CODE`, where `CODE` is `INVALID_STATE` (start again), `ACCESS_DENIED` (GitHub refused the code) or `OAUTH_EXCHANGE_FAILED` (GitHub or the database could not be reached).
 
 #### `POST /v1/auth/token`
 Exchanges a `login_code` (from the OAuth redirect) OR a `refresh_token` (to renew an expired session) for an active JWT `access_token` and rotated `refresh_token`.
 
 * **Authentication:** None
-* **Request Body Variant 1 — Initial Login:**
+* **Request Body Variant 1: Initial Login:**
   ```json
   {
     "grant_type": "login_code",
@@ -169,7 +168,8 @@ Exchanges a `login_code` (from the OAuth redirect) OR a `refresh_token` (to rene
     "device_name": "Chrome on macOS"
   }
   ```
-* **Request Body Variant 2 — Refreshing an Expired Access Token:**
+  `code_verifier` must be the PKCE verifier whose challenge was sent to `start`.
+* **Request Body Variant 2: Refreshing an Expired Access Token:**
   ```json
   {
     "grant_type": "refresh_token",
@@ -293,7 +293,7 @@ Updates editable fields on the user's profile.
 
 ---
 
-## 4. Frontend Integration Guide: Authentication & Dev Simulation
+## 4. Frontend Integration Guide: Authentication
 
 ### How the Sign-In Flow Works for End Users (100% Automated)
 In production and regular use, **the user never touches or sees a `login_code`**. The frontend coordinates the handshake automatically:
@@ -315,29 +315,18 @@ sequenceDiagram
     Note over API: Backend exchanges code with GitHub,<br/>upserts user in Postgres, generates login_code
     API-->>Web: Redirects to http://localhost:3000/auth/callback?login_code=lc_...
     Note over Web: Callback page automatically extracts login_code from URL
-    Web->>API: POST /v1/auth/token { grant_type: "login_code", login_code: "..." }
+    Web->>API: POST /v1/auth/token { grant_type: "login_code", login_code, code_verifier }
     API-->>Web: Returns access_token (15m), refresh_token (30d), user profile
     Web->>Web: Saves tokens in memory/storage
     Web-->>User: Redirects to dashboard (/feed or /onboarding)
 ```
 
-### Is Dev Simulation Mode Industry Standard?
-**Yes, absolutely.** In modern software development (e.g. Stripe, GitHub, Google, Vercel), this pattern is known as **Auth Stubbing / Mock Provider Bypass**. 
+### Signing in during local development
+There is no sign-in bypass: every sign-in goes through GitHub, so a made-up `login_code` is always refused. To sign in locally, create a GitHub OAuth app for yourself (see `.env.example`) and put its client ID and secret in your `.env`. Tests fake GitHub's side of the exchange instead (see `apps/api/tests/conftest.py`).
 
-Running real third-party OAuth on every local developer machine introduces severe bottlenecks:
-1. **Third-Party Rate Limits & 2FA:** Automated CI test suites and local testing can trip GitHub anti-bot systems or 2FA prompts.
-2. **Offline Development:** Engineers working offline or in low-connectivity settings cannot sign in with real GitHub.
-3. **Multi-User Personas:** Testing interactions between two developers (e.g. Idea Creator Ada vs Collaborator Tunde) would otherwise require managing multiple real GitHub accounts.
+### How the Frontend Signs In
 
-With our simulation mode, frontend engineers can switch personas and sign in instantly without touching external servers.
-
----
-
-### How the Frontend Implements Dev Mode vs Live Mode
-
-The frontend can easily support both modes using a simple environment variable or a "Quick Dev Login" button on the login screen during development (`NODE_ENV === "development"`):
-
-#### Option A: Normal Sign-in (Live GitHub or Standard Redirect)
+#### Steps
 1. Generate PKCE pair (`code_verifier` and `code_challenge`). Store `code_verifier` in `sessionStorage`.
 2. Frontend calls `POST /v1/auth/oauth/github/start` passing `code_challenge`.
 3. Redirects browser to `authorize_url`.
@@ -375,26 +364,6 @@ export async function generatePKCE() {
 }
 ```
 
-#### Option B: Instant Dev Bypass (No GitHub Required)
-During local development, the frontend can bypass the external redirect entirely:
-```typescript
-// Example: Dev-only instant login helper (apps/web)
-async function devLogin(developerHandle: string = "developer_samuel") {
-  const response = await fetch("http://localhost:8000/v1/auth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "login_code",
-      login_code: `lc_gh_${developerHandle}`,
-    }),
-  });
-  
-  const { data } = await response.json();
-  // data contains: access_token, refresh_token, and user profile!
-  saveAuthSession(data);
-}
-```
-
 ---
 
 ### Silent Token Refreshing (Staying Logged In)
@@ -411,5 +380,4 @@ async function devLogin(developerHandle: string = "developer_samuel") {
   }
   ```
 * Save the new `access_token` and the new rotated `refresh_token`, then retry the original failed request. The user experiences zero interruption.
-
-
+* Refresh tokens, login codes and OAuth states are kept in the API's memory for now. A restart cancels sign-ins in progress and forgets logouts (a logged-out refresh token works again until it expires), so run a single API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.

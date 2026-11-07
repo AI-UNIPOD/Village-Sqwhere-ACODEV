@@ -25,9 +25,10 @@ pnpm db:up                   # Postgres + pgvector
 `pnpm install` sets `core.hooksPath` to `.githooks`, so every commit is checked against the
 commit rule (AGENTS.md section 2). If a commit is rejected, the message tells you why.
 
-Settings live in `.env.example`. The defaults work for local development; copy values into
-`apps/web/.env.local` or your shell environment only when you need to change them. Never
-commit real secrets.
+Settings live in `.env.example`. The defaults work for local development, with one
+exception: the API needs `JWT_SECRET_KEY`. Copy `.env.example` to `.env` at the repo root and
+set it (the file says how to make one). To sign in locally, also add your own GitHub OAuth
+app's client ID and secret there. Tests need neither. Never commit real secrets.
 
 ### Everyday commands (run from the repo root)
 
