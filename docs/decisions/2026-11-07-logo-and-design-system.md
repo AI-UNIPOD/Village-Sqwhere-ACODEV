@@ -29,16 +29,17 @@ whole pixels), and no lockup with the name until one is drawn.
   the palaver tree and its meaning.
 - **The granary hut, compound, roofline (round three).** The granary reads as a "home"
   button at favicon size; the compound and roofline blur or look like other icons.
-- **A design system package in `packages/`.** No app imports it yet, so a workspace
-  package would be setup for later. The folder in `docs/` can move once `apps/web` uses it.
+- **A design system package in `packages/`.** Only `apps/web` uses it, through one CSS
+  import, so a workspace package would be extra setup with nothing gained yet.
 
 ## Consequences
 
 - Screens can be built straight from the tokens, in both themes, without new colour or
   spacing decisions.
-- `apps/web` does not import `tokens.css` yet, and the favicon is still the starter one.
-  The first real screen should add both, with a test.
-- `tokens.json` and `tokens.css` must change together; nothing checks this automatically
-  yet.
+- `apps/web` imports `tokens.css` straight from `docs/design-system/`, loads the fonts with
+  `next/font`, uses the logo as the tab icon, and the home page is drawn from the tokens.
+- Tests in `apps/web` check that `tokens.json` and `tokens.css` agree, that the `Logo`
+  component and `icon.svg` match the logo files, and that no app stylesheet uses a raw
+  colour. `AGENTS.md` tells every agent to build screens from the design system.
 - The lockup of the mark with the name, and real photography with signed releases, are
   still to do.

@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-07
 
-- docs: add design system with tokens and palaver tree logo (#6)
+- feat: add design system and use it in the web app (#6)
 - ci: run api tests against postgres with pgvector (#5)
 - feat(api): connected db and lookups endpoints (#2)
 

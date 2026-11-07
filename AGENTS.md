@@ -12,6 +12,8 @@ pushes.
 3. The README of the app you are working in (`apps/web/README.md` or `apps/api/README.md`).
    In `apps/web`, also read `apps/web/AGENTS.md`: Next.js 16 differs from older versions,
    and its own docs ship in `node_modules/next/dist/docs/`.
+4. For any screen or UI change, `docs/design-system/README.md` and the doc for the part you
+   are building.
 
 `CONTRIBUTING.md` has setup and the step-by-step workflow. This file has the rules.
 
@@ -62,6 +64,11 @@ PostgreSQL with pgvector, hosted on Systalink.
 - Every screen handles loading, empty, error and success states.
 - Every user-facing word exists in English and French.
 - Accessible by default: semantic HTML, labelled inputs, keyboard use, readable contrast.
+- Build every screen from the design system in `docs/design-system/`. Colours, type,
+  spacing, radius, shadows and motion come only from its tokens (`var(--text)`,
+  `var(--space-4)`, `font: var(--type-body)`), never raw values: a test fails on any hex,
+  `rgb()` or `hsl()` colour in `apps/web/app`. Use the `Logo` component for the logo. If a
+  value you need is missing, ask; do not invent one.
 - Mobile first: it must work at 360px wide. Many of our users are on phones and slow
   connections, so keep pages light and avoid heavy assets.
 - Error messages say what happened and what the person can do next.
