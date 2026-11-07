@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-07
 
-- ci: run api tests against postgres with pgvector (#4)
+- ci: run api tests against postgres with pgvector (#5)
 
 ## 2026-11-04
 
