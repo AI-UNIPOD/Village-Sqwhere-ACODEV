@@ -68,11 +68,42 @@ jobs:
 
   api:
     runs-on: ubuntu-latest
+    # Same database, user and image as infra/docker-compose.yml, so tests that need
+    # Postgres behave the same in CI as on a laptop.
+    services:
+      db:
+        image: pgvector/pgvector:0.8.7-pg17
+        env:
+          POSTGRES_USER: village
+          POSTGRES_PASSWORD: village
+          POSTGRES_DB: village_sqwhere
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U village -d village_sqwhere"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://village:village@localhost:5432/village_sqwhere
     defaults:
       run:
         working-directory: apps/api
     steps:
       - uses: actions/checkout@v7
+      # A service container starts before checkout, so it cannot mount infra/db/init
+      # the way docker compose does. Apply the same scripts, in the same order, here.
+      - name: Set up the database from infra/db/init
+        working-directory: .
+        env:
+          DB_CONTAINER: ${{ job.services.db.id }}
+        run: |
+          for f in infra/db/init/*.sql; do
+            echo "Applying $f"
+            docker exec -i "$DB_CONTAINER" psql -v ON_ERROR_STOP=1 -U village -d village_sqwhere < "$f"
+          done
+          docker exec "$DB_CONTAINER" psql -U village -d village_sqwhere -tAc \
+            "SELECT extname FROM pg_extension WHERE extname = 'vector'" | grep -qx vector
       - uses: astral-sh/setup-uv@v10.3.0
         with:
           enable-cache: true

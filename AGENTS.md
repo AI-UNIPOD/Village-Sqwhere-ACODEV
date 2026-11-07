@@ -212,5 +212,9 @@ pnpm lint:web && pnpm test:web && pnpm build:web
 pnpm lint:api && pnpm test:api
 ```
 
+API tests that use the database need it running first: `pnpm db:up` (Docker). A test that
+fails with "connection refused" means the database is not running, not that the code is
+wrong.
+
 CI runs the same checks, plus the pull request title rule, the dash check and a secret
 scan. Nothing merges on red.
