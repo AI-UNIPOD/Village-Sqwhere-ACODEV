@@ -1,5 +1,5 @@
 -- =============================================================================
--- ACODEV 2026 — PostgreSQL schema, v1
+-- ACODEV 2026: PostgreSQL schema, v1
 -- African Developer Exchange & Collaboration Network
 --
 -- Target   : PostgreSQL 14+ (tested on PostgreSQL 16.15)
