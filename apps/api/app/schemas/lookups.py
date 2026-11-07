@@ -21,4 +21,3 @@ class TechnologyRef(BaseModel):
 
 class TechnologiesListResponse(BaseModel):
     data: list[TechnologyRef]
-

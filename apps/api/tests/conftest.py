@@ -24,4 +24,3 @@ def override_db_dependency() -> AsyncGenerator[None]:
     app.dependency_overrides[get_db] = override_get_db
     yield
     app.dependency_overrides.clear()
-
