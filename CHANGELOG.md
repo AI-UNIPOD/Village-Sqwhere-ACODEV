@@ -11,6 +11,7 @@ its number:
 ## 2026-11-07
 
 - ci: run api tests against postgres with pgvector (#5)
+- feat(api): connected db and lookups endpoints (#2)
 
 ## 2026-11-04
 
