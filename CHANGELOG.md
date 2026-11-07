@@ -10,9 +10,9 @@ its number:
 
 ## 2026-11-07
 
+- feat(api): add oauth authentication and user profile endpoints (#3)
 - ci: run api tests against postgres with pgvector (#5)
 - feat(api): connected db and lookups endpoints (#2)
-- feat(api): add oauth authentication and user profile endpoints (#3)
 
 ## 2026-11-04
 
