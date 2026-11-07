@@ -24,4 +24,3 @@ def test_search_technologies() -> None:
     assert isinstance(payload["data"], list)
     slugs = [tech["slug"] for tech in payload["data"]]
     assert any("py" in slug for slug in slugs)
-

@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+# Checks a commit message against the rule in AGENTS.md section 2.
+# CI runs this same file on pull request titles.
+
+# git's own message when merging main into a branch; squash merging keeps it off main
+git_dir=$(git rev-parse --git-dir 2>/dev/null)
+if [ -n "$git_dir" ] && [ -f "$git_dir/MERGE_HEAD" ]; then
+  exit 0
+fi
+
+# drop comments, blank lines, and the diff that "git commit -v" adds below the scissors line
+msg=$(sed '/^# -* >8 -*$/,$d' "$1" | grep -v '^#' | sed '/^[[:space:]]*$/d')
+count=$(printf '%s\n' "$msg" | wc -l | tr -d ' ')
+line=$(printf '%s\n' "$msg" | head -n 1)
+types='feat|fix|docs|refactor|test|perf|build|ci|style|chore|revert'
+pattern="^($types)(\([a-z0-9-]+\))?: [a-z0-9].*[^.]$"
+
+if [ -z "$msg" ] || [ "$count" -ne 1 ]; then
+  echo "Commit message must be exactly one line. No body, no trailers."; exit 1
+fi
+if ! printf '%s' "$line" | grep -Eq "$pattern"; then
+  echo "Use: <type>(<scope>): <what was done>, lowercase, no full stop. See AGENTS.md section 2."
+  echo "Got: $line"; exit 1
+fi
+if [ ${#line} -gt 72 ]; then
+  echo "Keep the line to 72 characters or fewer (this one is ${#line})."; exit 1
+fi
+dashes="$(printf '\342\200\224')|$(printf '\342\200\223')"
+if printf '%s' "$line" | grep -Eq "$dashes"; then
+  echo "No em dashes or en dashes in commit messages."; exit 1
+fi

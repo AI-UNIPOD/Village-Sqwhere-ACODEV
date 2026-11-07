@@ -1,8 +1,9 @@
 # Contributing to Village Sqwhere
 
-This guide is for the team. It covers setup, how we branch, how we write commits, and how
-changes reach `main`. The [README](README.md) is the public face of the project; keep
-team-only detail here.
+This guide is for the team: setup, everyday commands, and how a change gets from your
+computer to `main`. The rules themselves (code quality, commits, review, docs, security,
+and what coding agents may and may not do) are in [AGENTS.md](AGENTS.md). Read it first;
+your coding agent reads it too. The [README](README.md) is the public face of the project.
 
 ## Setup
 
@@ -16,10 +17,13 @@ Prerequisites:
 git clone https://github.com/AI-UNIPOD/Village-Sqwhere-ACODEV.git
 cd Village-Sqwhere-ACODEV
 corepack enable              # once per machine; provides pnpm at the version in package.json
-pnpm install                 # web dependencies
+pnpm install                 # web dependencies, and turns on the commit message hook
 uv sync --directory apps/api # API dependencies (pnpm dev:api also does this)
 pnpm db:up                   # Postgres + pgvector
 ```
+
+`pnpm install` sets `core.hooksPath` to `.githooks`, so every commit is checked against the
+commit rule (AGENTS.md section 2). If a commit is rejected, the message tells you why.
 
 Settings live in `.env.example`. The defaults work for local development; copy values into
 `apps/web/.env.local` or your shell environment only when you need to change them. Never
@@ -31,68 +35,64 @@ commit real secrets.
 | --- | --- |
 | `pnpm dev:web` | Web app on http://localhost:3000 |
 | `pnpm dev:api` | API on http://localhost:8000 (interactive docs at `/docs`) |
-| `pnpm lint:web` / `pnpm build:web` | Lint / production-build the web app |
-| `pnpm lint:api` / `pnpm test:api` | Lint / test the API |
+| `pnpm lint:web` / `pnpm test:web` / `pnpm build:web` | Lint / test / production-build the web app |
+| `pnpm lint:api` / `pnpm test:api` | Lint and format-check / test the API (tests that use the database need `pnpm db:up` first) |
 | `pnpm db:up` / `pnpm db:down` | Start / stop the local database |
 
-## Branching: GitHub Flow
+For tests that re-run as you save, use `pnpm --filter web exec vitest` (web) or
+`uv run --directory apps/api pytest -x` (API).
 
-- `main` is always working and deployable. Don't commit to it directly; open a pull request.
-- Create a short-lived branch from the latest `main` for each piece of work:
+## How a change gets to `main`
 
-  ```bash
-  git switch main && git pull
-  git switch -c feat/idea-matching
-  ```
+1. **Start from the latest `main`** and make a branch named `<type>/<short-description>`:
 
-- Name branches `<type>/<short-description>` in lowercase with hyphens, using the commit types
-  below: `feat/hub-chat`, `fix/login-redirect`, `docs/api-setup`, `chore/update-deps`.
-- Keep branches small and merge them within a day or two. Rebase on or merge `main` if it moves.
-- Delete the branch after it is merged.
+   ```bash
+   git switch main && git pull
+   git switch -c feat/idea-matching
+   ```
 
-## Commit messages
+2. **Build in small steps.** Commit as you go; every message is one line in the
+   conventional format, for example `feat(web): add the idea form`.
+3. **Document it in the same branch:** a line in `CHANGELOG.md`, a decision record if you
+   made a choice someone might question, and any README or doc your change makes wrong
+   (AGENTS.md section 4).
+4. **Run the checks** and fix what fails:
 
-Every commit message is **one line** in [Conventional Commits](https://www.conventionalcommits.org/)
-format, with **no body and no trailers** (no `Co-authored-by:`, `Signed-off-by:` or similar).
+   ```bash
+   pnpm lint:web && pnpm test:web && pnpm build:web
+   pnpm lint:api && pnpm test:api
+   ```
 
-```text
-<type>(<optional scope>): <summary in lowercase, imperative, no full stop>
-```
+5. **Push and open a pull request** into `main`. The title is a one-line conventional
+   commit, because we squash merge and the title becomes the commit on `main`. Fill in the
+   template.
+6. **Wait for CI to go green** (below), then ask a teammate to review.
+7. **Answer every review comment.** Push fixes to the same branch.
+8. **Squash merge** once CI is green and a teammate has approved, then delete the branch.
 
-Examples:
+If `main` moves while you work, merge it into your branch (`git merge main`). Do not start a
+branch from another unmerged branch.
 
-```text
-feat(api): add idea embedding endpoint
-fix(web): keep language choice after reload
-docs: explain how to reset the local database
-```
+## What CI checks
 
-Types: `feat` (new feature), `fix` (bug fix), `docs` (documentation only), `style`
-(formatting), `refactor` (no behaviour change), `perf`, `test`, `build` (dependencies, build
-setup), `ci`, `chore` (maintenance).
+GitHub Actions runs `.github/workflows/ci.yml` on every pull request and on every push to
+`main`. Each check shows as a line on the pull request:
 
-Scopes: `web`, `api`, `infra`, `docs`, or leave the scope out when a change spans several.
+| Check | What it does |
+| --- | --- |
+| `pr-title` | The title follows the one-line commit rule |
+| `dash-check` | No em dashes or en dashes in the files you changed |
+| `web` | Installs from the lockfile, then lints, tests and builds the web app |
+| `api` | Starts Postgres with pgvector, applies `infra/db/init/`, then installs from the lockfile, lints, format-checks and tests the API |
+| `secret-scan` | gitleaks looks through the whole history for keys and passwords |
 
-## Pull requests
+If a check fails, click it to read the log, fix the problem on your branch and push again.
+CI re-runs on its own.
 
-1. Push your branch and open a pull request into `main`. The template will guide you.
-2. **The PR title is a one-line conventional commit** (same rules as above), because we
-   **squash merge**: the PR title becomes the single commit on `main`.
-3. Before asking for review: `pnpm lint:web`, `pnpm build:web`, `pnpm lint:api` and
-   `pnpm test:api` pass.
-4. Get at least one teammate's review, then squash merge.
-
-## Document as you go
-
-Every change ships with its documentation in the same pull request:
-
-- New setup steps, commands or environment variables go in this file and `.env.example`.
-- Changes to what the product does or how to run it go in `README.md` **and** `README.fr.md`.
-  Keep the two in step.
-- Design changes go in `docs/architecture.md`.
-- App-specific notes go in `apps/web/README.md` or `apps/api/README.md`.
+There is no automatic deployment yet. A deploy job will be added once the team has access
+to the Systalink platform (see `infra/README.md`).
 
 ## Languages
 
-The product is bilingual (English and French). The public README exists in both languages;
-team docs such as this one are in English.
+The product is bilingual (English and French). The public README exists in both languages
+and the two must stay in step; team docs such as this one are in English.
