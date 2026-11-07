@@ -30,7 +30,7 @@ def create_access_token(user_id: UUID | str) -> str:
 def decode_access_token(token: str) -> dict[str, object] | None:
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") not in (None, "access"):
+        if payload.get("type") != "access":
             return None
         return payload
     except (jwt.ExpiredSignatureError, jwt.PyJWTError):
@@ -70,4 +70,4 @@ def generate_code_challenge_s256(code_verifier: str) -> str:
 
 def verify_pkce(code_verifier: str, code_challenge: str) -> bool:
     expected = generate_code_challenge_s256(code_verifier)
-    return expected == code_challenge
+    return secrets.compare_digest(expected, code_challenge)

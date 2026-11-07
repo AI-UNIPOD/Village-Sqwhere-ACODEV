@@ -25,9 +25,18 @@ CORS_ORIGINS = [
     if origin.strip()
 ]
 
-JWT_SECRET_KEY = os.getenv(
-    "JWT_SECRET_KEY", "acodev-insecure-dev-secret-key-change-in-production-12345"
-)
+
+def require_jwt_secret(value: str | None) -> str:
+    # No default: a known fallback secret would let anyone sign their own tokens.
+    if not value or len(value) < 32:
+        raise RuntimeError(
+            "JWT_SECRET_KEY must be set to a random value of at least 32 characters. "
+            'Make one with: python -c "import secrets; print(secrets.token_urlsafe(48))"'
+        )
+    return value
+
+
+JWT_SECRET_KEY = require_jwt_secret(os.getenv("JWT_SECRET_KEY"))
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_SECONDS = int(os.getenv("ACCESS_TOKEN_EXPIRE_SECONDS", 900))  # 15 minutes
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 30))  # 30 days

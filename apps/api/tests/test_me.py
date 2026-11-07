@@ -1,5 +1,7 @@
+import jwt
 from fastapi.testclient import TestClient
 
+from app.config import JWT_ALGORITHM, JWT_SECRET_KEY
 from app.main import app
 
 client = TestClient(app)
@@ -17,20 +19,18 @@ def test_get_me_unauthorized() -> None:
     assert resp_bad.json()["detail"]["code"] == "TOKEN_EXPIRED"
 
 
-def test_get_and_patch_me_authorized() -> None:
-    verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+def test_access_token_without_the_access_type_is_rejected() -> None:
+    claims = {"sub": "00000000-0000-0000-0000-000000000001", "exp": 4102444800}
+    token = jwt.encode(claims, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
-    # 1. Sign in to obtain access token
-    login_resp = client.post(
-        "/v1/auth/token",
-        json={
-            "grant_type": "login_code",
-            "login_code": "lc_gh_me_test_developer_123",
-            "code_verifier": verifier,
-        },
-    )
-    assert login_resp.status_code == 200
-    data = login_resp.json()["data"]
+    resp = client.get("/v1/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert resp.status_code == 401
+    assert resp.json()["detail"]["code"] == "TOKEN_EXPIRED"
+
+
+def test_get_and_patch_me_authorized(sign_in) -> None:
+    data = sign_in()
     access_token = data["access_token"]
     user_id = data["user"]["id"]
 
