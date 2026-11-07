@@ -31,4 +31,3 @@ async def update_my_profile(
     await db.commit()
     await db.refresh(current_user)
     return MeResponse(data=user_to_profile(current_user))
-

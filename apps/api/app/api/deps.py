@@ -46,9 +46,7 @@ def user_to_profile(user: User) -> UserProfile:
     identities = [
         UserIdentityRef(
             provider=(
-                ident.provider.value
-                if hasattr(ident.provider, "value")
-                else str(ident.provider)
+                ident.provider.value if hasattr(ident.provider, "value") else str(ident.provider)
             ),
             provider_username=ident.provider_username,
             linked_at=ident.linked_at,
@@ -82,9 +80,7 @@ def user_to_profile(user: User) -> UserProfile:
 
 async def get_current_user(
     db: DbSession,
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Depends(security_bearer)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security_bearer)],
 ) -> User:
     if not credentials or credentials.scheme.lower() != "bearer":
         raise HTTPException(

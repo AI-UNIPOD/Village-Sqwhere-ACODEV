@@ -63,4 +63,3 @@ class UserProfileUpdate(BaseModel):
     last_name: str | None = None
     bio: str | None = None
     email: str | None = None
-

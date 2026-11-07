@@ -11,4 +11,3 @@ __all__ = [
     "generate_code_challenge_s256",
     "verify_pkce",
 ]
-

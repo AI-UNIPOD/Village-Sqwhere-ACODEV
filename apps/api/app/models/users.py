@@ -33,9 +33,7 @@ class PlatformRole(StrEnum):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[UUID] = mapped_column(
-        PgUUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
     username: Mapped[str] = mapped_column(String(39), unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(80), nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -57,12 +55,8 @@ class User(Base):
         default=PlatformRole.MEMBER,
         nullable=False,
     )
-    verified_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    is_verified: Mapped[bool] = mapped_column(
-        Boolean, server_default="false", nullable=False
-    )
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, server_default="false", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -72,9 +66,7 @@ class User(Base):
         onupdate=func.now(),
         nullable=False,
     )
-    deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     identities: Mapped[list["UserIdentity"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", lazy="selectin"
@@ -93,9 +85,7 @@ class User(Base):
 class UserIdentity(Base):
     __tablename__ = "user_identities"
 
-    id: Mapped[UUID] = mapped_column(
-        PgUUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
         PgUUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -116,9 +106,7 @@ class UserIdentity(Base):
     linked_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    last_login_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="identities")
 
@@ -137,9 +125,7 @@ class UserRole(Base):
         primary_key=True,
     )
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    verified_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
