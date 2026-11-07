@@ -28,4 +28,6 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
 
 - Monorepo with one folder per app (`apps/web`, `apps/api`), shared tooling at the root.
 - pnpm workspace for JavaScript, uv for Python, Docker Compose for local services.
-- GitHub Flow with squash merges (see `CONTRIBUTING.md`).
+- GitHub Flow with squash merges (see `AGENTS.md` and `CONTRIBUTING.md`).
+
+Each decision someone might question gets a record in `docs/decisions/`.

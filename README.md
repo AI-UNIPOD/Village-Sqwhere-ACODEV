@@ -50,8 +50,10 @@ apps/
   web/        Next.js web app
   api/        FastAPI service
 infra/        local database (Docker) and deployment notes
-docs/         architecture and project docs
-.github/      pull request template
+docs/         architecture, decisions and progress
+.github/      CI workflow and pull request template
+AGENTS.md     rules for the team and their coding agents
+CHANGELOG.md  what changed, newest first
 ```
 
 ## Run it locally
@@ -75,8 +77,8 @@ version and the API dependencies automatically the first time.
 
 ## Contributing
 
-Team members: see [CONTRIBUTING.md](CONTRIBUTING.md) for setup details, branching and commit
-conventions.
+Team members: read [AGENTS.md](AGENTS.md) for the rules (your coding agent reads it too)
+and [CONTRIBUTING.md](CONTRIBUTING.md) for setup and how a change reaches `main`.
 
 ## License
 

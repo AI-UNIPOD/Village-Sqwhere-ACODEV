@@ -1,0 +1,129 @@
+name: ci
+
+# Every job runs on every pull request, so a check is never skipped by accident.
+# The same commands run locally: see AGENTS.md section 8.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Pull request title follows the commit rule
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$TITLE" > "$RUNNER_TEMP/title"
+          sh .githooks/commit-msg "$RUNNER_TEMP/title"
+
+  dash-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: No em dashes or en dashes in changed files
+        run: |
+          # lockfiles and the block Next.js writes into apps/web/AGENTS.md are generated
+          changed=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }}...HEAD -- \
+            ':!pnpm-lock.yaml' ':!apps/api/uv.lock' ':!apps/web/AGENTS.md')
+          if [ -z "$changed" ]; then
+            echo "No changed files to check."
+            exit 0
+          fi
+          # match the UTF-8 bytes directly so the check does not depend on the runner's locale
+          em=$(printf '\342\200\224'); en=$(printf '\342\200\223')
+          if printf '%s\n' "$changed" | LC_ALL=C xargs -d '\n' grep -IlF -e "$em" -e "$en"; then
+            echo "Em dash or en dash found in the files above. Use a comma, colon, full stop or brackets."
+            exit 1
+          fi
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint:web
+      - run: pnpm test:web
+      - run: pnpm build:web
+
+  api:
+    runs-on: ubuntu-latest
+    # Same database, user and image as infra/docker-compose.yml, so tests that need
+    # Postgres behave the same in CI as on a laptop.
+    services:
+      db:
+        image: pgvector/pgvector:0.8.7-pg17
+        env:
+          POSTGRES_USER: village
+          POSTGRES_PASSWORD: village
+          POSTGRES_DB: village_sqwhere
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U village -d village_sqwhere"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://village:village@localhost:5432/village_sqwhere
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v7
+      # A service container starts before checkout, so it cannot mount infra/db/init
+      # the way docker compose does. Apply the same scripts, in the same order, here.
+      - name: Set up the database from infra/db/init
+        working-directory: .
+        env:
+          DB_CONTAINER: ${{ job.services.db.id }}
+        run: |
+          for f in infra/db/init/*.sql; do
+            echo "Applying $f"
+            docker exec -i "$DB_CONTAINER" psql -v ON_ERROR_STOP=1 -U village -d village_sqwhere < "$f"
+          done
+          docker exec "$DB_CONTAINER" psql -U village -d village_sqwhere -tAc \
+            "SELECT extname FROM pg_extension WHERE extname = 'vector'" | grep -qx vector
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP" gitleaks
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Scan the full history for secrets
+        run: gitleaks git --redact --verbose .
