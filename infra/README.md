@@ -18,6 +18,10 @@ database, run `docker compose -f infra/docker-compose.yml down -v`, then `pnpm d
 The local credentials (`village` / `village`) are for development only. They match
 `DATABASE_URL` in the root `.env.example`.
 
+CI uses the same image and credentials, and applies the same `db/init/` scripts in the same
+order before the API tests (see the `api` job in `.github/workflows/ci.yml`). A new init
+script therefore runs in CI too, and it must work on an empty database.
+
 ## Deployment (Systalink)
 
 ACODev 2026 requires the app to run on Systalink's platform (platform.systalink.com).

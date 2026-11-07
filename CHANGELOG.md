@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-07
+
+- ci: run api tests against postgres with pgvector (#4)
+
 ## 2026-11-04
 
 - chore(repo): add agent rules, commit hook, ci and team workflow (#1)

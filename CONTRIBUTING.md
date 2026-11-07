@@ -36,7 +36,7 @@ commit real secrets.
 | `pnpm dev:web` | Web app on http://localhost:3000 |
 | `pnpm dev:api` | API on http://localhost:8000 (interactive docs at `/docs`) |
 | `pnpm lint:web` / `pnpm test:web` / `pnpm build:web` | Lint / test / production-build the web app |
-| `pnpm lint:api` / `pnpm test:api` | Lint and format-check / test the API |
+| `pnpm lint:api` / `pnpm test:api` | Lint and format-check / test the API (tests that use the database need `pnpm db:up` first) |
 | `pnpm db:up` / `pnpm db:down` | Start / stop the local database |
 
 For tests that re-run as you save, use `pnpm --filter web exec vitest` (web) or
@@ -83,7 +83,7 @@ GitHub Actions runs `.github/workflows/ci.yml` on every pull request and on ever
 | `pr-title` | The title follows the one-line commit rule |
 | `dash-check` | No em dashes or en dashes in the files you changed |
 | `web` | Installs from the lockfile, then lints, tests and builds the web app |
-| `api` | Installs from the lockfile, then lints, format-checks and tests the API |
+| `api` | Starts Postgres with pgvector, applies `infra/db/init/`, then installs from the lockfile, lints, format-checks and tests the API |
 | `secret-scan` | gitleaks looks through the whole history for keys and passwords |
 
 If a check fails, click it to read the log, fix the problem on your branch and push again.
