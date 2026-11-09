@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import CurrentUser, DbSession, user_to_profile
 from app.schemas.users import MeResponse, UserProfileUpdate
@@ -25,9 +26,23 @@ async def update_my_profile(
         current_user.last_name = payload.last_name
     if payload.bio is not None:
         current_user.bio = payload.bio
-    if payload.email is not None:
+    if payload.email is not None and payload.email != current_user.email:
         current_user.email = payload.email
+        # The new address has not been verified yet.
+        current_user.email_verified_at = None
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # The input is already checked against the table's CHECK constraints, so the one
+        # rule left to break is the unique email.
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "EMAIL_TAKEN",
+                "message": "Another account already uses this email. Use a different one.",
+            },
+        ) from None
     await db.refresh(current_user)
     return MeResponse(data=user_to_profile(current_user))

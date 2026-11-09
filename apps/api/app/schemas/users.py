@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.schemas.lookups import TechnologyRef
 
@@ -57,9 +58,22 @@ class MeResponse(BaseModel):
 
 
 class UserProfileUpdate(BaseModel):
+    # The limits match the CHECK constraints on the users table, so bad input gets a 422
+    # that names the field instead of a database error.
     username: str | None = None
-    display_name: str | None = None
-    first_name: str | None = None
-    last_name: str | None = None
-    bio: str | None = None
-    email: str | None = None
+    display_name: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)] | None
+    ) = None
+    first_name: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+        | None
+    ) = None
+    last_name: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+        | None
+    ) = None
+    bio: Annotated[str, StringConstraints(max_length=1000)] | None = None
+    email: (
+        Annotated[str, StringConstraints(max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
+        | None
+    ) = None

@@ -289,7 +289,9 @@ Updates editable fields on the user's profile.
     "email": "new-email@example.com"
   }
   ```
+* **Limits:** `display_name` 1 to 80 characters, `first_name` and `last_name` 1 to 100, after spaces at the start and end are removed. `bio` up to 1000 characters. `email` must look like `name@example.com`. A new email is saved as not verified.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
+* **Error Responses:** `422` when a field breaks a limit (the error names the field). `409` `EMAIL_TAKEN` when another account already uses the email, in any mix of upper and lower case.
 
 ---
 
