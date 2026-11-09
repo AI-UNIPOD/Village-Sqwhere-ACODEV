@@ -3,33 +3,34 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-4);
+  width: 100%;
   max-width: 720px;
   margin: 0 auto;
-  padding: 64px 16px;
+  padding: var(--space-16) var(--gutter);
+}
+
+/* clear space: a quarter of the logo's 64px on every side */
+.logo {
+  margin-bottom: var(--space-4);
 }
 
 .main h1 {
-  font-size: clamp(2.5rem, 8vw, 4rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  font: var(--type-display-xl);
+  letter-spacing: -0.02em;
 }
 
 .eyebrow {
-  font-family: var(--font-geist-mono);
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.6;
+  font: var(--type-label);
+  color: var(--text-muted);
 }
 
 .tagline {
-  font-size: 1.25rem;
-  line-height: 1.5;
-  opacity: 0.85;
+  font: var(--type-body-l);
+  max-width: 68ch;
 }
 
 .status {
-  font-family: var(--font-geist-mono);
-  opacity: 0.6;
+  font: var(--type-body-s);
+  color: var(--text-muted);
 }

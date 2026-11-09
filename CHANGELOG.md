@@ -11,6 +11,7 @@ its number:
 ## 2026-11-07
 
 - feat(api): add oauth authentication and user profile endpoints (#3)
+- feat: add design system and use it in the web app (#6)
 - ci: run api tests against postgres with pgvector (#5)
 - feat(api): connected db and lookups endpoints (#2)
 

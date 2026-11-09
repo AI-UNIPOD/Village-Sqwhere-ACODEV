@@ -4,7 +4,7 @@ Read this first, every session. Update "Current state" and "What's next" in plac
 finish meaningful work. Keep the whole file under 60 lines: history belongs in
 `CHANGELOG.md` and `docs/decisions/`, not here.
 
-## Current state (2026-11-04)
+## Current state (2026-11-07)
 
 - Monorepo in place: `apps/web` (Next.js 16, a placeholder home page and one Vitest test),
   `apps/api` (FastAPI with `/health` and one pytest test), `infra/` (Postgres 17 with
@@ -12,6 +12,8 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 - Team rules for people and agents are in `AGENTS.md`. CI runs on every pull request:
   title rule, dash check, web, api and secret scan.
 - No product features are built yet.
+- The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
+  `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 - GitHub does not enforce the rules on `main` yet (see
   `docs/decisions/2026-11-04-team-workflow-and-ci.md`). Until it does, the rules hold by
   team agreement.
