@@ -13,4 +13,6 @@ pnpm build:web
 ```
 
 Copy `.env.example` from the repo root to `apps/web/.env.local` if you need to override the API URL.
-Pages live in `app/`. See the root [CONTRIBUTING.md](../../CONTRIBUTING.md) for the team workflow.
+Pages live in `app/`. Style them only with the design system tokens, imported in
+`app/globals.css` from [`docs/design-system/`](../../docs/design-system/README.md), and use
+`Logo` from `app/logo.tsx` for the logo. See the root [CONTRIBUTING.md](../../CONTRIBUTING.md) for the team workflow.

@@ -53,7 +53,7 @@ apps/
   web/        application web Next.js
   api/        service FastAPI
 infra/        base de données locale (Docker) et notes de déploiement
-docs/         architecture, décisions et avancement
+docs/         architecture, décisions, avancement et système de design
 .github/      workflow de CI et modèle de pull request
 AGENTS.md     règles pour l'équipe et ses agents de code
 CHANGELOG.md  historique des changements, du plus récent au plus ancien
@@ -82,7 +82,9 @@ Lancez `pnpm dev:api` et `pnpm dev:web` dans deux terminaux séparés. Au premie
 
 Membres de l'équipe : lisez [AGENTS.md](AGENTS.md) pour les règles (votre agent de code le
 lit aussi) et [CONTRIBUTING.md](CONTRIBUTING.md) pour l'installation et le parcours d'un
-changement jusqu'à `main` (tous deux en anglais).
+changement jusqu'à `main` (tous deux en anglais). Vous construisez une interface ? Commencez
+par le [système de design](docs/design-system/README.md) : couleurs, typographie, composants,
+logo et façon d'écrire (en anglais).
 
 ## Licence
 

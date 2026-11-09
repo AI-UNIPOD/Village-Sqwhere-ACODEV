@@ -1,0 +1,214 @@
+/* Village Sqwhere design tokens. Source of truth: tokens.json. Keep the two in step.
+   Components use the semantic jobs (--bg, --text, --action...), never the raw palette. */
+
+:root {
+  /* palette */
+  --ink: #0B0C10;
+  --paper: #FFFFFF;
+  --laterite: #F0601F;
+  --laterite-700: #B23F0C;
+  --lagoon: #3DBFDB;
+  --lagoon-700: #0C6680;
+
+  /* type families */
+  --display: "Unbounded", system-ui, sans-serif;
+  --ui: "Onest", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* type scale: use as font: var(--type-body) */
+  --type-display-xl: 800 2.25rem/2.5rem var(--display);
+  --type-display-l: 800 1.75rem/2rem var(--display);
+  --type-display-m: 700 1.375rem/1.75rem var(--display);
+  --type-score: 800 2rem/1 var(--display);
+  --type-title: 600 1.125rem/1.5rem var(--ui);
+  --type-body-l: 400 1rem/1.5rem var(--ui);
+  --type-body: 400 1rem/1.5rem var(--ui);
+  --type-body-s: 400 0.875rem/1.25rem var(--ui);
+  --type-label: 600 0.9375rem/1.25rem var(--ui);
+  --type-caption: 500 0.75rem/1rem var(--ui);
+  --type-code: 400 0.875rem/1.25rem var(--mono);
+
+  /* spacing: --space-N is N x 4px */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* layout: change at 768px and 1100px below */
+  --gutter: var(--space-4);
+  --pad-card: var(--space-4);
+  --grid-gap: var(--space-5);
+  --section: var(--space-12);
+  --content-max: 1180px;
+  --tap-min: 44px;
+
+  /* corner radius */
+  --radius-xs: 4px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-full: 999px;
+
+  /* motion */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-strong: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-press: 160ms;
+  --dur-menu: 180ms;
+  --dur-menu-out: 120ms;
+  --dur-modal: 220ms;
+  --dur-modal-out: 150ms;
+  --dur-drawer: 400ms;
+  --dur-drawer-out: 260ms;
+  --dur-sheet: 500ms;
+  --dur-sheet-out: 320ms;
+  --dur-moment: 520ms;
+  --delay-spinner: 400ms;
+}
+
+@media (min-width: 768px) {
+  :root { --gutter: var(--space-6); --pad-card: var(--space-6); --grid-gap: var(--space-6); }
+}
+
+@media (min-width: 900px) {
+  :root {
+    --type-display-xl: 800 3.5rem/3.75rem var(--display);
+    --type-display-l: 800 2.5rem/2.75rem var(--display);
+    --type-display-m: 700 1.75rem/2rem var(--display);
+    --type-score: 800 2.5rem/1 var(--display);
+    --type-title: 600 1.25rem/1.75rem var(--ui);
+    --type-body-l: 400 1.125rem/1.75rem var(--ui);
+  }
+}
+
+@media (min-width: 1100px) {
+  :root { --gutter: var(--space-8); --section: var(--space-16); }
+}
+
+/* light (Paper): the default */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --surface-sunken: #F4F4F2;
+  --text: #0B0C10;
+  --text-muted: #5B5E68;
+  --line: #E0E0DC;
+  --line-strong: #878A93;
+  --action: #F0601F;
+  --action-hover: #DD581D;
+  --action-active: #D3541B;
+  --on-action: #0B0C10;
+  --link: #B23F0C;
+  --logo: #B23F0C;
+  --ai: #0C6680;
+  --ai-tint: #E8F7FB;
+  --success: #157A3E;
+  --success-fill: #34C26E;
+  --success-tint: #E7F8EE;
+  --warning: #8F5D00;
+  --warning-fill: #FFC53D;
+  --warning-tint: #FFF8E8;
+  --error: #B4163C;
+  --error-fill: #FF5C7A;
+  --error-tint: #FFEBEF;
+  --info: #0B0C10;
+  --info-tint: #F4F4F2;
+  --focus: #0B0C10;
+  --scrim: rgba(11, 12, 16, 0.55);
+  --shadow-1: 0 1px 2px rgba(11, 12, 16, 0.06), 0 2px 6px rgba(11, 12, 16, 0.06);
+  --shadow-2: 0 1px 3px rgba(11, 12, 16, 0.06), 0 6px 20px rgba(11, 12, 16, 0.1);
+  --shadow-3: 0 20px 56px rgba(11, 12, 16, 0.22);
+}
+
+/* dark (Ink): set data-theme="dark", or follow the system when no theme is set */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0B0C10;
+  --surface: #17191F;
+  --surface-raised: #20232B;
+  --surface-sunken: #17191F;
+  --text: #FFFFFF;
+  --text-muted: #A3A6B0;
+  --line: #262934;
+  --line-strong: #666A79;
+  --action: #F0601F;
+  --action-hover: #F2733A;
+  --action-active: #DD581D;
+  --on-action: #0B0C10;
+  --link: #F0601F;
+  --logo: #F0601F;
+  --ai: #3DBFDB;
+  --ai-tint: #132930;
+  --success: #34C26E;
+  --success-fill: #34C26E;
+  --success-tint: #12291F;
+  --warning: #FFC53D;
+  --warning-fill: #FFC53D;
+  --warning-tint: #322A17;
+  --error: #FF5C7A;
+  --error-fill: #FF5C7A;
+  --error-tint: #321921;
+  --info: #FFFFFF;
+  --info-tint: #17191F;
+  --focus: #FFFFFF;
+  --scrim: rgba(0, 0, 0, 0.62);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0B0C10;
+    --surface: #17191F;
+    --surface-raised: #20232B;
+    --surface-sunken: #17191F;
+    --text: #FFFFFF;
+    --text-muted: #A3A6B0;
+    --line: #262934;
+    --line-strong: #666A79;
+    --action: #F0601F;
+    --action-hover: #F2733A;
+    --action-active: #DD581D;
+    --on-action: #0B0C10;
+    --link: #F0601F;
+    --logo: #F0601F;
+    --ai: #3DBFDB;
+    --ai-tint: #132930;
+    --success: #34C26E;
+    --success-fill: #34C26E;
+    --success-tint: #12291F;
+    --warning: #FFC53D;
+    --warning-fill: #FFC53D;
+    --warning-tint: #322A17;
+    --error: #FF5C7A;
+    --error-fill: #FF5C7A;
+    --error-tint: #321921;
+    --info: #FFFFFF;
+    --info-tint: #17191F;
+    --focus: #FFFFFF;
+    --scrim: rgba(0, 0, 0, 0.62);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-3: 0 24px 64px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) {
+    --dur-menu: 120ms;
+    --dur-modal: 200ms;
+    --dur-moment: 200ms;
+  }
+}
