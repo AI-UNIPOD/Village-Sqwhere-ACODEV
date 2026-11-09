@@ -136,15 +136,18 @@ def _redirect_with_error(code: str) -> RedirectResponse:
 @router.get("/auth/oauth/{provider}/callback")
 async def oauth_callback(
     provider: Annotated[AuthProvider, Path()],
-    code: Annotated[str, Query()],
-    state: Annotated[str, Query()],
     db: DbSession,
+    code: Annotated[str | None, Query()] = None,
+    state: Annotated[str | None, Query()] = None,
 ) -> RedirectResponse:
     # The state must be one this server issued in /start, for this provider, and unused.
-    pending = _OAUTH_STATES.pop(state, None)
+    pending = _OAUTH_STATES.pop(state, None) if state else None
     now = datetime.now(UTC)
     if pending is None or pending[0] != provider or now > pending[3]:
         return _redirect_with_error("INVALID_STATE")
+    # When the person clicks Cancel, GitHub sends error=access_denied and no code.
+    if not code:
+        return _redirect_with_error("ACCESS_DENIED")
     _, code_challenge, redirect_uri, _ = pending
 
     is_new = False

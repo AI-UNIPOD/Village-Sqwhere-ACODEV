@@ -87,6 +87,31 @@ def test_callback_reports_when_github_refuses_the_code(
     assert callback_result(client, "mock_oauth_code_12345", state) == {"error": "ACCESS_DENIED"}
 
 
+def test_cancel_on_github_sends_the_person_back_with_access_denied(
+    client: TestClient, github: list[str]
+) -> None:
+    state = start_sign_in(client)
+
+    # What GitHub sends when the person clicks Cancel: an error and the state, no code.
+    resp = client.get(
+        "/v1/auth/oauth/github/callback",
+        params={"error": "access_denied", "state": state},
+        follow_redirects=False,
+    )
+
+    assert resp.status_code == 302
+    assert parse_qs(urlparse(resp.headers["location"]).query) == {"error": ["ACCESS_DENIED"]}
+    assert github == []
+    assert callback_result(client, "github-code-ada", state) == {"error": "INVALID_STATE"}
+
+
+def test_callback_without_a_state_redirects_instead_of_failing(client: TestClient) -> None:
+    resp = client.get("/v1/auth/oauth/github/callback", follow_redirects=False)
+
+    assert resp.status_code == 302
+    assert parse_qs(urlparse(resp.headers["location"]).query) == {"error": ["INVALID_STATE"]}
+
+
 def test_sign_in_through_github(client: TestClient, github: list[str]) -> None:
     state = start_sign_in(client)
     login_code = callback_result(client, "github-code-ada", state)["login_code"]
