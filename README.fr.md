@@ -70,10 +70,16 @@ git clone https://github.com/AI-UNIPOD/Village-Sqwhere-ACODEV.git
 cd Village-Sqwhere-ACODEV
 corepack enable        # fournit la version de pnpm fixée par le projet
 pnpm install
+cp .env.example .env   # puis renseignez JWT_SECRET_KEY dans .env (le fichier explique comment)
 pnpm db:up             # Postgres + pgvector sur localhost:5432
 pnpm dev:api           # API sur http://localhost:8000 (documentation sur /docs)
 pnpm dev:web           # application web sur http://localhost:3000 (dans un second terminal)
 ```
+
+L'API ne démarre pas sans `JWT_SECRET_KEY` : donnez-lui dans `.env` une valeur aléatoire d'au
+moins 32 caractères. Pour vous connecter avec GitHub en local, ajoutez-y aussi l'identifiant et
+le secret de votre propre application OAuth GitHub (voir [CONTRIBUTING.md](CONTRIBUTING.md), en
+anglais).
 
 Lancez `pnpm dev:api` et `pnpm dev:web` dans deux terminaux séparés. Au premier lancement,
 `uv` installe automatiquement la bonne version de Python et les dépendances de l'API.
