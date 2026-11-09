@@ -9,7 +9,7 @@ from sqlalchemy import func, update
 from app.config import JWT_ALGORITHM, JWT_SECRET_KEY
 from app.main import app
 from app.models.users import User
-from tests.conftest import test_async_session
+from tests.conftest import test_async_session as db_session
 
 client = TestClient(app)
 
@@ -20,7 +20,7 @@ def bearer(data: dict) -> dict[str, str]:
 
 def mark_email_verified(user_id: str) -> None:
     async def _mark() -> None:
-        async with test_async_session() as session:
+        async with db_session() as session:
             await session.execute(
                 update(User).where(User.id == UUID(user_id)).values(email_verified_at=func.now())
             )
