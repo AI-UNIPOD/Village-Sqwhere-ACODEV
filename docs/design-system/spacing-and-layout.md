@@ -40,6 +40,30 @@ Content is at most 1180px wide (`--content-max`), centred. Headings grow from 90
 between sections; `--space-8` (phone) or `--space-10` (wide) from a section heading to
 its content; cards in a grid with `--grid-gap`.
 
+## Landing page layout
+
+The landing page keeps a few values that are not on the 4px scale. Use them only there.
+
+| Token | Phone | From 768px | Use |
+| --- | --- | --- | --- |
+| `--nav-height` | 56 | 72 | Page header height |
+| `--nav-gap` | 12 | 20 up to 32 | Gap between header items |
+| `--nav-logo-size` | 24 | 28 up to 36 | Logo in the header |
+| `--brand-gap` | 10 | 10 | Logo to wordmark |
+| `--underline-offset` | 5 | 5 | Distance of a link underline from its text |
+| `--icon-toggle` | 18 | 18 | Sun and moon icon on the theme button |
+| `--tour-button-gap` | 28 | 28 | Space above the "Start the tour" button |
+| `--float-size` | 36 | 36 | Round floating buttons (language, theme). A 44px tap area surrounds each one |
+| `--float-top` | 10 | 18 | Distance of the language button from the top |
+| `--float-gutter` | 64 | 68 | Right space the header keeps clear of the floating buttons |
+| `--section-block` | 56 | 80 | Space above and below a landing section |
+| `--hero-min-height` | 600 | 600 | Shortest the hero gets |
+
+The hero also scales its buttons and gaps with the screen: `--hero-button-height` (44 up to
+54), `--hero-button-pad`, `--hero-button-font`, `--hero-sub-gap`, `--hero-cta-gap` and
+`--hero-cta-top`. Below 1324px the page content keeps 60px clear on its right for the
+floating buttons.
+
 ## Corner radius
 
 Small parts get small corners and big surfaces get big ones, so nested corners look even.
