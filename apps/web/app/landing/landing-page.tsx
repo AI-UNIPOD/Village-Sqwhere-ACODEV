@@ -41,7 +41,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
   const other: Lang = lang === "en" ? "fr" : "en";
 
   return (
-    <div className={styles.page}>
+    <div>
       <header className={styles.nav} data-site-header="">
         <Brand lang={lang} logoClass={styles.navLogo} wordmarkClass={styles.navWordmark} />
         <nav className={styles.navLinks} aria-label={t.navLabel}>
