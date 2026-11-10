@@ -64,10 +64,42 @@ Health check endpoint to verify backend service liveness.
 
 ### 🔍 Lookups & Vocabularies
 
+### The Concept of Slugs in Village Sqwhere
+
+Throughout Village Sqwhere, lookups (roles, technologies, topics) are identified by **slugs** rather than raw numeric IDs or display names.
+
+* **What is a slug?** A lowercase, URL-safe, hyphen-separated string (for example: `backend-engineer`, `react-native`, `vector-databases`). Slugs conform to the regex `^[a-z0-9]+(-[a-z0-9]+)*$`.
+* **Why use slugs instead of database IDs?**
+  * **Environment Independence:** Integer IDs can change between local, staging, and production depending on migration order. Slugs remain permanent and immutable across all databases.
+  * **Readability and Clean URLs:** Slugs can be placed directly into frontend routes (e.g., `/roles/frontend-engineer`) and API path parameters (`/v1/me/roles/{role_slug}`) without exposing database internals.
+* **Why use slugs instead of display names?**
+  * Display names contain spaces, slashes, and symbols (e.g., `AI / ML Engineer`, `Node.js`, `CI/CD`). Slugs avoid URL encoding and whitespace bugs.
+  * Display names can be rebranded or localized in the UI without breaking backend API contracts or database foreign keys.
+* **The Golden Rule for Frontend Developers & Agents:**
+  * **Displaying in UI:** Always show `name` to human users (e.g., "DevOps & Cloud Engineer").
+  * **Sending to API:** Always send `slug` in request payloads, path parameters, and query parameters (e.g., `"devops-cloud-engineer"`).
+* **Single Taxonomy Notice:** The `technologies` lookup table is the platform's single source of truth for developer skills, project requirements, and feed topic tags. That is why both `PUT /v1/me/technologies` and `PUT /v1/me/feed-topics` accept lists of technology slugs.
+
+---
+
 #### `GET /v1/roles`
 Fetches all active platform engineering roles (e.g. for registration, role pickers, or idea collaborator requirements).
 
 * **Authentication:** None
+* **Complete List of Seeded Roles (9 total):**
+
+| Slug | Display Name |
+| :--- | :--- |
+| `ai-ml-engineer` | AI / ML Engineer |
+| `backend-engineer` | Backend & Systems Engineer |
+| `devops-cloud-engineer` | DevOps & Cloud Engineer |
+| `embedded-iot-engineer` | Embedded Systems & IoT Engineer |
+| `frontend-engineer` | Frontend Engineer |
+| `mlops-data-engineer` | MLOps & Data Engineer |
+| `mobile-engineer` | Mobile Engineer |
+| `security-engineer` | Cybersecurity & Smart Contract Auditor |
+| `ui-ux-engineer` | UI/UX Engineer & Product Architect |
+
 * **Success Response (200 OK):**
   ```json
   {
@@ -79,10 +111,6 @@ Fetches all active platform engineering roles (e.g. for registration, role picke
       {
         "slug": "backend-engineer",
         "name": "Backend & Systems Engineer"
-      },
-      {
-        "slug": "ai-ml-engineer",
-        "name": "AI / ML Engineer"
       }
     ]
   }
@@ -96,6 +124,30 @@ Search or browse active technologies, frameworks, and tools.
 * **Query Parameters:**
   * `q` *(optional, string, 1 to 40 chars)*: Case-insensitive prefix search (e.g., `?q=py` returns Python, PyTorch).
   * `limit` *(optional, integer, 1 to 50, default: 20)*: Maximum number of results to return.
+* **Complete List of Seeded Technologies (19 total):**
+
+| Slug | Display Name |
+| :--- | :--- |
+| `ci-cd` | CI/CD |
+| `computer-vision` | Computer Vision |
+| `docker` | Docker |
+| `flutter` | Flutter |
+| `go` | Go |
+| `java` | Java |
+| `kubernetes` | Kubernetes |
+| `llms` | LLMs |
+| `nodejs` | Node.js |
+| `postgresql` | PostgreSQL |
+| `python` | Python |
+| `pytorch` | PyTorch |
+| `react` | React |
+| `react-native` | React Native |
+| `rust` | Rust |
+| `tensorflow` | TensorFlow |
+| `terraform` | Terraform |
+| `vector-databases` | Vector Databases |
+| `vue` | Vue |
+
 * **Success Response (200 OK):**
   ```json
   {
@@ -292,6 +344,116 @@ Updates editable fields on the user's profile.
 * **Limits:** `display_name` 1 to 80 characters, `first_name` and `last_name` 1 to 100, after spaces at the start and end are removed. `bio` up to 1000 characters. `email` must look like `name@example.com`. A new email is saved as not verified.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
 * **Error Responses:** `422` when a field breaks a limit (the error names the field). `409` `EMAIL_TAKEN` when another account already uses the email, in any mix of upper and lower case.
+
+#### `POST /v1/me/roles`
+Claims a developer role for the authenticated user (e.g. during onboarding or profile editing).
+
+* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
+* **Request Body:**
+  ```json
+  {
+    "role": "backend-engineer",
+    "is_primary": false
+  }
+  ```
+  * `role` *(required, string)*: Role slug from `GET /v1/roles`.
+  * `is_primary` *(optional, boolean, default: false)*: Set to `true` to make this the primary role (unsets primary on any other claimed role).
+* **Success Response (201 Created):**
+  ```json
+  {
+    "data": {
+      "slug": "backend-engineer",
+      "name": "Backend & Systems Engineer",
+      "is_primary": false,
+      "verified_at": null,
+      "verification": {
+        "attempts_used": 0,
+        "attempts_remaining": 3,
+        "latest_status": null
+      }
+    }
+  }
+  ```
+* **Error Responses:**
+  * `409 Conflict`: `{"detail": {"code": "ROLE_ALREADY_CLAIMED", "message": "You already have this role."}}`
+  * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown role slug: '...'"}}`
+
+#### `PATCH /v1/me/roles/{role_slug}`
+Designates an already-claimed role as the user's primary discipline. Automatically demotes any other currently primary role.
+
+* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
+* **Request Body:**
+  ```json
+  {
+    "is_primary": true
+  }
+  ```
+* **Success Response (200 OK):** Returns the updated `UserRole` object wrapped in `{"data": { ... }}` with `is_primary: true`.
+* **Error Responses:**
+  * `404 Not Found`: `{"detail": {"code": "NOT_FOUND", "message": "Role '...' is not claimed."}}`
+  * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "is_primary must be true"}}`
+
+#### `DELETE /v1/me/roles/{role_slug}`
+Removes a claimed role from the user's profile.
+
+* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
+* **Success Response (204 No Content):** Empty body.
+* **Important Business Rule / Errors:**
+  * If the user has started or completed any verification attempt for this role, deletion is refused to preserve the 3-attempt audit trail:
+    `409 Conflict`: `{"detail": {"code": "ROLE_HAS_VERIFICATION_HISTORY", "message": "A role with verification attempts can't be removed (it would reset the 3-attempt limit)."}}`
+  * `404 Not Found`: `{"detail": {"code": "NOT_FOUND", "message": "Role '...' is not claimed."}}`
+
+#### `PUT /v1/me/technologies`
+Full replacement of the developer's tech stack (skills and tools).
+
+* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
+* **Request Body:**
+  ```json
+  {
+    "technologies": [
+      "python",
+      "postgresql",
+      "go"
+    ]
+  }
+  ```
+  * `technologies` *(required, array of strings, 0 to 30 items)*: Slugs from `GET /v1/technologies`. No duplicates.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": [
+      { "slug": "python", "name": "Python" },
+      { "slug": "postgresql", "name": "PostgreSQL" },
+      { "slug": "go", "name": "Go" }
+    ]
+  }
+  ```
+* **Error Responses:**
+  * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown technology slugs: ..."}}`
+  * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "Duplicate technologies are not allowed."}}`
+
+#### `PUT /v1/me/feed-topics`
+Full replacement of feed preference topics. An empty array `[]` means "show everything".
+
+* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
+* **Important Schema Rule for Frontend:**
+  The request JSON key MUST be named `"technologies"` (NOT `"topics"`), because feed topics reference the platform's canonical `technologies` lookup table.
+* **Request Body:**
+  ```json
+  {
+    "technologies": [
+      "react",
+      "flutter"
+    ]
+  }
+  ```
+  * `technologies` *(required, array of strings, 0 to 50 items)*: Valid slugs from `GET /v1/technologies`. No duplicates.
+  * To clear all feed topics and show everything on the feed, pass an empty array: `{"technologies": []}`.
+* **Success Response (200 OK):** Returns the list of saved topic `TechnologyRef` objects wrapped in `{"data": [ ... ]}`.
+* **Error Responses:**
+  * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown technology slugs: ..."}}` (Returned if any slug is not in the `technologies` lookup table).
+  * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "Duplicate topics are not allowed."}}`
+  * `422 Unprocessable Content`: `{"detail": [{"loc": ["body", "technologies"], "msg": "Field required"}]}` (Returned if the JSON key was named `"topics"` instead of `"technologies"`).
 
 ---
 

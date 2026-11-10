@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-10
+
+- feat(api): add developer roles, tech stack and feed topics
+
 ## 2026-11-07
 
 - feat(api): add oauth authentication and user profile endpoints (#3)
