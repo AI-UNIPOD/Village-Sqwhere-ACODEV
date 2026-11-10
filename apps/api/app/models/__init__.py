@@ -7,6 +7,8 @@ from app.models.users import (
     UserIdentity,
     UserRole,
     UserTechnology,
+    VerificationSession,
+    VerificationStatus,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "UserIdentity",
     "UserRole",
     "UserTechnology",
+    "VerificationSession",
+    "VerificationStatus",
 ]

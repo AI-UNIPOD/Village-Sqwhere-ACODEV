@@ -15,6 +15,7 @@ from app.schemas.users import (
     UserIdentityRef,
     UserProfile,
     UserRoleDetail,
+    UserRoleVerification,
 )
 
 security_bearer = HTTPBearer(auto_error=False)
@@ -22,17 +23,35 @@ security_bearer = HTTPBearer(auto_error=False)
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
-def user_to_profile(user: User) -> UserProfile:
-    role_details = [
-        UserRoleDetail(
-            slug=ur.role.slug,
-            name=ur.role.name,
-            is_primary=ur.is_primary,
-            verified_at=ur.verified_at,
+def role_to_detail(user_role: UserRole) -> UserRoleDetail:
+    sessions = getattr(user_role, "verification_sessions", None) or []
+    attempts_used = len(sessions)
+    attempts_remaining = max(0, 3 - attempts_used)
+    latest_status = (
+        (
+            sessions[-1].status.value
+            if hasattr(sessions[-1].status, "value")
+            else str(sessions[-1].status)
         )
-        for ur in user.roles
-        if ur.role is not None
-    ]
+        if sessions
+        else None
+    )
+
+    return UserRoleDetail(
+        slug=user_role.role.slug,
+        name=user_role.role.name,
+        is_primary=user_role.is_primary,
+        verified_at=user_role.verified_at,
+        verification=UserRoleVerification(
+            attempts_used=attempts_used,
+            attempts_remaining=attempts_remaining,
+            latest_status=latest_status,
+        ),
+    )
+
+
+def user_to_profile(user: User) -> UserProfile:
+    role_details = [role_to_detail(ur) for ur in user.roles if ur.role is not None]
     technologies = [
         TechnologyRef(slug=ut.technology.slug, name=ut.technology.name)
         for ut in user.technologies
@@ -112,6 +131,7 @@ async def get_current_user(
         .options(
             selectinload(User.identities),
             selectinload(User.roles).selectinload(UserRole.role),
+            selectinload(User.roles).selectinload(UserRole.verification_sessions),
             selectinload(User.technologies).selectinload(UserTechnology.technology),
             selectinload(User.feed_topics).selectinload(UserFeedTopic.technology),
         )

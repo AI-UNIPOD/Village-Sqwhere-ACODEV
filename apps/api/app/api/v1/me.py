@@ -1,8 +1,22 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Path, Response, status
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
-from app.api.deps import CurrentUser, DbSession, user_to_profile
-from app.schemas.users import MeResponse, UserProfileUpdate
+from app.api.deps import CurrentUser, DbSession, role_to_detail, user_to_profile
+from app.models.lookups import Role, Technology
+from app.models.users import UserFeedTopic, UserRole, UserTechnology
+from app.schemas.lookups import TechnologyRef
+from app.schemas.users import (
+    ClaimRoleRequest,
+    MeResponse,
+    ReplaceFeedTopicsRequest,
+    ReplaceTechnologiesRequest,
+    TechnologiesResponse,
+    UpdateRoleRequest,
+    UserProfileUpdate,
+    UserRoleResponse,
+)
 
 router = APIRouter()
 
@@ -46,3 +60,231 @@ async def update_my_profile(
         ) from None
     await db.refresh(current_user)
     return MeResponse(data=user_to_profile(current_user))
+
+
+@router.post("/me/roles", response_model=UserRoleResponse, status_code=status.HTTP_201_CREATED)
+async def claim_role(
+    payload: ClaimRoleRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> UserRoleResponse:
+    # 1. Lookup role by slug
+    result = await db.execute(select(Role).where(Role.slug == payload.role))
+    role = result.scalar_one_or_none()
+    if not role:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"code": "UNKNOWN_SLUG", "message": f"Unknown role slug: '{payload.role}'"},
+        )
+
+    # 2. Check if already claimed
+    result = await db.execute(
+        select(UserRole).where(
+            UserRole.user_id == current_user.id,
+            UserRole.role_id == role.id,
+        )
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "ROLE_ALREADY_CLAIMED", "message": "You already have this role."},
+        )
+
+    # 3. If primary, clear is_primary on existing roles for this user
+    if payload.is_primary:
+        await db.execute(
+            update(UserRole).where(UserRole.user_id == current_user.id).values(is_primary=False)
+        )
+
+    # 4. Insert new UserRole
+    user_role = UserRole(
+        user_id=current_user.id,
+        role_id=role.id,
+        is_primary=payload.is_primary,
+    )
+    db.add(user_role)
+    await db.commit()
+
+    # Re-fetch user_role with relationships loaded
+    result = await db.execute(
+        select(UserRole)
+        .options(
+            selectinload(UserRole.role),
+            selectinload(UserRole.verification_sessions),
+        )
+        .where(UserRole.user_id == current_user.id, UserRole.role_id == role.id)
+    )
+    user_role = result.scalar_one()
+
+    return UserRoleResponse(data=role_to_detail(user_role))
+
+
+@router.patch("/me/roles/{role_slug}", response_model=UserRoleResponse)
+async def make_role_primary(
+    payload: UpdateRoleRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+    role_slug: str = Path(..., description="Role slug to make primary"),
+) -> UserRoleResponse:
+    if not payload.is_primary:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"code": "VALIDATION_FAILED", "message": "is_primary must be true"},
+        )
+
+    result = await db.execute(
+        select(UserRole)
+        .join(Role, UserRole.role_id == Role.id)
+        .options(
+            selectinload(UserRole.role),
+            selectinload(UserRole.verification_sessions),
+        )
+        .where(UserRole.user_id == current_user.id, Role.slug == role_slug)
+    )
+    user_role = result.scalar_one_or_none()
+    if not user_role:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": f"Role '{role_slug}' is not claimed."},
+        )
+
+    # Clear is_primary on all other roles
+    await db.execute(
+        update(UserRole).where(UserRole.user_id == current_user.id).values(is_primary=False)
+    )
+
+    user_role.is_primary = True
+    await db.commit()
+    await db.refresh(user_role)
+
+    return UserRoleResponse(data=role_to_detail(user_role))
+
+
+@router.delete("/me/roles/{role_slug}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_role(
+    current_user: CurrentUser,
+    db: DbSession,
+    role_slug: str = Path(..., description="Role slug to remove"),
+) -> Response:
+    result = await db.execute(
+        select(UserRole)
+        .join(Role, UserRole.role_id == Role.id)
+        .options(
+            selectinload(UserRole.role),
+            selectinload(UserRole.verification_sessions),
+        )
+        .where(UserRole.user_id == current_user.id, Role.slug == role_slug)
+    )
+    user_role = result.scalar_one_or_none()
+    if not user_role:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": f"Role '{role_slug}' is not claimed."},
+        )
+
+    if user_role.verification_sessions and len(user_role.verification_sessions) > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "ROLE_HAS_VERIFICATION_HISTORY",
+                "message": (
+                    "A role with verification attempts can't be removed (it would reset "
+                    "the 3-attempt limit)."
+                ),
+            },
+        )
+
+    await db.delete(user_role)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put("/me/technologies", response_model=TechnologiesResponse)
+async def replace_technologies(
+    payload: ReplaceTechnologiesRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> TechnologiesResponse:
+    slugs = payload.technologies
+    if len(slugs) != len(set(slugs)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "VALIDATION_FAILED",
+                "message": "Duplicate technologies are not allowed.",
+            },
+        )
+
+    matched_technologies: list[Technology] = []
+    if slugs:
+        result = await db.execute(select(Technology).where(Technology.slug.in_(slugs)))
+        matched_technologies = list(result.scalars().all())
+        found_slugs = {t.slug for t in matched_technologies}
+        missing_slugs = [s for s in slugs if s not in found_slugs]
+        if missing_slugs:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "code": "UNKNOWN_SLUG",
+                    "message": f"Unknown technology slugs: {', '.join(missing_slugs)}",
+                },
+            )
+
+    tech_map = {t.slug: t for t in matched_technologies}
+
+    await db.execute(delete(UserTechnology).where(UserTechnology.user_id == current_user.id))
+
+    for slug in slugs:
+        db.add(UserTechnology(user_id=current_user.id, technology_id=tech_map[slug].id))
+
+    await db.commit()
+
+    return TechnologiesResponse(
+        data=[TechnologyRef(slug=tech_map[s].slug, name=tech_map[s].name) for s in slugs]
+    )
+
+
+@router.put("/me/feed-topics", response_model=TechnologiesResponse)
+async def replace_feed_topics(
+    payload: ReplaceFeedTopicsRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> TechnologiesResponse:
+    slugs = payload.technologies
+    if len(slugs) != len(set(slugs)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "VALIDATION_FAILED",
+                "message": "Duplicate topics are not allowed.",
+            },
+        )
+
+    matched_technologies: list[Technology] = []
+    if slugs:
+        result = await db.execute(select(Technology).where(Technology.slug.in_(slugs)))
+        matched_technologies = list(result.scalars().all())
+        found_slugs = {t.slug for t in matched_technologies}
+        missing_slugs = [s for s in slugs if s not in found_slugs]
+        if missing_slugs:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "code": "UNKNOWN_SLUG",
+                    "message": f"Unknown technology slugs: {', '.join(missing_slugs)}",
+                },
+            )
+
+    tech_map = {t.slug: t for t in matched_technologies}
+
+    await db.execute(delete(UserFeedTopic).where(UserFeedTopic.user_id == current_user.id))
+
+    for slug in slugs:
+        db.add(UserFeedTopic(user_id=current_user.id, technology_id=tech_map[slug].id))
+
+    await db.commit()
+
+    return TechnologiesResponse(
+        data=[TechnologyRef(slug=tech_map[s].slug, name=tech_map[s].name) for s in slugs]
+    )

@@ -4,11 +4,19 @@ from uuid import UUID
 import jwt
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, update
+from sqlalchemy import delete, func, select, update
 
 from app.config import JWT_ALGORITHM, JWT_SECRET_KEY
 from app.main import app
-from app.models.users import User
+from app.models.lookups import Role
+from app.models.users import (
+    User,
+    UserFeedTopic,
+    UserRole,
+    UserTechnology,
+    VerificationSession,
+    VerificationStatus,
+)
 from tests.conftest import test_async_session as db_session
 
 client = TestClient(app)
@@ -27,6 +35,20 @@ def mark_email_verified(user_id: str) -> None:
             await session.commit()
 
     asyncio.run(_mark())
+
+
+def cleanup_user(user_id: UUID) -> None:
+    async def _clean() -> None:
+        async with db_session() as session:
+            await session.execute(
+                delete(VerificationSession).where(VerificationSession.user_id == user_id)
+            )
+            await session.execute(delete(UserRole).where(UserRole.user_id == user_id))
+            await session.execute(delete(UserTechnology).where(UserTechnology.user_id == user_id))
+            await session.execute(delete(UserFeedTopic).where(UserFeedTopic.user_id == user_id))
+            await session.commit()
+
+    asyncio.run(_clean())
 
 
 def test_get_me_unauthorized() -> None:
@@ -149,3 +171,267 @@ def test_changing_email_clears_its_verification(sign_in) -> None:
     assert resp.status_code == 200
     assert resp.json()["data"]["email"] == "moussa.diop@example.test"
     assert resp.json()["data"]["email_verified"] is False
+
+
+def test_claim_and_update_and_delete_role(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+
+    # 1. Claim a role without primary
+    claim1 = client.post(
+        "/v1/me/roles",
+        headers=headers,
+        json={"role": "backend-engineer", "is_primary": False},
+    )
+    assert claim1.status_code == 201
+    d1 = claim1.json()["data"]
+    assert d1["slug"] == "backend-engineer"
+    assert d1["name"] == "Backend & Systems Engineer"
+    assert d1["is_primary"] is False
+    assert d1["verification"]["attempts_used"] == 0
+    assert d1["verification"]["attempts_remaining"] == 3
+    assert d1["verification"]["latest_status"] is None
+
+    # 2. Claim another role with is_primary=True
+    claim2 = client.post(
+        "/v1/me/roles",
+        headers=headers,
+        json={"role": "frontend-engineer", "is_primary": True},
+    )
+    assert claim2.status_code == 201
+    d2 = claim2.json()["data"]
+    assert d2["slug"] == "frontend-engineer"
+    assert d2["is_primary"] is True
+
+    # Check GET /me shows frontend-engineer as primary, backend-engineer as secondary
+    me = client.get("/v1/me", headers=headers).json()["data"]
+    roles = {r["slug"]: r for r in me["roles"]}
+    assert roles["frontend-engineer"]["is_primary"] is True
+    assert roles["backend-engineer"]["is_primary"] is False
+
+    # 3. Duplicate claim -> 409 ROLE_ALREADY_CLAIMED
+    dup = client.post(
+        "/v1/me/roles",
+        headers=headers,
+        json={"role": "backend-engineer"},
+    )
+    assert dup.status_code == 409
+    assert dup.json()["detail"]["code"] == "ROLE_ALREADY_CLAIMED"
+
+    # 4. Unknown slug -> 422 UNKNOWN_SLUG
+    bad_slug = client.post(
+        "/v1/me/roles",
+        headers=headers,
+        json={"role": "quantum-hacker"},
+    )
+    assert bad_slug.status_code == 422
+    assert bad_slug.json()["detail"]["code"] == "UNKNOWN_SLUG"
+
+    # 5. PATCH role to make backend-engineer primary
+    patch_role = client.patch(
+        "/v1/me/roles/backend-engineer",
+        headers=headers,
+        json={"is_primary": True},
+    )
+    assert patch_role.status_code == 200
+    assert patch_role.json()["data"]["is_primary"] is True
+
+    # Verify frontend-engineer was demoted
+    me = client.get("/v1/me", headers=headers).json()["data"]
+    roles = {r["slug"]: r for r in me["roles"]}
+    assert roles["backend-engineer"]["is_primary"] is True
+    assert roles["frontend-engineer"]["is_primary"] is False
+
+    # PATCH unclaimed role -> 404 NOT_FOUND
+    patch_missing = client.patch(
+        "/v1/me/roles/mobile-engineer",
+        headers=headers,
+        json={"is_primary": True},
+    )
+    assert patch_missing.status_code == 404
+    assert patch_missing.json()["detail"]["code"] == "NOT_FOUND"
+
+    # PATCH with is_primary: false -> 422 VALIDATION_FAILED
+    patch_invalid = client.patch(
+        "/v1/me/roles/backend-engineer",
+        headers=headers,
+        json={"is_primary": False},
+    )
+    assert patch_invalid.status_code == 422
+    assert patch_invalid.json()["detail"]["code"] == "VALIDATION_FAILED"
+
+    # 6. DELETE a role
+    del_resp = client.delete("/v1/me/roles/frontend-engineer", headers=headers)
+    assert del_resp.status_code == 204
+
+    # Verify removed in GET /me
+    me = client.get("/v1/me", headers=headers).json()["data"]
+    assert [r["slug"] for r in me["roles"]] == ["backend-engineer"]
+
+    # DELETE unclaimed role -> 404 NOT_FOUND
+    del_missing = client.delete("/v1/me/roles/frontend-engineer", headers=headers)
+    assert del_missing.status_code == 404
+    assert del_missing.json()["detail"]["code"] == "NOT_FOUND"
+
+    cleanup_user(user_id)
+
+
+def test_delete_role_with_verification_history_is_blocked(sign_in) -> None:
+    data = sign_in("github-code-moussa")
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+
+    # Claim mobile-engineer
+    claim_resp = client.post(
+        "/v1/me/roles",
+        headers=headers,
+        json={"role": "mobile-engineer", "is_primary": True},
+    )
+    assert claim_resp.status_code == 201
+
+    # Insert a verification session
+    async def _add_verification() -> None:
+        async with db_session() as session:
+            role_result = await session.execute(select(Role).where(Role.slug == "mobile-engineer"))
+            role = role_result.scalar_one()
+            session.add(
+                VerificationSession(
+                    user_id=user_id,
+                    role_id=role.id,
+                    attempt_number=1,
+                    status=VerificationStatus.PENDING,
+                )
+            )
+            await session.commit()
+
+    asyncio.run(_add_verification())
+
+    # Try to delete - must be rejected with 409
+    del_resp = client.delete("/v1/me/roles/mobile-engineer", headers=headers)
+    assert del_resp.status_code == 409
+    assert del_resp.json()["detail"]["code"] == "ROLE_HAS_VERIFICATION_HISTORY"
+
+    # Verify role still exists and shows verification history
+    me = client.get("/v1/me", headers=headers).json()["data"]
+    roles = {r["slug"]: r for r in me["roles"]}
+    assert "mobile-engineer" in roles
+    assert roles["mobile-engineer"]["verification"]["attempts_used"] == 1
+    assert roles["mobile-engineer"]["verification"]["attempts_remaining"] == 2
+    assert roles["mobile-engineer"]["verification"]["latest_status"] == "pending"
+
+    cleanup_user(user_id)
+
+
+def test_replace_technologies(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    cleanup_user(UUID(data["user"]["id"]))
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+
+    # 1. Replace with 2 valid items
+    put_resp = client.put(
+        "/v1/me/technologies",
+        headers=headers,
+        json={"technologies": ["python", "postgresql"]},
+    )
+    assert put_resp.status_code == 200
+    tech_data = put_resp.json()["data"]
+    assert [t["slug"] for t in tech_data] == ["python", "postgresql"]
+
+    # Verify via GET /me
+    me = client.get("/v1/me", headers=headers).json()["data"]
+    assert [t["slug"] for t in me["technologies"]] == ["python", "postgresql"]
+
+    # 2. Replace with duplicate items -> 422 VALIDATION_FAILED
+    dup_resp = client.put(
+        "/v1/me/technologies",
+        headers=headers,
+        json={"technologies": ["python", "python"]},
+    )
+    assert dup_resp.status_code == 422
+    assert dup_resp.json()["detail"]["code"] == "VALIDATION_FAILED"
+
+    # 3. Replace with unknown slug -> 422 UNKNOWN_SLUG
+    bad_resp = client.put(
+        "/v1/me/technologies",
+        headers=headers,
+        json={"technologies": ["python", "nonexistent-tech"]},
+    )
+    assert bad_resp.status_code == 422
+    assert bad_resp.json()["detail"]["code"] == "UNKNOWN_SLUG"
+
+    # 4. Replace with empty list -> 200
+    empty_resp = client.put(
+        "/v1/me/technologies",
+        headers=headers,
+        json={"technologies": []},
+    )
+    assert empty_resp.status_code == 200
+    assert empty_resp.json()["data"] == []
+
+    # Verify via GET /me
+    me = client.get("/v1/me", headers=headers).json()["data"]
+    assert me["technologies"] == []
+
+
+def test_replace_feed_topics(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    cleanup_user(UUID(data["user"]["id"]))
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+
+    # 1. Replace with valid items
+    put_resp = client.put(
+        "/v1/me/feed-topics",
+        headers=headers,
+        json={"technologies": ["react", "flutter"]},
+    )
+    assert put_resp.status_code == 200
+    topic_data = put_resp.json()["data"]
+    assert [t["slug"] for t in topic_data] == ["react", "flutter"]
+
+    # Verify via GET /me
+    me = client.get("/v1/me", headers=headers).json()["data"]
+    assert [t["slug"] for t in me["feed_topics"]] == ["react", "flutter"]
+
+    # 2. Duplicate topics -> 422 VALIDATION_FAILED
+    dup_resp = client.put(
+        "/v1/me/feed-topics",
+        headers=headers,
+        json={"technologies": ["react", "react"]},
+    )
+    assert dup_resp.status_code == 422
+    assert dup_resp.json()["detail"]["code"] == "VALIDATION_FAILED"
+
+    # 3. Unknown topic -> 422 UNKNOWN_SLUG
+    bad_resp = client.put(
+        "/v1/me/feed-topics",
+        headers=headers,
+        json={"technologies": ["fake-topic"]},
+    )
+    assert bad_resp.status_code == 422
+    assert bad_resp.json()["detail"]["code"] == "UNKNOWN_SLUG"
+
+    # 4. Empty list -> 200
+    empty_resp = client.put(
+        "/v1/me/feed-topics",
+        headers=headers,
+        json={"technologies": []},
+    )
+    assert empty_resp.status_code == 200
+    assert empty_resp.json()["data"] == []
+
+    # Verify via GET /me
+    me = client.get("/v1/me", headers=headers).json()["data"]
+    assert me["feed_topics"] == []
+
+
+def test_profile_skills_unauthorized() -> None:
+    assert client.post("/v1/me/roles", json={"role": "backend-engineer"}).status_code == 401
+    assert (
+        client.patch("/v1/me/roles/backend-engineer", json={"is_primary": True}).status_code == 401
+    )
+    assert client.delete("/v1/me/roles/backend-engineer").status_code == 401
+    assert client.put("/v1/me/technologies", json={"technologies": ["python"]}).status_code == 401
+    assert client.put("/v1/me/feed-topics", json={"technologies": ["react"]}).status_code == 401

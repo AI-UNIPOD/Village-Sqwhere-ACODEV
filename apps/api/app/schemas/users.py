@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.schemas.lookups import TechnologyRef
 
@@ -77,3 +77,28 @@ class UserProfileUpdate(BaseModel):
         Annotated[str, StringConstraints(max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
         | None
     ) = None
+
+
+class UserRoleResponse(BaseModel):
+    data: UserRoleDetail
+
+
+class ClaimRoleRequest(BaseModel):
+    role: str = Field(..., max_length=64, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")
+    is_primary: bool = False
+
+
+class UpdateRoleRequest(BaseModel):
+    is_primary: bool = Field(True)
+
+
+class ReplaceTechnologiesRequest(BaseModel):
+    technologies: list[str] = Field(..., max_length=30)
+
+
+class ReplaceFeedTopicsRequest(BaseModel):
+    technologies: list[str] = Field(..., max_length=50)
+
+
+class TechnologiesResponse(BaseModel):
+    data: list[TechnologyRef]

@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    ForeignKeyConstraint,
     Integer,
     SmallInteger,
     String,
@@ -28,6 +29,15 @@ class PlatformRole(StrEnum):
     MEMBER = "member"
     MODERATOR = "moderator"
     ADMIN = "admin"
+
+
+class VerificationStatus(StrEnum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    AWAITING_REVIEW = "awaiting_review"
+    PASSED = "passed"
+    FAILED = "failed"
+    ABANDONED = "abandoned"
 
 
 class User(Base):
@@ -132,6 +142,11 @@ class UserRole(Base):
 
     user: Mapped["User"] = relationship(back_populates="roles")
     role: Mapped["Role"] = relationship(lazy="selectin")
+    verification_sessions: Mapped[list["VerificationSession"]] = relationship(
+        back_populates="user_role",
+        lazy="selectin",
+        order_by="VerificationSession.attempt_number",
+    )
 
 
 class UserTechnology(Base):
@@ -174,3 +189,36 @@ class UserFeedTopic(Base):
 
     user: Mapped["User"] = relationship(back_populates="feed_topics")
     technology: Mapped["Technology"] = relationship(lazy="selectin")
+
+
+class VerificationSession(Base):
+    __tablename__ = "verification_sessions"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
+    role_id: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    attempt_number: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    status: Mapped[VerificationStatus] = mapped_column(
+        Enum(
+            VerificationStatus,
+            name="verification_status",
+            create_type=False,
+            native_enum=True,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        default=VerificationStatus.PENDING,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["user_id", "role_id"],
+            ["user_roles.user_id", "user_roles.role_id"],
+            ondelete="RESTRICT",
+        ),
+    )
+
+    user_role: Mapped["UserRole"] = relationship(back_populates="verification_sessions")
