@@ -4,14 +4,15 @@ Read this first, every session. Update "Current state" and "What's next" in plac
 finish meaningful work. Keep the whole file under 60 lines: history belongs in
 `CHANGELOG.md` and `docs/decisions/`, not here.
 
-## Current state (2026-11-07)
+## Current state (2026-11-10)
 
 - Monorepo in place: `apps/web` (Next.js 16, a placeholder home page and one Vitest test),
-  `apps/api` (FastAPI with `/health` and one pytest test), `infra/` (Postgres 17 with
-  pgvector in Docker).
+  `apps/api` (FastAPI v1 auth, profiles, roles and verification endpoints), `infra/`
+  (Postgres 17 with pgvector in Docker).
 - Team rules for people and agents are in `AGENTS.md`. CI runs on every pull request:
   title rule, dash check, web, api and secret scan.
-- No product features are built yet.
+- API verification endpoints now support GitHub evidence, applicant polling and abandonment,
+  plus role-eligible peer review decisions.
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 - GitHub does not enforce the rules on `main` yet (see
@@ -20,12 +21,14 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 
 ## What's next
 
-1. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
+1. Connect a verification worker to move pending sessions through AI analysis and into peer
+   review. The worker contract and GitHub repository analysis are still to define.
+2. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
    owner approving the team, and the Virtual Collaboration Hub with all four phases. The
    PRD is not in this repository yet; ask Tanny for it before starting.
-2. Add English and French switching to the web app, before the first real screens.
-3. Add a deploy job to CI once the team has Systalink platform access.
-4. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
+3. Add English and French switching to the web app, before the first real screens.
+4. Add a deploy job to CI once the team has Systalink platform access.
+5. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
    repository).
 
 ## Open questions
