@@ -71,7 +71,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
       <ThemeToggle toDark={t.toDark} toLight={t.toLight} />
 
       <main>
-        <GatherHero labelledBy="hero-title">
+        <GatherHero labelledBy="hero-title" labels={{ pause: t.pause, play: t.play }}>
           <h1 id="hero-title">{t.headline}</h1>
           <p className={styles.sub}>{t.sub}</p>
           <div className={styles.ctas}>

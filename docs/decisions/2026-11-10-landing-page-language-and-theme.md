@@ -39,8 +39,15 @@ Tanny chose, on 10 November 2026:
   so spacing is unchanged. Header links keep a 44px tap height (their text sits in the same
   place). Dark-mode hover uses the real `--surface-sunken` token, the press scale is 0.97 as in
   `components.md`, and the language switch reloads the page because the languages are routes.
-  The first pull request shows the still hero, with the grid square and the logo. The crowd
-  of words and the walking countries come in the second.
+  The hero's pause button keeps B3v's 36px circle but gets the same invisible ring as the
+  floating buttons, so its tap area is 44px.
+- **The hero is animated as in the approved page.** A crowd of small words fills the hero, and
+  the 54 African countries (English one loop, French the next) walk into the logo's V, the
+  real logo fades in, and they walk back out. It stops off screen and in a hidden tab, has a
+  pause button, and stands still with reduced motion. If the browser cannot draw, the hero
+  keeps its still frame: the square and the logo.
+- **The browser tab icon is the Laterite mark on a clear background,** as on the approved
+  page, an exception Tanny chose to the `on-paper` rule in `logo.md` (recorded there).
 - **The French copy is not yet checked by a native speaker.** It avoids a space before a
   colon or question mark. It needs that review before launch, as `voice-and-tone.md` asks.
 - **For the animated hero (next pull request):** Tanny approves the letter V that the

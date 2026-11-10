@@ -16,6 +16,8 @@ export type Copy = {
   switchLabel: string;
   toDark: string;
   toLight: string;
+  pause: string;
+  play: string;
   headline: string;
   sub: string;
   ctaDemo: string;
@@ -51,6 +53,8 @@ const en: Copy = {
   switchLabel: "Passer en français",
   toDark: "Switch to dark mode",
   toLight: "Switch to light mode",
+  pause: "Pause animation",
+  play: "Play animation",
   headline: "Builders across Africa, one square.",
   sub: "Share an idea. Get matched with co-⁠builders. Build it together.",
   ctaDemo: "Try the demo",
@@ -110,6 +114,8 @@ const fr: Copy = {
   switchLabel: "Switch to English",
   toDark: "Passer en mode sombre",
   toLight: "Passer en mode clair",
+  pause: "Mettre l'animation en pause",
+  play: "Lire l'animation",
   headline: "Toute l'Afrique, une seule place.",
   sub: "Partagez une idée. Trouvez vos partenaires. Construisez ensemble.",
   ctaDemo: "Essayer la démo",

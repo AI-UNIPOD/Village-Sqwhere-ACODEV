@@ -49,10 +49,74 @@
   pointer-events: none;
 }
 
+/* The crowd and the walking names. The script sets its size; the logo fades in above it. */
+.canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .tree {
   position: absolute;
   z-index: 3;
   pointer-events: none;
+}
+
+/* Pause and play for the loop. Shown by the script only when something moves. */
+.play {
+  position: absolute;
+  z-index: 5;
+  display: none;
+  place-items: center;
+  inline-size: var(--float-size);
+  block-size: var(--float-size);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+/* a ring that widens the tap area to 44px */
+.play::before {
+  content: "";
+  position: absolute;
+  inset: calc((var(--float-size) - var(--tap-min)) / 2);
+  border-radius: var(--radius-full);
+}
+
+.play:hover {
+  background: var(--surface-sunken);
+}
+
+.play:active {
+  transform: scale(0.97);
+}
+
+.play svg {
+  inline-size: var(--icon-play);
+  block-size: var(--icon-play);
+}
+
+.iconPlay,
+.paused .iconPause {
+  display: none;
+}
+
+.paused .iconPlay {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .play {
+    transition-duration: 0.01ms;
+  }
 }
 
 .treeLogo {

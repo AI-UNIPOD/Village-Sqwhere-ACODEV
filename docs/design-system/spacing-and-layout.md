@@ -52,6 +52,7 @@ The landing page keeps a few values that are not on the 4px scale. Use them only
 | `--brand-gap` | 10 | 10 | Logo to wordmark |
 | `--underline-offset` | 5 | 5 | Distance of a link underline from its text |
 | `--icon-toggle` | 18 | 18 | Sun and moon icon on the theme button |
+| `--icon-play` | 14 | 14 | Pause and play symbols on the hero's pause button |
 | `--tour-button-gap` | 28 | 28 | Space above the "Start the tour" button |
 | `--float-size` | 36 | 36 | Round floating buttons (language, theme). A 44px tap area surrounds each one |
 | `--float-top` | 10 | 18 | Distance of the language button from the top |

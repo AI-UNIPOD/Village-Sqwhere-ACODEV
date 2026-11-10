@@ -18,8 +18,29 @@ export type HeroGeometry = {
   copyLeft: number;
   copyTop: number;
   copyWidth: number;
+  copyHeight: number;
   centered: boolean;
+  /** Top left of the pause button, under the square (centred on phones). */
+  playX: number;
+  playY: number;
 };
+
+const PLAY_SIZE = 36; // the design system's --float-size
+
+// the pause button sits 12px under the square: at its left edge, or centred when the text is
+function withPlay(g: Omit<HeroGeometry, "playX" | "playY">): HeroGeometry {
+  const playX = g.centered ? Math.round(g.x + g.square / 2 - PLAY_SIZE / 2) : g.x;
+  return { ...g, playX, playY: g.y + g.square + 12 };
+}
+
+/** The areas the crowd and the walking names keep clear of: the text, the square, the button. */
+export function heroAvoid(g: HeroGeometry) {
+  return [
+    [g.copyLeft - 14, g.copyTop - 14, g.copyLeft + g.copyWidth + 14, g.copyTop + g.copyHeight + 14],
+    [g.x - g.cell, g.y - g.cell, g.x + g.square + g.cell, g.y + g.square + g.cell],
+    [g.playX - 8, g.y + g.square + 4, g.playX + 44, g.y + g.square + 56],
+  ] as const;
+}
 
 type HeroInput = {
   width: number;
@@ -59,7 +80,7 @@ export function heroGeometry({
     const height = Math.max(square + 14 * cell, viewportHeight - navHeight, copyHeight + 96);
     const y = Math.round((height - square) / 2) - 18;
     const copyTop = Math.round(y + (square - copyHeight) / 2);
-    return { cell, square, x, y, height, copyLeft, copyTop, copyWidth, centered: false };
+    return withPlay({ cell, square, x, y, height, copyLeft, copyTop, copyWidth, copyHeight, centered: false });
   }
 
   if (phone) {
@@ -71,7 +92,7 @@ export function heroGeometry({
     const x = Math.round((W - square) / 2);
     const y = copyTop + copyHeight + 8 * cell + 32;
     const height = y + square + 9 * cell + 48;
-    return { cell, square, x, y, height, copyLeft, copyTop, copyWidth, centered: true };
+    return withPlay({ cell, square, x, y, height, copyLeft, copyTop, copyWidth, copyHeight, centered: true });
   }
 
   const copyLeft = SIDE;
@@ -81,5 +102,5 @@ export function heroGeometry({
   const x = Math.min(Math.round((W - square) / 2), W - FLOAT_CLEAR - square);
   const y = copyTop + copyHeight + 7 * cell + 32;
   const height = y + square + 8 * cell + 40;
-  return { cell, square, x, y, height, copyLeft, copyTop, copyWidth, centered: false };
+  return withPlay({ cell, square, x, y, height, copyLeft, copyTop, copyWidth, copyHeight, centered: false });
 }

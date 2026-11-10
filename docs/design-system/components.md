@@ -39,6 +39,11 @@ right edge. `--float-size` (36px) wide, `--radius-full`, 1px `--line-strong`, `-
 theme button shows a moon on Paper and a sun on Ink, turning into each other over
 `--dur-icon`, and its label says what a tap does ("Switch to dark mode").
 
+The hero's pause button uses the same round shape, under the logo square, with a
+`--icon-play` pause or play symbol. Anything that moves for more than five seconds has one,
+labelled with what it does ("Pause animation"), and it is hidden when the visitor asks for
+reduced motion, because nothing moves then.
+
 ## Icons
 
 Lucide, outline, 24px grid, 1.75px stroke, rounded ends. Sizes: 16px in chips and small

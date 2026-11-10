@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { heroGeometry, isPhoneWidth } from "./hero-layout";
+import { heroAvoid, heroGeometry, isPhoneWidth } from "./hero-layout";
 
 const COPY_HEIGHT = 240;
 const layout = (width: number, viewportHeight = 800) =>
@@ -57,6 +57,25 @@ test("below 1240px a wide screen keeps 60px clear at the right for the floating 
 test("a tall window makes the hero fill the first screen under the header", () => {
   expect(layout(1440, 1200).height).toBe(1200 - 72);
   expect(layout(1440, 600).height).toBeGreaterThanOrEqual(32 * 16 + 14 * 16);
+});
+
+test("puts the pause button 12px under the square, centred when the text is", () => {
+  const phone = layout(360);
+  expect(phone.playX).toBe(Math.round(phone.x + phone.square / 2 - 18));
+  expect(phone.playY).toBe(phone.y + phone.square + 12);
+  const wide = layout(1440);
+  expect(wide.playX).toBe(wide.x);
+  expect(wide.playY).toBe(wide.y + wide.square + 12);
+});
+
+test("keeps the crowd clear of the text, the square and the pause button", () => {
+  const g = layout(1440);
+  const [copy, square, button] = heroAvoid(g);
+  expect(copy[0]).toBeLessThan(g.copyLeft);
+  expect(copy[3]).toBeGreaterThan(g.copyTop + COPY_HEIGHT);
+  expect(square[2]).toBeGreaterThan(g.x + g.square);
+  expect(button[1]).toBeLessThan(g.playY);
+  expect(button[3]).toBeGreaterThan(g.playY + 36);
 });
 
 test("the text block is measured where it will sit", () => {

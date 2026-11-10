@@ -19,6 +19,8 @@ beforeEach(() => {
       disconnect() {}
     },
   );
+  // jsdom cannot draw, so the hero shows its still frame
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
 });
 
 afterEach(() => {
