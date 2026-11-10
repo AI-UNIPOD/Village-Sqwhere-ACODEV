@@ -291,6 +291,8 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       g?.clearRect(0, 0, canvasEl?.width ?? 0, canvasEl?.height ?? 0);
       if (treeEl) treeEl.style.opacity = "1";
       showButton();
+      // the hero stays hidden until it is marked ready, so mark it, or it would stay blank
+      heroEl?.setAttribute("data-ready", "");
     }
 
     // a clock that only runs while the loop is playing, visible and on screen

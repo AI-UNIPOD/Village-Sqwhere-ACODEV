@@ -159,6 +159,16 @@ test("centres the text on a phone-width hero and not on a wide one", () => {
   expect(wide.container.querySelector("section > div")!.className).not.toMatch(/center/);
 });
 
+test("if placing the hero fails, it still shows the hero with the logo, not a blank space", () => {
+  vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(() => {
+    throw new Error("layout failed");
+  });
+  const { container } = renderHero();
+  expect(container.querySelector("section")!.hasAttribute("data-ready")).toBe(true);
+  expect(parseFloat(logoLayer(container).style.opacity)).toBe(1);
+  expect(pauseButton(container).style.display).toBe("none");
+});
+
 test("places everything again when the width changes", () => {
   const { container } = renderHero();
   const section = container.querySelector("section")!;
