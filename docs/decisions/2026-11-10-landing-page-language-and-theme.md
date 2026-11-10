@@ -46,6 +46,11 @@ Tanny chose, on 10 November 2026:
   real logo fades in, and they walk back out. It stops off screen and in a hidden tab, has a
   pause button, and stands still with reduced motion. If the browser cannot draw, the hero
   keeps its still frame: the square and the logo.
+- **The hero's background words drift, an addition to B3v.** Tanny asked for them to move
+  slowly right to left and back: `--space-8` each way on `--ease-drawer`, one cycle per
+  `--dur-drift` (12s, a new token). The headline, sentence and buttons stay still. The drift
+  holds while the pointer rests on a word, and stops with the pause button, off screen and
+  with reduced motion. Words fade out at the edges of the text, the square and the button.
 - **The browser tab icon is the Laterite mark on a clear background,** as on the approved
   page, an exception Tanny chose to the `on-paper` rule in `logo.md` (recorded there).
 - **The French copy is not yet checked by a native speaker.** It avoids a space before a

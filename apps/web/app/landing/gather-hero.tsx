@@ -10,11 +10,17 @@ import {
   TWIN,
   at,
   crowdFontSize,
+  cubicBezier,
+  driftOffset,
   layoutCrowd,
   nameFontSize,
+  parseCubicBezier,
+  parseSeconds,
   planCycle,
+  pointerOnWord,
   runsFromAlpha,
   seg,
+  zoneFade,
   type CrowdWord,
   type Cycle,
   type Rect,
@@ -92,6 +98,9 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       last: null as number | null,
       pointer: null as [number, number] | null,
       cycle: 0,
+      // the background drift has its own clock, so resting on a word holds only the drift
+      driftClock: 0,
+      held: false,
     };
     let geo: HeroGeometry | null = null;
     let heroWidth = 0;
@@ -101,6 +110,11 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     let dpr = 1;
     let mono = "";
     let colors = { lineStrong: "", text: "", muted: "", bg: "" };
+    let drift: { cycle: number; distance: number; feather: number; ease: (x: number) => number } | null =
+      null;
+    let shift = 0;
+    let paintedShift = Number.NaN;
+    let restFade: number[] = [];
     let raf = 0;
     let lastWidth = -1;
     let lastViewportHeight = -1;
@@ -120,6 +134,25 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
         bg: token("--bg"),
       };
       mono = token("--mono");
+
+      // the drift uses the design system's motion tokens only; without them it stays still
+      const root = getComputedStyle(document.documentElement);
+      const rootToken = (name: string) => root.getPropertyValue(name).trim();
+      const cycle = parseSeconds(rootToken("--dur-drift"));
+      const curve = parseCubicBezier(rootToken("--ease-drawer"));
+      const distance = parseFloat(rootToken("--space-8"));
+      const feather = parseFloat(rootToken("--space-3"));
+      drift =
+        cycle && curve && distance > 0
+          ? { cycle, distance, feather: feather > 0 ? feather : 0, ease: cubicBezier(curve) }
+          : null;
+    }
+
+    // what the drift is doing, for tests and debugging: on, held (pointer on a word) or off
+    function markDrift() {
+      const value =
+        !animated || state.reduced || !drift || pausedRef.current ? "off" : state.held ? "held" : "on";
+      if (heroEl && heroEl.getAttribute("data-drift") !== value) heroEl.setAttribute("data-drift", value);
     }
 
     function showButton() {
@@ -178,12 +211,17 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
         fontSize: crowdFontSize(hg.cell),
         avoid,
       });
-      paintCrowd();
+      const fontSize = crowdFontSize(hg.cell);
+      restFade = words.map((w) =>
+        zoneFade([w.x, w.y, w.x + w.w, w.y + fontSize], avoid, drift?.feather ?? 0),
+      );
+      paintedShift = Number.NaN;
       newCycle();
     }
 
-    // the crowd never moves, so it is painted once to its own canvas and copied every frame
-    function paintCrowd() {
+    // The crowd is painted to its own canvas and copied every frame. The drift is slow, so it is
+    // painted again only when its shift moves by a whole device pixel: a few times a second.
+    function paintCrowd(at: number) {
       if (!geo || !cg) return;
       const fontSize = crowdFontSize(geo.cell);
       cg.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -191,9 +229,18 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       cg.font = `${fontSize}px ${mono}`;
       cg.textBaseline = "top";
       cg.fillStyle = colors.lineStrong;
-      cg.globalAlpha = 0.6;
-      for (const w of words) cg.fillText(w.t, w.x, w.y);
+      const feather = drift?.feather ?? 0;
+      words.forEach((w, i) => {
+        const x = w.x + at;
+        // relative to where the word rests, so nothing dims until it moves closer to a zone
+        const near = zoneFade([x, w.y, x + w.w, w.y + fontSize], avoid, feather);
+        const fade = restFade[i] > 0 ? Math.min(1, near / restFade[i]) : near;
+        if (fade <= 0) return;
+        cg.globalAlpha = 0.6 * fade;
+        cg.fillText(w.t, x, w.y);
+      });
       cg.globalAlpha = 1;
+      paintedShift = Math.round(at * dpr);
     }
 
     function newCycle() {
@@ -213,6 +260,8 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     function draw(t: number) {
       if (!geo || !g || !plan || !treeEl || !canvasEl) return;
       const c = geo.cell;
+      shift = drift && !state.reduced ? driftOffset(state.driftClock, drift.cycle, drift.distance, drift.ease) : 0;
+      if (Math.round(shift * dpr) !== paintedShift) paintCrowd(shift);
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, canvasEl.width, canvasEl.height);
       g.drawImage(crowdCanvas, 0, 0);
@@ -226,11 +275,14 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
         g.textBaseline = "top";
         for (const w of words) {
           const twin = TWIN[w.t];
-          if (!twin || Math.hypot(w.x + w.w / 2 - pointer[0], w.y - pointer[1]) > 64) continue;
+          const x = w.x + shift;
+          if (!twin || Math.hypot(x + w.w / 2 - pointer[0], w.y - pointer[1]) > 64) continue;
+          // a word that has faded out at the edge of the text or the square shows no twin
+          if (zoneFade([x, w.y, x + w.w, w.y + fontSize], avoid, 0) <= 0) continue;
           g.fillStyle = colors.bg;
-          g.fillRect(w.x - 1, w.y - 1, w.w + 2, fontSize + 3);
+          g.fillRect(x - 1, w.y - 1, w.w + 2, fontSize + 3);
           g.fillStyle = colors.muted;
-          g.fillText(twin, w.x, w.y);
+          g.fillText(twin, x, w.y);
         }
       }
 
@@ -291,6 +343,7 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       g?.clearRect(0, 0, canvasEl?.width ?? 0, canvasEl?.height ?? 0);
       if (treeEl) treeEl.style.opacity = "1";
       showButton();
+      markDrift();
       // the hero stays hidden until it is marked ready, so mark it, or it would stay blank
       heroEl?.setAttribute("data-ready", "");
     }
@@ -299,7 +352,10 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     function frame(now: number) {
       raf = 0;
       if (running()) {
-        if (state.last != null) state.clock += Math.min(100, now - state.last) / 1000;
+        const step = state.last != null ? Math.min(100, now - state.last) / 1000 : 0;
+        state.clock += step;
+        // resting the pointer on a word holds the drift; the walking names carry on
+        if (!state.held) state.driftClock += step;
         state.last = now;
         if (plan && state.clock >= plan.end) {
           state.clock = 0;
@@ -309,6 +365,7 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       } else {
         state.last = null;
       }
+      markDrift();
       try {
         draw(state.clock);
       } catch {
@@ -332,6 +389,7 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
         fail();
         return;
       }
+      markDrift();
       invalidate();
     }
 
@@ -339,10 +397,16 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       if (state.reduced || !heroEl) return;
       const r = heroEl.getBoundingClientRect();
       state.pointer = [e.clientX - r.left, e.clientY - r.top];
+      state.held =
+        !!geo &&
+        pointerOnWord(words, state.pointer[0], state.pointer[1], shift, crowdFontSize(geo.cell), avoid);
+      markDrift();
       invalidate();
     }
     function onPointerLeave() {
       state.pointer = null;
+      state.held = false;
+      markDrift();
       invalidate();
     }
     function onVisibility() {
@@ -352,11 +416,12 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     function onMotion() {
       state.reduced = motion.matches;
       showButton();
+      markDrift();
       invalidate();
     }
     function onTheme() {
       readTheme();
-      paintCrowd();
+      paintedShift = Number.NaN;
       invalidate();
     }
     // on wide screens the hero fills the window, so a change of window height matters too
@@ -400,7 +465,11 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     });
 
     readTheme();
-    wake.current = invalidate;
+    // the pause button: update what the drift is doing at once, then draw
+    wake.current = () => {
+      markDrift();
+      invalidate();
+    };
     relayout();
 
     return () => {

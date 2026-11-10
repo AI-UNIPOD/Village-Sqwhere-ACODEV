@@ -9,10 +9,16 @@ import {
   TWIN,
   at,
   chars,
+  cubicBezier,
+  driftOffset,
   layoutCrowd,
   pack,
+  parseCubicBezier,
+  parseSeconds,
   planCycle,
+  pointerOnWord,
   runsFromAlpha,
+  zoneFade,
   type Run,
 } from "./gather";
 import { heroAvoid, heroGeometry } from "./hero-layout";
@@ -170,4 +176,70 @@ test("packs the crowd edge to edge without covering the text, the square or the 
       expect(clear).toBe(true);
     }
   }
+});
+
+// ---------- the drift ----------
+
+// the real token values, read from the design system's tokens.css
+const DRAWER = parseCubicBezier("cubic-bezier(0.32, 0.72, 0, 1)")!;
+const CYCLE = parseSeconds("12s")!;
+const DISTANCE = 32; // --space-8
+
+test("reads the drift tokens: the drawer easing and the 12 second cycle", () => {
+  expect(DRAWER).toEqual([0.32, 0.72, 0, 1]);
+  expect(CYCLE).toBe(12);
+  expect(parseSeconds("400ms")).toBe(0.4);
+  expect(parseCubicBezier("")).toBeNull();
+  expect(parseSeconds("")).toBeNull();
+});
+
+test("the drawer easing starts at 0, ends at 1 and never goes back", () => {
+  const ease = cubicBezier(DRAWER);
+  expect(ease(0)).toBe(0);
+  expect(ease(1)).toBe(1);
+  let last = 0;
+  for (let i = 1; i <= 20; i++) {
+    const v = ease(i / 20);
+    expect(v).toBeGreaterThanOrEqual(last);
+    last = v;
+  }
+});
+
+test("the crowd glides left by 32px over the first half of the cycle, then back", () => {
+  const ease = cubicBezier(DRAWER);
+  const at_ = (t: number) => driftOffset(t, CYCLE, DISTANCE, ease);
+  expect(at_(0)).toBeCloseTo(0);
+  expect(at_(CYCLE / 2)).toBeCloseTo(-DISTANCE);
+  expect(at_(CYCLE)).toBeCloseTo(0);
+  // moving left (right to left) during the first half
+  expect(at_(CYCLE / 4)).toBeLessThan(at_(CYCLE / 8));
+  // and back during the second
+  expect(at_((3 * CYCLE) / 4)).toBeGreaterThan(at_((5 * CYCLE) / 8));
+  for (let t = 0; t < 3 * CYCLE; t += 0.37) {
+    expect(at_(t)).toBeLessThanOrEqual(0);
+    expect(at_(t)).toBeGreaterThanOrEqual(-DISTANCE);
+    expect(at_(t + CYCLE)).toBeCloseTo(at_(t));
+  }
+});
+
+test("a drifting word fades out as it reaches the text, the square or the button", () => {
+  const zone = [[100, 100, 200, 200]] as const;
+  expect(zoneFade([0, 0, 40, 10], zone, 12)).toBe(1); // far away
+  expect(zoneFade([60, 150, 94, 160], zone, 12)).toBeCloseTo(0.5); // 6px from the zone
+  expect(zoneFade([90, 150, 110, 160], zone, 12)).toBe(0); // touching it
+});
+
+test("knows when the pointer rests directly on a word, wherever the drift has moved it", () => {
+  const words = [{ x: 100, y: 50, w: 40, t: "team" }];
+  expect(pointerOnWord(words, 110, 55, 0, 10)).toBe(true);
+  expect(pointerOnWord(words, 110, 55, -32, 10)).toBe(false); // the word has moved left
+  expect(pointerOnWord(words, 80, 55, -32, 10)).toBe(true);
+  expect(pointerOnWord(words, 110, 70, 0, 10)).toBe(false); // below the word
+});
+
+test("a word that has drifted behind the text is hidden, so resting on it does not hold the drift", () => {
+  const words = [{ x: 100, y: 50, w: 40, t: "team" }];
+  const headline = [[60, 40, 120, 70]] as const; // the word now overlaps the text area
+  expect(pointerOnWord(words, 80, 55, -32, 10, headline)).toBe(false);
+  expect(pointerOnWord(words, 80, 55, -32, 10, [])).toBe(true);
 });
