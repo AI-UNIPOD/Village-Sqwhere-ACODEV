@@ -3,7 +3,7 @@ import type { Lang } from "../locales";
 type Step = { title: string; text: string };
 type Stop = { text: string; time: string };
 
-export type Copy = {
+type Copy = {
   description: string;
   navLabel: string;
   navHow: string;

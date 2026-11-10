@@ -1,6 +1,6 @@
 export const LOCALES = ["en", "fr"] as const;
 export type Lang = (typeof LOCALES)[number];
-export const DEFAULT_LANG: Lang = "en";
+const DEFAULT_LANG: Lang = "en";
 
 export function hasLocale(value: string): value is Lang {
   return (LOCALES as readonly string[]).includes(value);

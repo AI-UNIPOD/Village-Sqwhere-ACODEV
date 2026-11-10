@@ -38,7 +38,7 @@ export const TWIN: Record<string, string> = {
 /** Seconds: one cell of walking, a fade, the pause before the logo, how long the logo stays. */
 export const STEP = 0.045;
 export const FADE = 0.3;
-export const HOLD = 0.4;
+const HOLD = 0.4;
 export const LOGO_HOLD = 2.2;
 
 /** Fills the gaps in a row where no country name or code fits. */
@@ -50,7 +50,7 @@ const COMBINING_MARKS = new RegExp(
 
 export type Run = { x0: number; y: number; len: number };
 export type Rect = readonly [number, number, number, number];
-export type Piece = {
+type Piece = {
   a: string[];
   len: number;
   /** Target cell in the logo grid. */
@@ -67,7 +67,7 @@ export type Cycle = { pieces: Piece[]; logoAt: number; outAt: number; fadeAt: nu
 export type CrowdWord = { x: number; y: number; w: number; t: string };
 
 /** Seeded random numbers, so the page looks the same on every visit. */
-export function rng(seed: number) {
+function rng(seed: number) {
   let a = seed >>> 0;
   return () => {
     a |= 0;
@@ -78,7 +78,7 @@ export function rng(seed: number) {
   };
 }
 
-export function clamp(x: number) {
+function clamp(x: number) {
   return x < 0 ? 0 : x > 1 ? 1 : x;
 }
 
