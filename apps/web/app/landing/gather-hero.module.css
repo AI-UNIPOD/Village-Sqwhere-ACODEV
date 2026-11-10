@@ -1,0 +1,126 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  min-block-size: var(--hero-min-height);
+}
+
+/* Until the hero has been placed, hide it, so nobody sees it jump. Without JavaScript the
+   rule does not apply and the page shows the layout below. */
+@media (scripting: enabled) {
+  .hero:not([data-ready]) > * {
+    visibility: hidden;
+  }
+}
+
+/* The left, top and width set here only show before the script places the text. */
+.copy {
+  position: absolute;
+  z-index: 4;
+  left: var(--space-4);
+  top: var(--space-8);
+  inline-size: calc(100% - var(--space-4) - var(--space-4) - var(--float-size) - var(--space-2));
+  max-inline-size: 35rem;
+  container-type: inline-size;
+}
+
+.copy h1 {
+  margin: 0;
+  font: var(--type-hero);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* On phones the text is centred. The sentence and the buttons read these two values. */
+.center {
+  --copy-inline: auto;
+  --copy-justify: center;
+  text-align: center;
+}
+
+/* The 32 by 32 grid the logo is drawn on. The script sets its position, size and cell. */
+.square {
+  position: absolute;
+  z-index: 1;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  box-shadow: 0 0 0 1px var(--line);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* The crowd and the walking names. The script sets its size; the logo fades in above it. */
+.canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.tree {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Pause and play for the loop. Shown by the script only when something moves. */
+.play {
+  position: absolute;
+  z-index: 5;
+  display: none;
+  place-items: center;
+  inline-size: var(--float-size);
+  block-size: var(--float-size);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+/* a ring that widens the tap area to 44px */
+.play::before {
+  content: "";
+  position: absolute;
+  inset: calc((var(--float-size) - var(--tap-min)) / 2);
+  border-radius: var(--radius-full);
+}
+
+.play:hover {
+  background: var(--surface-sunken);
+}
+
+.play:active {
+  transform: scale(0.97);
+}
+
+.play svg {
+  inline-size: var(--icon-play);
+  block-size: var(--icon-play);
+}
+
+.iconPlay,
+.paused .iconPause {
+  display: none;
+}
+
+.paused .iconPlay {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .play {
+    transition-duration: 0.01ms;
+  }
+}
+
+.treeLogo {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}

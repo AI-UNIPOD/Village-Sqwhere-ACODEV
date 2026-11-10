@@ -28,7 +28,7 @@ test("takes its colour from the theme and stays hidden from screen readers", () 
   expect(svg?.getAttribute("aria-hidden")).toBe("true");
 });
 
-test("the browser tab icon is the design system's on-paper logo", () => {
+test("the browser tab icon is the design system's Laterite logo", () => {
   const icon = readFileSync(join(__dirname, "icon.svg"), "utf8");
-  expect(icon).toBe(read("palaver-tree-v_on-paper.svg"));
+  expect(icon).toBe(read("palaver-tree-v_laterite.svg"));
 });
