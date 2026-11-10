@@ -1,0 +1,62 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  min-block-size: var(--hero-min-height);
+}
+
+/* Until the hero has been placed, hide it, so nobody sees it jump. Without JavaScript the
+   rule does not apply and the page shows the layout below. */
+@media (scripting: enabled) {
+  .hero:not([data-ready]) > * {
+    visibility: hidden;
+  }
+}
+
+/* The left, top and width set here only show before the script places the text. */
+.copy {
+  position: absolute;
+  z-index: 4;
+  left: var(--space-4);
+  top: var(--space-8);
+  inline-size: calc(100% - var(--space-4) - var(--space-4) - var(--float-size) - var(--space-2));
+  max-inline-size: 35rem;
+  container-type: inline-size;
+}
+
+.copy h1 {
+  margin: 0;
+  font: var(--type-hero);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* On phones the text is centred. The sentence and the buttons read these two values. */
+.center {
+  --copy-inline: auto;
+  --copy-justify: center;
+  text-align: center;
+}
+
+/* The 32 by 32 grid the logo is drawn on. The script sets its position, size and cell. */
+.square {
+  position: absolute;
+  z-index: 1;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  box-shadow: 0 0 0 1px var(--line);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.tree {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.treeLogo {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}

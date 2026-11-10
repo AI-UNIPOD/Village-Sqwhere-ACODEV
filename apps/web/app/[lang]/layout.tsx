@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Onest, Unbounded } from "next/font/google";
-import "./globals.css";
+import { notFound } from "next/navigation";
+import Script from "next/script";
+
+import { copy } from "../landing/copy";
+import { THEME_INIT_SCRIPT } from "../landing/theme";
+import { LOCALES, hasLocale } from "../locales";
+import "../globals.css";
 
 const unbounded = Unbounded({
   variable: "--font-unbounded",
@@ -17,19 +23,33 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin", "latin-ext"],
 });
 
-export const metadata: Metadata = {
-  title: "Village Sqwhere",
-  description:
-    "The village square for African developers: share ideas, get matched with collaborators, and build together.",
-};
+export function generateStaticParams() {
+  return LOCALES.map((lang) => ({ lang }));
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Promise<Metadata> {
+  const { lang } = await params;
+  if (!hasLocale(lang)) return {};
+  return { title: "Village Sqwhere", description: copy[lang].description };
+}
+
+export default async function RootLayout({ children, params }: LayoutProps<"/[lang]">) {
+  const { lang } = await params;
+  if (!hasLocale(lang)) notFound();
+
   return (
+    // the early theme script sets data-theme on <html> before React hydrates
     <html
-      lang="en"
+      lang={lang}
       className={`${unbounded.variable} ${onest.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
+      </body>
     </html>
   );
 }

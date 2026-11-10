@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-10
 
+- feat(web): add the landing page in English and French
 - feat(api): add developer roles, tech stack and feed topics
 
 ## 2026-11-07
