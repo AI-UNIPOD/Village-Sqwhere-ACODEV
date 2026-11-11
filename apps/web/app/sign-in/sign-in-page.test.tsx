@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -57,6 +60,13 @@ test.each([
   render(<SignInPage lang={lang} />);
   expect(screen.getByRole("heading", { level: 1, name: heading })).toBeTruthy();
   expect(screen.getAllByRole("button", { name: button })).toHaveLength(1);
+});
+
+test("the stylesheet changes layout only at the design system breakpoints", () => {
+  const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
+  const widths = [...css.matchAll(/(?:min|max)-width:\s*(\d+)px/g)].map((m) => Number(m[1]));
+  expect(widths.length).toBeGreaterThan(0);
+  for (const width of widths) expect([768, 1100]).toContain(width);
 });
 
 test("the button carries the GitHub mark and is named by its label alone", () => {
