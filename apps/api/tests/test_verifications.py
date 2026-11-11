@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -13,6 +14,7 @@ from app.services.codebase_analysis import (
     AnalysisCriterion,
     build_codebase_analysis_prompt,
 )
+from app.services.groq import GroqCodebaseAnalyzer, GroqConfigurationError
 from app.services.verification import (
     CodebaseAnalysisResult,
     GitHubRepositoryClient,
@@ -52,6 +54,44 @@ def test_codebase_analysis_prompt_treats_repository_data_as_untrusted() -> None:
     assert "untrusted data" in prompt.system
     assert AnalysisCriterion.TEST_COVERAGE.value in prompt.user
     assert "backend-engineer" in prompt.user
+
+
+def test_groq_codebase_analyzer_requires_configuration() -> None:
+    analyzer = GroqCodebaseAnalyzer()
+    with pytest.raises(GroqConfigurationError):
+        asyncio.run(analyzer.analyze([], "backend-engineer"))
+
+
+def test_groq_codebase_analyzer_validates_structured_output() -> None:
+    analyzer = GroqCodebaseAnalyzer(api_key="test-key", model="test-model")
+
+    async def fake_post_json(url: str, payload: dict) -> dict:
+        assert url.endswith("/chat/completions")
+        assert payload["model"] == "test-model"
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "score": 80,
+                                "summary": "The repository has a clear structure.",
+                                "strengths": ["Clear modules"],
+                                "concerns": [],
+                                "evidence": [],
+                                "model": "test-model",
+                            }
+                        )
+                    }
+                }
+            ]
+        }
+
+    analyzer._post_json = fake_post_json
+    result = asyncio.run(analyzer.analyze([], "backend-engineer"))
+
+    assert result.score == 80
+    assert result.model == "test-model"
 
 
 def bearer(data: dict) -> dict[str, str]:

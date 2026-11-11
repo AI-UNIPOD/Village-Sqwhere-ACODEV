@@ -12,6 +12,7 @@ its number:
 
 - feat(api): add verification phase tracking and analysis boundary
 - feat(api): add bounded GitHub repository snapshots for verification
+- feat(api): add Groq codebase analysis adapter
 
 ## 2026-11-10
 

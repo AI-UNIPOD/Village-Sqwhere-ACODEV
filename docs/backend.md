@@ -419,6 +419,10 @@ The codebase analysis service reads public GitHub repository metadata, languages
 tree, test paths and recent commits. `GITHUB_API_TOKEN` is optional. Without it, public
 repositories use GitHub's unauthenticated rate limit. Repository code is never executed.
 
+The Groq codebase adapter is configured with `GROQ_API_KEY` and `GROQ_CODEBASE_MODEL`. It sends
+the bounded snapshot to the configured model, requests JSON, and validates the response before
+storing it. The adapter is not called directly by an HTTP endpoint.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.

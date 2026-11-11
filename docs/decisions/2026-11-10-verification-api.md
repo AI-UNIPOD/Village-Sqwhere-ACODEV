@@ -32,4 +32,6 @@ frontend can now show the active AI phase. The live provider, GitHub permissions
 and technical defence contract still need separate decisions before production analysis is
 connected. Repository analysis uses bounded metadata snapshots and never executes repository
 code. A GitHub API token is optional for public repositories and only changes the API rate
-limit.
+limit. The first model adapter uses Groq's OpenAI-compatible API with a deployment-configured
+model name and validates structured JSON before persistence. Provider selection remains outside
+the HTTP endpoint so a Gemini fallback can be added without changing the lifecycle contract.
