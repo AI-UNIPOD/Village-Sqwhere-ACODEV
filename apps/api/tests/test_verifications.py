@@ -162,3 +162,29 @@ def test_unverified_user_cannot_review(sign_in) -> None:
     assert response.status_code == 200
     assert response.json()["data"] == []
     cleanup_user(user_id)
+
+
+def test_each_new_attempt_reports_its_own_number(sign_in) -> None:
+    # the database numbers attempts; the API must report that number, not one it guessed
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+
+    for attempt in (1, 2, 3):
+        started = client.post(
+            "/v1/me/verifications/backend-engineer",
+            headers=bearer(data),
+            json={"repositories": ["https://github.com/example/project"]},
+        )
+        assert started.status_code == 201, started.text
+        session = started.json()["data"]
+        assert session["attempt_number"] == attempt
+        detail = client.get(f"/v1/me/verifications/{session['id']}", headers=bearer(data))
+        assert detail.json()["data"]["attempt_number"] == attempt
+        abandoned = client.post(
+            f"/v1/me/verifications/{session['id']}/abandon", headers=bearer(data)
+        )
+        assert abandoned.status_code == 200
+
+    cleanup_user(user_id)
