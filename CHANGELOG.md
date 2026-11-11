@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- fix(api): never block sign-in on a clashing email (#24)
 - docs: add the verification routes to the architecture doc (#14)
 - fix(api): return the real attempt number when a verification starts (#19)
 - docs: add the api endpoints to progress and architecture (#13)
