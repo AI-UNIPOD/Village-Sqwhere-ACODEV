@@ -38,10 +38,19 @@ async function createPkce() {
 
 // Asks the API for the GitHub address to send the browser to.
 async function startGitHub(): Promise<{ url: string } | { problem: ProblemKey }> {
+  let challenge: string;
   try {
-    const { verifier, challenge } = await createPkce();
-    sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
-    const response = await fetch(`${API_URL}/v1/auth/oauth/github/start`, {
+    const pkce = await createPkce();
+    sessionStorage.setItem(PKCE_VERIFIER_KEY, pkce.verifier);
+    challenge = pkce.challenge;
+  } catch {
+    // crypto.subtle is missing on plain http away from localhost, and storage can be blocked:
+    // the network is fine, so do not say it dropped
+    return { problem: "other" };
+  }
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/v1/auth/oauth/github/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -50,12 +59,12 @@ async function startGitHub(): Promise<{ url: string } | { problem: ProblemKey }>
         code_challenge_method: "S256",
       }),
     });
-    const body = await response.json().catch(() => null);
-    if (response.ok && typeof body?.data?.authorize_url === "string") return { url: body.data.authorize_url };
-    return { problem: body?.detail?.code === "PROVIDER_NOT_CONFIGURED" ? "notConfigured" : "other" };
   } catch {
     return { problem: "network" };
   }
+  const body = await response.json().catch(() => null);
+  if (response.ok && typeof body?.data?.authorize_url === "string") return { url: body.data.authorize_url };
+  return { problem: body?.detail?.code === "PROVIDER_NOT_CONFIGURED" ? "notConfigured" : "other" };
 }
 
 // The callback page sends GitHub failures back here as `?error=CODE`. The address is read on
@@ -178,7 +187,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
       <header className={landingStyles.nav} data-site-header="">
         <Link className={landingStyles.brand} href={`/${lang}`}>
           <Logo size={24} className={landingStyles.navLogo} />
-          <span className={landingStyles.navWordmark}>Village Sqwhere</span>
+          <span className={landingStyles.navWordmark} translate="no">Village Sqwhere</span>
         </Link>
       </header>
 
@@ -188,6 +197,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
         href={`/${other}/sign-in`}
         hrefLang={other}
         lang={other}
+        translate="no"
         aria-label={shared.switchLabel}
       >
         {shared.switchText}

@@ -13,6 +13,17 @@ its number:
 - feat(api): add Gemini interview fallback
 - feat(api): make verification interviews conversational
 - feat(api): limit technical defence interviews to five turns
+- feat(api): add hub models and schemas (#34)
+- fix(web): keep the french phone nav links on one line (#35)
+- test(api): isolate the test database from the development one (#29)
+- feat(db): add hub terms and a test agreement (#33)
+- feat(web): add the auth callback page that finishes github sign-in (#32)
+- fix(web): give the onboarding page a title in english and french (#31)
+- fix(web): show hover styles only on devices that can hover (#28)
+- fix(web): keep the brand name and language code out of translation (#27)
+- fix(web): say sign-in did not start when the browser cannot hash (#26)
+- fix(web): use the design system breakpoint for the sign-in button (#25)
+- fix(api): never block sign-in on a clashing email (#24)
 - fix(web): show the real name and link the github username on the card (#23)
 - feat(web): add the onboarding page for after the first sign-in (#22)
 - feat(web): add the github sign-in page (#21)
