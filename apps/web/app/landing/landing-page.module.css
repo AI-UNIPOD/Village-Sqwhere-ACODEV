@@ -166,17 +166,26 @@
     border-color var(--dur-press) var(--ease-out);
 }
 
-.navLink:hover,
 .navLink:focus-visible,
 .navLink[aria-current="location"] {
   color: var(--text);
 }
 
-.navLink:hover::after,
 .navLink:focus-visible::after,
-.footLink:hover::after,
 .footLink:focus-visible::after {
   transform: scaleX(1);
+}
+
+/* Hover only where a pointer can hover: a tap on a phone would leave it stuck on. */
+@media (hover: hover) and (pointer: fine) {
+  .navLink:hover {
+    color: var(--text);
+  }
+
+  .navLink:hover::after,
+  .footLink:hover::after {
+    transform: scaleX(1);
+  }
 }
 
 .navLink[aria-current="location"]::after {
@@ -216,8 +225,10 @@
   border-radius: var(--radius-full);
 }
 
-.fab:hover {
-  background: var(--surface-sunken);
+@media (hover: hover) and (pointer: fine) {
+  .fab:hover {
+    background: var(--surface-sunken);
+  }
 }
 
 .fab:active {
@@ -339,12 +350,14 @@
   color: var(--text);
 }
 
-.btn:hover:not([aria-disabled="true"]) {
-  background: var(--action-hover);
-}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not([aria-disabled="true"]) {
+    background: var(--action-hover);
+  }
 
-.ghost:hover:not([aria-disabled="true"]) {
-  background: var(--surface-sunken);
+  .ghost:hover:not([aria-disabled="true"]) {
+    background: var(--surface-sunken);
+  }
 }
 
 .btn:active:not([aria-disabled="true"]),
@@ -487,8 +500,10 @@
   border-color: var(--line-strong);
 }
 
-.step:hover .num {
-  background: var(--surface-sunken);
+@media (hover: hover) and (pointer: fine) {
+  .step:hover .num {
+    background: var(--surface-sunken);
+  }
 }
 
 .step h3 {
@@ -626,8 +641,7 @@
 
 /* Sign-in and the demo have nowhere to go yet: muted, and the pointer says so. Last in the
    file so it wins over the link styles above. */
-.soonLink,
-.soonLink:hover {
+.soonLink {
   color: var(--text-muted);
   cursor: not-allowed;
   text-decoration: none;

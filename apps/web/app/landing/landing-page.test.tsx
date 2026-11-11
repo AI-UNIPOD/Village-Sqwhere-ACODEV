@@ -72,6 +72,18 @@ test.each([
   expect(link.getAttribute("hreflang")).toBe(href.slice(1));
 });
 
+// Browser translation turned "Village Sqwhere" into "Village Square" and "EN" into "IN".
+test.each([
+  ["en", "Passer en français"],
+  ["fr", "Switch to English"],
+] as const)("the %s page keeps the brand name and the language switch out of translation", (lang, label) => {
+  render(<LandingPage lang={lang} />);
+  const wordmarks = screen.getAllByText("Village Sqwhere");
+  expect(wordmarks).toHaveLength(2);
+  for (const wordmark of wordmarks) expect(wordmark.getAttribute("translate")).toBe("no");
+  expect(screen.getByRole("link", { name: label }).getAttribute("translate")).toBe("no");
+});
+
 test("offers a dark mode toggle in each language", () => {
   render(<LandingPage lang="en" />);
   expect(screen.getByRole("button", { name: "Switch to dark mode" })).toBeTruthy();

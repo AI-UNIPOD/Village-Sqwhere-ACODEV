@@ -4,6 +4,7 @@ type Question = { title: string; why: string };
 type Empty = { title: string; stack: string; country: string; clear: string };
 
 type Copy = {
+  pageTitle: string;
   switchText: string;
   pause: string;
   play: string;
@@ -41,6 +42,7 @@ type Copy = {
 };
 
 const en: Copy = {
+  pageTitle: "Set up your profile | Village Sqwhere",
   switchText: "Français",
   pause: "Pause animation",
   play: "Play animation",
@@ -107,6 +109,7 @@ const en: Copy = {
 
 // Needs a native French review before launch.
 const fr: Copy = {
+  pageTitle: "Configurer votre profil | Village Sqwhere",
   switchText: "English",
   pause: "Mettre l'animation en pause",
   play: "Lire l'animation",
