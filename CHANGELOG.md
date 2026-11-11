@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- feat(api): add Gemini interview fallback
 - feat(api): make verification interviews conversational
 - feat(api): limit technical defence interviews to five turns
 - fix(api): return the real attempt number when a verification starts (#19)

@@ -4,6 +4,7 @@ from io import BytesIO
 
 import pytest
 
+from app.api.v1 import interviews as interviews_api
 from app.api.v1.interviews import complete_interview, mark_interview_incomplete
 from app.models.users import (
     InterviewStatus,
@@ -12,7 +13,8 @@ from app.models.users import (
     VerificationSession,
     VerificationStatus,
 )
-from app.services import groq_interview
+from app.services import gemini_interview, groq_interview
+from app.services.gemini_interview import GeminiInterviewAgent
 from app.services.groq_interview import GroqInterviewAgent
 from app.services.interview import (
     INTERVIEW_COMPETENCIES,
@@ -141,6 +143,155 @@ def test_groq_agent_requests_json_object_mode(monkeypatch: pytest.MonkeyPatch) -
 
     assert response["choices"]
     assert request_payload["response_format"] == {"type": "json_object"}
+
+
+def test_gemini_agent_requires_configuration() -> None:
+    agent = GeminiInterviewAgent(api_key=None, model=None)
+
+    with pytest.raises(InterviewUnavailable, match="not configured"):
+        asyncio.run(agent.opening("backend-engineer", {}))
+
+
+def test_gemini_agent_generates_structured_adaptive_conversation() -> None:
+    agent = GeminiInterviewAgent(api_key="test-key", model="test-model")
+    requests: list[dict] = []
+
+    async def fake_generate(payload: dict) -> str:
+        requests.append(payload)
+        if payload["phase"] == "opening":
+            return json.dumps({"welcome": "Welcome.", "question": "First question?"})
+        if payload["phase"] == "continuation":
+            return json.dumps({"acknowledgement": "Thanks.", "question": "Follow-up?"})
+        return json.dumps({"acknowledgement": "Thanks.", "closing": "Goodbye."})
+
+    agent._generate = fake_generate
+    history = [
+        InterviewHistoryItem(sequence=1, question="Question", answer="I used a queue."),
+    ]
+
+    opening = asyncio.run(agent.opening("backend-engineer", {"score": 70}))
+    continuation = asyncio.run(agent.continuation("backend-engineer", 5, {}, history))
+    closing = asyncio.run(agent.closing("backend-engineer", {}, history))
+
+    assert opening.welcome == "Welcome."
+    assert continuation.question == "Follow-up?"
+    assert closing.closing == "Goodbye."
+    assert requests[1]["competency"] == "trade-offs and problem solving"
+    assert requests[1]["history"][0]["answer"] == "I used a queue."
+
+
+def test_gemini_agent_rejects_invalid_structured_response() -> None:
+    agent = GeminiInterviewAgent(api_key="test-key", model="test-model")
+
+    async def fake_generate(payload: dict) -> str:
+        return "{}"
+
+    agent._generate = fake_generate
+
+    with pytest.raises(InterviewUnavailable, match="continuation is invalid"):
+        asyncio.run(agent.continuation("backend-engineer", 2, {}, []))
+
+
+def test_gemini_agent_requests_json_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    agent = GeminiInterviewAgent(api_key="test-key", model="gemini/test model")
+    captured: dict = {}
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["payload"] = json.loads(request.data)
+        return BytesIO(b'{"candidates":[{"content":{"parts":[{"text":"{}"}]}}]}')
+
+    monkeypatch.setattr(gemini_interview, "urlopen", fake_urlopen)
+
+    response = agent._generate_sync({"phase": "opening"})
+
+    assert response["candidates"]
+    assert "gemini%2Ftest%20model" in captured["url"]
+    assert captured["payload"]["generationConfig"]["responseMimeType"] == "application/json"
+    prompt = captured["payload"]["contents"][0]["parts"][0]["text"]
+    assert "untrusted data" in prompt
+
+
+def test_interview_agent_falls_back_from_groq_to_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    class UnavailableGroq:
+        async def opening(self, role_slug, analysis):
+            calls.append("groq")
+            raise InterviewUnavailable("Groq unavailable")
+
+    class AvailableGemini(DefaultInterviewAgent):
+        async def opening(self, role_slug, analysis):
+            calls.append("gemini")
+            return await super().opening(role_slug, analysis)
+
+    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", "groq-key")
+    monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", "groq-model")
+    monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", "gemini-model")
+    monkeypatch.setattr(interviews_api, "GroqInterviewAgent", UnavailableGroq)
+    monkeypatch.setattr(interviews_api, "GeminiInterviewAgent", AvailableGemini)
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}))
+
+    assert opening.welcome.startswith("Welcome")
+    assert calls == ["groq", "gemini"]
+
+
+def test_interview_agent_uses_gemini_when_groq_is_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    class AvailableGemini(DefaultInterviewAgent):
+        async def opening(self, role_slug, analysis):
+            calls.append("gemini")
+            return await super().opening(role_slug, analysis)
+
+    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", None)
+    monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", None)
+    monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", "gemini-model")
+    monkeypatch.setattr(interviews_api, "GeminiInterviewAgent", AvailableGemini)
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}))
+
+    assert opening.question
+    assert calls == ["gemini"]
+
+
+def test_interview_agent_uses_local_fallback_when_both_providers_fail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    class UnavailableAgent:
+        def __init__(self, provider: str) -> None:
+            self.provider = provider
+
+        async def opening(self, role_slug, analysis):
+            calls.append(self.provider)
+            raise InterviewUnavailable(f"{self.provider} unavailable")
+
+    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", "groq-key")
+    monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", "groq-model")
+    monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", "gemini-model")
+    monkeypatch.setattr(
+        interviews_api,
+        "GroqInterviewAgent",
+        lambda: UnavailableAgent("groq"),
+    )
+    monkeypatch.setattr(
+        interviews_api,
+        "GeminiInterviewAgent",
+        lambda: UnavailableAgent("gemini"),
+    )
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}))
+
+    assert opening.welcome.startswith("Welcome")
+    assert calls == ["groq", "gemini"]
 
 
 @pytest.mark.parametrize("raw", ["not json", "[]", "{}", '{"type": 4}'])

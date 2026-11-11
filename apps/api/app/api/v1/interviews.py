@@ -5,6 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.config import (
+    GEMINI_API_KEY,
+    GEMINI_INTERVIEW_MODEL,
     GROQ_API_KEY,
     GROQ_GUARD_MODEL,
     GROQ_INTERVIEW_MODEL,
@@ -22,6 +24,7 @@ from app.models.users import (
     VerificationSession,
     VerificationStatus,
 )
+from app.services.gemini_interview import GeminiInterviewAgent
 from app.services.groq_interview import (
     GroqInterviewAgent,
     GroqPromptGuard,
@@ -72,10 +75,12 @@ async def load_interview_session(session_id: UUID, user_id: UUID, db) -> Verific
 
 
 def interview_agent() -> InterviewAgent:
-    fallback = DefaultInterviewAgent()
-    if not GROQ_API_KEY or not GROQ_INTERVIEW_MODEL:
-        return fallback
-    return FallbackInterviewAgent(GroqInterviewAgent(), fallback)
+    agent: InterviewAgent = DefaultInterviewAgent()
+    if GEMINI_API_KEY and GEMINI_INTERVIEW_MODEL:
+        agent = FallbackInterviewAgent(GeminiInterviewAgent(), agent)
+    if GROQ_API_KEY and GROQ_INTERVIEW_MODEL:
+        agent = FallbackInterviewAgent(GroqInterviewAgent(), agent)
+    return agent
 
 
 def interview_history(interview: VerificationInterview) -> list[InterviewHistoryItem]:

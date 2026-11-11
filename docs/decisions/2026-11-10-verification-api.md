@@ -44,9 +44,10 @@ welcome, neutral acknowledgements, a mix of fixed competency coverage and adapti
 a text closing. Interview turns are append-only records tied to the verification session. Binary
 audio is bounded before a transcriber receives it, and the phase changes to `report_generation`
 only after the fifth answer. The applicant can abandon but cannot complete the interview early.
-Groq Whisper, Prompt Guard, and the interview agent are optional adapters at runtime, so local
-tests and environments without provider credentials retain deterministic text conversation and
-never send audio to an unconfigured service. The full transcript is stored for peer review.
+Groq Whisper and Prompt Guard remain the audio and safety adapters. The conversation agent uses
+Groq first, Gemini second, and deterministic text as the final fallback. Local tests and
+environments without provider credentials never send audio to an unconfigured service. The full
+transcript is stored for peer review.
 
 The final report is a separate worker phase. It combines both evidence sources, stores the
 reviewer-facing summary under `ai_result.final_report`, and only then exposes the session to the

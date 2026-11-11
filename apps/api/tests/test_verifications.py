@@ -330,6 +330,8 @@ def configure_test_interview(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(interviews_api, "GROQ_API_KEY", None)
     monkeypatch.setattr(interviews_api, "GROQ_GUARD_MODEL", None)
     monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", None)
+    monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", None)
+    monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", None)
 
 
 def prepare_interview_session(data: dict) -> UUID:

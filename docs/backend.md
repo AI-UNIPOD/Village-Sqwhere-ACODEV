@@ -496,11 +496,12 @@ question. The closing signs the applicant off after answer five.
 Text answers use `{"type":"answer","text":"..."}`. Audio is sent as binary frames and is
 closed with `{"type":"answer_end"}`. With `GROQ_API_KEY` configured, the server sends the
 audio to `GROQ_STT_MODEL`, checks the transcript with `GROQ_GUARD_MODEL`, and gets the next
-question from `GROQ_INTERVIEW_MODEL`. Questions one to three cover architecture and ownership,
-role fundamentals, and testing and reliability. Questions four and five use the codebase analysis
-and prior answers for adaptive depth, trade-offs, and problem solving. If the interview model is
-absent or fails, deterministic conversation and competency questions keep text interviews usable.
-Audio reports `TRANSCRIPTION_UNAVAILABLE` when transcription is not configured.
+question from `GROQ_INTERVIEW_MODEL`. If Groq is unavailable or returns invalid structured output,
+the conversation falls back to `GEMINI_INTERVIEW_MODEL`. If neither provider is available,
+deterministic conversation keeps text interviews usable. Questions one to three cover architecture
+and ownership, role fundamentals, and testing and reliability. Questions four and five use the
+codebase analysis and prior answers for adaptive depth, trade-offs, and problem solving. Audio
+reports `TRANSCRIPTION_UNAVAILABLE` when transcription is not configured.
 
 The interview allows `VERIFICATION_INTERVIEW_MAX_TURNS` answered turns, which defaults to five.
 The applicant cannot complete the interview manually. After the final answer is saved, the
