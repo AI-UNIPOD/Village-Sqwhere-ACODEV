@@ -10,17 +10,22 @@ its number:
 
 ## 2026-11-11
 
-- test(api): add isolated test database and posts cleanup fixture (#14)
+- test(api): add isolated test database and posts cleanup fixture (#24)
+- fix(web): show the real name and link the github username on the card (#23)
+- feat(web): add the onboarding page for after the first sign-in (#22)
+- feat(web): add the github sign-in page (#21)
+- docs: add the verification routes to the architecture doc (#14)
+- fix(api): return the real attempt number when a verification starts (#19)
 - docs: add the api endpoints to progress and architecture (#13)
 - fix(web): seat the demo note under its button in a clear space (#12)
 - feat(web): add scroll reveals and feedback to the landing sections (#11)
+- feat(api): add verification and peer review endpoints (#10)
 
 ## 2026-11-10
 
 - feat(web): drift the hero background words from right to left (#9)
 - feat(web): add the landing page in English and French (#8)
-- feat(api): add developer roles, tech stack and feed topics
-- feat(api): add verification and peer review endpoints
+- feat(api): add developer roles, tech stack and feed topics (#7)
 
 ## 2026-11-07
 

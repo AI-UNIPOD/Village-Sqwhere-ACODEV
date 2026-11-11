@@ -46,7 +46,7 @@ If the token is missing, invalid, or expired, the API returns HTTP `401 Unauthor
 
 ## 3. Currently Implemented Endpoints
 
-### 🩺 System
+### System
 
 #### `GET /v1/health`
 Health check endpoint to verify backend service liveness.
@@ -62,7 +62,7 @@ Health check endpoint to verify backend service liveness.
 
 ---
 
-### 🔍 Lookups & Vocabularies
+### Lookups & Vocabularies
 
 ### The Concept of Slugs in Village Sqwhere
 
@@ -166,7 +166,7 @@ Search or browse active technologies, frameworks, and tools.
 
 ---
 
-### 🔐 Authentication
+### Authentication
 
 #### `POST /v1/auth/oauth/{provider}/start`
 Starts the OAuth + PKCE sign-in flow. Only GitHub works today.
@@ -275,7 +275,7 @@ Revokes the refresh token and signs out the session.
 
 ---
 
-### 👤 Current User (`/v1/me`)
+### Current User (`/v1/me`)
 
 #### `GET /v1/me`
 Fetches the full profile of the currently signed-in user.
@@ -403,6 +403,58 @@ Removes a claimed role from the user's profile.
     `409 Conflict`: `{"detail": {"code": "ROLE_HAS_VERIFICATION_HISTORY", "message": "A role with verification attempts can't be removed (it would reset the 3-attempt limit)."}}`
   * `404 Not Found`: `{"detail": {"code": "NOT_FOUND", "message": "Role '...' is not claimed."}}`
 
+#### `PUT /v1/me/technologies`
+Full replacement of the developer's tech stack (skills and tools).
+
+* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
+* **Request Body:**
+  ```json
+  {
+    "technologies": [
+      "python",
+      "postgresql",
+      "go"
+    ]
+  }
+  ```
+  * `technologies` *(required, array of strings, 0 to 30 items)*: Slugs from `GET /v1/technologies`. No duplicates.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": [
+      { "slug": "python", "name": "Python" },
+      { "slug": "postgresql", "name": "PostgreSQL" },
+      { "slug": "go", "name": "Go" }
+    ]
+  }
+  ```
+* **Error Responses:**
+  * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown technology slugs: ..."}}`
+  * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "Duplicate technologies are not allowed."}}`
+
+#### `PUT /v1/me/feed-topics`
+Full replacement of feed preference topics. An empty array `[]` means "show everything".
+
+* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
+* **Important Schema Rule for Frontend:**
+  The request JSON key MUST be named `"technologies"` (NOT `"topics"`), because feed topics reference the platform's canonical `technologies` lookup table.
+* **Request Body:**
+  ```json
+  {
+    "technologies": [
+      "react",
+      "flutter"
+    ]
+  }
+  ```
+  * `technologies` *(required, array of strings, 0 to 50 items)*: Valid slugs from `GET /v1/technologies`. No duplicates.
+  * To clear all feed topics and show everything on the feed, pass an empty array: `{"technologies": []}`.
+* **Success Response (200 OK):** Returns the list of saved topic `TechnologyRef` objects wrapped in `{"data": [ ... ]}`.
+* **Error Responses:**
+  * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown technology slugs: ..."}}` (Returned if any slug is not in the `technologies` lookup table).
+  * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "Duplicate topics are not allowed."}}`
+  * `422 Unprocessable Content`: `{"detail": [{"loc": ["body", "technologies"], "msg": "Field required"}]}` (Returned if the JSON key was named `"topics"` instead of `"technologies"`).
+
 ### Experience verification
 
 Verification attempts are tied to a claimed role. A developer has up to three attempts for
@@ -462,58 +514,6 @@ Records a peer review decision:
 
 Only `passed` and `failed` are accepted. A reviewer must be verified in the applicant's role,
 cannot review their own attempt, and cannot decide a case that is no longer awaiting review.
-
-#### `PUT /v1/me/technologies`
-Full replacement of the developer's tech stack (skills and tools).
-
-* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
-* **Request Body:**
-  ```json
-  {
-    "technologies": [
-      "python",
-      "postgresql",
-      "go"
-    ]
-  }
-  ```
-  * `technologies` *(required, array of strings, 0 to 30 items)*: Slugs from `GET /v1/technologies`. No duplicates.
-* **Success Response (200 OK):**
-  ```json
-  {
-    "data": [
-      { "slug": "python", "name": "Python" },
-      { "slug": "postgresql", "name": "PostgreSQL" },
-      { "slug": "go", "name": "Go" }
-    ]
-  }
-  ```
-* **Error Responses:**
-  * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown technology slugs: ..."}}`
-  * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "Duplicate technologies are not allowed."}}`
-
-#### `PUT /v1/me/feed-topics`
-Full replacement of feed preference topics. An empty array `[]` means "show everything".
-
-* **Authentication:** Bearer token required (`Authorization: Bearer <access_token>`)
-* **Important Schema Rule for Frontend:**
-  The request JSON key MUST be named `"technologies"` (NOT `"topics"`), because feed topics reference the platform's canonical `technologies` lookup table.
-* **Request Body:**
-  ```json
-  {
-    "technologies": [
-      "react",
-      "flutter"
-    ]
-  }
-  ```
-  * `technologies` *(required, array of strings, 0 to 50 items)*: Valid slugs from `GET /v1/technologies`. No duplicates.
-  * To clear all feed topics and show everything on the feed, pass an empty array: `{"technologies": []}`.
-* **Success Response (200 OK):** Returns the list of saved topic `TechnologyRef` objects wrapped in `{"data": [ ... ]}`.
-* **Error Responses:**
-  * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown technology slugs: ..."}}` (Returned if any slug is not in the `technologies` lookup table).
-  * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "Duplicate topics are not allowed."}}`
-  * `422 Unprocessable Content`: `{"detail": [{"loc": ["body", "technologies"], "msg": "Field required"}]}` (Returned if the JSON key was named `"topics"` instead of `"technologies"`).
 
 ---
 
