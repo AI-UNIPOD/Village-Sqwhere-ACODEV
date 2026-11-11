@@ -488,13 +488,19 @@ configured Gemini analyzer after a Groq configuration or API error.
 
 The applicant opens this WebSocket after the session reaches `technical_defence`. The access
 token is supplied as the `token` query parameter during the connection handshake. The server
-sends `question`, `answer_saved`, `audio_buffered`, `error`, `interview_complete`, and
-`interview_incomplete` events.
+sends `assistant_message`, `question`, `answer_saved`, `audio_buffered`, `error`,
+`interview_complete`, and `interview_incomplete` events. An `assistant_message` has a `kind` of
+`welcome`, `acknowledgement`, or `closing`, plus its text. The welcome explains the interview
+before question one. Each saved answer receives a neutral acknowledgement before the next
+question. The closing signs the applicant off after answer five.
 Text answers use `{"type":"answer","text":"..."}`. Audio is sent as binary frames and is
 closed with `{"type":"answer_end"}`. With `GROQ_API_KEY` configured, the server sends the
 audio to `GROQ_STT_MODEL`, checks the transcript with `GROQ_GUARD_MODEL`, and gets the next
-question from `GROQ_INTERVIEW_MODEL`. If interview models are absent, text answers still work
-with deterministic questions and audio reports `TRANSCRIPTION_UNAVAILABLE`.
+question from `GROQ_INTERVIEW_MODEL`. Questions one to three cover architecture and ownership,
+role fundamentals, and testing and reliability. Questions four and five use the codebase analysis
+and prior answers for adaptive depth, trade-offs, and problem solving. If the interview model is
+absent or fails, deterministic conversation and competency questions keep text interviews usable.
+Audio reports `TRANSCRIPTION_UNAVAILABLE` when transcription is not configured.
 
 The interview allows `VERIFICATION_INTERVIEW_MAX_TURNS` answered turns, which defaults to five.
 The applicant cannot complete the interview manually. After the final answer is saved, the
@@ -503,10 +509,11 @@ client `complete` event is not supported. If the applicant sends `abandon`, or t
 disconnects before the limit, the interview is marked `incomplete` and the verification session
 is abandoned. An incomplete interview does not enter report generation or peer review.
 
-The report worker combines the codebase result and persisted interview turns, validates the
-structured evaluator output, stores it under `ai_result.final_report`, and then changes the
-session to `awaiting_review`. The human peer-review endpoints remain the only path to `passed`
-or `failed`.
+Welcome, acknowledgement, question, answer, security flag, and closing text are persisted. The
+report worker stores this under `ai_result.interview_transcript`, combines the codebase result and
+interview turns, validates the structured evaluator output, and stores the report under
+`ai_result.final_report`. It then changes the session to `awaiting_review`. The human peer-review
+endpoints remain the only path to `passed` or `failed`.
 
 Run the worker loop with:
 

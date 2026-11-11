@@ -303,6 +303,8 @@ class VerificationInterview(Base):
         nullable=False,
     )
     turn_number: Mapped[int] = mapped_column(SmallInteger, default=1, nullable=False)
+    welcome_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    closing_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -334,6 +336,7 @@ class VerificationInterviewTurn(Base):
     sequence: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     question: Mapped[str] = mapped_column(Text, nullable=False)
     answer_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    acknowledgement: Mapped[str | None] = mapped_column(Text, nullable=True)
     security_flags: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

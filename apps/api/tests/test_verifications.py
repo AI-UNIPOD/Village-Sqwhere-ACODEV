@@ -6,10 +6,18 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select, update
+from sqlalchemy.orm import selectinload
 
+from app.api.v1 import interviews as interviews_api
 from app.main import app
 from app.models.lookups import Role
-from app.models.users import UserRole, VerificationPhase, VerificationSession, VerificationStatus
+from app.models.users import (
+    InterviewStatus,
+    UserRole,
+    VerificationPhase,
+    VerificationSession,
+    VerificationStatus,
+)
 from app.services.codebase_analysis import (
     AnalysisCriterion,
     build_codebase_analysis_prompt,
@@ -144,7 +152,8 @@ def test_worker_claims_pending_session_and_advances_phase(sign_in) -> None:
     cleanup_user(user_id)
 
 
-def test_interview_websocket_persists_text_turns_and_completes(sign_in) -> None:
+def test_interview_websocket_runs_conversation_and_completes(sign_in, monkeypatch) -> None:
+    configure_test_interview(monkeypatch)
     data = sign_in("github-code-ada")
     user_id = UUID(data["user"]["id"])
     cleanup_user(user_id)
@@ -172,14 +181,32 @@ def test_interview_websocket_persists_text_turns_and_completes(sign_in) -> None:
     with client.websocket_connect(
         f"/v1/me/verifications/{session_id}/interview?token={data['access_token']}"
     ) as websocket:
+        welcome = websocket.receive_json()
+        assert welcome["type"] == "assistant_message"
+        assert welcome["kind"] == "welcome"
+        assert "five technical questions" in welcome["text"]
         question = websocket.receive_json()
         assert question["type"] == "question"
+        assert question["sequence"] == 1
+        websocket.send_json({"type": "complete"})
+        assert websocket.receive_json() == {"type": "error", "code": "UNKNOWN_MESSAGE_TYPE"}
         for turn in range(5):
-            websocket.send_json({"type": "answer", "text": "I used a layered service design."})
+            websocket.send_json(
+                {"type": "answer", "text": f"I used a layered service design for turn {turn}."}
+            )
             assert websocket.receive_json()["type"] == "answer_saved"
+            acknowledgement = websocket.receive_json()
+            assert acknowledgement["type"] == "assistant_message"
+            assert acknowledgement["kind"] == "acknowledgement"
             if turn < 4:
-                assert websocket.receive_json()["type"] == "question"
+                next_question = websocket.receive_json()
+                assert next_question["type"] == "question"
+                assert next_question["sequence"] == turn + 2
             else:
+                closing = websocket.receive_json()
+                assert closing["type"] == "assistant_message"
+                assert closing["kind"] == "closing"
+                assert "peer review" in closing["text"]
                 assert websocket.receive_json() == {
                     "type": "interview_complete",
                     "status": "processing",
@@ -190,7 +217,9 @@ def test_interview_websocket_persists_text_turns_and_completes(sign_in) -> None:
             self, role_slug: str, codebase_result: dict, interview_turns: list[dict]
         ) -> VerificationReport:
             assert role_slug == "backend-engineer"
-            assert interview_turns[0]["answer"] == "I used a layered service design."
+            assert len(interview_turns) == 5
+            assert interview_turns[0]["answer"].endswith("turn 0.")
+            assert all(turn["acknowledgement"] for turn in interview_turns)
             return VerificationReport(
                 score=78,
                 summary="The evidence is ready for peer review.",
@@ -214,6 +243,10 @@ def test_interview_websocket_persists_text_turns_and_completes(sign_in) -> None:
     assert detail.json()["data"]["status"] == "awaiting_review"
     assert detail.json()["data"]["current_phase"] is None
     assert detail.json()["data"]["ai_result"]["final_report"]["score"] == 78
+    transcript = detail.json()["data"]["ai_result"]["interview_transcript"]
+    assert "five technical questions" in transcript["welcome"]
+    assert len(transcript["turns"]) == 5
+    assert "peer review" in transcript["closing"]
     cleanup_user(user_id)
     claim_role(data)
     started = client.post(
@@ -266,8 +299,78 @@ def test_interview_websocket_persists_text_turns_and_completes(sign_in) -> None:
     cleanup_user(user_id)
 
 
+def test_interview_abandon_marks_transcript_incomplete(sign_in, monkeypatch) -> None:
+    configure_test_interview(monkeypatch)
+    data = sign_in("github-code-moussa")
+    user_id = UUID(data["user"]["id"])
+    session_id = prepare_interview_session(data)
+
+    with client.websocket_connect(
+        f"/v1/me/verifications/{session_id}/interview?token={data['access_token']}"
+    ) as websocket:
+        assert websocket.receive_json()["kind"] == "welcome"
+        assert websocket.receive_json()["type"] == "question"
+        websocket.send_json({"type": "abandon"})
+        assert websocket.receive_json() == {"type": "interview_incomplete"}
+
+    session = get_interview_session(session_id)
+    assert session.status == VerificationStatus.ABANDONED
+    assert session.current_phase is None
+    assert session.interview.status == InterviewStatus.INCOMPLETE
+    assert session.interview.closing_message is None
+    cleanup_user(user_id)
+
+
 def bearer(data: dict) -> dict[str, str]:
     return {"Authorization": f"Bearer {data['access_token']}"}
+
+
+def configure_test_interview(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(interviews_api, "async_session", db_session)
+    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", None)
+    monkeypatch.setattr(interviews_api, "GROQ_GUARD_MODEL", None)
+    monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", None)
+
+
+def prepare_interview_session(data: dict) -> UUID:
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+    started = client.post(
+        "/v1/me/verifications/backend-engineer",
+        headers=bearer(data),
+        json={"repositories": ["https://github.com/example/project"]},
+    )
+    assert started.status_code == 201, started.text
+    session_id = UUID(started.json()["data"]["id"])
+
+    async def _prepare() -> None:
+        async with db_session() as db:
+            await db.execute(
+                update(VerificationSession)
+                .where(VerificationSession.id == session_id)
+                .values(
+                    status=VerificationStatus.IN_PROGRESS,
+                    current_phase=VerificationPhase.TECHNICAL_DEFENCE,
+                )
+            )
+            await db.commit()
+
+    asyncio.run(_prepare())
+    return session_id
+
+
+def get_interview_session(session_id: UUID) -> VerificationSession:
+    async def _get() -> VerificationSession:
+        async with db_session() as db:
+            result = await db.execute(
+                select(VerificationSession)
+                .options(selectinload(VerificationSession.interview))
+                .where(VerificationSession.id == session_id)
+            )
+            return result.scalar_one()
+
+    return asyncio.run(_get())
 
 
 def cleanup_user(user_id: UUID) -> None:

@@ -6,6 +6,8 @@ CREATE TABLE verification_interviews (
     REFERENCES verification_sessions (id) ON DELETE CASCADE,
   status                  interview_status NOT NULL DEFAULT 'active',
   turn_number             smallint NOT NULL DEFAULT 1,
+  welcome_message         text,
+  closing_message         text,
   started_at              timestamptz NOT NULL DEFAULT now(),
   completed_at            timestamptz,
   created_at              timestamptz NOT NULL DEFAULT now(),
@@ -18,6 +20,7 @@ CREATE TABLE verification_interview_turns (
   sequence       smallint NOT NULL,
   question       text NOT NULL,
   answer_text    text,
+  acknowledgement text,
   security_flags jsonb NOT NULL DEFAULT '[]'::jsonb,
   created_at     timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT verification_interview_turn_uq UNIQUE (interview_id, sequence)

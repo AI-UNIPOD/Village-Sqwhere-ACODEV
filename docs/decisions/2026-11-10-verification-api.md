@@ -39,12 +39,14 @@ The fallback uses Gemini's `generateContent` endpoint with JSON output configura
 validated result contract.
 
 The technical defence uses a WebSocket so audio, transcript progress, questions, and answer
-acknowledgements share one authenticated session. Interview turns are append-only records tied to
-the verification session. Binary audio is bounded before a transcriber receives it, and the
-current phase changes to `report_generation` only after the applicant explicitly completes the
-interview. Groq Whisper, Prompt Guard, and the interview question model are optional adapters at
-runtime, so local tests and environments without provider credentials retain deterministic text
-questions and never send audio to an unconfigured service.
+acknowledgements share one authenticated session. It is a five-question conversation with a text
+welcome, neutral acknowledgements, a mix of fixed competency coverage and adaptive questions, and
+a text closing. Interview turns are append-only records tied to the verification session. Binary
+audio is bounded before a transcriber receives it, and the phase changes to `report_generation`
+only after the fifth answer. The applicant can abandon but cannot complete the interview early.
+Groq Whisper, Prompt Guard, and the interview agent are optional adapters at runtime, so local
+tests and environments without provider credentials retain deterministic text conversation and
+never send audio to an unconfigured service. The full transcript is stored for peer review.
 
 The final report is a separate worker phase. It combines both evidence sources, stores the
 reviewer-facing summary under `ai_result.final_report`, and only then exposes the session to the

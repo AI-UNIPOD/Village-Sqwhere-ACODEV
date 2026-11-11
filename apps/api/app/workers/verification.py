@@ -94,6 +94,7 @@ async def process_verification_report(
             "sequence": turn.sequence,
             "question": turn.question,
             "answer": turn.answer_text,
+            "acknowledgement": turn.acknowledgement,
             "security_flags": turn.security_flags,
         }
         for turn in session.interview.turns
@@ -106,6 +107,11 @@ async def process_verification_report(
     )
     session.ai_result = {
         **(session.ai_result or {}),
+        "interview_transcript": {
+            "welcome": session.interview.welcome_message,
+            "turns": turns,
+            "closing": session.interview.closing_message,
+        },
         "final_report": report.model_dump(mode="json"),
     }
     session.status = VerificationStatus.AWAITING_REVIEW

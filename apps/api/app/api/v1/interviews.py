@@ -29,7 +29,10 @@ from app.services.groq_interview import (
 )
 from app.services.interview import (
     AnswerGuard,
-    DefaultInterviewQuestionProvider,
+    DefaultInterviewAgent,
+    FallbackInterviewAgent,
+    InterviewAgent,
+    InterviewHistoryItem,
     InterviewUnavailable,
     UnconfiguredAnswerGuard,
     UnconfiguredAudioTranscriber,
@@ -40,15 +43,6 @@ from app.services.interview import (
 router = APIRouter()
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 MAX_ANSWER_CHARS = 10_000
-
-
-async def next_question(
-    provider, fallback, role_slug: str, turn_number: int, analysis: dict | None
-):
-    try:
-        return await provider.question(role_slug, turn_number, analysis)
-    except InterviewUnavailable:
-        return await fallback.question(role_slug, turn_number, analysis)
 
 
 async def websocket_user(token: str | None, db) -> User | None:
@@ -77,6 +71,55 @@ async def load_interview_session(session_id: UUID, user_id: UUID, db) -> Verific
     return result.scalar_one_or_none()
 
 
+def interview_agent() -> InterviewAgent:
+    fallback = DefaultInterviewAgent()
+    if not GROQ_API_KEY or not GROQ_INTERVIEW_MODEL:
+        return fallback
+    return FallbackInterviewAgent(GroqInterviewAgent(), fallback)
+
+
+def interview_history(interview: VerificationInterview) -> list[InterviewHistoryItem]:
+    return [
+        InterviewHistoryItem(
+            sequence=turn.sequence,
+            question=turn.question,
+            answer=turn.answer_text,
+        )
+        for turn in interview.turns
+        if turn.answer_text
+    ]
+
+
+def mark_interview_incomplete(
+    interview: VerificationInterview, session: VerificationSession
+) -> None:
+    interview.status = InterviewStatus.INCOMPLETE
+    interview.completed_at = interview_completed_at()
+    session.status = VerificationStatus.ABANDONED
+    session.current_phase = None
+
+
+def complete_interview(interview: VerificationInterview, session: VerificationSession) -> None:
+    interview.status = InterviewStatus.COMPLETED
+    interview.completed_at = interview_completed_at()
+    session.current_phase = VerificationPhase.REPORT_GENERATION
+
+
+async def send_assistant_message(websocket: WebSocket, kind: str, text: str) -> None:
+    await websocket.send_json({"type": "assistant_message", "kind": kind, "text": text})
+
+
+async def send_question(websocket: WebSocket, turn: VerificationInterviewTurn) -> None:
+    await websocket.send_json(
+        {
+            "type": "question",
+            "turn_id": str(turn.id),
+            "sequence": turn.sequence,
+            "text": turn.question,
+        }
+    )
+
+
 @router.websocket("/me/verifications/{session_id}/interview")
 async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
     async with async_session() as db:
@@ -102,42 +145,40 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
             db.add(interview)
             await db.flush()
 
-        default_questions = DefaultInterviewQuestionProvider()
-        question_provider = (
-            GroqInterviewAgent() if GROQ_API_KEY and GROQ_INTERVIEW_MODEL else default_questions
-        )
+        agent = interview_agent()
         transcriber = GroqWhisperTranscriber() if GROQ_API_KEY else UnconfiguredAudioTranscriber()
         guard: AnswerGuard = (
             GroqPromptGuard() if GROQ_API_KEY and GROQ_GUARD_MODEL else UnconfiguredAnswerGuard()
         )
+        role_slug = session.user_role.role.slug
         if not interview.turns:
-            question = await next_question(
-                question_provider,
-                default_questions,
-                session.user_role.role.slug,
-                interview.turn_number,
-                session.ai_result,
-            )
+            opening = await agent.opening(role_slug, session.ai_result)
+            interview.welcome_message = opening.welcome
             interview.turns.append(
-                VerificationInterviewTurn(sequence=interview.turn_number, question=question.text)
+                VerificationInterviewTurn(
+                    sequence=interview.turn_number,
+                    question=opening.question,
+                )
             )
+        elif not interview.welcome_message:
+            opening = await DefaultInterviewAgent().opening(role_slug, session.ai_result)
+            interview.welcome_message = opening.welcome
         await db.commit()
         await websocket.accept()
 
         current_turn = interview.turns[-1]
-        await websocket.send_json(
-            {
-                "type": "question",
-                "turn_id": str(current_turn.id),
-                "sequence": current_turn.sequence,
-                "text": current_turn.question,
-            }
-        )
+        await send_assistant_message(websocket, "welcome", interview.welcome_message)
+        await send_question(websocket, current_turn)
         audio_buffer = bytearray()
 
         try:
             while True:
                 message = await websocket.receive()
+                if message.get("type") == "websocket.disconnect":
+                    if interview.status == InterviewStatus.ACTIVE:
+                        mark_interview_incomplete(interview, session)
+                        await db.commit()
+                    return
                 if message.get("bytes") is not None:
                     audio_buffer.extend(message["bytes"])
                     if len(audio_buffer) > MAX_AUDIO_BYTES:
@@ -189,10 +230,7 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                         await websocket.send_json({"type": "error", "code": "ANSWER_TOO_LONG"})
                         continue
                 elif event_type == "abandon":
-                    interview.status = InterviewStatus.INCOMPLETE
-                    interview.completed_at = interview_completed_at()
-                    session.status = VerificationStatus.ABANDONED
-                    session.current_phase = None
+                    mark_interview_incomplete(interview, session)
                     await db.commit()
                     await websocket.send_json({"type": "interview_incomplete"})
                     break
@@ -200,52 +238,54 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                     await websocket.send_json({"type": "error", "code": "UNKNOWN_MESSAGE_TYPE"})
                     continue
 
-                current_turn.answer_text = answer.strip()
-                current_turn.security_flags = await guard.inspect(current_turn.answer_text)
-                for flag in current_turn.security_flags:
+                answered_turn = current_turn
+                answered_turn.answer_text = answer.strip()
+                answered_turn.security_flags = await guard.inspect(answered_turn.answer_text)
+                history = interview_history(interview)
+                if answered_turn.sequence >= VERIFICATION_INTERVIEW_MAX_TURNS:
+                    closing = await agent.closing(role_slug, session.ai_result, history)
+                    answered_turn.acknowledgement = closing.acknowledgement
+                    interview.closing_message = closing.closing
+                    complete_interview(interview, session)
+                    await db.commit()
+                else:
+                    next_turn = answered_turn.sequence + 1
+                    continuation = await agent.continuation(
+                        role_slug,
+                        next_turn,
+                        session.ai_result,
+                        history,
+                    )
+                    answered_turn.acknowledgement = continuation.acknowledgement
+                    interview.turn_number = next_turn
+                    current_turn = VerificationInterviewTurn(
+                        sequence=next_turn,
+                        question=continuation.question,
+                    )
+                    interview.turns.append(current_turn)
+                    await db.commit()
+
+                for flag in answered_turn.security_flags:
                     await websocket.send_json(
                         {"type": "security_signal", "severity": "warning", "code": flag}
                     )
-                await db.commit()
-                await websocket.send_json({"type": "answer_saved", "turn_id": str(current_turn.id)})
-                if current_turn.sequence >= VERIFICATION_INTERVIEW_MAX_TURNS:
-                    interview.status = InterviewStatus.COMPLETED
-                    interview.completed_at = interview_completed_at()
-                    session.current_phase = VerificationPhase.REPORT_GENERATION
-                    await db.commit()
+                await websocket.send_json(
+                    {"type": "answer_saved", "turn_id": str(answered_turn.id)}
+                )
+                await send_assistant_message(
+                    websocket,
+                    "acknowledgement",
+                    answered_turn.acknowledgement,
+                )
+                if interview.status == InterviewStatus.COMPLETED:
+                    await send_assistant_message(websocket, "closing", interview.closing_message)
                     await websocket.send_json(
                         {"type": "interview_complete", "status": "processing"}
                     )
                     break
-
-                interview.turn_number += 1
-                question = await next_question(
-                    question_provider,
-                    default_questions,
-                    session.user_role.role.slug,
-                    interview.turn_number,
-                    session.ai_result,
-                )
-                current_turn = VerificationInterviewTurn(
-                    sequence=interview.turn_number,
-                    question=question.text,
-                    interview_id=interview.id,
-                )
-                db.add(current_turn)
-                await db.commit()
-                await websocket.send_json(
-                    {
-                        "type": "question",
-                        "turn_id": str(current_turn.id),
-                        "sequence": current_turn.sequence,
-                        "text": current_turn.question,
-                    }
-                )
+                await send_question(websocket, current_turn)
         except WebSocketDisconnect:
             if interview.status == InterviewStatus.ACTIVE:
-                interview.status = InterviewStatus.INCOMPLETE
-                interview.completed_at = interview_completed_at()
-                session.status = VerificationStatus.ABANDONED
-                session.current_phase = None
+                mark_interview_incomplete(interview, session)
                 await db.commit()
             return
