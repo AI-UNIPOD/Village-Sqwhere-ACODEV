@@ -13,20 +13,14 @@ its number:
 - feat(api): add Gemini interview fallback
 - feat(api): make verification interviews conversational
 - feat(api): limit technical defence interviews to five turns
+- fix(web): show the real name and link the github username on the card (#23)
+- feat(web): add the onboarding page for after the first sign-in (#22)
+- feat(web): add the github sign-in page (#21)
+- docs: add the verification routes to the architecture doc (#14)
 - fix(api): return the real attempt number when a verification starts (#19)
 - docs: add the api endpoints to progress and architecture (#13)
 - fix(web): seat the demo note under its button in a clear space (#12)
 - feat(web): add scroll reveals and feedback to the landing sections (#11)
-- feat(api): add verification phase tracking and analysis boundary
-- feat(api): add bounded GitHub repository snapshots for verification
-- feat(api): add Groq codebase analysis adapter
-- feat(api): add codebase analysis worker boundary
-- feat(api): add analysis retries and Gemini fallback
-- feat(api): add streamed technical defence foundation
-- feat(api): wire Groq interview providers
-- feat(api): add verification report worker
-- feat(api): add verification worker runner
-- feat(api): add final report Gemini fallback
 - feat(api): add verification and peer review endpoints (#10)
 
 ## 2026-11-10
