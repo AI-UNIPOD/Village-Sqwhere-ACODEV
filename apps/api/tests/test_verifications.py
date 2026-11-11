@@ -2,16 +2,32 @@ import asyncio
 from datetime import UTC, datetime
 from uuid import UUID
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select, update
 
 from app.main import app
 from app.models.lookups import Role
 from app.models.users import UserRole, VerificationPhase, VerificationSession, VerificationStatus
-from app.services.verification import CodebaseAnalysisResult, run_codebase_analysis
+from app.services.verification import (
+    CodebaseAnalysisResult,
+    GitHubRepositoryClient,
+    GitHubRepositoryError,
+    RepositorySnapshot,
+    run_codebase_analysis,
+)
 from tests.conftest import test_async_session as db_session
 
 client = TestClient(app)
+
+
+def test_github_repository_client_accepts_only_github_https_urls() -> None:
+    assert GitHubRepositoryClient._repository_parts("https://github.com/org/repo") == (
+        "org",
+        "repo",
+    )
+    with pytest.raises(GitHubRepositoryError):
+        GitHubRepositoryClient._repository_parts("https://example.com/org/repo")
 
 
 def bearer(data: dict) -> dict[str, str]:
@@ -78,8 +94,10 @@ def test_applicant_can_start_list_and_abandon_verification(sign_in) -> None:
     assert session["evidence"] == [{"repository_url": "https://github.com/example/project"}]
 
     class FakeAnalyzer:
-        async def analyze(self, repositories: list[str], role_slug: str) -> CodebaseAnalysisResult:
-            assert repositories == ["https://github.com/example/project"]
+        async def analyze(
+            self, repositories: list[RepositorySnapshot], role_slug: str
+        ) -> CodebaseAnalysisResult:
+            assert repositories[0].repository_url == "https://github.com/example/project"
             assert role_slug == "backend-engineer"
             return CodebaseAnalysisResult(
                 score=82,
@@ -90,6 +108,17 @@ def test_applicant_can_start_list_and_abandon_verification(sign_in) -> None:
                 model="test-codebase-analyzer",
             )
 
+    class FakeRepositoryClient:
+        async def snapshot(self, repository_url: str) -> RepositorySnapshot:
+            return RepositorySnapshot(
+                repository_url=repository_url,
+                default_branch="main",
+                languages={"Python": 1000},
+                file_paths=["app/main.py", "tests/test_main.py"],
+                test_paths=["tests/test_main.py"],
+                recent_commits=[],
+            )
+
     async def _run_analysis() -> None:
         async with db_session() as db:
             result = await db.execute(
@@ -97,7 +126,11 @@ def test_applicant_can_start_list_and_abandon_verification(sign_in) -> None:
             )
             verification = result.scalar_one()
             analysis = await run_codebase_analysis(
-                db, verification, "backend-engineer", FakeAnalyzer()
+                db,
+                verification,
+                "backend-engineer",
+                FakeRepositoryClient(),
+                FakeAnalyzer(),
             )
             assert analysis.score == 82
             assert verification.status == VerificationStatus.IN_PROGRESS

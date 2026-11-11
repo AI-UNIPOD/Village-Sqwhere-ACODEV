@@ -13,6 +13,8 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
   title rule, dash check, web, api and secret scan.
 - API verification endpoints now support GitHub evidence, applicant polling and abandonment,
   plus role-eligible peer review decisions and persisted AI phase tracking.
+- The codebase analysis boundary now accepts bounded GitHub repository snapshots through a
+  provider-neutral analyzer interface.
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 - GitHub does not enforce the rules on `main` yet (see
@@ -21,8 +23,8 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 
 ## What's next
 
-1. Connect a verification worker and GitHub repository analyzer to the codebase analysis
-   boundary, then add the streamed technical defence.
+1. Connect a verification worker and AI analyzer to the repository snapshot boundary, then add
+   the streamed technical defence.
 2. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
    owner approving the team, and the Virtual Collaboration Hub with all four phases. The
    PRD is not in this repository yet; ask Tanny for it before starting.

@@ -11,6 +11,7 @@ its number:
 ## 2026-11-11
 
 - feat(api): add verification phase tracking and analysis boundary
+- feat(api): add bounded GitHub repository snapshots for verification
 
 ## 2026-11-10
 

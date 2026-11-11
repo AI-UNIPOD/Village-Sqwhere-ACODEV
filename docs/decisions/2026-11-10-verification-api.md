@@ -30,4 +30,6 @@ accepts a provider-neutral analyzer interface and stores a validated, versioned 
 The frontend has stable endpoints for polling and peer review has explicit role checks. The
 frontend can now show the active AI phase. The live provider, GitHub permissions, worker queue,
 and technical defence contract still need separate decisions before production analysis is
-connected.
+connected. Repository analysis uses bounded metadata snapshots and never executes repository
+code. A GitHub API token is optional for public repositories and only changes the API rate
+limit.

@@ -415,6 +415,10 @@ the session is waiting for or receiving repository analysis, `technical_defence`
 analysis is complete and the interview can begin, and `report_generation` while the final
 review brief is being prepared. It is `null` for terminal states and `awaiting_review`.
 
+The codebase analysis service reads public GitHub repository metadata, languages, a bounded file
+tree, test paths and recent commits. `GITHUB_API_TOKEN` is optional. Without it, public
+repositories use GitHub's unauthenticated rate limit. Repository code is never executed.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.
