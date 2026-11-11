@@ -18,6 +18,7 @@ its number:
 - feat(api): add streamed technical defence foundation
 - feat(api): wire Groq interview providers
 - feat(api): add verification report worker
+- feat(api): add verification worker runner
 
 ## 2026-11-10
 

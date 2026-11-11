@@ -27,6 +27,7 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
   Groq interview question agent, with safe defaults when provider settings are absent.
 - Completed interviews can now produce a structured Groq reviewer report and move to
   `awaiting_review` without allowing the AI to make the final decision.
+- A polling worker runner now processes codebase and report queues with configurable intervals.
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 - GitHub does not enforce the rules on `main` yet (see
@@ -35,7 +36,7 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 
 ## What's next
 
-1. Add the production worker loop, final-report Gemini fallback, and peer-review report display.
+1. Add final-report Gemini fallback and peer-review report display.
 2. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
    owner approving the team, and the Virtual Collaboration Hub with all four phases. The
    PRD is not in this repository yet; ask Tanny for it before starting.

@@ -451,6 +451,15 @@ structured evaluator output, stores it under `ai_result.final_report`, and then 
 session to `awaiting_review`. The human peer-review endpoints remain the only path to `passed`
 or `failed`.
 
+Run the worker loop with:
+
+```bash
+uv run --directory apps/api python -m app.workers.runner
+```
+
+It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each job is claimed
+with a database row lock, and a failed job is logged while the loop continues.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.
