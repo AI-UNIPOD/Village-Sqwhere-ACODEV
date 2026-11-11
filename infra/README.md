@@ -15,6 +15,30 @@ pnpm db:down    # stop it (data is kept in the db-data volume)
 Scripts in `db/init/` run only when the volume is first created. To start from an empty
 database, run `docker compose -f infra/docker-compose.yml down -v`, then `pnpm db:up`.
 
+### The init scripts
+
+They run in file name order, once, on an empty database:
+
+| Script | What it holds |
+|---|---|
+| `001-extensions.sql` | The pgvector extension. |
+| `002-schema.sql` | The tables, constraints and triggers. |
+| `003-hub-terms.sql` | `hubs.terms`: the deal a hub owner sets for their hub, for example `{"ownership_model": "equal_split"}`. It must be a JSON object, it is set when the hub is created and the database refuses any later change. Each signature in `agreement_signatures` gets the hub's own terms copied into `terms_snapshot`, whatever the client sent, so every member signs exactly the same terms. |
+| `004-test-agreement.sql` | One published agreement template, version 1, titled `TEST AGREEMENT (NOT LEGAL TEXT)`. Hubs can only be created on a published template, so this lets us build and test hubs. Running it twice is safe. |
+
+**An existing local database does not get 003 or 004 by itself.** Rebuild it, which deletes
+your local data:
+
+```bash
+docker compose -f infra/docker-compose.yml down -v
+pnpm db:up
+```
+
+**The agreement in `004-test-agreement.sql` is fake and must be replaced before launch.**
+Published templates cannot be edited (the database refuses it), so the real agreement text
+goes in as version 2 in a new script, and `004` is then reviewed. Hubs created on version 1
+keep pointing at the test text.
+
 The local credentials (`village` / `village`) are for development only. They match
 `DATABASE_URL` in the root `.env.example`.
 
