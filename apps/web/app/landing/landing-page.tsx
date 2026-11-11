@@ -13,7 +13,7 @@ import { ThemeToggle } from "./theme-toggle";
 // The demo and the tour are not built yet. The control stays visible, stays focusable
 // and does nothing, and its name says why, so nobody lands on a dead link. Pressing it
 // announces `announce` and makes the visible note with id `note` stand out (SectionMotion).
-function SoonButton({
+export function SoonButton({
   className,
   soon,
   announce,

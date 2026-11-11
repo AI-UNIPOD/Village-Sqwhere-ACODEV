@@ -1,0 +1,237 @@
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+
+import type { Lang } from "../locales";
+import { Onboarding } from "./onboarding";
+
+const nav = vi.hoisted(() => {
+  const push = vi.fn();
+  const replace = vi.fn();
+  return { push, replace, router: { push, replace }, search: "" };
+});
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => nav.router,
+  useSearchParams: () => new URLSearchParams(nav.search),
+}));
+
+beforeEach(() => {
+  nav.search = "";
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
+  );
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  // jsdom cannot draw, so the hero shows its still frame
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+});
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  vi.unstubAllGlobals();
+});
+
+// Renders the flow and returns a function that moves the mocked URL to another step, the way
+// the router would after a push.
+function start(lang: Lang = "en", step = "") {
+  nav.search = step && `step=${step}`;
+  const view = render(<Onboarding lang={lang} />);
+  return (to: string) => {
+    nav.search = `step=${to}`;
+    view.rerender(<Onboarding lang={lang} />);
+  };
+}
+
+const click = (role: "button" | "radio", name: string | RegExp) =>
+  fireEvent.click(screen.getByRole(role, { name }));
+const heading = (name: string) => screen.getByRole("heading", { level: 1, name });
+
+test("the welcome screen greets the developer and offers to set up or skip", () => {
+  start();
+  expect(heading("Welcome to the village, Aminata.")).toBeTruthy();
+  expect(screen.getByText("Signed in with GitHub as @aminata-builds")).toBeTruthy();
+  expect(screen.getByLabelText("Pause animation")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Français" }).getAttribute("href")).toBe("/fr/onboarding");
+
+  click("button", "Set up my profile");
+  expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
+  click("button", "Skip for now");
+  expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=done", { scroll: false });
+});
+
+test("the welcome screen is in French on /fr", () => {
+  start("fr");
+  expect(heading("Bienvenue au village, Aminata.")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "English" }).getAttribute("href")).toBe("/en/onboarding");
+  click("button", "Configurer mon profil");
+  expect(nav.push).toHaveBeenCalledWith("/fr/onboarding?step=role", { scroll: false });
+});
+
+test("Continue without a role shows an error and stays; picking a role goes on", () => {
+  start("en", "role");
+  click("button", "Continue");
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toBe("Pick the role you do most to continue.");
+  expect(nav.push).not.toHaveBeenCalled();
+  expect(screen.getByRole("group").getAttribute("aria-describedby")).toContain(alert.id);
+
+  click("radio", /Frontend Engineer/);
+  expect(screen.queryByRole("alert")).toBeNull();
+  click("button", "Continue");
+  expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=stack", { scroll: false });
+});
+
+test("the role step offers the nine API roles, each with a hint", () => {
+  start("fr", "role");
+  expect(screen.getAllByRole("radio")).toHaveLength(9);
+  const frontend = screen.getByRole("radio", { name: /Ingénieur frontend/ });
+  expect(frontend.closest("label")?.textContent).toContain("Interfaces web, React, Vue");
+});
+
+test("each question step announces itself, shows its progress and takes focus", () => {
+  const go = start();
+  expect(document.activeElement).toBe(document.body);
+
+  go("role");
+  click("radio", /Frontend Engineer/);
+  go("stack");
+  expect(screen.getByText("Step 2 of 4")).toBeTruthy();
+  expect(screen.getByText("Step 2 of 4: What do you build with?").getAttribute("role")).toBe("status");
+  expect(document.activeElement).toBe(heading("What do you build with?"));
+});
+
+test("Back goes to the previous step", () => {
+  start("en", "role");
+  click("button", "Back");
+  expect(nav.push).toHaveBeenCalledWith("/en/onboarding", { scroll: false });
+});
+
+// the answers the later steps need: a role and one technology
+function answerRequired(go: (to: string) => void, role: RegExp = /Frontend Engineer/) {
+  go("role");
+  click("radio", role);
+  go("stack");
+  click("button", "React");
+}
+
+test("the stack filter narrows the chips and shows an empty state that can be cleared", () => {
+  const go = start();
+  answerRequired(go);
+  const filter = screen.getByLabelText("Filter technologies");
+
+  fireEvent.change(filter, { target: { value: "REACT" } });
+  expect(screen.getByRole("button", { name: "React Native" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Docker" })).toBeNull();
+
+  fireEvent.change(filter, { target: { value: "xyz" } });
+  expect(screen.getByText('No technology matches "xyz". Check the spelling or clear the filter.')).toBeTruthy();
+  click("button", "Clear filter");
+  expect((filter as HTMLInputElement).value).toBe("");
+  expect(screen.getByRole("button", { name: "Docker" })).toBeTruthy();
+});
+
+test("stack chips toggle aria-pressed and the count follows", () => {
+  const go = start();
+  answerRequired(go);
+  const react = screen.getByRole("button", { name: "React" });
+  const docker = screen.getByRole("button", { name: "Docker" });
+  expect(react.getAttribute("aria-pressed")).toBe("true");
+  expect(docker.getAttribute("aria-pressed")).toBe("false");
+  expect(screen.getByText("1 selected").getAttribute("role")).toBe("status");
+
+  fireEvent.click(docker);
+  expect(docker.getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByText("2 selected")).toBeTruthy();
+  fireEvent.click(react);
+  expect(react.getAttribute("aria-pressed")).toBe("false");
+  expect(screen.getByText("1 selected")).toBeTruthy();
+});
+
+test("Continue with no technology shows an error and stays", () => {
+  const go = start();
+  go("role");
+  click("radio", /Frontend Engineer/);
+  go("stack");
+  nav.push.mockClear();
+  click("button", "Continue");
+  expect(screen.getByRole("alert").textContent).toBe("Pick at least one technology to continue.");
+  expect(nav.push).not.toHaveBeenCalled();
+});
+
+test("a link to a later step without the earlier answers goes back to the role", () => {
+  start("en", "stack");
+  expect(nav.replace).toHaveBeenCalledWith("/en/onboarding?step=role");
+  expect(heading("What do you do most?")).toBeTruthy();
+});
+
+test("an unknown step shows the welcome screen", () => {
+  start("en", "banana");
+  expect(heading("Welcome to the village, Aminata.")).toBeTruthy();
+  expect(nav.replace).not.toHaveBeenCalled();
+});
+
+test("the country list is in the page language, sorted for it, and the step can be skipped", () => {
+  const go = start("fr");
+  answerRequired(go, /Ingénieur frontend/);
+  go("country");
+  const names = screen.getAllByRole("radio").map((radio) => radio.closest("label")?.textContent ?? "");
+  expect(names).toHaveLength(54);
+  expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, "fr")));
+  expect(names).toContain("Côte d'Ivoire");
+
+  fireEvent.change(screen.getByLabelText("Filtrer les pays"), { target: { value: "senegal" } });
+  expect(screen.getAllByRole("radio")).toHaveLength(1);
+  expect(screen.getByRole("radio", { name: "Sénégal" })).toBeTruthy();
+
+  nav.push.mockClear();
+  click("button", "Passer");
+  expect(nav.push).toHaveBeenCalledWith("/fr/onboarding?step=topics", { scroll: false });
+});
+
+test("the profile card shows what was chosen", () => {
+  const go = start();
+  answerRequired(go);
+  click("button", "Docker");
+  go("country");
+  click("radio", "Senegal");
+  go("topics");
+  click("button", "Fintech");
+  go("done");
+
+  expect(heading("You're in, Aminata.")).toBeTruthy();
+  expect(screen.getByText("Aminata Diallo")).toBeTruthy();
+  expect(screen.getByText("@aminata-builds")).toBeTruthy();
+  expect(screen.getByText("Frontend Engineer")).toBeTruthy();
+  expect(screen.getByText("Senegal")).toBeTruthy();
+  const tags = screen.getAllByRole("listitem").map((item) => item.textContent);
+  expect(tags).toEqual(expect.arrayContaining(["React", "Docker", "Fintech"]));
+  expect(tags).not.toContain("Go");
+  expect(screen.getByText("This is a preview. Your answers are not saved yet.")).toBeTruthy();
+
+  const next = screen.getByRole("heading", { name: "What happens next" }).nextElementSibling as HTMLElement;
+  expect(within(next).getAllByRole("listitem")).toHaveLength(3);
+
+  const village = screen.getByRole("button", { name: /^Go to the village/ });
+  expect(village.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(village);
+  expect(screen.getAllByRole("status").some((s) => s.textContent === "Coming soon")).toBe(true);
+
+  click("button", "Change my answers");
+  expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
+});
+
+test("after skipping from the welcome screen the card invites the developer to finish", () => {
+  start("en", "done");
+  expect(screen.getByText("Role not chosen yet")).toBeTruthy();
+  expect(screen.getByText("Finish your profile any time")).toBeTruthy();
+  expect(screen.queryByText("Stack")).toBeNull();
+  click("button", "Set up my profile");
+  expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
+});

@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- feat(web): add the onboarding page for after the first sign-in (#22)
 - feat(web): add the github sign-in page (#21)
 - docs: add the verification routes to the architecture doc (#14)
 - fix(api): return the real attempt number when a verification starts (#19)
