@@ -16,6 +16,7 @@ Copy `.env.example` from the repo root to `apps/web/.env.local` if you need to o
 The site is bilingual by address: pages live in `app/[lang]/` and are served at `/en` and `/fr`.
 `proxy.ts` sends the bare `/` to the visitor's language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
-landing page is `app/landing/`. Style pages only with the design system tokens, imported in
+landing page is `app/landing/`, and the onboarding page shown after the first sign-in is
+`app/onboarding/` (at `/en/onboarding`). Style pages only with the design system tokens, imported in
 `app/globals.css` from [`docs/design-system/`](../../docs/design-system/README.md), and use
 `Logo` from `app/logo.tsx` for the logo. See the root [CONTRIBUTING.md](../../CONTRIBUTING.md) for the team workflow.
