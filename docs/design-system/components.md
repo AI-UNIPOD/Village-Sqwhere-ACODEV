@@ -168,6 +168,13 @@ Every screen has all four.
 | Drawers | 400ms in, 260ms out | `--ease-drawer` |
 | Sheets | 500ms in, 320ms out | `--ease-drawer` |
 | A match lands, a Green Tick is earned | 520ms, once per screen | `--ease-strong` |
+| Content rises into place as it scrolls into view, once | 400ms (`--dur-reveal`), 200ms fade only with reduced motion | `--ease-out` |
+| Items in a row or list arrive one after another | `--delay-stagger` (80ms) between items | as the item's own motion |
+| A link's underline draws in on hover or keyboard focus | 160ms (`--dur-press`) | `--ease-out` |
+
+Reveals never hide headings or lead text, never hide anything without JavaScript, and
+leave content already on screen alone. An item counts as in view once 15% of it shows
+above the bottom 8% of the screen. Those two numbers are set in code, not tokens.
 
 Animate `transform` and `opacity` only. With reduced motion, keep fades and colour
 changes and remove movement. Never remove feedback.
