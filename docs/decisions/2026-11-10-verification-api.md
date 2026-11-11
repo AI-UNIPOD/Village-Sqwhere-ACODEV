@@ -37,3 +37,9 @@ model name and validates structured JSON before persistence. Provider selection 
 the HTTP endpoint so a Gemini fallback can be added without changing the lifecycle contract.
 The fallback uses Gemini's `generateContent` endpoint with JSON output configuration and the same
 validated result contract.
+
+The technical defence uses a WebSocket so audio, transcript progress, questions, and answer
+acknowledgements share one authenticated session. Interview turns are append-only records tied to
+the verification session. Binary audio is bounded before a transcriber receives it, and the
+current phase changes to `report_generation` only after the applicant explicitly completes the
+interview.

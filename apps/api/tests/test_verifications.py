@@ -134,6 +134,50 @@ def test_worker_claims_pending_session_and_advances_phase(sign_in) -> None:
     data = sign_in("github-code-ada")
     user_id = UUID(data["user"]["id"])
     cleanup_user(user_id)
+
+
+def test_interview_websocket_persists_text_turns_and_completes(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+    started = client.post(
+        "/v1/me/verifications/backend-engineer",
+        headers=bearer(data),
+        json={"repositories": ["https://github.com/example/project"]},
+    )
+    session_id = UUID(started.json()["data"]["id"])
+
+    async def _prepare() -> None:
+        async with db_session() as db:
+            await db.execute(
+                update(VerificationSession)
+                .where(VerificationSession.id == session_id)
+                .values(
+                    status=VerificationStatus.IN_PROGRESS,
+                    current_phase=VerificationPhase.TECHNICAL_DEFENCE,
+                )
+            )
+            await db.commit()
+
+    asyncio.run(_prepare())
+    with client.websocket_connect(
+        f"/v1/me/verifications/{session_id}/interview?token={data['access_token']}"
+    ) as websocket:
+        question = websocket.receive_json()
+        assert question["type"] == "question"
+        websocket.send_json({"type": "answer", "text": "I used a layered service design."})
+        assert websocket.receive_json()["type"] == "answer_saved"
+        assert websocket.receive_json()["type"] == "question"
+        websocket.send_json({"type": "complete"})
+        assert websocket.receive_json() == {
+            "type": "interview_complete",
+            "status": "processing",
+        }
+
+    detail = client.get(f"/v1/me/verifications/{session_id}", headers=bearer(data))
+    assert detail.json()["data"]["current_phase"] == "report_generation"
+    cleanup_user(user_id)
     claim_role(data)
     started = client.post(
         "/v1/me/verifications/backend-engineer",

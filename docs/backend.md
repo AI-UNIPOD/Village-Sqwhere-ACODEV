@@ -432,6 +432,18 @@ failed run returns to `pending` and can be claimed again until
 `VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached. The primary Groq analyzer falls back to the
 configured Gemini analyzer after a Groq configuration or API error.
 
+#### `WS /v1/me/verifications/{session_id}/interview`
+
+The applicant opens this WebSocket after the session reaches `technical_defence`. The access
+token is supplied as the `token` query parameter during the connection handshake. The server
+sends `question`, `answer_saved`, `audio_buffered`, `error`, and `interview_complete` events.
+Text answers use `{"type":"answer","text":"..."}`. Audio is sent as binary frames and is
+closed with `{"type":"answer_end"}`. The current foundation stores turns and buffers audio;
+Whisper transcription and live AI questioning are added by the interview provider layer.
+
+Completing the interview sets `current_phase` to `report_generation`. It does not pass the role
+or move the session into peer review until the combined report is generated.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.

@@ -42,6 +42,12 @@ class VerificationStatus(StrEnum):
     ABANDONED = "abandoned"
 
 
+class InterviewStatus(StrEnum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    ABANDONED = "abandoned"
+
+
 class VerificationPhase(StrEnum):
     CODEBASE_ANALYSIS = "codebase_analysis"
     TECHNICAL_DEFENCE = "technical_defence"
@@ -265,3 +271,67 @@ class VerificationSession(Base):
     )
 
     user_role: Mapped["UserRole"] = relationship(back_populates="verification_sessions")
+    interview: Mapped["VerificationInterview | None"] = relationship(
+        back_populates="verification_session", uselist=False, cascade="all, delete-orphan"
+    )
+
+
+class VerificationInterview(Base):
+    __tablename__ = "verification_interviews"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    verification_session_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("verification_sessions.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    status: Mapped[InterviewStatus] = mapped_column(
+        Enum(
+            InterviewStatus,
+            name="interview_status",
+            create_type=False,
+            native_enum=True,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        default=InterviewStatus.ACTIVE,
+        nullable=False,
+    )
+    turn_number: Mapped[int] = mapped_column(SmallInteger, default=1, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    verification_session: Mapped[VerificationSession] = relationship(back_populates="interview")
+    turns: Mapped[list["VerificationInterviewTurn"]] = relationship(
+        back_populates="interview",
+        cascade="all, delete-orphan",
+        order_by="VerificationInterviewTurn.sequence",
+    )
+
+
+class VerificationInterviewTurn(Base):
+    __tablename__ = "verification_interview_turns"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    interview_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("verification_interviews.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    sequence: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    security_flags: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    interview: Mapped[VerificationInterview] = relationship(back_populates="turns")

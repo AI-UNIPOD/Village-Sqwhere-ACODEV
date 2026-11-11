@@ -1,12 +1,15 @@
 from app.models.lookups import Base, Role, Technology
 from app.models.users import (
     AuthProvider,
+    InterviewStatus,
     PlatformRole,
     User,
     UserFeedTopic,
     UserIdentity,
     UserRole,
     UserTechnology,
+    VerificationInterview,
+    VerificationInterviewTurn,
     VerificationSession,
     VerificationStatus,
 )
@@ -14,6 +17,7 @@ from app.models.users import (
 __all__ = [
     "AuthProvider",
     "Base",
+    "InterviewStatus",
     "PlatformRole",
     "Role",
     "Technology",
@@ -22,6 +26,8 @@ __all__ = [
     "UserIdentity",
     "UserRole",
     "UserTechnology",
+    "VerificationInterview",
+    "VerificationInterviewTurn",
     "VerificationSession",
     "VerificationStatus",
 ]

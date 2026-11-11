@@ -21,6 +21,8 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
   completed sessions to the technical defence phase.
 - Analysis failures now record a safe error, return to `pending`, and retry up to the configured
   limit. Gemini is available as a fallback analyzer after Groq errors.
+- Applicants can now open an authenticated WebSocket interview, persist text turns, buffer audio,
+  and move a completed interview into `report_generation`.
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 - GitHub does not enforce the rules on `main` yet (see
@@ -29,8 +31,8 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 
 ## What's next
 
-1. Build the streamed technical defence with WebSocket authentication and persisted interview
-   turns.
+1. Add Whisper transcription, Prompt Guard checks, and the GPT-OSS interview agent to the
+   WebSocket stream.
 2. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
    owner approving the team, and the Virtual Collaboration Hub with all four phases. The
    PRD is not in this repository yet; ask Tanny for it before starting.

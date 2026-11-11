@@ -15,6 +15,7 @@ its number:
 - feat(api): add Groq codebase analysis adapter
 - feat(api): add codebase analysis worker boundary
 - feat(api): add analysis retries and Gemini fallback
+- feat(api): add streamed technical defence foundation
 
 ## 2026-11-10
 
