@@ -1,0 +1,675 @@
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The content column. Below 1240px there is no side margin large enough for the floating
+   buttons, so the column keeps 60px clear on its right (16px offset, button, 8px gap). */
+.wrap {
+  max-inline-size: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .wrap {
+    padding-inline: var(--space-8);
+  }
+}
+
+@media (max-width: 1239px) {
+  .wrap {
+    padding-inline-end: calc(var(--space-4) + var(--float-size) + var(--space-2));
+  }
+}
+
+/* ---------- header ---------- */
+/* On wide screens the header lines up with the content column. Its right side always clears
+   the floating language button. On phones the section links get a second row of their own,
+   under the logo, so phones can jump to them too. The header never sticks to the top. */
+.nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--nav-gap);
+  min-block-size: var(--nav-height);
+  padding-inline: var(--space-4) var(--float-gutter);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 768px) {
+  .nav {
+    flex-wrap: nowrap;
+    gap: var(--nav-gap);
+    block-size: var(--nav-height);
+    padding-inline:
+      max(var(--space-8), calc((100% - var(--content-max)) / 2 + var(--space-8)))
+      max(var(--float-gutter), calc((100% - var(--content-max)) / 2 + var(--space-8)));
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--brand-gap);
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* the first row keeps the full header height, so the language button stays centred on it */
+.nav .brand {
+  min-block-size: var(--nav-height);
+}
+
+@media (min-width: 768px) {
+  .nav .brand {
+    min-block-size: var(--tap-min);
+  }
+}
+
+.navLogo,
+.footLogo {
+  flex: none;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+}
+
+.navLogo {
+  inline-size: var(--nav-logo-size);
+  block-size: var(--nav-logo-size);
+}
+
+.navWordmark,
+.footWordmark {
+  font: var(--type-wordmark);
+  white-space: nowrap;
+}
+
+.navWordmark {
+  font: var(--type-wordmark-nav);
+}
+
+@media (min-width: 768px) {
+  .footLogo {
+    inline-size: var(--space-8);
+    block-size: var(--space-8);
+  }
+}
+
+.navLinks {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: var(--space-6);
+  border-top: 1px solid var(--line);
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: var(--type-nav-link);
+  text-decoration: none;
+  transition: color var(--dur-press) var(--ease-out);
+}
+
+/* sign-in waits for the wider header, as in the approved design */
+.navLinks .soonLink {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .navLinks {
+    flex-basis: auto;
+    gap: var(--nav-gap);
+    margin-inline-start: auto;
+    border-top: 0;
+  }
+
+  .navLinks .soonLink {
+    display: inline-flex;
+  }
+}
+
+/* Links underline themselves by drawing a line in from the start, on hover and on keyboard
+   focus alike. The header link of the section being read keeps its line, darker. */
+.navLink,
+.footLink {
+  position: relative;
+}
+
+.navLink::after,
+.footLink::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(50% - 0.5lh - var(--underline-offset));
+  border-top: 1px solid var(--line-strong);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    border-color var(--dur-press) var(--ease-out);
+}
+
+.navLink:hover,
+.navLink:focus-visible,
+.navLink[aria-current="location"] {
+  color: var(--text);
+}
+
+.navLink:hover::after,
+.navLink:focus-visible::after,
+.footLink:hover::after,
+.footLink:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.navLink[aria-current="location"]::after {
+  border-top-color: var(--text);
+  transform: scaleX(1);
+}
+
+/* ---------- floating language and theme buttons ---------- */
+.fab {
+  position: fixed;
+  z-index: 30;
+  right: var(--space-4);
+  display: grid;
+  place-items: center;
+  inline-size: var(--float-size);
+  block-size: var(--float-size);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: var(--shadow-float);
+  font: var(--type-mono-label);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+/* a ring that widens the tap area to 44px */
+.fab::before {
+  content: "";
+  position: absolute;
+  inset: calc((var(--float-size) - var(--tap-min)) / 2);
+  border-radius: var(--radius-full);
+}
+
+.fab:hover {
+  background: var(--surface-sunken);
+}
+
+.fab:active {
+  transform: scale(0.97);
+}
+
+.fabTop {
+  top: var(--float-top);
+}
+
+.fabBottom {
+  bottom: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .fabBottom {
+    bottom: var(--space-6);
+  }
+}
+
+/* the moon shows on Paper (go dark), the sun on Ink (go light), turning into each other */
+.mode svg {
+  position: absolute;
+  inline-size: var(--icon-toggle);
+  block-size: var(--icon-toggle);
+  transition:
+    opacity var(--dur-modal) var(--ease-out),
+    transform var(--dur-icon) var(--ease-out);
+}
+
+.mode .sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+.dark .sun {
+  opacity: 1;
+  transform: none;
+}
+
+.dark .moon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+/* ---------- hero text (placed by GatherHero) ---------- */
+.sub {
+  max-inline-size: 44ch;
+  margin: var(--hero-sub-gap) 0 0;
+  margin-inline: var(--copy-inline, 0);
+  color: var(--text-muted);
+  font: var(--type-hero-sub);
+  text-wrap: balance;
+}
+
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: var(--copy-justify, flex-start);
+  gap: var(--hero-cta-gap);
+  margin-block-start: var(--hero-cta-top);
+}
+
+/* The "coming soon" line under a button. It sits outside the layout flow, just below its
+   host, so the page keeps exactly the spacing of the approved landing page. */
+.noteHost {
+  position: relative;
+}
+
+.note {
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  transition: color var(--dur-menu) var(--ease-out);
+}
+
+/* pressing its "coming soon" button makes the note stand out */
+.note[data-lit] {
+  color: var(--text);
+}
+
+/* in the hero the note sits closer to the buttons and reads from the start of "Try the demo"
+   (the hero sets where that is), also on phones where the buttons are centred */
+.note[data-hero-note] {
+  margin-block-start: var(--space-2);
+  text-align: start;
+}
+
+/* ---------- buttons ---------- */
+.btn,
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--tap-min);
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-s);
+  font: var(--type-label);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.btn {
+  background: var(--action);
+  color: var(--on-action);
+}
+
+.ghost {
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.btn:hover:not([aria-disabled="true"]) {
+  background: var(--action-hover);
+}
+
+.ghost:hover:not([aria-disabled="true"]) {
+  background: var(--surface-sunken);
+}
+
+.btn:active:not([aria-disabled="true"]),
+.ghost:active:not([aria-disabled="true"]) {
+  transform: scale(0.97);
+}
+
+.btn[aria-disabled="true"],
+.ghost[aria-disabled="true"] {
+  border-color: transparent;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* The hero buttons grow with the headline; the section buttons keep the base size. Declared
+   after the base button so these sizes win. */
+.heroButton {
+  min-block-size: var(--hero-button-height);
+  padding-inline: var(--hero-button-pad);
+  font-size: var(--hero-button-font);
+}
+
+/* ---------- sections ---------- */
+.block {
+  padding-block: var(--section-block);
+  border-top: 1px solid var(--line);
+  scroll-margin-top: var(--space-4);
+  transition: border-top-color var(--dur-moment) var(--ease-out);
+}
+
+/* after a jump from a link, the section you landed on is marked by its top line */
+.block:target {
+  border-top-color: var(--text);
+}
+
+/* Revealed items rise into place the first time they scroll into view (SectionMotion marks
+   the ones still waiting). Items in a row or a list arrive one after another, --i apart. */
+.reveal {
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--delay-stagger) * var(--i, 0));
+}
+
+.reveal[data-reveal="waiting"] {
+  opacity: 0;
+  transform: translateY(var(--space-4));
+}
+
+.block h2 {
+  max-inline-size: 22ch;
+  margin: 0;
+  font: var(--type-section);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.lead {
+  max-inline-size: 52ch;
+  margin: var(--space-4) 0 0;
+  color: var(--text-muted);
+  font: var(--type-body-l);
+  text-wrap: pretty;
+}
+
+.steps {
+  display: grid;
+  gap: var(--space-8) var(--space-6);
+  margin: var(--space-10) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.step {
+  --i: 0;
+  position: relative;
+  min-inline-size: 0;
+  padding-block-start: var(--space-5);
+  border-top: 1px solid var(--line-strong);
+}
+
+/* steps side by side arrive one after another; in one column each arrives on its own */
+@media (min-width: 640px) {
+  .step {
+    --i: var(--i2);
+  }
+}
+
+@media (min-width: 1100px) {
+  .step {
+    --i: var(--i4);
+  }
+}
+
+/* as a step lands, its top line fills in from the start and its number darkens */
+.step::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: -1px;
+  border-top: 1px solid var(--text);
+  transform-origin: left;
+  transition: transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--delay-stagger) * var(--i, 0));
+}
+
+.step[data-reveal="waiting"]::before {
+  transform: scaleX(0);
+}
+
+.num {
+  display: grid;
+  place-items: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  margin-block-end: var(--space-4);
+  border: 1px solid var(--text);
+  color: var(--text);
+  font: var(--type-mono-label);
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color var(--dur-reveal) var(--ease-out),
+    background-color var(--dur-press) var(--ease-out);
+}
+
+.step[data-reveal="waiting"] .num {
+  border-color: var(--line-strong);
+}
+
+.step:hover .num {
+  background: var(--surface-sunken);
+}
+
+.step h3 {
+  margin: 0;
+  font: var(--type-step-title);
+}
+
+.step p {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font: var(--type-body);
+  text-wrap: pretty;
+}
+
+.tourGrid {
+  display: grid;
+  gap: var(--space-10);
+}
+
+@media (min-width: 1100px) {
+  .tourGrid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--space-16);
+    align-items: start;
+  }
+}
+
+.tourButton {
+  margin-block-start: var(--tour-button-gap);
+}
+
+.stops {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line-strong);
+  list-style: none;
+}
+
+.stops li {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--space-8) minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: baseline;
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+/* each stop's share of the three minutes, drawn on its bottom line, growing in as it lands */
+.bar {
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline-start: calc(var(--from) * 100%);
+  inline-size: calc(var(--size) * 100%);
+  border-top: 1px solid var(--text-muted);
+  transform-origin: left;
+  transition: transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--delay-stagger) * var(--i, 0));
+}
+
+.reveal[data-reveal="waiting"] .bar {
+  transform: scaleX(0);
+}
+
+.meta {
+  color: var(--text-muted);
+  font: var(--type-mono-row);
+  white-space: nowrap;
+}
+
+.what {
+  font: var(--type-body);
+}
+
+.total .what {
+  font: var(--type-label);
+}
+
+/* ---------- footer ---------- */
+.foot {
+  padding-block: var(--space-10) var(--space-12);
+  border-top: 1px solid var(--line);
+}
+
+.footGrid {
+  display: grid;
+  gap: var(--space-6);
+}
+
+@media (min-width: 900px) {
+  .footGrid {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}
+
+.tag {
+  max-inline-size: 44ch;
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.footList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footLink {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: var(--type-label);
+  text-decoration: none;
+}
+
+.legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-6);
+  margin: var(--space-6) 0 0;
+  padding-block-start: var(--space-4);
+  border-top: 1px solid var(--line);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* Sign-in and the demo have nowhere to go yet: muted, and the pointer says so. Last in the
+   file so it wins over the link styles above. */
+.soonLink,
+.soonLink:hover {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.soonLink::after {
+  content: none;
+}
+
+/* Reduced motion: the approved landing page's own buttons change at once. The section
+   interactions follow the design system: fades and colour changes stay, movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  .fab,
+  .btn,
+  .ghost,
+  .mode svg {
+    transition-duration: 0.01ms;
+  }
+
+  .reveal {
+    transition-property: opacity;
+  }
+
+  .reveal[data-reveal="waiting"] {
+    transform: none;
+  }
+
+  .step::before,
+  .bar,
+  .navLink::after,
+  .footLink::after {
+    transition-property: border-color;
+  }
+}
+
+/* printed pages show everything */
+@media print {
+  .reveal[data-reveal="waiting"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .step[data-reveal="waiting"]::before,
+  .reveal[data-reveal="waiting"] .bar {
+    transform: none;
+  }
+}

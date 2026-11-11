@@ -39,6 +39,26 @@ everywhere so it reads well on a 360px phone.
 
 Sizes are in pixels, size/line height.
 
+### Landing page steps
+
+The landing page has its own steps. They are only for that page: the product screens use the
+scale above.
+
+| Token | Size | Family, weight | Use |
+| --- | --- | --- | --- |
+| `--type-hero` | 36/40 on phones, then fluid up to 64/70. Below 600px it follows the width of its column (needs a parent with `container-type: inline-size`) | Unbounded 800, -0.02em | The hero headline, in place of `--type-display-xl` |
+| `--type-hero-sub` | 16 up to 20, line height 1.55 | Onest 400 | The sentence under the hero headline |
+| `--type-wordmark` | 15, 17 from 768px | Unbounded 700 | "Village Sqwhere" next to the logo |
+| `--type-wordmark-nav` | 15, then 16 to 20 from 768px | Unbounded 700 | The wordmark in the header |
+| `--type-nav-link` | 15 up to 17/20 | Onest 600 | Header links |
+| `--type-section` | 36/40, 40/46 from 900px | Unbounded 800, -0.02em | Landing section headings |
+| `--type-step-title` | 20/28 | Unbounded 700 | Titles of numbered steps |
+| `--type-mono-label` | 12/12, +0.04em | JetBrains Mono 600 | EN and FR buttons, step numbers |
+| `--type-mono-row` | 12/24 | JetBrains Mono 400 | Numbers and times in a list row |
+
+Mono is used here for short labels and numbers, a small widening of "code only" in the
+table at the top.
+
 ## Rules
 
 - `--type-body-s` is the smallest size for a sentence. `--type-caption` never holds a
