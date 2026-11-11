@@ -446,6 +446,11 @@ with deterministic questions and audio reports `TRANSCRIPTION_UNAVAILABLE`.
 Completing the interview sets `current_phase` to `report_generation`. It does not pass the role
 or move the session into peer review until the combined report is generated.
 
+The report worker combines the codebase result and persisted interview turns, validates the
+structured evaluator output, stores it under `ai_result.final_report`, and then changes the
+session to `awaiting_review`. The human peer-review endpoints remain the only path to `passed`
+or `failed`.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.

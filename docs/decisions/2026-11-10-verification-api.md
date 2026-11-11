@@ -45,3 +45,7 @@ current phase changes to `report_generation` only after the applicant explicitly
 interview. Groq Whisper, Prompt Guard, and the interview question model are optional adapters at
 runtime, so local tests and environments without provider credentials retain deterministic text
 questions and never send audio to an unconfigured service.
+
+The final report is a separate worker phase. It combines both evidence sources, stores the
+reviewer-facing summary under `ai_result.final_report`, and only then exposes the session to the
+existing peer-review queue. The evaluator cannot set `passed` or `failed`.

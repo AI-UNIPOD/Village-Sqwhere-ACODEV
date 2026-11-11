@@ -17,6 +17,7 @@ its number:
 - feat(api): add analysis retries and Gemini fallback
 - feat(api): add streamed technical defence foundation
 - feat(api): wire Groq interview providers
+- feat(api): add verification report worker
 
 ## 2026-11-10
 

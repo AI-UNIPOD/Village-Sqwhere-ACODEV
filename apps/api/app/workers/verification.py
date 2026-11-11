@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -5,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import VERIFICATION_MAX_ANALYSIS_ATTEMPTS
-from app.models.users import UserRole, VerificationPhase, VerificationSession, VerificationStatus
+from app.models.users import (
+    UserRole,
+    VerificationInterview,
+    VerificationPhase,
+    VerificationSession,
+    VerificationStatus,
+)
+from app.services.report import ReportEvaluator, VerificationReport
 from app.services.verification import (
     CodebaseAnalysisResult,
     CodebaseAnalyzer,
@@ -57,3 +65,51 @@ async def process_codebase_analysis(
     session.current_phase = VerificationPhase.TECHNICAL_DEFENCE
     await db.commit()
     return analysis
+
+
+async def process_verification_report(
+    db: AsyncSession,
+    session_id: UUID,
+    evaluator: ReportEvaluator,
+) -> VerificationReport | None:
+    result = await db.execute(
+        select(VerificationSession)
+        .options(
+            selectinload(VerificationSession.user_role).selectinload(UserRole.role),
+            selectinload(VerificationSession.interview).selectinload(VerificationInterview.turns),
+        )
+        .where(
+            VerificationSession.id == session_id,
+            VerificationSession.status == VerificationStatus.IN_PROGRESS,
+            VerificationSession.current_phase == VerificationPhase.REPORT_GENERATION,
+        )
+        .with_for_update(skip_locked=True)
+    )
+    session = result.scalar_one_or_none()
+    if not session or not session.interview:
+        return None
+
+    turns = [
+        {
+            "sequence": turn.sequence,
+            "question": turn.question,
+            "answer": turn.answer_text,
+            "security_flags": turn.security_flags,
+        }
+        for turn in session.interview.turns
+    ]
+    codebase_result = (session.ai_result or {}).get("codebase_analysis", {})
+    report = await evaluator.evaluate(
+        session.user_role.role.slug,
+        codebase_result,
+        turns,
+    )
+    session.ai_result = {
+        **(session.ai_result or {}),
+        "final_report": report.model_dump(mode="json"),
+    }
+    session.status = VerificationStatus.AWAITING_REVIEW
+    session.current_phase = None
+    session.completed_at = datetime.now(UTC)
+    await db.commit()
+    return report

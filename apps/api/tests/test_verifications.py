@@ -17,6 +17,7 @@ from app.services.codebase_analysis import (
 from app.services.fallback import FallbackCodebaseAnalyzer
 from app.services.gemini import GeminiCodebaseAnalyzer, GeminiConfigurationError
 from app.services.groq import GroqApiError, GroqCodebaseAnalyzer, GroqConfigurationError
+from app.services.report import VerificationReport
 from app.services.verification import (
     CodebaseAnalysisResult,
     GitHubRepositoryClient,
@@ -24,7 +25,7 @@ from app.services.verification import (
     RepositorySnapshot,
     run_codebase_analysis,
 )
-from app.workers.verification import process_codebase_analysis
+from app.workers.verification import process_codebase_analysis, process_verification_report
 from tests.conftest import test_async_session as db_session
 
 client = TestClient(app)
@@ -175,8 +176,35 @@ def test_interview_websocket_persists_text_turns_and_completes(sign_in) -> None:
             "status": "processing",
         }
 
+    class FakeReportEvaluator:
+        async def evaluate(
+            self, role_slug: str, codebase_result: dict, interview_turns: list[dict]
+        ) -> VerificationReport:
+            assert role_slug == "backend-engineer"
+            assert interview_turns[0]["answer"] == "I used a layered service design."
+            return VerificationReport(
+                score=78,
+                summary="The evidence is ready for peer review.",
+                codebase_findings=["The repository has a test path."],
+                interview_findings=["The applicant explained a service boundary."],
+                concerns=[],
+                security_flags=[],
+                confidence=0.8,
+                model="test-report-evaluator",
+            )
+
+    async def _report() -> VerificationReport:
+        async with db_session() as db:
+            result = await process_verification_report(db, session_id, FakeReportEvaluator())
+            assert result is not None
+            return result
+
+    report = asyncio.run(_report())
+    assert report.score == 78
     detail = client.get(f"/v1/me/verifications/{session_id}", headers=bearer(data))
-    assert detail.json()["data"]["current_phase"] == "report_generation"
+    assert detail.json()["data"]["status"] == "awaiting_review"
+    assert detail.json()["data"]["current_phase"] is None
+    assert detail.json()["data"]["ai_result"]["final_report"]["score"] == 78
     cleanup_user(user_id)
     claim_role(data)
     started = client.post(
