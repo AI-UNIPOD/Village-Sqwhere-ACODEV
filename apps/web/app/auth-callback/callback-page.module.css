@@ -121,8 +121,11 @@
     transform var(--dur-press) var(--ease-out);
 }
 
-.primary:hover {
-  background: var(--action-hover);
+/* Hover only where a pointer can hover: a tap on a phone would leave it stuck on. */
+@media (hover: hover) and (pointer: fine) {
+  .primary:hover {
+    background: var(--action-hover);
+  }
 }
 
 .primary:active {

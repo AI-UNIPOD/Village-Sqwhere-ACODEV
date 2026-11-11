@@ -127,7 +127,7 @@ export function CallbackPage({ lang }: { lang: Lang }) {
       <header className={landingStyles.nav} data-site-header="">
         <Link className={landingStyles.brand} href={`/${lang}`}>
           <Logo size={24} className={landingStyles.navLogo} />
-          <span className={landingStyles.navWordmark}>Village Sqwhere</span>
+          <span className={landingStyles.navWordmark} translate="no">Village Sqwhere</span>
         </Link>
       </header>
 

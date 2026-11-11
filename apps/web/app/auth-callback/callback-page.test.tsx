@@ -238,3 +238,10 @@ test("the top bar links home in the page's language and has no language switch",
   expect(screen.getByRole("link", { name: /Village Sqwhere/ }).getAttribute("href")).toBe("/fr");
   expect(screen.queryByRole("link", { name: /English|français/i })).toBeNull();
 });
+
+// Browser translation turned "Village Sqwhere" into "Village Square" on the other pages.
+test("the brand name stays out of translation", () => {
+  open("", null);
+  render(<CallbackPage lang="en" />);
+  expect(screen.getByText("Village Sqwhere").getAttribute("translate")).toBe("no");
+});
