@@ -206,6 +206,7 @@ Handles the redirect back from GitHub.
 * **Behavior:** exchanges `code` with GitHub, creates or updates the user in Postgres, then redirects the browser with HTTP `302 Found`:
   * On success: `http://localhost:3000/auth/callback?login_code=lc_...` (the code is random, works once, and expires after 5 minutes).
   * On failure: `http://localhost:3000/auth/callback?error=CODE`, where `CODE` is `INVALID_STATE` (start again), `ACCESS_DENIED` (the person cancelled on GitHub, or GitHub refused the code) or `OAUTH_EXCHANGE_FAILED` (GitHub or the database could not be reached).
+* **Email at sign-up:** a new account gets an email only when GitHub vouches for it. The API asks GitHub for the person's addresses (`GET /user/emails`, which the `user:email` scope allows) and saves the verified primary one, or else another verified one. GitHub noreply addresses are skipped. A saved email is marked verified (`email_verified` is `true` in `GET /v1/me`). The email on the public GitHub profile is never used by itself. The account is created with no email, and sign-in still works, when no address qualifies, when another account already has the address (capital letters do not matter), or when GitHub cannot be asked. Accounts that already exist are not changed.
 
 #### `POST /v1/auth/token`
 Exchanges a `login_code` (from the OAuth redirect) OR a `refresh_token` (to renew an expired session) for an active JWT `access_token` and rotated `refresh_token`.
