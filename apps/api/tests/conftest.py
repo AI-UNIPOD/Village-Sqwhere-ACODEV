@@ -22,7 +22,40 @@ from app.main import app  # noqa: E402
 from app.models.users import User, UserIdentity  # noqa: E402
 from app.services import provider_emails  # noqa: E402
 
-ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+
+def resolve_test_database_url(test_url: str | None, dev_url: str, in_ci: bool) -> str:
+    """The database the tests run against, or an error that says what to set instead.
+
+    The tests write to it, so it must never be the development database. CI has no
+    TEST_DATABASE_URL and uses its own database through DATABASE_URL.
+    """
+    if not test_url:
+        if in_ci:
+            return dev_url
+        raise RuntimeError(
+            "TEST_DATABASE_URL is required for local tests. "
+            "Point it at village_sqwhere_test, not the development database."
+        )
+    example = "postgresql://village:village@localhost:5432/village_sqwhere_test"
+    if test_url.rstrip("/") == dev_url.rstrip("/"):
+        raise RuntimeError(
+            "TEST_DATABASE_URL is the same as DATABASE_URL, the development database, and the "
+            f"tests write to it. Set TEST_DATABASE_URL to a separate database, such as {example}."
+        )
+    name = urlparse(test_url).path.strip("/")
+    if not name.endswith("_test"):
+        raise RuntimeError(
+            f"The test database name must end in _test, but TEST_DATABASE_URL points at '{name}'. "
+            f"Set TEST_DATABASE_URL to a separate database, such as {example}."
+        )
+    return test_url
+
+
+TEST_DB_URL = resolve_test_database_url(
+    os.getenv("TEST_DATABASE_URL"), DATABASE_URL, bool(os.getenv("CI"))
+)
+
+ASYNC_DATABASE_URL = TEST_DB_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 test_engine = create_async_engine(ASYNC_DATABASE_URL, poolclass=NullPool)
 test_async_session = async_sessionmaker(test_engine, expire_on_commit=False)
