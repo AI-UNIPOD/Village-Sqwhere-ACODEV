@@ -7,7 +7,9 @@ from uuid import UUID
 import httpx
 from fastapi import APIRouter, Body, HTTPException, Path, Query, Response, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DbSession, user_to_profile
@@ -33,6 +35,7 @@ from app.schemas.auth import (
     TokenRequestRefresh,
     TokenResponse,
 )
+from app.services.provider_emails import find_signup_email
 
 router = APIRouter()
 
@@ -124,6 +127,42 @@ async def fetch_github_user(code: str, redirect_uri: str) -> tuple[dict, str] | 
         return profile_res.json(), gh_access_token
 
 
+async def email_is_taken(db: AsyncSession, email: str) -> bool:
+    # Same rule as the unique index users_email_lower_uq: capital letters do not count, and
+    # deleted accounts still hold their email.
+    result = await db.execute(select(User.id).where(func.lower(User.email) == email.lower()))
+    return result.first() is not None
+
+
+async def _create_user(
+    db: AsyncSession,
+    username: str,
+    display_name: str,
+    avatar_url: str | None,
+    email: str | None,
+    provider_user_id: str,
+) -> User:
+    user = User(
+        username=username,
+        display_name=display_name,
+        email=email,
+        email_verified_at=datetime.now(UTC) if email else None,
+        avatar_url=avatar_url,
+    )
+    db.add(user)
+    await db.flush()
+    db.add(
+        UserIdentity(
+            user_id=user.id,
+            provider=AuthProvider.GITHUB,
+            provider_user_id=provider_user_id,
+            provider_username=username,
+        )
+    )
+    await db.commit()
+    return user
+
+
 def _drop_expired(store: dict, now: datetime) -> None:
     for key in [key for key, value in store.items() if value[-1] < now]:
         del store[key]
@@ -164,7 +203,6 @@ async def oauth_callback(
         username = gh_user.get("login") or f"gh_{provider_user_id}"
         display_name = gh_user.get("name") or username
         avatar_url = gh_user.get("avatar_url")
-        email = gh_user.get("email")
 
         # Upsert user in database
         query = (
@@ -187,23 +225,23 @@ async def oauth_callback(
             if existing:
                 username = f"{username[:34]}_{secrets.token_hex(2)}"
 
-            user = User(
-                username=username,
-                display_name=display_name,
-                email=email,
-                avatar_url=avatar_url,
-            )
-            db.add(user)
-            await db.flush()
-
-            identity = UserIdentity(
-                user_id=user.id,
-                provider=AuthProvider.GITHUB,
-                provider_user_id=provider_user_id,
-                provider_username=username,
-            )
-            db.add(identity)
-            await db.commit()
+            # An email is a bonus: whatever goes wrong with it, the person still signs in.
+            email = await find_signup_email(provider, gh_access_token)
+            if email and await email_is_taken(db, email):
+                email = None
+            try:
+                user = await _create_user(
+                    db, username, display_name, avatar_url, email, provider_user_id
+                )
+            except IntegrityError as exc:
+                # Two sign-ups can pass the check above together. The unique index lets one
+                # win, and the other is created without the email.
+                if email is None or "users_email" not in str(exc.orig):
+                    raise
+                await db.rollback()
+                user = await _create_user(
+                    db, username, display_name, avatar_url, None, provider_user_id
+                )
         else:
             if avatar_url and user.avatar_url != avatar_url:
                 user.avatar_url = avatar_url

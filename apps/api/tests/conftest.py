@@ -2,6 +2,7 @@ import asyncio
 import os
 from collections.abc import AsyncGenerator, Callable, Generator
 from urllib.parse import parse_qs, urlparse
+from uuid import uuid4
 
 import pytest
 
@@ -9,7 +10,7 @@ import pytest
 os.environ.setdefault("JWT_SECRET_KEY", "test-only-signing-key-never-use-for-real-0123456789")
 
 from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import func, select  # noqa: E402
+from sqlalchemy import delete, func, select  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine  # noqa: E402
 from sqlalchemy.pool import NullPool  # noqa: E402
 
@@ -18,7 +19,8 @@ from app.config import DATABASE_URL  # noqa: E402
 from app.core.security import generate_code_challenge_s256  # noqa: E402
 from app.database import get_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models.users import User  # noqa: E402
+from app.models.users import User, UserIdentity  # noqa: E402
+from app.services import provider_emails  # noqa: E402
 
 ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
@@ -33,6 +35,10 @@ FAKE_GITHUB_USERS: dict[str, dict[str, object]] = {
     "github-code-ada": {"id": 9100001, "login": "ada-lagos", "name": "Ada Okafor"},
     "github-code-moussa": {"id": 9100002, "login": "moussa-dakar", "name": "Moussa Diop"},
 }
+
+# What GitHub's emails endpoint answers for each access token: its rows, or an error to raise.
+# A token that is not listed has no emails.
+FAKE_GITHUB_EMAILS: dict[str, list[dict[str, object]] | Exception] = {}
 
 
 async def override_get_db() -> AsyncGenerator[AsyncSession]:
@@ -64,9 +70,16 @@ def github(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         profile = FAKE_GITHUB_USERS.get(code)
         return (profile, f"token-for-{code}") if profile else None
 
+    async def fake_fetch_github_emails(access_token: str) -> list[dict[str, object]]:
+        answer = FAKE_GITHUB_EMAILS.get(access_token, [])
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
     monkeypatch.setattr(auth, "GITHUB_CLIENT_ID", "test-client-id")
     monkeypatch.setattr(auth, "GITHUB_CLIENT_SECRET", "test-client-secret")
     monkeypatch.setattr(auth, "fetch_github_user", fake_fetch_github_user)
+    monkeypatch.setattr(provider_emails, "fetch_github_emails", fake_fetch_github_emails)
     return exchanged_codes
 
 
@@ -114,6 +127,48 @@ def sign_in(client: TestClient, github: list[str]) -> Callable[[str], dict]:
         return resp.json()["data"]
 
     return _sign_in
+
+
+@pytest.fixture
+def github_account(github: list[str]) -> Generator[Callable[..., str]]:
+    """Make a brand new GitHub account per call and return the code that signs in as it.
+
+    The fixed fake users already exist in the database after the first run, so they never
+    take the sign-up path. These are new every time, and deleted afterwards.
+    """
+    made: list[tuple[str, str]] = []
+
+    def _make(
+        *,
+        profile_email: str | None = None,
+        emails: list[dict[str, object]] | Exception | None = None,
+    ) -> str:
+        suffix = uuid4().hex[:8]
+        code = f"github-code-{suffix}"
+        FAKE_GITHUB_USERS[code] = {
+            "id": int(suffix, 16),
+            "login": f"qa-{suffix}",
+            "name": "Test Person",
+            "email": profile_email,
+        }
+        FAKE_GITHUB_EMAILS[f"token-for-{code}"] = emails if emails is not None else []
+        made.append((code, str(int(suffix, 16))))
+        return code
+
+    yield _make
+
+    async def _delete() -> None:
+        async with test_async_session() as session:
+            ids = select(UserIdentity.user_id).where(
+                UserIdentity.provider_user_id.in_([github_id for _, github_id in made])
+            )
+            await session.execute(delete(User).where(User.id.in_(ids)))
+            await session.commit()
+
+    asyncio.run(_delete())
+    for code, _ in made:
+        FAKE_GITHUB_USERS.pop(code, None)
+        FAKE_GITHUB_EMAILS.pop(f"token-for-{code}", None)
 
 
 def count_users(username: str) -> int:
