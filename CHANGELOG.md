@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- docs: add the verification routes to the architecture doc (#14)
 - fix(api): return the real attempt number when a verification starts (#19)
 - docs: add the api endpoints to progress and architecture (#13)
 - fix(web): seat the demo note under its button in a clear space (#12)
