@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- feat(web): add the github sign-in page
 - fix(api): return the real attempt number when a verification starts (#19)
 - docs: add the api endpoints to progress and architecture (#13)
 - fix(web): seat the demo note under its button in a clear space (#12)

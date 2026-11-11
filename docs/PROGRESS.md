@@ -16,14 +16,14 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
   peer review by developers verified in that role. The full schema is in
   `infra/db/init/002-schema.sql`; nothing uses the idea, hub or post tables yet.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
-  so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). The web
-  app does not call the API yet.
+  so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
   language). It matches the approved B3v design, hero animation included: walking country
   names, the logo fading in, the loop, pause and the pointer twins, plus background words
   scrolling right to left in an endless loop (held on hover). The motion was checked by
-  tests, a line-by-line port of B3v and measurements in the app, not by eye. "Try the demo",
-  "Start the tour" and "Sign in" show "Coming soon". No other product screens exist yet.
+  tests, a line-by-line port of B3v and measurements in the app, not by eye. "Try the demo" and
+  "Start the tour" show "Coming soon".
+- `/{lang}/sign-in` reuses the hero and is the only screen that calls the API so far.
 - Below the hero, steps and tour stops rise into view once, the header marks the section
   being read, tour stops show their share of the three minutes, "coming soon" presses are
   announced, and phones get a row of section links (see
@@ -45,8 +45,9 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
    motion, and have a
    French-speaking teammate check the French. New pages go under `app/[lang]` with English
    and French text (see `docs/decisions/2026-11-10-landing-page-language-and-theme.md`).
-4. Build the sign-in screens on the API (`docs/backend.md`), then point the "Coming soon"
-   buttons at real screens. Before launch, move sign-in state out of API memory (the
+4. Build the `/auth/callback` page: exchange the login code for tokens, keep the session,
+   and send GitHub failures back to `/{lang}/sign-in?error=CODE`. Point the API's callback
+   redirect at a language path. Before launch, move sign-in state out of API memory (the
    decision record suggests a `refresh_tokens` table).
 5. Add a deploy job to CI once the team has Systalink platform access.
 6. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
