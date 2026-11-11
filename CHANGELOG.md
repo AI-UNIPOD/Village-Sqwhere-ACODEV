@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-11
+
+- fix(web): seat the demo note under its button in a clear space (#12)
+
 ## 2026-11-10
 
 - feat(web): add the landing page in English and French (#8)
