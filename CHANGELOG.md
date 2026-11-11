@@ -11,6 +11,9 @@ its number:
 ## 2026-11-11
 
 - fix(web): keep the brand name and language code out of translation (#27)
+- fix(web): say sign-in did not start when the browser cannot hash (#26)
+- fix(web): use the design system breakpoint for the sign-in button (#25)
+- fix(api): never block sign-in on a clashing email (#24)
 - fix(web): show the real name and link the github username on the card (#23)
 - feat(web): add the onboarding page for after the first sign-in (#22)
 - feat(web): add the github sign-in page (#21)
