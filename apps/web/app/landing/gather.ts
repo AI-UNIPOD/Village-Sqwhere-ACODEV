@@ -290,3 +290,111 @@ export function layoutCrowd({ width, height, centerX, centerY, square, fontSize,
   }
   return words;
 }
+
+// ---------- the scroll: the crowd moves right to left, slowly, forever, like a ticker ----------
+
+/** Reads a CSS `cubic-bezier(a, b, c, d)` token into its four numbers, or null. */
+export function parseCubicBezier(value: string): [number, number, number, number] | null {
+  const m = /cubic-bezier\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/.exec(
+    value,
+  );
+  if (!m) return null;
+  const n = [m[1], m[2], m[3], m[4]].map(Number);
+  return n.some(Number.isNaN) ? null : [n[0], n[1], n[2], n[3]];
+}
+
+/** Reads a CSS time token ("12s" or "400ms") into seconds, or null. */
+export function parseSeconds(value: string): number | null {
+  const m = /^\s*([\d.]+)\s*(ms|s)\s*$/.exec(value);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isNaN(n) ? null : m[2] === "ms" ? n / 1000 : n;
+}
+
+/** The easing curve a CSS `cubic-bezier` describes, as a function from time (0 to 1) to progress. */
+export function cubicBezier([x1, y1, x2, y2]: [number, number, number, number]) {
+  const bez = (t: number, a: number, b: number) =>
+    3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  return (x: number) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    // find the curve parameter whose x is the given time, by halving: steady and exact enough
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 30; i++) {
+      const mid = (lo + hi) / 2;
+      if (bez(mid, x1, x2) < x) lo = mid;
+      else hi = mid;
+    }
+    return bez((lo + hi) / 2, y1, y2);
+  };
+}
+
+/** Reads a CSS easing token: `linear` or a `cubic-bezier(...)`, as a function, or null. */
+export function parseEasing(value: string): ((x: number) => number) | null {
+  if (value.trim() === "linear") return (x) => x;
+  const curve = parseCubicBezier(value);
+  return curve ? cubicBezier(curve) : null;
+}
+
+/**
+ * How far the crowd is shifted at scroll time t: `distance` toward the left every `cycle`
+ * seconds, on the given easing, forever. The crowd repeats every `width` px, so the shift wraps
+ * there and the loop has no seam. Always above -width and at most 0.
+ */
+export function scrollOffset(
+  t: number,
+  cycle: number,
+  distance: number,
+  ease: (x: number) => number,
+  width: number,
+) {
+  const steps = Math.max(0, t) / cycle;
+  const whole = Math.floor(steps);
+  const travelled = distance * (whole + ease(steps - whole));
+  return -(travelled % width);
+}
+
+/**
+ * How visible a drifting word is near the areas the crowd keeps clear of: 0 when it touches
+ * one, 1 once it is `feather` px away, a straight line between. So words fade at the edges
+ * of the text, the square and the button instead of sliding under them.
+ */
+export function zoneFade(
+  box: Rect,
+  avoid: readonly Rect[],
+  feather: number,
+) {
+  let fade = 1;
+  for (const [ax0, ay0, ax1, ay1] of avoid) {
+    const dx = Math.max(ax0 - box[2], box[0] - ax1, 0);
+    const dy = Math.max(ay0 - box[3], box[1] - ay1, 0);
+    const gap = Math.max(dx, dy);
+    if (dx === 0 && dy === 0) return 0;
+    fade = Math.min(fade, feather > 0 ? clamp(gap / feather) : 1);
+  }
+  return fade;
+}
+
+/**
+ * Whether the pointer rests directly on one of the crowd's words, at the current shift. The
+ * crowd repeats every `width` px, so each word also shows one width further right. Words
+ * hidden behind the text, the square or the button do not count.
+ */
+export function pointerOnWord(
+  words: readonly CrowdWord[],
+  x: number,
+  y: number,
+  shift: number,
+  fontSize: number,
+  avoid: readonly Rect[] = [],
+  width = 0,
+) {
+  return words.some((w) =>
+    (width > 0 ? [0, width] : [0]).some((repeat) => {
+      const x0 = w.x + shift + repeat;
+      const box: Rect = [x0, w.y, x0 + w.w, w.y + fontSize];
+      return x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3] && zoneFade(box, avoid, 0) > 0;
+    }),
+  );
+}

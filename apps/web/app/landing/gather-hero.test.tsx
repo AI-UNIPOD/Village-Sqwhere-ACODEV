@@ -1,7 +1,9 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { crowdFontSize, layoutCrowd } from "./gather";
 import { GatherHero } from "./gather-hero";
+import { heroAvoid, heroGeometry } from "./hero-layout";
 
 let resizeCallbacks: Array<() => void> = [];
 const labels = { pause: "Pause animation", play: "Play animation" };
@@ -177,4 +179,135 @@ test("places everything again when the width changes", () => {
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(360);
   resizeCallbacks.forEach((callback) => callback());
   expect(section.style.height).not.toBe(before);
+});
+
+// ---------- the background scroll ----------
+
+const DRIFT_TOKENS: Record<string, string> = {
+  "--dur-drift": "2s",
+  "--ease-linear": "linear",
+  "--space-8": "32px",
+  "--space-3": "12px",
+};
+
+function setDriftTokens(on: boolean) {
+  for (const [name, value] of Object.entries(DRIFT_TOKENS)) {
+    if (on) document.documentElement.style.setProperty(name, value);
+    else document.documentElement.style.removeProperty(name);
+  }
+}
+
+// a visible word of the scrolling crowd, placed exactly as the hero places it at 1440px: the
+// crowd fills the hero evenly, so pick one clear of the text, the square and the button
+function aCrowdWord() {
+  const g = heroGeometry({
+    width: 1440,
+    viewportHeight: window.innerHeight,
+    navHeight: 0,
+    measureCopy: () => 240,
+  });
+  const fontSize = crowdFontSize(g.cell);
+  const words = layoutCrowd({
+    width: 1440,
+    height: g.height,
+    centerX: g.x + g.square / 2,
+    centerY: g.y + g.square / 2,
+    square: g.square,
+    fontSize,
+    avoid: [],
+  });
+  const word = words.find((w) =>
+    heroAvoid(g).every(([x0, y0, x1, y1]) => w.x + w.w <= x0 || w.x >= x1 || w.y + fontSize <= y0 || w.y >= y1),
+  )!;
+  return { word, fontSize };
+}
+
+function movePointer(target: Element, x: number, y: number) {
+  target.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: x, clientY: y }));
+}
+
+test("the background words scroll when the design system's motion tokens are there", () => {
+  setDriftTokens(true);
+  const { container } = renderHero();
+  expect(container.querySelector("section")!.getAttribute("data-drift")).toBe("on");
+  setDriftTokens(false);
+});
+
+test("resting the pointer directly on a background word holds the drift, moving off lets it go", () => {
+  setDriftTokens(true);
+  const { container } = renderHero();
+  const section = container.querySelector("section")!;
+  const { word, fontSize } = aCrowdWord();
+
+  movePointer(section, word.x + word.w / 2, word.y + fontSize / 2);
+  expect(section.getAttribute("data-drift")).toBe("held");
+
+  movePointer(section, word.x + word.w / 2, word.y + fontSize + 2);
+  expect(section.getAttribute("data-drift")).toBe("on");
+
+  movePointer(section, word.x + word.w / 2, word.y + fontSize / 2);
+  section.dispatchEvent(new MouseEvent("pointerleave"));
+  expect(section.getAttribute("data-drift")).toBe("on");
+  setDriftTokens(false);
+});
+
+test("the pause button stops the drift too, for phones and keyboards that cannot hover", () => {
+  setDriftTokens(true);
+  const { container } = renderHero();
+  const section = container.querySelector("section")!;
+  fireEvent.click(screen.getByRole("button", { name: "Pause animation" }));
+  expect(section.getAttribute("data-drift")).toBe("off");
+  fireEvent.click(screen.getByRole("button", { name: "Play animation" }));
+  expect(section.getAttribute("data-drift")).toBe("on");
+  setDriftTokens(false);
+});
+
+test("with reduced motion the background words stay still", () => {
+  setDriftTokens(true);
+  stubMotion(true);
+  const { container } = renderHero();
+  expect(container.querySelector("section")!.getAttribute("data-drift")).toBe("off");
+  setDriftTokens(false);
+});
+
+test("without the motion tokens the background words stay still instead of guessing a speed", () => {
+  setDriftTokens(false);
+  const { container } = renderHero();
+  expect(container.querySelector("section")!.getAttribute("data-drift")).toBe("off");
+});
+
+test("the crowd is drawn twice, one hero width apart, then masked, so the loop has no seam", () => {
+  setDriftTokens(true);
+  const drawn: Array<{ img: HTMLCanvasElement; x: number; op: string }> = [];
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
+    const ctx = fakeContext() as Record<string, unknown>;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.drawImage = (img: HTMLCanvasElement, x: number) =>
+      drawn.push({ img, x, op: String(ctx.globalCompositeOperation) });
+    return ctx as unknown as RenderingContext;
+  });
+  renderHero();
+
+  // the band at its shift and again exactly one band width to its right
+  const band = drawn.filter((d) => d.op === "source-over" && d.img.width === 1440);
+  expect(band.some((a) => band.some((b) => b.img === a.img && b.x === a.x + a.img.width))).toBe(true);
+  // then only the mask's open areas are kept: the text, the square and the button stay clear
+  expect(drawn.some((d) => d.op === "destination-in")).toBe(true);
+  setDriftTokens(false);
+});
+
+test("with reduced motion the crowd is drawn once, still, laid out around the text", () => {
+  setDriftTokens(true);
+  stubMotion(true);
+  const drawn: Array<{ x: number; op: string }> = [];
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
+    const ctx = fakeContext() as Record<string, unknown>;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.drawImage = (_img: unknown, x: number) => drawn.push({ x, op: String(ctx.globalCompositeOperation) });
+    return ctx as unknown as RenderingContext;
+  });
+  renderHero();
+  expect(drawn.every((d) => d.x === 0)).toBe(true);
+  expect(drawn.some((d) => d.op === "destination-in")).toBe(false);
+  setDriftTokens(false);
 });
