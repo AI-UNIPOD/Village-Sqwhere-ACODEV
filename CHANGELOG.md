@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-11
+
+- docs: add the api endpoints to progress and architecture (#13)
+
 ## 2026-11-10
 
 - feat(web): add the landing page in English and French (#8)
