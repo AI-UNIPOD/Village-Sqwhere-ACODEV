@@ -11,12 +11,15 @@ from app.models.ideas import Idea, IdeaStage, IdeaStatus
 from app.models.lookups import Base, Role, Technology
 from app.models.users import (
     AuthProvider,
+    InterviewStatus,
     PlatformRole,
     User,
     UserFeedTopic,
     UserIdentity,
     UserRole,
     UserTechnology,
+    VerificationInterview,
+    VerificationInterviewTurn,
     VerificationSession,
     VerificationStatus,
 )
@@ -34,6 +37,7 @@ __all__ = [
     "Idea",
     "IdeaStage",
     "IdeaStatus",
+    "InterviewStatus",
     "PlatformRole",
     "Role",
     "Technology",
@@ -42,6 +46,8 @@ __all__ = [
     "UserIdentity",
     "UserRole",
     "UserTechnology",
+    "VerificationInterview",
+    "VerificationInterviewTurn",
     "VerificationSession",
     "VerificationStatus",
 ]

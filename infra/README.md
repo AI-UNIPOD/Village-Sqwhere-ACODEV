@@ -25,8 +25,13 @@ They run in file name order, once, on an empty database:
 | `002-schema.sql` | The tables, constraints and triggers. |
 | `003-hub-terms.sql` | `hubs.terms`: the deal a hub owner sets for their hub, for example `{"ownership_model": "equal_split"}`. It must be a JSON object, it is set when the hub is created and the database refuses any later change. Each signature in `agreement_signatures` gets the hub's own terms copied into `terms_snapshot`, whatever the client sent, so every member signs exactly the same terms. |
 | `004-test-agreement.sql` | One published agreement template, version 1, titled `TEST AGREEMENT (NOT LEGAL TEXT)`. Hubs can only be created on a published template, so this lets us build and test hubs. Running it twice is safe. |
+| `005-verification-phases.sql` | The `verification_phase` type (`codebase_analysis`, `technical_defence`, `report_generation`) and `verification_sessions.current_phase`, which tracks where an attempt is in the AI verification. |
+| `006-verification-analysis-retries.sql` | `verification_sessions.analysis_attempts` (a count, 0 at first) and `verification_sessions.last_error`. The worker counts each analysis start and retries a failed one until `VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached. |
+| `007-verification-interviews.sql` | The technical defence interview: the `interview_status` type (`active`, `completed`, `incomplete`, `abandoned`), `verification_interviews` (one per attempt, with the welcome and closing messages) and `verification_interview_turns` (one row per question, with the answer, the acknowledgement and the security flags). |
+| `008-verification-interview-incomplete.sql` | Adds `incomplete` to `interview_status` if it is missing. On an empty database it changes nothing, because `007` already creates it. Running it twice is safe. |
+| `009-verification-interview-conversation.sql` | Adds `welcome_message` and `closing_message` to `verification_interviews` and `acknowledgement` to `verification_interview_turns`, if they are missing. On an empty database it changes nothing, because `007` already creates them. Running it twice is safe. |
 
-**An existing local database does not get 003 or 004 by itself.** Rebuild it, which deletes
+**An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
 
 ```bash

@@ -463,6 +463,83 @@ each role. The start endpoint records GitHub repository evidence and creates a `
 session. Analysis can update the session later; the API does not claim that analysis is done
 when the session is created.
 
+The response includes `current_phase` while AI work is active. It is `codebase_analysis` when
+the session is waiting for or receiving repository analysis, `technical_defence` when the
+analysis is complete and the interview can begin, and `report_generation` while the final
+review brief is being prepared. It is `null` for terminal states and `awaiting_review`.
+
+The codebase analysis service reads public GitHub repository metadata, languages, a bounded file
+tree, test paths and recent commits. `GITHUB_API_TOKEN` is optional. Without it, public
+repositories use GitHub's unauthenticated rate limit. Repository code is never executed.
+
+The Groq codebase adapter is configured with `GROQ_API_KEY` and `GROQ_CODEBASE_MODEL`. It sends
+the bounded snapshot to the configured model, requests JSON, and validates the response before
+storing it. The adapter is not called directly by an HTTP endpoint.
+
+The worker claims one pending codebase analysis with a row lock. It keeps that transaction open
+while the external analysis runs, preventing two workers from processing the same session. A
+successful run stores the result and advances `current_phase` to `technical_defence`.
+
+`analysis_attempts` and `last_error` are returned to the applicant for progress reporting. A
+failed run returns to `pending` and can be claimed again until
+`VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached. The primary Groq analyzer falls back to the
+configured Gemini analyzer after a Groq configuration or API error.
+
+#### `WS /v1/me/verifications/{session_id}/interview`
+
+The applicant opens this WebSocket after the session reaches `technical_defence`. The access
+token is supplied as the `token` query parameter during the connection handshake. The server
+sends `assistant_message`, `question`, `answer_saved`, `audio_buffered`, `error`,
+`interview_complete`, and `interview_incomplete` events. An `assistant_message` has a `kind` of
+`welcome`, `acknowledgement`, or `closing`, plus its text. The welcome explains the interview
+before question one. Each saved answer receives a neutral acknowledgement before the next
+question. The closing signs the applicant off after answer five.
+Text answers use `{"type":"answer","text":"..."}`. Audio is sent as binary frames and is
+closed with `{"type":"answer_end"}`. With `GROQ_API_KEY` configured, the server sends the
+audio to `GROQ_STT_MODEL`, checks the transcript with `GROQ_GUARD_MODEL`, and gets the next
+question from `GROQ_INTERVIEW_MODEL`. If Groq is unavailable or returns invalid structured output,
+the conversation falls back to `GEMINI_INTERVIEW_MODEL`. If neither provider is available,
+deterministic conversation keeps text interviews usable. Questions one to three cover architecture
+and ownership, role fundamentals, and testing and reliability. Questions four and five use the
+codebase analysis and prior answers for adaptive depth, trade-offs, and problem solving. Audio
+reports `TRANSCRIPTION_UNAVAILABLE` when transcription is not configured.
+
+An audio answer can name its type with the optional `audio_content_type` query parameter,
+which defaults to `audio/webm`. The value must be one of `audio/webm`, `audio/webm;codecs=opus`,
+`audio/ogg`, `audio/ogg;codecs=opus`, `audio/mp4`, `audio/mpeg`, `audio/wav`, `audio/x-wav` or
+`audio/flac`, in any letter case. Anything else gets an `AUDIO_TYPE_NOT_ALLOWED` error and the
+buffered audio is dropped, and only a value from this list is ever sent to the speech provider.
+
+Each answer is checked with `GROQ_GUARD_MODEL`. When `GROQ_API_KEY` or `GROQ_GUARD_MODEL` is not
+set nothing is checked, so every answer is flagged `guard_not_configured`. A flag is saved with
+the answer, sent to the client as `{"type":"security_signal","severity":"warning","code":"..."}`
+and passed to the report generator, so peer reviewers can see that nothing was screened.
+
+The interview allows `VERIFICATION_INTERVIEW_MAX_TURNS` answered turns, which defaults to five.
+The applicant cannot complete the interview manually. After the final answer is saved, the
+server sends `interview_complete` and sets `current_phase` to `report_generation`. Sending a
+client `complete` event is not supported. If the applicant sends `abandon`, or the WebSocket
+disconnects before the limit, the interview is marked `incomplete` and the verification session
+is abandoned. An incomplete interview does not enter report generation or peer review.
+
+Welcome, acknowledgement, question, answer, security flag, and closing text are persisted. The
+report worker stores this under `ai_result.interview_transcript`, combines the codebase result and
+interview turns, validates the structured evaluator output, and stores the report under
+`ai_result.final_report`. It then changes the session to `awaiting_review`. The human peer-review
+endpoints remain the only path to `passed` or `failed`.
+
+Run the worker loop with:
+
+```bash
+uv run --directory apps/api python -m app.workers.runner
+```
+
+It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each job is claimed
+with a database row lock, and a failed job is logged while the loop continues.
+
+Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
+`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.

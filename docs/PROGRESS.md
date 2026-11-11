@@ -10,10 +10,11 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - Team rules for people and agents are in `AGENTS.md`. CI runs on every pull request:
   title rule, dash check, web, api and secret scan.
 - The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, and
-  verification (GitHub evidence, polling, abandoning) with peer review by developers
-  verified in that role. Guide: `docs/backend.md`. Routes are listed in
-  `docs/architecture.md` and tested. Schema: `infra/db/init/` (new scripts need a rebuilt local
-  database, see `infra/README.md`); idea, hub and post tables unused. `004` is a TEST agreement.
+  verification (GitHub analysis, AI interview, report, worker, abandoning) with peer review
+  by developers verified in that role. Guide: `docs/backend.md`. Routes are listed in
+  `docs/architecture.md` and tested. Schema: `infra/db/init/` (new scripts need a rebuilt
+  local database, see `infra/README.md`); idea, hub and post tables unused. `004` is a TEST
+  agreement. Interviews are five questions, with Groq and Gemini fallbacks and retries.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
@@ -34,8 +35,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 
 ## What's next
 
-1. Connect a verification worker to move pending sessions through AI analysis into peer
-   review. The worker contract and GitHub repository analysis are still open.
+1. Add peer-review report display and production deployment configuration.
 2. Connect the onboarding page to the API once the gaps are closed: onboarding completion,
    country, idea topics, French lookup names, one save endpoint (see
    `docs/decisions/2026-11-11-onboarding-page.md`).

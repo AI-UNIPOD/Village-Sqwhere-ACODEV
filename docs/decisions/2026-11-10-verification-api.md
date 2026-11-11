@@ -12,7 +12,11 @@ repository URLs as evidence and creates a `pending` session. Applicants can list
 abandon their attempts. Verified developers can list and decide cases for roles they hold.
 
 The API records evidence and lifecycle state. A separate worker is responsible for repository
-analysis and moving a session into `awaiting_review`.
+analysis and moving a session into `awaiting_review`. The session keeps its overall `status`
+separate from `current_phase`, so applicants can see whether work is active and which AI phase
+is running without adding a new lifecycle status for every phase. The codebase analysis service
+accepts a provider-neutral analyzer interface and stores a validated, versioned result in
+`ai_result`.
 
 ## Options we considered
 
@@ -24,5 +28,31 @@ analysis and moving a session into `awaiting_review`.
 ## Consequences
 
 The frontend has stable endpoints for polling and peer review has explicit role checks. The
-worker contract, GitHub permissions and evidence format need a later decision before analysis
-is connected.
+frontend can now show the active AI phase. The live provider, GitHub permissions, worker queue,
+and technical defence contract still need separate decisions before production analysis is
+connected. Repository analysis uses bounded metadata snapshots and never executes repository
+code. A GitHub API token is optional for public repositories and only changes the API rate
+limit. The first model adapter uses Groq's OpenAI-compatible API with a deployment-configured
+model name and validates structured JSON before persistence. Provider selection remains outside
+the HTTP endpoint so a Gemini fallback can be added without changing the lifecycle contract.
+The fallback uses Gemini's `generateContent` endpoint with JSON output configuration and the same
+validated result contract.
+
+The technical defence uses a WebSocket so audio, transcript progress, questions, and answer
+acknowledgements share one authenticated session. It is a five-question conversation with a text
+welcome, neutral acknowledgements, a mix of fixed competency coverage and adaptive questions, and
+a text closing. Interview turns are append-only records tied to the verification session. Binary
+audio is bounded before a transcriber receives it, and the phase changes to `report_generation`
+only after the fifth answer. The applicant can abandon but cannot complete the interview early.
+Groq Whisper and Prompt Guard remain the audio and safety adapters. The conversation agent uses
+Groq first, Gemini second, and deterministic text as the final fallback. Local tests and
+environments without provider credentials never send audio to an unconfigured service. The full
+transcript is stored for peer review.
+
+The final report is a separate worker phase. It combines both evidence sources, stores the
+reviewer-facing summary under `ai_result.final_report`, and only then exposes the session to the
+existing peer-review queue. The evaluator cannot set `passed` or `failed`.
+
+Final report evaluation uses the same provider fallback pattern as codebase analysis. Groq is the
+primary evaluator and Gemini is used when Groq configuration or evaluation fails. Both outputs
+are validated against the same report schema before the session enters peer review.

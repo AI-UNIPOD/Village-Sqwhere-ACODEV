@@ -10,6 +10,9 @@ its number:
 
 ## 2026-11-11
 
+- feat(api): add Gemini interview fallback
+- feat(api): make verification interviews conversational
+- feat(api): limit technical defence interviews to five turns
 - feat(api): add hub models and schemas (#34)
 - fix(web): keep the french phone nav links on one line (#35)
 - test(api): isolate the test database from the development one (#29)

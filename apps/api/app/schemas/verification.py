@@ -34,6 +34,9 @@ class VerificationResponse(BaseModel):
     role_name: str
     attempt_number: int
     status: str
+    current_phase: str | None = None
+    analysis_attempts: int = 0
+    last_error: str | None = None
     source: str | None = None
     evidence: list
     ai_score: float | None = None
