@@ -10,8 +10,9 @@ its number:
 
 ## 2026-11-11
 
-- fix(web): show the real name on the onboarding card, with the GitHub username linked under it
-- feat(web): add the onboarding page at /en/onboarding and /fr/onboarding (static demo data, nothing saved)
+- fix(web): show the real name and link the github username on the card (#23)
+- feat(web): add the onboarding page for after the first sign-in (#22)
+- feat(web): add the github sign-in page (#21)
 - docs: add the verification routes to the architecture doc (#14)
 - fix(api): return the real attempt number when a verification starts (#19)
 - docs: add the api endpoints to progress and architecture (#13)
