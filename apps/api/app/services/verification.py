@@ -133,6 +133,19 @@ class CodebaseAnalyzer(Protocol):
     ) -> CodebaseAnalysisResult: ...
 
 
+async def analyze_codebase(
+    session: VerificationSession,
+    role_slug: str,
+    repository_client: RepositorySnapshotClient,
+    analyzer: CodebaseAnalyzer,
+) -> CodebaseAnalysisResult:
+    repository_urls = [item["repository_url"] for item in session.evidence]
+    snapshots = await asyncio.gather(
+        *(repository_client.snapshot(repository_url) for repository_url in repository_urls)
+    )
+    return await analyzer.analyze(snapshots, role_slug)
+
+
 async def run_codebase_analysis(
     db: AsyncSession,
     session: VerificationSession,
@@ -149,11 +162,7 @@ async def run_codebase_analysis(
     session.status = VerificationStatus.IN_PROGRESS
     await db.commit()
 
-    repository_urls = [item["repository_url"] for item in session.evidence]
-    snapshots = await asyncio.gather(
-        *(repository_client.snapshot(repository_url) for repository_url in repository_urls)
-    )
-    result = await analyzer.analyze(snapshots, role_slug)
+    result = await analyze_codebase(session, role_slug, repository_client, analyzer)
 
     session.ai_score = result.score
     session.ai_result = {"codebase_analysis": result.model_dump(mode="json")}

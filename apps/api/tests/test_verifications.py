@@ -22,6 +22,7 @@ from app.services.verification import (
     RepositorySnapshot,
     run_codebase_analysis,
 )
+from app.workers.verification import process_codebase_analysis
 from tests.conftest import test_async_session as db_session
 
 client = TestClient(app)
@@ -92,6 +93,61 @@ def test_groq_codebase_analyzer_validates_structured_output() -> None:
 
     assert result.score == 80
     assert result.model == "test-model"
+
+
+def test_worker_claims_pending_session_and_advances_phase(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+    started = client.post(
+        "/v1/me/verifications/backend-engineer",
+        headers=bearer(data),
+        json={"repositories": ["https://github.com/example/project"]},
+    )
+    assert started.status_code == 201, started.text
+    session_id = UUID(started.json()["data"]["id"])
+
+    class FakeRepositoryClient:
+        async def snapshot(self, repository_url: str) -> RepositorySnapshot:
+            return RepositorySnapshot(
+                repository_url=repository_url,
+                default_branch="main",
+                languages={"Python": 1000},
+                file_paths=["app/main.py"],
+                test_paths=[],
+                recent_commits=[],
+            )
+
+    class FakeAnalyzer:
+        async def analyze(
+            self, repositories: list[RepositorySnapshot], role_slug: str
+        ) -> CodebaseAnalysisResult:
+            assert role_slug == "backend-engineer"
+            assert len(repositories) == 1
+            return CodebaseAnalysisResult(
+                score=75,
+                summary="Analysis complete.",
+                strengths=[],
+                concerns=[],
+                evidence=[],
+                model="test-worker-analyzer",
+            )
+
+    async def _process() -> CodebaseAnalysisResult:
+        async with db_session() as db:
+            result = await process_codebase_analysis(
+                db, session_id, FakeRepositoryClient(), FakeAnalyzer()
+            )
+            assert result is not None
+            return result
+
+    analysis = asyncio.run(_process())
+    assert analysis.score == 75
+    detail = client.get(f"/v1/me/verifications/{session_id}", headers=bearer(data))
+    assert detail.json()["data"]["status"] == "in_progress"
+    assert detail.json()["data"]["current_phase"] == "technical_defence"
+    cleanup_user(user_id)
 
 
 def bearer(data: dict) -> dict[str, str]:

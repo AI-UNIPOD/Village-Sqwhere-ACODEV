@@ -423,6 +423,10 @@ The Groq codebase adapter is configured with `GROQ_API_KEY` and `GROQ_CODEBASE_M
 the bounded snapshot to the configured model, requests JSON, and validates the response before
 storing it. The adapter is not called directly by an HTTP endpoint.
 
+The worker claims one pending codebase analysis with a row lock. It keeps that transaction open
+while the external analysis runs, preventing two workers from processing the same session. A
+successful run stores the result and advances `current_phase` to `technical_defence`.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.

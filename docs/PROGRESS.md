@@ -17,6 +17,8 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
   provider-neutral analyzer interface.
 - A Groq codebase analyzer now validates configurable structured JSON output without coupling
   the verification endpoint to a provider.
+- A worker boundary now claims pending codebase analysis sessions with row locking and advances
+  completed sessions to the technical defence phase.
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 - GitHub does not enforce the rules on `main` yet (see
@@ -25,8 +27,7 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 
 ## What's next
 
-1. Connect a verification worker to the analyzer, add Gemini fallback handling, then build the
-   streamed technical defence.
+1. Add retry reporting and Gemini fallback handling, then build the streamed technical defence.
 2. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
    owner approving the team, and the Virtual Collaboration Hub with all four phases. The
    PRD is not in this repository yet; ask Tanny for it before starting.
