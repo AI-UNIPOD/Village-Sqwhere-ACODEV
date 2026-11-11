@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- docs: update progress after the latest api and web merges (#36)
 - feat(api): add Gemini interview fallback
 - feat(api): make verification interviews conversational
 - feat(api): limit technical defence interviews to five turns
