@@ -7,10 +7,12 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 ## Current state (2026-11-10)
 
 - Monorepo in place: `apps/web` (Next.js 16, the landing page in English and French),
-  `apps/api` (FastAPI with `/health` and one pytest test), `infra/` (Postgres 17 with
-  pgvector in Docker).
+  `apps/api` (FastAPI v1 auth, profiles, roles and verification endpoints), `infra/`
+  (Postgres 17 with pgvector in Docker).
 - Team rules for people and agents are in `AGENTS.md`. CI runs on every pull request:
   title rule, dash check, web, api and secret scan.
+- API verification endpoints now support GitHub evidence, applicant polling and abandonment,
+  plus role-eligible peer review decisions.
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
   language). It matches the approved B3v design, hero animation included: walking country
   names, the logo fading in, the loop, pause and the pointer twins, plus background words
@@ -25,15 +27,17 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 
 ## What's next
 
-1. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
+1. Connect a verification worker to move pending sessions through AI analysis and into peer
+   review. The worker contract and GitHub repository analysis are still to define.
+2. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
    owner approving the team, and the Virtual Collaboration Hub with all four phases. The
    PRD is not in this repository yet; ask Tanny for it before starting.
-2. Review and merge the landing page: watch the hero motion in a browser, and have a
+3. Review and merge the landing page: watch the hero motion in a browser, and have a
    French-speaking teammate check the French. New pages go under `app/[lang]` with English
    and French text (see `docs/decisions/2026-11-10-landing-page-language-and-theme.md`).
-3. Point "Try the demo", "Start the tour" and "Sign in" at real screens once they exist.
-4. Add a deploy job to CI once the team has Systalink platform access.
-5. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
+4. Point "Try the demo", "Start the tour" and "Sign in" at real screens once they exist.
+5. Add a deploy job to CI once the team has Systalink platform access.
+6. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
    repository).
 
 ## Open questions
