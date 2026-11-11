@@ -50,6 +50,15 @@ Lucide, outline, 24px grid, 1.75px stroke, rounded ends. Sizes: 16px in chips an
 buttons, 20px by default, 24px in navigation and empty states. Icons take the colour of
 their text. No sparkles, stars or dots for AI.
 
+## Third-party marks
+
+A button that signs in with another service shows that service's mark before the label,
+sized and spaced like a button icon (16px, `--space-2` from the text). The mark takes the
+button's text colour, so on a primary button it is `--on-action`, never the vendor's brand
+colour. It carries no shadow, gradient or motion, and it never outranks our own logo on the
+screen. The shape only needs to read clearly at that size; it does not have to match the
+vendor's files exactly. Today the only one is the GitHub mark on "Continue with GitHub".
+
 ## Fields
 
 - Label above the field, `--type-label`, `--space-2` from the field.

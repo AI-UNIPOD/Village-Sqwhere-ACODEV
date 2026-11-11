@@ -82,17 +82,27 @@ test("marks the header so the hero can place itself under it", () => {
   expect(container.querySelector("header[data-site-header]")).not.toBeNull();
 });
 
-test("the demo, the tour and sign-in say they are coming soon and do nothing", () => {
-  render(<LandingPage lang="en" />);
-  for (const name of [/^Try the demo/, /^Start the tour/, /^Sign in/]) {
+test("the demo and the tour say they are coming soon and do nothing", () => {
+  const { container } = render(<LandingPage lang="en" />);
+  for (const name of [/^Try the demo/, /^Start the tour/]) {
     for (const button of screen.getAllByRole("button", { name })) {
       expect(button.getAttribute("aria-disabled")).toBe("true");
       expect(button.textContent).toContain("Coming soon");
       expect(() => fireEvent.click(button)).not.toThrow();
     }
   }
-  expect(screen.getByText("The demo is coming soon.")).toBeTruthy();
-  expect(screen.getByText("The guided tour is coming soon.")).toBeTruthy();
+  expect(container.querySelector("#demo-note")?.textContent).toBe("The demo is coming soon.");
+  expect(container.querySelector("#tour-note")?.textContent).toBe("The guided tour is coming soon.");
+});
+
+test.each([
+  ["en", "Sign in"],
+  ["fr", "Connexion"],
+] as const)("the %s page links to its sign-in page from the header and the footer", (lang, name) => {
+  render(<LandingPage lang={lang} />);
+  const links = screen.getAllByRole("link", { name });
+  expect(links).toHaveLength(2);
+  for (const link of links) expect(link.getAttribute("href")).toBe(`/${lang}/sign-in`);
 });
 
 test("the French page says the same in French", () => {
