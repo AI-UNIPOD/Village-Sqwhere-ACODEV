@@ -20,7 +20,17 @@ from app.database import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.users import User  # noqa: E402
 
-ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
+if not TEST_DB_URL:
+    if os.getenv("CI"):
+        TEST_DB_URL = DATABASE_URL
+    else:
+        raise RuntimeError(
+            "TEST_DATABASE_URL is required for local tests. "
+            "Point it at village_sqwhere_test, not the development database."
+        )
+
+ASYNC_DATABASE_URL = TEST_DB_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 test_engine = create_async_engine(ASYNC_DATABASE_URL, poolclass=NullPool)
 test_async_session = async_sessionmaker(test_engine, expire_on_commit=False)
