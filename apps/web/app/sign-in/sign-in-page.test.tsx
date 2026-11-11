@@ -214,6 +214,16 @@ test("any other failure says sign-in did not start", async () => {
   expect(assign).not.toHaveBeenCalled();
 });
 
+// On plain http at a LAN address the browser has no crypto.subtle, so the challenge cannot be made.
+test("a browser that cannot hash says sign-in did not start and sends nothing", async () => {
+  vi.stubGlobal("crypto", { getRandomValues: (bytes: Uint8Array) => bytes });
+  render(<SignInPage lang="en" />);
+  fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Sign-in didn't start");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
 test("with no error in the address, no alert shows", () => {
   render(<SignInPage lang="en" />);
   expect(screen.queryByRole("alert")).toBeNull();
