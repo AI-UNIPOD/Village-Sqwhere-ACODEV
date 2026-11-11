@@ -46,6 +46,7 @@ class VerificationStatus(StrEnum):
 class InterviewStatus(StrEnum):
     ACTIVE = "active"
     COMPLETED = "completed"
+    INCOMPLETE = "incomplete"
     ABANDONED = "abandoned"
 
 

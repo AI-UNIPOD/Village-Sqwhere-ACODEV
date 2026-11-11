@@ -488,15 +488,20 @@ configured Gemini analyzer after a Groq configuration or API error.
 
 The applicant opens this WebSocket after the session reaches `technical_defence`. The access
 token is supplied as the `token` query parameter during the connection handshake. The server
-sends `question`, `answer_saved`, `audio_buffered`, `error`, and `interview_complete` events.
+sends `question`, `answer_saved`, `audio_buffered`, `error`, `interview_complete`, and
+`interview_incomplete` events.
 Text answers use `{"type":"answer","text":"..."}`. Audio is sent as binary frames and is
 closed with `{"type":"answer_end"}`. With `GROQ_API_KEY` configured, the server sends the
 audio to `GROQ_STT_MODEL`, checks the transcript with `GROQ_GUARD_MODEL`, and gets the next
 question from `GROQ_INTERVIEW_MODEL`. If interview models are absent, text answers still work
 with deterministic questions and audio reports `TRANSCRIPTION_UNAVAILABLE`.
 
-Completing the interview sets `current_phase` to `report_generation`. It does not pass the role
-or move the session into peer review until the combined report is generated.
+The interview allows `VERIFICATION_INTERVIEW_MAX_TURNS` answered turns, which defaults to five.
+The applicant cannot complete the interview manually. After the final answer is saved, the
+server sends `interview_complete` and sets `current_phase` to `report_generation`. Sending a
+client `complete` event is not supported. If the applicant sends `abandon`, or the WebSocket
+disconnects before the limit, the interview is marked `incomplete` and the verification session
+is abandoned. An incomplete interview does not enter report generation or peer review.
 
 The report worker combines the codebase result and persisted interview turns, validates the
 structured evaluator output, stores it under `ai_result.final_report`, and then changes the

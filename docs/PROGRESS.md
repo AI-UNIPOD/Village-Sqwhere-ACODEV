@@ -16,7 +16,7 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
   peer review by developers verified in that role. The full schema is in
   `infra/db/init/002-schema.sql`; nothing uses the idea, hub or post tables yet.
 - Verification now includes bounded GitHub analysis, Groq and Gemini fallbacks, a streamed
-  technical defence, report generation, retries and a polling worker.
+  technical defence with a five-turn limit, report generation, retries and a polling worker.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). The web
   app does not call the API yet.

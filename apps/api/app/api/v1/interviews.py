@@ -4,7 +4,12 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.config import GROQ_API_KEY, GROQ_GUARD_MODEL, GROQ_INTERVIEW_MODEL
+from app.config import (
+    GROQ_API_KEY,
+    GROQ_GUARD_MODEL,
+    GROQ_INTERVIEW_MODEL,
+    VERIFICATION_INTERVIEW_MAX_TURNS,
+)
 from app.core.security import decode_access_token
 from app.database import async_session
 from app.models.users import (
@@ -183,19 +188,13 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                     if len(answer) > MAX_ANSWER_CHARS:
                         await websocket.send_json({"type": "error", "code": "ANSWER_TOO_LONG"})
                         continue
-                elif event_type == "complete":
-                    interview.status = InterviewStatus.COMPLETED
-                    interview.completed_at = interview_completed_at()
-                    session.current_phase = VerificationPhase.REPORT_GENERATION
-                    await db.commit()
-                    await websocket.send_json(
-                        {"type": "interview_complete", "status": "processing"}
-                    )
-                    break
                 elif event_type == "abandon":
-                    interview.status = InterviewStatus.ABANDONED
+                    interview.status = InterviewStatus.INCOMPLETE
+                    interview.completed_at = interview_completed_at()
+                    session.status = VerificationStatus.ABANDONED
+                    session.current_phase = None
                     await db.commit()
-                    await websocket.send_json({"type": "interview_abandoned"})
+                    await websocket.send_json({"type": "interview_incomplete"})
                     break
                 else:
                     await websocket.send_json({"type": "error", "code": "UNKNOWN_MESSAGE_TYPE"})
@@ -209,6 +208,16 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                     )
                 await db.commit()
                 await websocket.send_json({"type": "answer_saved", "turn_id": str(current_turn.id)})
+                if current_turn.sequence >= VERIFICATION_INTERVIEW_MAX_TURNS:
+                    interview.status = InterviewStatus.COMPLETED
+                    interview.completed_at = interview_completed_at()
+                    session.current_phase = VerificationPhase.REPORT_GENERATION
+                    await db.commit()
+                    await websocket.send_json(
+                        {"type": "interview_complete", "status": "processing"}
+                    )
+                    break
+
                 interview.turn_number += 1
                 question = await next_question(
                     question_provider,
@@ -233,4 +242,10 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                     }
                 )
         except WebSocketDisconnect:
+            if interview.status == InterviewStatus.ACTIVE:
+                interview.status = InterviewStatus.INCOMPLETE
+                interview.completed_at = interview_completed_at()
+                session.status = VerificationStatus.ABANDONED
+                session.current_phase = None
+                await db.commit()
             return

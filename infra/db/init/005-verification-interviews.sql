@@ -1,4 +1,4 @@
-CREATE TYPE interview_status AS ENUM ('active', 'completed', 'abandoned');
+CREATE TYPE interview_status AS ENUM ('active', 'completed', 'incomplete', 'abandoned');
 
 CREATE TABLE verification_interviews (
   id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),

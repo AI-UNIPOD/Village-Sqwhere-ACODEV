@@ -174,14 +174,16 @@ def test_interview_websocket_persists_text_turns_and_completes(sign_in) -> None:
     ) as websocket:
         question = websocket.receive_json()
         assert question["type"] == "question"
-        websocket.send_json({"type": "answer", "text": "I used a layered service design."})
-        assert websocket.receive_json()["type"] == "answer_saved"
-        assert websocket.receive_json()["type"] == "question"
-        websocket.send_json({"type": "complete"})
-        assert websocket.receive_json() == {
-            "type": "interview_complete",
-            "status": "processing",
-        }
+        for turn in range(5):
+            websocket.send_json({"type": "answer", "text": "I used a layered service design."})
+            assert websocket.receive_json()["type"] == "answer_saved"
+            if turn < 4:
+                assert websocket.receive_json()["type"] == "question"
+            else:
+                assert websocket.receive_json() == {
+                    "type": "interview_complete",
+                    "status": "processing",
+                }
 
     class FakeReportEvaluator:
         async def evaluate(
