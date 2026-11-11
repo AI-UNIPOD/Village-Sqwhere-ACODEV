@@ -23,6 +23,8 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
   limit. Gemini is available as a fallback analyzer after Groq errors.
 - Applicants can now open an authenticated WebSocket interview, persist text turns, buffer audio,
   and move a completed interview into `report_generation`.
+- Configured environments can now use Groq Whisper transcription, Prompt Guard inspection, and a
+  Groq interview question agent, with safe defaults when provider settings are absent.
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 - GitHub does not enforce the rules on `main` yet (see
@@ -31,8 +33,7 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 
 ## What's next
 
-1. Add Whisper transcription, Prompt Guard checks, and the GPT-OSS interview agent to the
-   WebSocket stream.
+1. Add interview answer evaluation, report generation, and the transition into peer review.
 2. Build the core flow from PRD v2.2: sign in, share an idea, AI matching, the idea's
    owner approving the team, and the Virtual Collaboration Hub with all four phases. The
    PRD is not in this repository yet; ask Tanny for it before starting.

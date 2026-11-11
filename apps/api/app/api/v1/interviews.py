@@ -4,6 +4,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.config import GROQ_API_KEY, GROQ_GUARD_MODEL, GROQ_INTERVIEW_MODEL
 from app.core.security import decode_access_token
 from app.database import async_session
 from app.models.users import (
@@ -16,9 +17,16 @@ from app.models.users import (
     VerificationSession,
     VerificationStatus,
 )
+from app.services.groq_interview import (
+    GroqInterviewAgent,
+    GroqPromptGuard,
+    GroqWhisperTranscriber,
+)
 from app.services.interview import (
+    AnswerGuard,
     DefaultInterviewQuestionProvider,
     InterviewUnavailable,
+    UnconfiguredAnswerGuard,
     UnconfiguredAudioTranscriber,
     interview_completed_at,
     parse_interview_message,
@@ -27,6 +35,15 @@ from app.services.interview import (
 router = APIRouter()
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 MAX_ANSWER_CHARS = 10_000
+
+
+async def next_question(
+    provider, fallback, role_slug: str, turn_number: int, analysis: dict | None
+):
+    try:
+        return await provider.question(role_slug, turn_number, analysis)
+    except InterviewUnavailable:
+        return await fallback.question(role_slug, turn_number, analysis)
 
 
 async def websocket_user(token: str | None, db) -> User | None:
@@ -80,10 +97,18 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
             db.add(interview)
             await db.flush()
 
-        question_provider = DefaultInterviewQuestionProvider()
-        transcriber = UnconfiguredAudioTranscriber()
+        default_questions = DefaultInterviewQuestionProvider()
+        question_provider = (
+            GroqInterviewAgent() if GROQ_API_KEY and GROQ_INTERVIEW_MODEL else default_questions
+        )
+        transcriber = GroqWhisperTranscriber() if GROQ_API_KEY else UnconfiguredAudioTranscriber()
+        guard: AnswerGuard = (
+            GroqPromptGuard() if GROQ_API_KEY and GROQ_GUARD_MODEL else UnconfiguredAnswerGuard()
+        )
         if not interview.turns:
-            question = await question_provider.question(
+            question = await next_question(
+                question_provider,
+                default_questions,
                 session.user_role.role.slug,
                 interview.turn_number,
                 session.ai_result,
@@ -136,7 +161,10 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                         await websocket.send_json({"type": "error", "code": "AUDIO_MISSING"})
                         continue
                     try:
-                        answer = await transcriber.transcribe(bytes(audio_buffer), "audio/webm")
+                        answer = await transcriber.transcribe(
+                            bytes(audio_buffer),
+                            websocket.query_params.get("audio_content_type", "audio/webm"),
+                        )
                     except InterviewUnavailable as error:
                         await websocket.send_json(
                             {
@@ -174,10 +202,17 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                     continue
 
                 current_turn.answer_text = answer.strip()
+                current_turn.security_flags = await guard.inspect(current_turn.answer_text)
+                for flag in current_turn.security_flags:
+                    await websocket.send_json(
+                        {"type": "security_signal", "severity": "warning", "code": flag}
+                    )
                 await db.commit()
                 await websocket.send_json({"type": "answer_saved", "turn_id": str(current_turn.id)})
                 interview.turn_number += 1
-                question = await question_provider.question(
+                question = await next_question(
+                    question_provider,
+                    default_questions,
                     session.user_role.role.slug,
                     interview.turn_number,
                     session.ai_result,

@@ -20,6 +20,10 @@ class AudioTranscriber(Protocol):
     async def transcribe(self, audio: bytes, content_type: str) -> str: ...
 
 
+class AnswerGuard(Protocol):
+    async def inspect(self, answer: str) -> list[str]: ...
+
+
 class InterviewUnavailable(Exception):
     pass
 
@@ -41,6 +45,11 @@ class DefaultInterviewQuestionProvider:
 class UnconfiguredAudioTranscriber:
     async def transcribe(self, audio: bytes, content_type: str) -> str:
         raise InterviewUnavailable("Audio transcription is not configured.")
+
+
+class UnconfiguredAnswerGuard:
+    async def inspect(self, answer: str) -> list[str]:
+        return []
 
 
 def parse_interview_message(raw: str) -> dict:

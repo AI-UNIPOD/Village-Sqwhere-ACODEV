@@ -42,4 +42,6 @@ The technical defence uses a WebSocket so audio, transcript progress, questions,
 acknowledgements share one authenticated session. Interview turns are append-only records tied to
 the verification session. Binary audio is bounded before a transcriber receives it, and the
 current phase changes to `report_generation` only after the applicant explicitly completes the
-interview.
+interview. Groq Whisper, Prompt Guard, and the interview question model are optional adapters at
+runtime, so local tests and environments without provider credentials retain deterministic text
+questions and never send audio to an unconfigured service.
