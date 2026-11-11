@@ -14,9 +14,9 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
   language). It matches the approved B3v design, hero animation included: walking country
   names, the logo fading in, the loop, pause and the pointer twins, plus background words
-  drifting slowly right to left (held on hover). The motion was checked by tests, a
-  line-by-line port of B3v and measurements in the app, not by eye. "Try the demo", "Start
-  the tour" and "Sign in" show "Coming soon". No other product screens exist yet.
+  scrolling right to left in an endless loop (held on hover). The motion was checked by
+  tests, a line-by-line port of B3v and measurements in the app, not by eye. "Try the demo",
+  "Start the tour" and "Sign in" show "Coming soon". No other product screens exist yet.
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 - GitHub does not enforce the rules on `main` yet (see

@@ -10,15 +10,14 @@ import {
   TWIN,
   at,
   crowdFontSize,
-  cubicBezier,
-  driftOffset,
   layoutCrowd,
   nameFontSize,
-  parseCubicBezier,
+  parseEasing,
   parseSeconds,
   planCycle,
   pointerOnWord,
   runsFromAlpha,
+  scrollOffset,
   seg,
   zoneFade,
   type CrowdWord,
@@ -85,6 +84,11 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     const g = canvasEl.getContext("2d");
     const crowdCanvas = document.createElement("canvas");
     const cg = crowdCanvas.getContext("2d");
+    // the scrolling crowd: the words drawn once (tile), and what to keep clear (mask)
+    const tile = document.createElement("canvas");
+    const tg = tile.getContext("2d");
+    const mask = document.createElement("canvas");
+    const mg = mask.getContext("2d");
     const runs = logoRuns();
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const scheme = window.matchMedia("(prefers-color-scheme: dark)");
@@ -114,7 +118,8 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       null;
     let shift = 0;
     let paintedShift = Number.NaN;
-    let restFade: number[] = [];
+    // whether this layout scrolls: the tokens are there, motion is allowed, the browser can draw
+    let scrolling = false;
     let raf = 0;
     let lastWidth = -1;
     let lastViewportHeight = -1;
@@ -135,23 +140,24 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       };
       mono = token("--mono");
 
-      // the drift uses the design system's motion tokens only; without them it stays still
+      // the scroll uses the design system's motion tokens only (--space-8 every --dur-drift, on
+      // --ease-linear); without them the crowd stays still
       const root = getComputedStyle(document.documentElement);
       const rootToken = (name: string) => root.getPropertyValue(name).trim();
       const cycle = parseSeconds(rootToken("--dur-drift"));
-      const curve = parseCubicBezier(rootToken("--ease-drawer"));
+      const ease = parseEasing(rootToken("--ease-linear"));
       const distance = parseFloat(rootToken("--space-8"));
       const feather = parseFloat(rootToken("--space-3"));
       drift =
-        cycle && curve && distance > 0
-          ? { cycle, distance, feather: feather > 0 ? feather : 0, ease: cubicBezier(curve) }
+        cycle && ease && distance > 0
+          ? { cycle, distance, feather: feather > 0 ? feather : 0, ease }
           : null;
     }
 
     // what the drift is doing, for tests and debugging: on, held (pointer on a word) or off
     function markDrift() {
       const value =
-        !animated || state.reduced || !drift || pausedRef.current ? "off" : state.held ? "held" : "on";
+        !animated || !scrolling || pausedRef.current ? "off" : state.held ? "held" : "on";
       if (heroEl && heroEl.getAttribute("data-drift") !== value) heroEl.setAttribute("data-drift", value);
     }
 
@@ -195,13 +201,17 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       }
 
       dpr = Math.min(2, window.devicePixelRatio || 1);
-      for (const surface of [canvasEl, crowdCanvas]) {
+      for (const surface of [canvasEl, crowdCanvas, tile, mask]) {
         surface.width = Math.round(width * dpr);
         surface.height = Math.round(hg.height * dpr);
       }
       canvasEl.style.width = `${width}px`;
       canvasEl.style.height = `${hg.height}px`;
       avoid = heroAvoid(hg);
+      scrolling = !!drift && !state.reduced && !!tg && !!mg;
+      // A scrolling crowd fills the hero evenly and a fixed mask keeps the text, the square and
+      // the button clear, so no empty patch travels with it. A still crowd is laid out around
+      // them, as in the approved design.
       words = layoutCrowd({
         width,
         height: hg.height,
@@ -209,38 +219,62 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
         centerY: hg.y + hg.square / 2,
         square: hg.square,
         fontSize: crowdFontSize(hg.cell),
-        avoid,
+        avoid: scrolling ? [] : avoid,
       });
-      const fontSize = crowdFontSize(hg.cell);
-      restFade = words.map((w) =>
-        zoneFade([w.x, w.y, w.x + w.w, w.y + fontSize], avoid, drift?.feather ?? 0),
-      );
+      paintTile();
+      paintMask();
       paintedShift = Number.NaN;
       newCycle();
     }
 
-    // The crowd is painted to its own canvas and copied every frame. The drift is slow, so it is
-    // painted again only when its shift moves by a whole device pixel: a few times a second.
+    // the crowd's words, drawn once per layout or theme
+    function paintTile() {
+      if (!geo || !tg) return;
+      tg.setTransform(dpr, 0, 0, dpr, 0, 0);
+      tg.clearRect(0, 0, heroWidth, geo.height);
+      tg.font = `${crowdFontSize(geo.cell)}px ${mono}`;
+      tg.textBaseline = "top";
+      tg.fillStyle = colors.lineStrong;
+      tg.globalAlpha = 0.6;
+      for (const w of words) tg.fillText(w.t, w.x, w.y);
+      tg.globalAlpha = 1;
+    }
+
+    // Where scrolling words may show: everywhere but the text, the square and the button, with
+    // soft edges (--space-3). Opaque in the theme's text colour; only its alpha is used.
+    function paintMask() {
+      if (!geo || !mg || !scrolling) return;
+      mg.setTransform(1, 0, 0, 1, 0, 0);
+      mg.globalCompositeOperation = "source-over";
+      mg.clearRect(0, 0, mask.width, mask.height);
+      mg.fillStyle = colors.text;
+      mg.fillRect(0, 0, mask.width, mask.height);
+      mg.globalCompositeOperation = "destination-out";
+      mg.setTransform(dpr, 0, 0, dpr, 0, 0);
+      mg.shadowColor = colors.text;
+      mg.shadowBlur = (drift?.feather ?? 0) * dpr;
+      for (const [x0, y0, x1, y1] of avoid) mg.fillRect(x0, y0, x1 - x0, y1 - y0);
+      mg.shadowBlur = 0;
+      mg.globalCompositeOperation = "source-over";
+    }
+
+    // The crowd as it shows now: the band at its scroll shift, again one width to its right so
+    // the loop has no seam, then the mask. Painted only when the shift moves a whole device
+    // pixel, about eight times a second, by copying, never by drawing the words again.
     function paintCrowd(at: number) {
-      if (!geo || !cg) return;
-      const fontSize = crowdFontSize(geo.cell);
-      cg.setTransform(dpr, 0, 0, dpr, 0, 0);
-      cg.clearRect(0, 0, heroWidth, geo.height);
-      cg.font = `${fontSize}px ${mono}`;
-      cg.textBaseline = "top";
-      cg.fillStyle = colors.lineStrong;
-      const feather = drift?.feather ?? 0;
-      words.forEach((w, i) => {
-        const x = w.x + at;
-        // relative to where the word rests, so nothing dims until it moves closer to a zone
-        const near = zoneFade([x, w.y, x + w.w, w.y + fontSize], avoid, feather);
-        const fade = restFade[i] > 0 ? Math.min(1, near / restFade[i]) : near;
-        if (fade <= 0) return;
-        cg.globalAlpha = 0.6 * fade;
-        cg.fillText(w.t, x, w.y);
-      });
-      cg.globalAlpha = 1;
-      paintedShift = Math.round(at * dpr);
+      if (!cg) return;
+      const px = Math.round(at * dpr);
+      cg.setTransform(1, 0, 0, 1, 0, 0);
+      cg.globalCompositeOperation = "source-over";
+      cg.clearRect(0, 0, crowdCanvas.width, crowdCanvas.height);
+      cg.drawImage(tile, px, 0);
+      if (scrolling) {
+        cg.drawImage(tile, px + tile.width, 0);
+        cg.globalCompositeOperation = "destination-in";
+        cg.drawImage(mask, 0, 0);
+        cg.globalCompositeOperation = "source-over";
+      }
+      paintedShift = px;
     }
 
     function newCycle() {
@@ -260,7 +294,10 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     function draw(t: number) {
       if (!geo || !g || !plan || !treeEl || !canvasEl) return;
       const c = geo.cell;
-      shift = drift && !state.reduced ? driftOffset(state.driftClock, drift.cycle, drift.distance, drift.ease) : 0;
+      shift =
+        scrolling && drift
+          ? scrollOffset(state.driftClock, drift.cycle, drift.distance, drift.ease, heroWidth)
+          : 0;
       if (Math.round(shift * dpr) !== paintedShift) paintCrowd(shift);
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, canvasEl.width, canvasEl.height);
@@ -275,7 +312,8 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
         g.textBaseline = "top";
         for (const w of words) {
           const twin = TWIN[w.t];
-          const x = w.x + shift;
+          // a word that has scrolled off the left edge is coming back in from the right
+          const x = w.x + shift + (w.x + shift + w.w < 0 ? heroWidth : 0);
           if (!twin || Math.hypot(x + w.w / 2 - pointer[0], w.y - pointer[1]) > 64) continue;
           // a word that has faded out at the edge of the text or the square shows no twin
           if (zoneFade([x, w.y, x + w.w, w.y + fontSize], avoid, 0) <= 0) continue;
@@ -399,7 +437,15 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       state.pointer = [e.clientX - r.left, e.clientY - r.top];
       state.held =
         !!geo &&
-        pointerOnWord(words, state.pointer[0], state.pointer[1], shift, crowdFontSize(geo.cell), avoid);
+        pointerOnWord(
+          words,
+          state.pointer[0],
+          state.pointer[1],
+          shift,
+          crowdFontSize(geo.cell),
+          avoid,
+          scrolling ? heroWidth : 0,
+        );
       markDrift();
       invalidate();
     }
@@ -416,11 +462,12 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     function onMotion() {
       state.reduced = motion.matches;
       showButton();
-      markDrift();
-      invalidate();
+      relayout();
     }
     function onTheme() {
       readTheme();
+      paintTile();
+      paintMask();
       paintedShift = Number.NaN;
       invalidate();
     }

@@ -291,7 +291,7 @@ export function layoutCrowd({ width, height, centerX, centerY, square, fontSize,
   return words;
 }
 
-// ---------- the drift: the crowd glides toward the left and back, slowly, forever ----------
+// ---------- the scroll: the crowd moves right to left, slowly, forever, like a ticker ----------
 
 /** Reads a CSS `cubic-bezier(a, b, c, d)` token into its four numbers, or null. */
 export function parseCubicBezier(value: string): [number, number, number, number] | null {
@@ -330,13 +330,29 @@ export function cubicBezier([x1, y1, x2, y2]: [number, number, number, number]) 
   };
 }
 
+/** Reads a CSS easing token: `linear` or a `cubic-bezier(...)`, as a function, or null. */
+export function parseEasing(value: string): ((x: number) => number) | null {
+  if (value.trim() === "linear") return (x) => x;
+  const curve = parseCubicBezier(value);
+  return curve ? cubicBezier(curve) : null;
+}
+
 /**
- * How far the crowd is shifted at drift time t: toward the left by `distance` over the first
- * half of the cycle, then back, each half on the given easing. Always between -distance and 0.
+ * How far the crowd is shifted at scroll time t: `distance` toward the left every `cycle`
+ * seconds, on the given easing, forever. The crowd repeats every `width` px, so the shift wraps
+ * there and the loop has no seam. Always above -width and at most 0.
  */
-export function driftOffset(t: number, cycle: number, distance: number, ease: (x: number) => number) {
-  const phase = (((t % cycle) + cycle) % cycle) / cycle;
-  return phase < 0.5 ? -distance * ease(phase * 2) : -distance * (1 - ease((phase - 0.5) * 2));
+export function scrollOffset(
+  t: number,
+  cycle: number,
+  distance: number,
+  ease: (x: number) => number,
+  width: number,
+) {
+  const steps = Math.max(0, t) / cycle;
+  const whole = Math.floor(steps);
+  const travelled = distance * (whole + ease(steps - whole));
+  return -(travelled % width);
 }
 
 /**
@@ -361,8 +377,9 @@ export function zoneFade(
 }
 
 /**
- * Whether the pointer rests directly on one of the crowd's words, at the current shift. Words
- * that have drifted into the text, the square or the button are hidden, so they do not count.
+ * Whether the pointer rests directly on one of the crowd's words, at the current shift. The
+ * crowd repeats every `width` px, so each word also shows one width further right. Words
+ * hidden behind the text, the square or the button do not count.
  */
 export function pointerOnWord(
   words: readonly CrowdWord[],
@@ -371,10 +388,13 @@ export function pointerOnWord(
   shift: number,
   fontSize: number,
   avoid: readonly Rect[] = [],
+  width = 0,
 ) {
-  return words.some((w) => {
-    const x0 = w.x + shift;
-    const box: Rect = [x0, w.y, x0 + w.w, w.y + fontSize];
-    return x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3] && zoneFade(box, avoid, 0) > 0;
-  });
+  return words.some((w) =>
+    (width > 0 ? [0, width] : [0]).some((repeat) => {
+      const x0 = w.x + shift + repeat;
+      const box: Rect = [x0, w.y, x0 + w.w, w.y + fontSize];
+      return x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3] && zoneFade(box, avoid, 0) > 0;
+    }),
+  );
 }
