@@ -12,7 +12,7 @@ import { copy, fill } from "./copy";
 import { DoneStep } from "./done-step";
 import { ArrowLeft } from "./icons";
 import styles from "./onboarding.module.css";
-import { DEMO_PROFILE, FIRST_NAME } from "./options";
+import { DEMO_PROFILE, firstName } from "./options";
 import { CountryStep, RoleStep, StackStep, TopicsStep } from "./question-steps";
 import {
   NO_ANSWERS,
@@ -83,7 +83,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
     body = (
       <GatherHero labelledBy="welcome-title" labels={{ pause: t.pause, play: t.play }}>
         <h1 id="welcome-title" className={styles.title} tabIndex={-1}>
-          {fill(t.welcomeTitle, { name: FIRST_NAME })}
+          {fill(t.welcomeTitle, { name: firstName(DEMO_PROFILE) })}
         </h1>
         <p className={landing.sub}>{t.welcomeSub}</p>
         <p className={styles.signedIn}>{fill(t.signedIn, { username: DEMO_PROFILE.username })}</p>
@@ -102,7 +102,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
       </GatherHero>
     );
   } else if (step === "done") {
-    body = <DoneStep lang={lang} answers={answers} onChange={() => go("role", "back")} />;
+    body = <DoneStep lang={lang} answers={answers} profile={DEMO_PROFILE} onChange={() => go("role", "back")} />;
   } else {
     body = (
       <div className={`${styles.column} ${styles.step}`}>

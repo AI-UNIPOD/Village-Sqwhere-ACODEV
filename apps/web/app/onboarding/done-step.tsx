@@ -8,13 +8,8 @@ import { SectionMotion } from "../landing/section-motion";
 import type { Lang } from "../locales";
 import { copy, fill } from "./copy";
 import styles from "./onboarding.module.css";
-import { DEMO_PROFILE, FIRST_NAME, ROLES, TECHNOLOGIES, TOPICS, countriesFor } from "./options";
+import { ROLES, TECHNOLOGIES, TOPICS, countriesFor, firstName, type Profile } from "./options";
 import type { Answers } from "./steps";
-
-const initials = DEMO_PROFILE.displayName
-  .split(" ")
-  .map((word) => word[0])
-  .join("");
 
 // Static tags that arrive one after another once the card has landed (--i is the place).
 function Tags({ label, items, mono }: { label: string; items: string[]; mono?: boolean }) {
@@ -37,14 +32,28 @@ function Tags({ label, items, mono }: { label: string; items: string[]; mono?: b
   );
 }
 
-export function DoneStep({ lang, answers, onChange }: { lang: Lang; answers: Answers; onChange: () => void }) {
+type DoneStepProps = { lang: Lang; answers: Answers; profile: Profile; onChange: () => void };
+
+export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
   const t = copy[lang];
+  const name = profile.displayName ?? profile.username;
+  const initials = name
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+  const github = (text: string) => (
+    <a href={`https://github.com/${encodeURIComponent(profile.username)}`} target="_blank" rel="noopener noreferrer">
+      {text}{" "}
+      <span className={landing.srOnly}>({t.githubProfile})</span>
+    </a>
+  );
   const role = ROLES.find((r) => r.slug === answers.role);
   const country = countriesFor(lang).find((c) => c.code === answers.country);
   return (
     <div className={`${styles.column} ${styles.step}`}>
       <h1 className={styles.title} tabIndex={-1}>
-        {fill(t.doneTitle, { name: FIRST_NAME })}
+        {fill(t.doneTitle, { name: firstName(profile) })}
       </h1>
       <div className={styles.card}>
         <div className={styles.person}>
@@ -52,8 +61,8 @@ export function DoneStep({ lang, answers, onChange }: { lang: Lang; answers: Ans
             {initials}
           </span>
           <div>
-            <p className={styles.name}>{DEMO_PROFILE.displayName}</p>
-            <p className={styles.username}>@{DEMO_PROFILE.username}</p>
+            <p className={styles.name}>{profile.displayName ?? github(profile.username)}</p>
+            {profile.displayName && <p className={styles.username}>{github(`@${profile.username}`)}</p>}
           </div>
         </div>
         <p className={styles.fact}>{role ? role.name[lang] : t.noRole}</p>

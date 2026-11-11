@@ -33,6 +33,7 @@ type Copy = {
   village: string;
   soon: string;
   change: string;
+  githubProfile: string;
   loading: string;
   errorTitle: string;
   errorText: string;
@@ -96,6 +97,7 @@ const en: Copy = {
   village: "Go to the village",
   soon: "Coming soon",
   change: "Change my answers",
+  githubProfile: "GitHub profile, opens in a new tab",
   loading: "Getting your profile ready",
   errorTitle: "We couldn't show this page",
   errorText:
@@ -163,6 +165,7 @@ const fr: Copy = {
   village: "Aller au village",
   soon: "Bientôt disponible",
   change: "Modifier mes réponses",
+  githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
   loading: "Préparation de votre profil",
   errorTitle: "Nous n'avons pas pu afficher cette page",
   errorText:
