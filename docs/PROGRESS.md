@@ -11,9 +11,10 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
   (Postgres 17 with pgvector in Docker).
 - Team rules for people and agents are in `AGENTS.md`. CI runs on every pull request:
   title rule, dash check, web, api and secret scan.
-- The API (guide: `docs/backend.md`) has GitHub sign-in with PKCE, profiles, roles,
-  technologies, feed topics, and verification (GitHub evidence, polling, abandoning) with
-  peer review by developers verified in that role. The full schema is in
+- The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, and
+  verification (GitHub evidence, polling, abandoning) with peer review by developers
+  verified in that role. Guide: `docs/backend.md`. Every route is listed in
+  `docs/architecture.md`, and a test fails if one is missing. The full schema is in
   `infra/db/init/002-schema.sql`; nothing uses the idea, hub or post tables yet.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). The web
@@ -41,8 +42,7 @@ finish meaningful work. Keep the whole file under 60 lines: history belongs in
 2. Build the rest of the core flow from PRD v2.2: share an idea, AI matching, the idea's
    owner approving the team, and the Virtual Collaboration Hub with all four phases. The
    PRD is not in this repository yet; ask Tanny for it before starting.
-3. Review and merge the landing page: watch the motion in a browser, including with reduced
-   motion, and have a
+3. Watch the landing page motion in a browser, including with reduced motion, and have a
    French-speaking teammate check the French. New pages go under `app/[lang]` with English
    and French text (see `docs/decisions/2026-11-10-landing-page-language-and-theme.md`).
 4. Build the sign-in screens on the API (`docs/backend.md`), then point the "Coming soon"
