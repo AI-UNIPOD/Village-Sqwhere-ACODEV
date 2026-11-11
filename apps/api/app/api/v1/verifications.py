@@ -124,7 +124,6 @@ async def start_verification(
     session = VerificationSession(
         user_id=current_user.id,
         role_id=user_role.role_id,
-        attempt_number=1,
         status=VerificationStatus.PENDING,
         source=AuthProvider.GITHUB,
         evidence=[{"repository_url": repository} for repository in payload.repositories],
