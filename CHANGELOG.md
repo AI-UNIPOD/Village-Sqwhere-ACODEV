@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- feat(api): add hub models and schemas (#34)
 - fix(web): keep the french phone nav links on one line (#35)
 - test(api): isolate the test database from the development one (#29)
 - feat(db): add hub terms and a test agreement (#33)
