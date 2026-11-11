@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-11
 
-- feat(web): add scroll reveals and feedback to the landing sections
+- feat(web): add scroll reveals and feedback to the landing sections (#11)
 
 ## 2026-11-10
 
