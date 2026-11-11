@@ -504,6 +504,17 @@ and ownership, role fundamentals, and testing and reliability. Questions four an
 codebase analysis and prior answers for adaptive depth, trade-offs, and problem solving. Audio
 reports `TRANSCRIPTION_UNAVAILABLE` when transcription is not configured.
 
+An audio answer can name its type with the optional `audio_content_type` query parameter,
+which defaults to `audio/webm`. The value must be one of `audio/webm`, `audio/webm;codecs=opus`,
+`audio/ogg`, `audio/ogg;codecs=opus`, `audio/mp4`, `audio/mpeg`, `audio/wav`, `audio/x-wav` or
+`audio/flac`, in any letter case. Anything else gets an `AUDIO_TYPE_NOT_ALLOWED` error and the
+buffered audio is dropped, and only a value from this list is ever sent to the speech provider.
+
+Each answer is checked with `GROQ_GUARD_MODEL`. When `GROQ_API_KEY` or `GROQ_GUARD_MODEL` is not
+set nothing is checked, so every answer is flagged `guard_not_configured`. A flag is saved with
+the answer, sent to the client as `{"type":"security_signal","severity":"warning","code":"..."}`
+and passed to the report generator, so peer reviewers can see that nothing was screened.
+
 The interview allows `VERIFICATION_INTERVIEW_MAX_TURNS` answered turns, which defaults to five.
 The applicant cannot complete the interview manually. After the final answer is saved, the
 server sends `interview_complete` and sets `current_phase` to `report_generation`. Sending a
