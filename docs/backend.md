@@ -46,7 +46,7 @@ If the token is missing, invalid, or expired, the API returns HTTP `401 Unauthor
 
 ## 3. Currently Implemented Endpoints
 
-### 🩺 System
+### System
 
 #### `GET /v1/health`
 Health check endpoint to verify backend service liveness.
@@ -62,7 +62,7 @@ Health check endpoint to verify backend service liveness.
 
 ---
 
-### 🔍 Lookups & Vocabularies
+### Lookups & Vocabularies
 
 ### The Concept of Slugs in Village Sqwhere
 
@@ -166,7 +166,7 @@ Search or browse active technologies, frameworks, and tools.
 
 ---
 
-### 🔐 Authentication
+### Authentication
 
 #### `POST /v1/auth/oauth/{provider}/start`
 Starts the OAuth + PKCE sign-in flow. Only GitHub works today.
@@ -275,7 +275,7 @@ Revokes the refresh token and signs out the session.
 
 ---
 
-### 👤 Current User (`/v1/me`)
+### Current User (`/v1/me`)
 
 #### `GET /v1/me`
 Fetches the full profile of the currently signed-in user.
