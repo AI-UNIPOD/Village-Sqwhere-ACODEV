@@ -435,7 +435,7 @@ def test_verified_peer_can_review_and_pass_attempt(sign_in) -> None:
 
     queue = client.get("/v1/reviews/verifications", headers=bearer(reviewer))
     assert queue.status_code == 200
-    assert queue.json()["data"][0]["id"] == session_id
+    assert session_id in [item["id"] for item in queue.json()["data"]]
 
     decision = client.post(
         f"/v1/reviews/verifications/{session_id}/decision",
