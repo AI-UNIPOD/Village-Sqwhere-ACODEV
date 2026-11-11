@@ -7,14 +7,15 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 
 - Monorepo: `apps/web` (Next.js 16, landing page in English and French), `apps/api` (FastAPI
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
-- Team rules for people and agents are in `AGENTS.md`. CI runs on every pull request:
-  title rule, dash check, web, api and secret scan.
-- The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, and
-  verification (GitHub analysis, AI interview, report, worker, abandoning) with peer review
-  by developers verified in that role. Guide: `docs/backend.md`. Routes are listed in
-  `docs/architecture.md` and tested. Schema: `infra/db/init/` (new scripts need a rebuilt
-  local database, see `infra/README.md`); idea, hub and post tables unused. `004` is a TEST
-  agreement. Interviews are five questions, with Groq and Gemini fallbacks and retries.
+- Team rules are in `AGENTS.md`. CI has not run since an account billing limit blocked GitHub
+  Actions, so #29, #35, #34 and #20 landed on local checks (last green run on `main`: #33).
+- The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics and
+  verification (GitHub analysis, a five-question AI interview over a WebSocket, a report) with
+  peer review by developers verified in that role, Groq and Gemini fallbacks and a separate
+  worker. Guide: `docs/backend.md`; routes: `docs/architecture.md`.
+- Models and schemas for ideas, hubs, agreements and members exist, but no route uses them or
+  the post tables yet. Schema: `infra/db/init/` (new scripts need a rebuilt local database,
+  see `infra/README.md`); `004` is a TEST agreement. API tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
@@ -30,27 +31,26 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   API gaps: `docs/decisions/2026-11-11-onboarding-page.md`.
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
-- GitHub does not enforce the rules on `main` yet, so they hold by team agreement
-  (`docs/decisions/2026-11-04-team-workflow-and-ci.md`).
 
 ## What's next
 
-1. Add peer-review report display and production deployment configuration.
-2. Connect the onboarding page to the API once the gaps are closed: onboarding completion,
-   country, idea topics, French lookup names, one save endpoint (see
+1. Fix the GitHub Actions limit and re-run CI on `main`.
+2. Build the six hub endpoints on the new models, then the rest of the core flow from PRD v2.2:
+   share an idea, AI matching, the owner approving the team and the four hub phases. The PRD
+   is not in this repository yet; ask Tanny for it before starting.
+3. Add peer-review report display, production deployment configuration and, once the team has
+   Systalink platform access, a deploy job in CI.
+4. Connect the onboarding page to the API once its gaps are closed (see
    `docs/decisions/2026-11-11-onboarding-page.md`).
-3. Build the rest of the core flow from PRD v2.2: share an idea, AI matching, the idea's
-   owner approving the team, and the Virtual Collaboration Hub with all four phases. The
-   PRD is not in this repository yet; ask Tanny for it before starting.
-4. Watch the landing page motion in a browser, including with reduced motion, and have a
-   French-speaking teammate check the French. New pages go under `app/[lang]` with English
-   and French text (see `docs/decisions/2026-11-10-landing-page-language-and-theme.md`).
-5. Move the session out of localStorage before launch, and sign-in state out of API memory
+5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
+6. Watch the landing page motion in a browser, including with reduced motion, and have a
+   French-speaking teammate check the French.
+7. Move the session out of localStorage before launch, and sign-in state out of API memory
    (the sign-in decision record suggests a `refresh_tokens` table). Have the API carry the
    language through GitHub.
-6. Add a deploy job to CI once the team has Systalink platform access.
-7. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
-   repository).
+8. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
+   repository). Until then the rules hold by team agreement
+   (`docs/decisions/2026-11-04-team-workflow-and-ci.md`).
 
 ## Open questions
 
