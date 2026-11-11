@@ -22,6 +22,7 @@ from app.services.interview import (
     FallbackInterviewAgent,
     InterviewHistoryItem,
     InterviewUnavailable,
+    UnconfiguredAnswerGuard,
     parse_interview_message,
 )
 
@@ -298,6 +299,12 @@ def test_interview_agent_uses_local_fallback_when_both_providers_fail(
 def test_parse_interview_message_rejects_invalid_messages(raw: str) -> None:
     with pytest.raises(InterviewUnavailable):
         parse_interview_message(raw)
+
+
+def test_unconfigured_answer_guard_flags_that_nothing_was_checked() -> None:
+    flags = asyncio.run(UnconfiguredAnswerGuard().inspect("I used a layered service design."))
+
+    assert flags == ["guard_not_configured"]
 
 
 def test_parse_interview_message_accepts_known_shape() -> None:

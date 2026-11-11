@@ -158,8 +158,10 @@ class UnconfiguredAudioTranscriber:
 
 
 class UnconfiguredAnswerGuard:
+    # An empty list would read as "checked and clean", so peer reviewers could trust an answer
+    # nobody screened. The flag says the guard did not run.
     async def inspect(self, answer: str) -> list[str]:
-        return []
+        return ["guard_not_configured"]
 
 
 def parse_interview_message(raw: str) -> dict:

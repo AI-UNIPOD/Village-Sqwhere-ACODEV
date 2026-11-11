@@ -14,6 +14,8 @@ from app.models.lookups import Role
 from app.models.users import (
     InterviewStatus,
     UserRole,
+    VerificationInterview,
+    VerificationInterviewTurn,
     VerificationPhase,
     VerificationSession,
     VerificationStatus,
@@ -194,6 +196,7 @@ def test_interview_websocket_runs_conversation_and_completes(sign_in, monkeypatc
             websocket.send_json(
                 {"type": "answer", "text": f"I used a layered service design for turn {turn}."}
             )
+            assert websocket.receive_json()["type"] == "security_signal"
             assert websocket.receive_json()["type"] == "answer_saved"
             acknowledgement = websocket.receive_json()
             assert acknowledgement["type"] == "assistant_message"
@@ -321,6 +324,29 @@ def test_interview_abandon_marks_transcript_incomplete(sign_in, monkeypatch) -> 
     cleanup_user(user_id)
 
 
+def test_interview_flags_each_answer_when_the_guard_is_not_configured(sign_in, monkeypatch) -> None:
+    configure_test_interview(monkeypatch)
+    data = sign_in("github-code-moussa")
+    user_id = UUID(data["user"]["id"])
+    session_id = prepare_interview_session(data)
+
+    with client.websocket_connect(
+        f"/v1/me/verifications/{session_id}/interview?token={data['access_token']}"
+    ) as websocket:
+        assert websocket.receive_json()["kind"] == "welcome"
+        assert websocket.receive_json()["type"] == "question"
+        websocket.send_json({"type": "answer", "text": "I kept the services small."})
+        assert websocket.receive_json() == {
+            "type": "security_signal",
+            "severity": "warning",
+            "code": "guard_not_configured",
+        }
+        assert websocket.receive_json()["type"] == "answer_saved"
+
+    assert answered_turn_flags(session_id) == [["guard_not_configured"]]
+    cleanup_user(user_id)
+
+
 def test_interview_audio_answer_sends_an_allowed_audio_type_on(sign_in, monkeypatch) -> None:
     configure_test_interview(monkeypatch)
     transcriber = use_recording_transcriber(monkeypatch)
@@ -337,6 +363,7 @@ def test_interview_audio_answer_sends_an_allowed_audio_type_on(sign_in, monkeypa
         websocket.send_bytes(b"audio")
         assert websocket.receive_json() == {"type": "audio_buffered", "bytes": 5}
         websocket.send_json({"type": "answer_end"})
+        assert websocket.receive_json()["type"] == "security_signal"
         assert websocket.receive_json()["type"] == "answer_saved"
 
     assert transcriber.audio_types == ["audio/webm;codecs=opus"]
@@ -447,6 +474,22 @@ def get_interview_session(session_id: UUID) -> VerificationSession:
             return result.scalar_one()
 
     return asyncio.run(_get())
+
+
+def answered_turn_flags(session_id: UUID) -> list[list[str]]:
+    async def _flags() -> list[list[str]]:
+        async with db_session() as db:
+            result = await db.execute(
+                select(VerificationInterviewTurn.security_flags)
+                .join(VerificationInterview)
+                .where(
+                    VerificationInterview.verification_session_id == session_id,
+                    VerificationInterviewTurn.answer_text.is_not(None),
+                )
+            )
+            return [row[0] for row in result.all()]
+
+    return asyncio.run(_flags())
 
 
 def cleanup_user(user_id: UUID) -> None:
