@@ -1,3 +1,13 @@
+from app.models.hubs import (
+    AgreementSignature,
+    AgreementTemplate,
+    Hub,
+    HubMember,
+    HubMemberRole,
+    HubMemberStatus,
+    HubStatus,
+)
+from app.models.ideas import Idea, IdeaStage, IdeaStatus
 from app.models.lookups import Base, Role, Technology
 from app.models.users import (
     AuthProvider,
@@ -12,8 +22,18 @@ from app.models.users import (
 )
 
 __all__ = [
+    "AgreementSignature",
+    "AgreementTemplate",
     "AuthProvider",
     "Base",
+    "Hub",
+    "HubMember",
+    "HubMemberRole",
+    "HubMemberStatus",
+    "HubStatus",
+    "Idea",
+    "IdeaStage",
+    "IdeaStatus",
     "PlatformRole",
     "Role",
     "Technology",
