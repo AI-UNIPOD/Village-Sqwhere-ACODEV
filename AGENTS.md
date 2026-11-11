@@ -223,5 +223,10 @@ API tests that use the database need it running first: `pnpm db:up` (Docker). A 
 fails with "connection refused" means the database is not running, not that the code is
 wrong.
 
+API tests also need `TEST_DATABASE_URL` in your `.env`: the address of a separate
+`village_sqwhere_test` database. The tests write to it, so they must never run against the
+development database. Create it once with the commands in `apps/api/README.md`. Without it
+the tests stop at start-up and say so. CI uses its own database and needs no setting.
+
 CI runs the same checks, plus the pull request title rule, the dash check and a secret
 scan. Nothing merges on red.
