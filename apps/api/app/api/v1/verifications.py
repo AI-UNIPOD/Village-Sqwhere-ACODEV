@@ -34,6 +34,8 @@ def session_to_response(session: VerificationSession) -> VerificationResponse:
         attempt_number=session.attempt_number,
         status=session.status.value,
         current_phase=session.current_phase.value if session.current_phase else None,
+        analysis_attempts=session.analysis_attempts,
+        last_error=session.last_error,
         source=session.source.value if session.source else None,
         evidence=session.evidence,
         ai_score=float(session.ai_score) if session.ai_score is not None else None,

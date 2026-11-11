@@ -35,3 +35,5 @@ code. A GitHub API token is optional for public repositories and only changes th
 limit. The first model adapter uses Groq's OpenAI-compatible API with a deployment-configured
 model name and validates structured JSON before persistence. Provider selection remains outside
 the HTTP endpoint so a Gemini fallback can be added without changing the lifecycle contract.
+The fallback uses Gemini's `generateContent` endpoint with JSON output configuration and the same
+validated result contract.

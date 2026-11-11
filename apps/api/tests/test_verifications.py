@@ -14,7 +14,9 @@ from app.services.codebase_analysis import (
     AnalysisCriterion,
     build_codebase_analysis_prompt,
 )
-from app.services.groq import GroqCodebaseAnalyzer, GroqConfigurationError
+from app.services.fallback import FallbackCodebaseAnalyzer
+from app.services.gemini import GeminiCodebaseAnalyzer, GeminiConfigurationError
+from app.services.groq import GroqApiError, GroqCodebaseAnalyzer, GroqConfigurationError
 from app.services.verification import (
     CodebaseAnalysisResult,
     GitHubRepositoryClient,
@@ -93,6 +95,39 @@ def test_groq_codebase_analyzer_validates_structured_output() -> None:
 
     assert result.score == 80
     assert result.model == "test-model"
+
+
+def test_gemini_codebase_analyzer_requires_configuration() -> None:
+    analyzer = GeminiCodebaseAnalyzer()
+    with pytest.raises(GeminiConfigurationError):
+        asyncio.run(analyzer.analyze([], "backend-engineer"))
+
+
+def test_codebase_analyzer_falls_back_to_gemini_after_groq_error() -> None:
+    primary = GroqCodebaseAnalyzer(api_key="test-key", model="test-model")
+    fallback = GeminiCodebaseAnalyzer(api_key="test-key", model="test-model")
+
+    async def failed_primary(repositories: list[RepositorySnapshot], role_slug: str) -> None:
+        raise GroqApiError("rate limited")
+
+    async def successful_fallback(
+        repositories: list[RepositorySnapshot], role_slug: str
+    ) -> CodebaseAnalysisResult:
+        return CodebaseAnalysisResult(
+            score=70,
+            summary="Fallback analysis complete.",
+            strengths=[],
+            concerns=[],
+            evidence=[],
+            model="gemini-test-model",
+        )
+
+    primary.analyze = failed_primary
+    fallback.analyze = successful_fallback
+    analyzer = FallbackCodebaseAnalyzer(primary, fallback)
+    result = asyncio.run(analyzer.analyze([], "backend-engineer"))
+
+    assert result.model == "gemini-test-model"
 
 
 def test_worker_claims_pending_session_and_advances_phase(sign_in) -> None:

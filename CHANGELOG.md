@@ -14,6 +14,7 @@ its number:
 - feat(api): add bounded GitHub repository snapshots for verification
 - feat(api): add Groq codebase analysis adapter
 - feat(api): add codebase analysis worker boundary
+- feat(api): add analysis retries and Gemini fallback
 
 ## 2026-11-10
 

@@ -227,6 +227,8 @@ class VerificationSession(Base):
         ),
         nullable=True,
     )
+    analysis_attempts: Mapped[int] = mapped_column(SmallInteger, default=0, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     source: Mapped[AuthProvider | None] = mapped_column(
         Enum(
             AuthProvider,
