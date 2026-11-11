@@ -19,7 +19,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
   language). It matches the approved B3v design, hero and background motion included, checked
   by tests and measurements. "Try the demo" and "Start the tour" show "Coming soon".
-- `/{lang}/sign-in` reuses the hero and is the only screen that calls the API so far.
+- `/{lang}/sign-in` starts GitHub sign-in; `/{lang}/auth/callback` finishes it, keeps the
+  session in localStorage (`docs/decisions/2026-11-11-web-session-in-local-storage.md`).
 - Below the hero, sections reveal once, the header marks the section being read, tour stops
   show their share of three minutes, "coming soon" presses are announced, and phones get
   section links (`docs/decisions/2026-11-11-landing-section-interactions.md`).
@@ -44,10 +45,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 4. Watch the landing page motion in a browser, including with reduced motion, and have a
    French-speaking teammate check the French. New pages go under `app/[lang]` with English
    and French text (see `docs/decisions/2026-11-10-landing-page-language-and-theme.md`).
-5. Build the `/auth/callback` page: exchange the login code for tokens, keep the session,
-   and send GitHub failures back to `/{lang}/sign-in?error=CODE`. Point the API's callback
-   redirect at a language path. Before launch, move sign-in state out of API memory (the
-   decision record suggests a `refresh_tokens` table).
+5. Move the session out of localStorage before launch, and sign-in state out of API memory
+   (the sign-in decision record suggests a `refresh_tokens` table). Have the API carry the
+   language through GitHub.
 6. Add a deploy job to CI once the team has Systalink platform access.
 7. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
    repository).
