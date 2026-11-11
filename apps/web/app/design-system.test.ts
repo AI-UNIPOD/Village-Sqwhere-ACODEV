@@ -39,6 +39,35 @@ test("app styles use design system tokens, not raw colours", () => {
   }
 });
 
+// css with every `@media (hover: hover) and (pointer: fine) { ... }` block cut out
+function withoutHoverBlocks(css: string): string {
+  const query = "@media (hover: hover) and (pointer: fine)";
+  let rest = css;
+  for (let start = rest.indexOf(query); start !== -1; start = rest.indexOf(query)) {
+    let end = rest.indexOf("{", start);
+    for (let depth = 0; ; end++) {
+      if (rest[end] === "{") depth++;
+      if (rest[end] === "}" && --depth === 0) break;
+    }
+    rest = rest.slice(0, start) + rest.slice(end + 1);
+  }
+  return rest;
+}
+
+// A tap on a phone leaves :hover stuck on, so hover styles only apply to a real pointer.
+test("app styles keep :hover inside a hover and fine pointer media query", () => {
+  const stray = readdirSync(__dirname, { recursive: true })
+    .map(String)
+    .filter((f) => f.endsWith(".css"))
+    .flatMap((file) => {
+      const css = readFileSync(join(__dirname, file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      return [...withoutHoverBlocks(css).matchAll(/[^{};]*:hover[^{]*\{/g)].map(
+        (m) => `${file}: ${m[0].replace(/\s+/g, " ").trim()}`,
+      );
+    });
+  expect(stray).toEqual([]);
+});
+
 test("the app imports the design system tokens", () => {
   const globals = readFileSync(join(__dirname, "globals.css"), "utf8");
   expect(globals).toContain('@import "../../../docs/design-system/tokens.css";');

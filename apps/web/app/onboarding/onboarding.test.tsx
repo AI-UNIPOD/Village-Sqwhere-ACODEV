@@ -66,6 +66,16 @@ test("the welcome screen greets the developer and offers to set up or skip", () 
   expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=done", { scroll: false });
 });
 
+// Browser translation turned "Village Sqwhere" into "Village Square" and would rename the language.
+test.each([
+  ["en", "Français"],
+  ["fr", "English"],
+] as const)("the %s header keeps the brand name and the language link out of translation", (lang, label) => {
+  start(lang);
+  expect(screen.getByText("Village Sqwhere").getAttribute("translate")).toBe("no");
+  expect(screen.getByRole("link", { name: label }).getAttribute("translate")).toBe("no");
+});
+
 test("the welcome screen is in French on /fr", () => {
   start("fr");
   expect(heading("Bienvenue au village, Aminata.")).toBeTruthy();
