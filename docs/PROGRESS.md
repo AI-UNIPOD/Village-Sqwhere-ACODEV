@@ -12,8 +12,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, and
   verification (GitHub evidence, polling, abandoning) with peer review by developers
   verified in that role. Guide: `docs/backend.md`. Routes are listed in
-  `docs/architecture.md` and tested. Schema: `infra/db/init/002-schema.sql`; the idea, hub
-  and post tables are unused.
+  `docs/architecture.md` and tested. Schema: `infra/db/init/` (new scripts need a rebuilt local
+  database, see `infra/README.md`); idea, hub and post tables unused. `004` is a TEST agreement.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
