@@ -460,6 +460,9 @@ uv run --directory apps/api python -m app.workers.runner
 It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each job is claimed
 with a database row lock, and a failed job is logged while the loop continues.
 
+Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
+`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.

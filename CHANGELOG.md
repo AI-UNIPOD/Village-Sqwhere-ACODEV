@@ -19,6 +19,7 @@ its number:
 - feat(api): wire Groq interview providers
 - feat(api): add verification report worker
 - feat(api): add verification worker runner
+- feat(api): add final report Gemini fallback
 
 ## 2026-11-10
 

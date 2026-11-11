@@ -21,6 +21,20 @@ class ReportEvaluator(Protocol):
     ) -> VerificationReport: ...
 
 
+class FallbackReportEvaluator:
+    def __init__(self, primary: ReportEvaluator, fallback: ReportEvaluator) -> None:
+        self.primary = primary
+        self.fallback = fallback
+
+    async def evaluate(
+        self, role_slug: str, codebase_result: dict, interview_turns: list[dict]
+    ) -> VerificationReport:
+        try:
+            return await self.primary.evaluate(role_slug, codebase_result, interview_turns)
+        except RuntimeError:
+            return await self.fallback.evaluate(role_slug, codebase_result, interview_turns)
+
+
 def build_report_prompt(
     role_slug: str, codebase_result: dict, interview_turns: list[dict]
 ) -> tuple[str, str]:

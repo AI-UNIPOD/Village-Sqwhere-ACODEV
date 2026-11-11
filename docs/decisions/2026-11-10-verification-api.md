@@ -49,3 +49,7 @@ questions and never send audio to an unconfigured service.
 The final report is a separate worker phase. It combines both evidence sources, stores the
 reviewer-facing summary under `ai_result.final_report`, and only then exposes the session to the
 existing peer-review queue. The evaluator cannot set `passed` or `failed`.
+
+Final report evaluation uses the same provider fallback pattern as codebase analysis. Groq is the
+primary evaluator and Gemini is used when Groq configuration or evaluation fails. Both outputs
+are validated against the same report schema before the session enters peer review.

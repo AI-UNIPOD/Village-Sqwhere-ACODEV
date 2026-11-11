@@ -16,6 +16,7 @@ from app.services.codebase_analysis import (
 )
 from app.services.fallback import FallbackCodebaseAnalyzer
 from app.services.gemini import GeminiCodebaseAnalyzer, GeminiConfigurationError
+from app.services.gemini_report import GeminiReportEvaluator
 from app.services.groq import GroqApiError, GroqCodebaseAnalyzer, GroqConfigurationError
 from app.services.report import VerificationReport
 from app.services.verification import (
@@ -129,6 +130,12 @@ def test_codebase_analyzer_falls_back_to_gemini_after_groq_error() -> None:
     result = asyncio.run(analyzer.analyze([], "backend-engineer"))
 
     assert result.model == "gemini-test-model"
+
+
+def test_gemini_report_evaluator_requires_configuration() -> None:
+    evaluator = GeminiReportEvaluator()
+    with pytest.raises(RuntimeError):
+        asyncio.run(evaluator.evaluate("backend-engineer", {}, []))
 
 
 def test_worker_claims_pending_session_and_advances_phase(sign_in) -> None:

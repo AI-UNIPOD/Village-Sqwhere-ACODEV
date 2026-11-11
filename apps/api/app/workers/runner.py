@@ -13,8 +13,10 @@ from app.database import async_session
 from app.models.users import VerificationPhase, VerificationSession, VerificationStatus
 from app.services.fallback import FallbackCodebaseAnalyzer
 from app.services.gemini import GeminiCodebaseAnalyzer
+from app.services.gemini_report import GeminiReportEvaluator
 from app.services.groq import GroqCodebaseAnalyzer
 from app.services.groq_report import GroqReportEvaluator
+from app.services.report import FallbackReportEvaluator
 from app.services.verification import GitHubRepositoryClient
 from app.workers.verification import process_codebase_analysis, process_verification_report
 
@@ -67,7 +69,10 @@ async def run_once() -> int:
         except Exception:
             logger.exception("Codebase analysis failed for verification session %s", session_id)
 
-    report_evaluator = GroqReportEvaluator()
+    report_evaluator = FallbackReportEvaluator(
+        GroqReportEvaluator(),
+        GeminiReportEvaluator(),
+    )
     for session_id in await report_session_ids():
         try:
             async with async_session() as db:
