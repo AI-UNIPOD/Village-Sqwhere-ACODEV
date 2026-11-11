@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-11
 
-- test(api): add isolated test database and posts cleanup fixture (#24)
+- test(api): isolate test database and clean up posts (#24)
 - fix(web): show the real name and link the github username on the card (#23)
 - feat(web): add the onboarding page for after the first sign-in (#22)
 - feat(web): add the github sign-in page (#21)
