@@ -187,7 +187,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
       <header className={landingStyles.nav} data-site-header="">
         <Link className={landingStyles.brand} href={`/${lang}`}>
           <Logo size={24} className={landingStyles.navLogo} />
-          <span className={landingStyles.navWordmark}>Village Sqwhere</span>
+          <span className={landingStyles.navWordmark} translate="no">Village Sqwhere</span>
         </Link>
       </header>
 
@@ -197,6 +197,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
         href={`/${other}/sign-in`}
         hrefLang={other}
         lang={other}
+        translate="no"
         aria-label={shared.switchLabel}
       >
         {shared.switchText}

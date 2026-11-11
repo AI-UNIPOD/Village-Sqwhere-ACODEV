@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- fix(web): keep the brand name and language code out of translation (#27)
 - fix(web): say sign-in did not start when the browser cannot hash (#26)
 - fix(web): use the design system breakpoint for the sign-in button (#25)
 - fix(api): never block sign-in on a clashing email (#24)
