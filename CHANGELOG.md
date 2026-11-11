@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-11
+
+- feat(web): add scroll reveals and feedback to the landing sections (#11)
+
 ## 2026-11-10
 
 - feat(web): drift the hero background words from right to left (#9)

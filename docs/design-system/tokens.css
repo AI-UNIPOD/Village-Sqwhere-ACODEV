@@ -105,6 +105,8 @@
   --dur-sheet: 500ms;
   --dur-sheet-out: 320ms;
   --dur-moment: 520ms;
+  --dur-reveal: 400ms;
+  --delay-stagger: 80ms;
   --dur-icon: 320ms;
   --dur-drift: 2s;
   --delay-spinner: 400ms;
@@ -262,5 +264,6 @@
     --dur-menu: 120ms;
     --dur-modal: 200ms;
     --dur-moment: 200ms;
+    --dur-reveal: 200ms;
   }
 }

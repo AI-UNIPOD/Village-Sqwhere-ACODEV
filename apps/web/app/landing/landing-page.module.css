@@ -30,14 +30,16 @@
 
 /* ---------- header ---------- */
 /* On wide screens the header lines up with the content column. Its right side always clears
-   the floating language button. */
+   the floating language button. On phones the section links get a second row of their own,
+   under the logo, so phones can jump to them too. The header never sticks to the top. */
 .nav {
   position: relative;
   z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--nav-gap);
-  block-size: var(--nav-height);
+  gap: 0 var(--nav-gap);
+  min-block-size: var(--nav-height);
   padding-inline: var(--space-4) var(--float-gutter);
   background: var(--bg);
   border-bottom: 1px solid var(--line);
@@ -45,6 +47,9 @@
 
 @media (min-width: 768px) {
   .nav {
+    flex-wrap: nowrap;
+    gap: var(--nav-gap);
+    block-size: var(--nav-height);
     padding-inline:
       max(var(--space-8), calc((100% - var(--content-max)) / 2 + var(--space-8)))
       max(var(--float-gutter), calc((100% - var(--content-max)) / 2 + var(--space-8)));
@@ -59,8 +64,15 @@
   text-decoration: none;
 }
 
+/* the first row keeps the full header height, so the language button stays centred on it */
 .nav .brand {
-  min-block-size: var(--tap-min);
+  min-block-size: var(--nav-height);
+}
+
+@media (min-width: 768px) {
+  .nav .brand {
+    min-block-size: var(--tap-min);
+  }
 }
 
 .navLogo,
@@ -94,13 +106,14 @@
 
 .navLinks {
   display: flex;
+  flex-basis: 100%;
   align-items: center;
-  gap: var(--nav-gap);
-  margin-inline-start: auto;
+  gap: var(--space-6);
+  border-top: 1px solid var(--line);
 }
 
 .navLink {
-  display: none;
+  display: inline-flex;
   align-items: center;
   min-block-size: var(--tap-min);
   padding: 0;
@@ -109,19 +122,64 @@
   color: var(--text-muted);
   font: var(--type-nav-link);
   text-decoration: none;
+  transition: color var(--dur-press) var(--ease-out);
 }
 
-.navLink:hover {
-  color: var(--text);
-  text-decoration: underline;
-  text-decoration-color: var(--line-strong);
-  text-underline-offset: var(--underline-offset);
+/* sign-in waits for the wider header, as in the approved design */
+.navLinks .soonLink {
+  display: none;
 }
 
 @media (min-width: 768px) {
-  .navLink {
+  .navLinks {
+    flex-basis: auto;
+    gap: var(--nav-gap);
+    margin-inline-start: auto;
+    border-top: 0;
+  }
+
+  .navLinks .soonLink {
     display: inline-flex;
   }
+}
+
+/* Links underline themselves by drawing a line in from the start, on hover and on keyboard
+   focus alike. The header link of the section being read keeps its line, darker. */
+.navLink,
+.footLink {
+  position: relative;
+}
+
+.navLink::after,
+.footLink::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(50% - 0.5lh - var(--underline-offset));
+  border-top: 1px solid var(--line-strong);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    border-color var(--dur-press) var(--ease-out);
+}
+
+.navLink:hover,
+.navLink:focus-visible,
+.navLink[aria-current="location"] {
+  color: var(--text);
+}
+
+.navLink:hover::after,
+.navLink:focus-visible::after,
+.footLink:hover::after,
+.footLink:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.navLink[aria-current="location"]::after {
+  border-top-color: var(--text);
+  transform: scaleX(1);
 }
 
 /* ---------- floating language and theme buttons ---------- */
@@ -235,6 +293,12 @@
   margin: var(--space-3) 0 0;
   color: var(--text-muted);
   font: var(--type-body-s);
+  transition: color var(--dur-menu) var(--ease-out);
+}
+
+/* pressing its "coming soon" button makes the note stand out */
+.note[data-lit] {
+  color: var(--text);
 }
 
 /* ---------- buttons ---------- */
@@ -300,6 +364,26 @@
   padding-block: var(--section-block);
   border-top: 1px solid var(--line);
   scroll-margin-top: var(--space-4);
+  transition: border-top-color var(--dur-moment) var(--ease-out);
+}
+
+/* after a jump from a link, the section you landed on is marked by its top line */
+.block:target {
+  border-top-color: var(--text);
+}
+
+/* Revealed items rise into place the first time they scroll into view (SectionMotion marks
+   the ones still waiting). Items in a row or a list arrive one after another, --i apart. */
+.reveal {
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--delay-stagger) * var(--i, 0));
+}
+
+.reveal[data-reveal="waiting"] {
+  opacity: 0;
+  transform: translateY(var(--space-4));
 }
 
 .block h2 {
@@ -339,9 +423,40 @@
 }
 
 .step {
+  --i: 0;
+  position: relative;
   min-inline-size: 0;
   padding-block-start: var(--space-5);
   border-top: 1px solid var(--line-strong);
+}
+
+/* steps side by side arrive one after another; in one column each arrives on its own */
+@media (min-width: 640px) {
+  .step {
+    --i: var(--i2);
+  }
+}
+
+@media (min-width: 1100px) {
+  .step {
+    --i: var(--i4);
+  }
+}
+
+/* as a step lands, its top line fills in from the start and its number darkens */
+.step::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: -1px;
+  border-top: 1px solid var(--text);
+  transform-origin: left;
+  transition: transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--delay-stagger) * var(--i, 0));
+}
+
+.step[data-reveal="waiting"]::before {
+  transform: scaleX(0);
 }
 
 .num {
@@ -350,10 +465,21 @@
   inline-size: var(--space-8);
   block-size: var(--space-8);
   margin-block-end: var(--space-4);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--text);
   color: var(--text);
   font: var(--type-mono-label);
   font-variant-numeric: tabular-nums;
+  transition:
+    border-color var(--dur-reveal) var(--ease-out),
+    background-color var(--dur-press) var(--ease-out);
+}
+
+.step[data-reveal="waiting"] .num {
+  border-color: var(--line-strong);
+}
+
+.step:hover .num {
+  background: var(--surface-sunken);
 }
 
 .step h3 {
@@ -393,12 +519,29 @@
 }
 
 .stops li {
+  position: relative;
   display: grid;
   grid-template-columns: var(--space-8) minmax(0, 1fr) auto;
   gap: var(--space-4);
   align-items: baseline;
   padding-block: var(--space-4);
   border-bottom: 1px solid var(--line);
+}
+
+/* each stop's share of the three minutes, drawn on its bottom line, growing in as it lands */
+.bar {
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline-start: calc(var(--from) * 100%);
+  inline-size: calc(var(--size) * 100%);
+  border-top: 1px solid var(--text-muted);
+  transform-origin: left;
+  transition: transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--delay-stagger) * var(--i, 0));
+}
+
+.reveal[data-reveal="waiting"] .bar {
+  transform: scaleX(0);
 }
 
 .meta {
@@ -461,12 +604,6 @@
   text-decoration: none;
 }
 
-.footLink:hover {
-  text-decoration: underline;
-  text-decoration-color: var(--line-strong);
-  text-underline-offset: var(--underline-offset);
-}
-
 .legal {
   display: flex;
   flex-wrap: wrap;
@@ -487,12 +624,45 @@
   text-decoration: none;
 }
 
-/* Reduced motion: no transitions at all, as in the approved landing page. */
+.soonLink::after {
+  content: none;
+}
+
+/* Reduced motion: the approved landing page's own buttons change at once. The section
+   interactions follow the design system: fades and colour changes stay, movement goes. */
 @media (prefers-reduced-motion: reduce) {
   .fab,
   .btn,
   .ghost,
   .mode svg {
     transition-duration: 0.01ms;
+  }
+
+  .reveal {
+    transition-property: opacity;
+  }
+
+  .reveal[data-reveal="waiting"] {
+    transform: none;
+  }
+
+  .step::before,
+  .bar,
+  .navLink::after,
+  .footLink::after {
+    transition-property: border-color;
+  }
+}
+
+/* printed pages show everything */
+@media print {
+  .reveal[data-reveal="waiting"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .step[data-reveal="waiting"]::before,
+  .reveal[data-reveal="waiting"] .bar {
+    transform: none;
   }
 }
