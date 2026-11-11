@@ -403,6 +403,66 @@ Removes a claimed role from the user's profile.
     `409 Conflict`: `{"detail": {"code": "ROLE_HAS_VERIFICATION_HISTORY", "message": "A role with verification attempts can't be removed (it would reset the 3-attempt limit)."}}`
   * `404 Not Found`: `{"detail": {"code": "NOT_FOUND", "message": "Role '...' is not claimed."}}`
 
+### Experience verification
+
+Verification attempts are tied to a claimed role. A developer has up to three attempts for
+each role. The start endpoint records GitHub repository evidence and creates a `pending`
+session. Analysis can update the session later; the API does not claim that analysis is done
+when the session is created.
+
+#### `POST /v1/me/verifications/{role_slug}`
+
+Starts a verification attempt for one of the signed-in developer's claimed roles.
+
+* **Authentication:** Bearer token required
+* **Request Body:**
+  ```json
+  {
+    "repositories": ["https://github.com/example/project"]
+  }
+  ```
+* **Success Response (201 Created):** Returns the new verification session in `data`.
+* **Errors:** `404 ROLE_NOT_CLAIMED`, `409 VERIFICATION_IN_PROGRESS`,
+  `409 ROLE_ALREADY_VERIFIED` or `409 VERIFICATION_ATTEMPTS_EXHAUSTED`.
+
+#### `GET /v1/me/verifications`
+
+Lists the signed-in developer's attempts. Optional query parameters are `role_slug`,
+`status`, `offset` and `limit`. The response includes `next_offset` when more results exist.
+
+#### `GET /v1/me/verifications/{session_id}`
+
+Returns one attempt for its applicant. The frontend can poll this endpoint while analysis is
+running.
+
+#### `POST /v1/me/verifications/{session_id}/abandon`
+
+Moves an active attempt to `abandoned`. A passed, failed or already abandoned attempt cannot
+be changed.
+
+#### `GET /v1/reviews/verifications`
+
+Lists attempts in `awaiting_review` for roles in which the signed-in user is verified. An
+applicant's own attempt never appears in their queue.
+
+#### `GET /v1/reviews/verifications/{session_id}`
+
+Returns a review case when the signed-in user is an eligible reviewer for that role.
+
+#### `POST /v1/reviews/verifications/{session_id}/decision`
+
+Records a peer review decision:
+
+```json
+{
+  "decision": "passed",
+  "notes": "Evidence reviewed."
+}
+```
+
+Only `passed` and `failed` are accepted. A reviewer must be verified in the applicant's role,
+cannot review their own attempt, and cannot decide a case that is no longer awaiting review.
+
 #### `PUT /v1/me/technologies`
 Full replacement of the developer's tech stack (skills and tools).
 

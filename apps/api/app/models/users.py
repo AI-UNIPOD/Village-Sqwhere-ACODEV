@@ -9,11 +9,13 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
+    Numeric,
     SmallInteger,
     String,
     Text,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -209,8 +211,31 @@ class VerificationSession(Base):
         default=VerificationStatus.PENDING,
         nullable=False,
     )
+    source: Mapped[AuthProvider | None] = mapped_column(
+        Enum(
+            AuthProvider,
+            name="auth_provider",
+            create_type=False,
+            native_enum=True,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        nullable=True,
+    )
+    evidence: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    ai_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    ai_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    reviewer_id: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    reviewer_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
     __table_args__ = (

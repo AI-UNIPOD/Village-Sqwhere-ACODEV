@@ -11,11 +11,15 @@ its number:
 ## 2026-11-11
 
 - docs: add the api endpoints to progress and architecture (#13)
+- fix(web): seat the demo note under its button in a clear space (#12)
+- feat(web): add scroll reveals and feedback to the landing sections (#11)
 
 ## 2026-11-10
 
+- feat(web): drift the hero background words from right to left (#9)
 - feat(web): add the landing page in English and French (#8)
 - feat(api): add developer roles, tech stack and feed topics
+- feat(api): add verification and peer review endpoints
 
 ## 2026-11-07
 

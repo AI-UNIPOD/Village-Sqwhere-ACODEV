@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "vitest";
 
 import {
@@ -9,10 +11,17 @@ import {
   TWIN,
   at,
   chars,
+  cubicBezier,
   layoutCrowd,
   pack,
+  parseCubicBezier,
+  parseEasing,
+  parseSeconds,
   planCycle,
+  pointerOnWord,
   runsFromAlpha,
+  scrollOffset,
+  zoneFade,
   type Run,
 } from "./gather";
 import { heroAvoid, heroGeometry } from "./hero-layout";
@@ -170,4 +179,93 @@ test("packs the crowd edge to edge without covering the text, the square or the 
       expect(clear).toBe(true);
     }
   }
+});
+
+// ---------- the scroll ----------
+
+// the real token values, read from the design system's tokens.css
+const LINEAR = parseEasing("linear")!;
+// --dur-drift, read from the design system itself: the crowd moves --space-8 every cycle
+const TOKENS_CSS = readFileSync(join(__dirname, "../../../../docs/design-system/tokens.css"), "utf8");
+const CYCLE = parseSeconds(/--dur-drift:\s*([^;]+);/.exec(TOKENS_CSS)![1])!;
+const DISTANCE = 32; // --space-8
+const SPEED = DISTANCE / CYCLE; // 16px a second
+const WIDTH = 360; // the crowd repeats every hero width
+
+test("reads the scroll tokens: the linear easing and the 2 second step", () => {
+  expect(LINEAR(0.25)).toBe(0.25);
+  expect(CYCLE).toBe(2);
+  expect(parseSeconds("400ms")).toBe(0.4);
+  expect(parseEasing("cubic-bezier(0.32, 0.72, 0, 1)")!(1)).toBe(1);
+  expect(parseEasing("")).toBeNull();
+  expect(parseCubicBezier("")).toBeNull();
+  expect(parseSeconds("")).toBeNull();
+});
+
+test("a cubic-bezier easing starts at 0, ends at 1 and never goes back", () => {
+  const ease = cubicBezier(parseCubicBezier("cubic-bezier(0.32, 0.72, 0, 1)")!);
+  expect(ease(0)).toBe(0);
+  expect(ease(1)).toBe(1);
+  let last = 0;
+  for (let i = 1; i <= 20; i++) {
+    const v = ease(i / 20);
+    expect(v).toBeGreaterThanOrEqual(last);
+    last = v;
+  }
+});
+
+const scroll = (t: number) => scrollOffset(t, CYCLE, DISTANCE, LINEAR, WIDTH);
+
+test("the crowd moves right to left at a steady 16px a second and never comes back", () => {
+  expect(SPEED).toBe(16);
+  expect(scroll(0)).toBeCloseTo(0);
+  expect(scroll(1)).toBeCloseTo(-16);
+  expect(scroll(2)).toBeCloseTo(-32);
+  expect(scroll(10)).toBeCloseTo(-160);
+  // until it wraps, every moment is further left than the one before
+  for (let t = 0.1; t < WIDTH / SPEED - 0.1; t += 0.1) expect(scroll(t)).toBeLessThan(scroll(t - 0.1));
+});
+
+test("the loop has no seam: after one hero width the crowd is back where it started", () => {
+  const loop = WIDTH / SPEED; // 22.5 seconds at 360px
+  for (let t = 0; t < 2 * loop; t += 0.7) {
+    expect(scroll(t)).toBeLessThanOrEqual(0);
+    expect(scroll(t)).toBeGreaterThan(-WIDTH);
+    // the same picture one full width later: the crowd repeats every width
+    expect(scroll(t + loop)).toBeCloseTo(scroll(t));
+  }
+  // and across the wrap the picture keeps moving left by the same small step, not jumping
+  const before = scroll(loop - 0.1);
+  const after = scroll(loop + 0.1);
+  expect(((after - before + WIDTH) % WIDTH) - WIDTH).toBeCloseTo(-0.2 * SPEED);
+});
+
+test("a word fades out as it reaches the text, the square or the button", () => {
+  const zone = [[100, 100, 200, 200]] as const;
+  expect(zoneFade([0, 0, 40, 10], zone, 12)).toBe(1); // far away
+  expect(zoneFade([60, 150, 94, 160], zone, 12)).toBeCloseTo(0.5); // 6px from the zone
+  expect(zoneFade([90, 150, 110, 160], zone, 12)).toBe(0); // touching it
+});
+
+test("knows when the pointer rests directly on a word, wherever the scroll has moved it", () => {
+  const words = [{ x: 100, y: 50, w: 40, t: "team" }];
+  expect(pointerOnWord(words, 110, 55, 0, 10)).toBe(true);
+  expect(pointerOnWord(words, 110, 55, -32, 10)).toBe(false); // the word has moved left
+  expect(pointerOnWord(words, 80, 55, -32, 10)).toBe(true);
+  expect(pointerOnWord(words, 110, 70, 0, 10)).toBe(false); // below the word
+});
+
+test("a word that has scrolled off the left edge is found again coming in from the right", () => {
+  const words = [{ x: 10, y: 50, w: 40, t: "team" }];
+  // shifted 30px left, it shows at -20..20, and one hero width (360px) further right
+  expect(pointerOnWord(words, 15, 55, -30, 10, [], 360)).toBe(true);
+  expect(pointerOnWord(words, 350, 55, -30, 10, [], 360)).toBe(true);
+  expect(pointerOnWord(words, 350, 55, -30, 10)).toBe(false); // without the repeat
+});
+
+test("a word that has drifted behind the text is hidden, so resting on it does not hold the drift", () => {
+  const words = [{ x: 100, y: 50, w: 40, t: "team" }];
+  const headline = [[60, 40, 120, 70]] as const; // the word now overlaps the text area
+  expect(pointerOnWord(words, 80, 55, -32, 10, headline)).toBe(false);
+  expect(pointerOnWord(words, 80, 55, -32, 10, [])).toBe(true);
 });
