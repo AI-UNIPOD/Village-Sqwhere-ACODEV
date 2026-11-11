@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -80,6 +83,15 @@ test("offers a dark mode toggle in each language", () => {
 test("marks the header so the hero can place itself under it", () => {
   const { container } = render(<LandingPage lang="en" />);
   expect(container.querySelector("header[data-site-header]")).not.toBeNull();
+});
+
+// jsdom has no layout, so this reads the stylesheet. At 360px the French links need 311px but
+// the header's gutter for the language button left the row 280px, and "Comment ça marche" wrapped.
+test("on phones the section links reach into the language button's gutter, and not on wide screens", () => {
+  const css = readFileSync(join(__dirname, "landing-page.module.css"), "utf8").replace(/\s+/g, " ");
+  const [phone, wide] = [...css.matchAll(/\.navLinks \{([^}]*)\}/g)].map((m) => m[1]);
+  expect(phone).toContain("flex: 0 0 calc(100% + var(--float-gutter) - var(--space-4));");
+  expect(wide).toContain("flex: 0 1 auto;");
 });
 
 test("the demo and the tour say they are coming soon and do nothing", () => {
