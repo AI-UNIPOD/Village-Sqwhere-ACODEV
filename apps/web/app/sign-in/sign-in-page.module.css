@@ -1,0 +1,354 @@
+/* The text block sits inside GatherHero, which places it and sets --copy-inline and
+   --copy-justify when the copy is centred on phones. The headline and the sentence under it
+   take their styles from the hero and the landing page. */
+
+/* ---------- button ---------- */
+.action {
+  display: flex;
+  justify-content: var(--copy-justify, flex-start);
+  margin-block-start: var(--space-8);
+}
+
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  min-block-size: var(--tap-min);
+  padding: var(--space-3) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--action);
+  color: var(--on-action);
+  font: var(--type-label);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+@media (min-width: 600px) {
+  .button {
+    inline-size: auto;
+  }
+}
+
+.button:hover:not([aria-disabled="true"]) {
+  background: var(--action-hover);
+}
+
+.button:active:not([aria-disabled="true"]),
+.retry:active {
+  transform: scale(0.97);
+}
+
+.button[aria-disabled="true"] {
+  cursor: progress;
+}
+
+.mark {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+
+/* The spinner sits beside the label without moving it. It stays hidden for --delay-spinner,
+   so a fast start never flashes it. */
+.spinner {
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  border: 2px solid var(--on-action);
+  border-block-start-color: transparent;
+  border-radius: var(--radius-full);
+  animation:
+    fade var(--dur-press) var(--ease-out) var(--delay-spinner) backwards,
+    turn var(--dur-moment) var(--ease-linear) infinite;
+}
+
+/* ---------- the two steps ---------- */
+.track {
+  display: grid;
+  gap: var(--space-3);
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  margin: var(--space-6) 0 0;
+  margin-inline: var(--copy-inline, 0);
+  padding: 0;
+  list-style: none;
+  text-align: start;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  transition: color var(--dur-modal) var(--ease-out);
+}
+
+.step[data-state="active"],
+.step[data-state="done"],
+.step[data-state="failed"] {
+  color: var(--text);
+}
+
+.marker {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  font: var(--type-mono-label);
+  transition:
+    border-color var(--dur-modal) var(--ease-out),
+    background-color var(--dur-modal) var(--ease-out),
+    color var(--dur-modal) var(--ease-out);
+}
+
+.marker svg {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+
+.step[data-state="active"] .marker {
+  border-color: var(--text);
+}
+
+.step[data-state="done"] .marker {
+  border-color: var(--success);
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.step[data-state="failed"] .marker {
+  border-color: var(--error);
+  background: var(--error-tint);
+  color: var(--error);
+}
+
+/* the "pending" ring of the Messages spec, turning over the marker's border while work runs */
+.ring {
+  position: absolute;
+  inset: -1px;
+  border: 2px solid var(--text-muted);
+  border-block-start-color: transparent;
+  border-radius: var(--radius-full);
+  animation: turn var(--dur-moment) var(--ease-linear) infinite;
+}
+
+/* the Green Tick is earned: it lands once, over --dur-moment */
+.tick {
+  animation: pop var(--dur-moment) var(--ease-strong) both;
+}
+
+/* ---------- status, trust lines ---------- */
+/* One line is always reserved, so the status text appearing never changes the block's height. */
+.working {
+  min-block-size: 1lh;
+  margin-block-start: var(--space-3);
+  font: var(--type-body);
+}
+
+.working:not(:empty) {
+  animation: fade var(--dur-modal) var(--ease-out);
+}
+
+.trust {
+  grid-area: 1 / 1;
+  align-self: start;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.trust[data-hidden="true"] {
+  visibility: hidden;
+}
+
+.trust p + p {
+  margin-block-start: var(--space-2);
+}
+
+/* At rest the link keeps a quiet line, so it is not told apart by colour alone. A stronger
+   line draws in from the start on hover and on keyboard focus. */
+.link {
+  position: relative;
+  display: inline-block;
+  color: var(--link);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: var(--underline-offset);
+}
+
+.link::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  border-top: 1px solid var(--link);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.link:hover::after,
+.link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* ---------- error messages ---------- */
+/* Every message shares one grid cell, so the cell is as tall as the tallest one and showing
+   another never moves anything. */
+.stage {
+  display: grid;
+  margin-block-start: var(--space-4);
+}
+
+.message {
+  --mix: 7%;
+  grid-area: 1 / 1;
+  text-align: start;
+  align-self: start;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  padding: var(--pad-card);
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--error) var(--mix), var(--surface));
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(var(--space-1));
+  transition:
+    opacity var(--dur-modal) var(--ease-out),
+    transform var(--dur-menu) var(--ease-out),
+    visibility 0s linear var(--dur-modal);
+}
+
+.message[data-active="true"] {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
+}
+
+:global([data-theme="dark"]) .message {
+  --mix: 11%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .message {
+    --mix: 11%;
+  }
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border-radius: var(--radius-full);
+  background: var(--error-tint);
+  color: var(--error);
+}
+
+.tile svg {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+.messageTitle {
+  font: var(--type-label);
+}
+
+.messageText {
+  margin-block-start: var(--space-1);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.retry {
+  min-block-size: var(--tap-min);
+  margin-block-start: var(--space-3);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text);
+  font: var(--type-label);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.retry:hover {
+  background: var(--surface-sunken);
+}
+
+/* ---------- motion: transform and opacity only ---------- */
+/* The items rise in once the hero has placed the text (it sets data-ready). Before that the
+   hero hides them, and without JavaScript nothing waits, so the content always shows. */
+:global([data-ready]) .rise {
+  animation: rise var(--dur-reveal) var(--ease-out) both;
+  animation-delay: calc(var(--delay-stagger) * var(--i, 0));
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Reduced motion keeps the fades and the colour changes and drops the movement. The rings stop
+   turning; the state words and aria-busy still tell the person it is working. */
+@media (prefers-reduced-motion: reduce) {
+  :global([data-ready]) .rise,
+  .tick {
+    animation-name: fade;
+  }
+
+  .ring {
+    animation: none;
+  }
+
+  .spinner {
+    animation: fade var(--dur-press) var(--ease-out) var(--delay-spinner) backwards;
+  }
+
+  .message {
+    transform: none;
+  }
+
+  .button,
+  .retry,
+  .link::after {
+    transition-duration: 0.01ms;
+  }
+}

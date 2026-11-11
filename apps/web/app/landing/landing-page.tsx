@@ -10,10 +10,10 @@ import { SectionMotion } from "./section-motion";
 import { stopShares } from "./stops";
 import { ThemeToggle } from "./theme-toggle";
 
-// The demo, the tour and sign-in are not built yet. The control stays visible, stays focusable
+// The demo and the tour are not built yet. The control stays visible, stays focusable
 // and does nothing, and its name says why, so nobody lands on a dead link. Pressing it
 // announces `announce` and makes the visible note with id `note` stand out (SectionMotion).
-function SoonButton({
+export function SoonButton({
   className,
   soon,
   announce,
@@ -71,9 +71,9 @@ export function LandingPage({ lang }: { lang: Lang }) {
           <a className={styles.navLink} href="#tour">
             {t.navTour}
           </a>
-          <SoonButton className={`${styles.navLink} ${styles.soonLink}`} soon={t.soon} announce={t.soon}>
+          <Link className={styles.navLink} href={`/${lang}/sign-in`}>
             {t.signIn}
-          </SoonButton>
+          </Link>
         </nav>
       </header>
 
@@ -208,9 +208,9 @@ export function LandingPage({ lang }: { lang: Lang }) {
                   </SoonButton>
                 </li>
                 <li>
-                  <SoonButton className={`${styles.footLink} ${styles.soonLink}`} soon={t.soon} announce={t.soon}>
+                  <Link className={styles.footLink} href={`/${lang}/sign-in`}>
                     {t.signIn}
-                  </SoonButton>
+                  </Link>
                 </li>
               </ul>
             </nav>
