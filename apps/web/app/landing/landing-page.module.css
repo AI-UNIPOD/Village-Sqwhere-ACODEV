@@ -301,6 +301,13 @@
   color: var(--text);
 }
 
+/* in the hero the note sits closer to the buttons and reads from the start of "Try the demo"
+   (the hero sets where that is), also on phones where the buttons are centred */
+.note[data-hero-note] {
+  margin-block-start: var(--space-2);
+  text-align: start;
+}
+
 /* ---------- buttons ---------- */
 .btn,
 .ghost {

@@ -181,6 +181,54 @@ test("places everything again when the width changes", () => {
   expect(section.style.height).not.toBe(before);
 });
 
+// ---------- the "coming soon" line under the hero's buttons ----------
+
+function renderHeroWithNote() {
+  return render(
+    <GatherHero labelledBy="title" labels={labels}>
+      <h1 id="title">Builders across Africa, one square.</h1>
+      <div>
+        <button type="button">Try the demo</button>
+        <a href="#tour">Take the tour</a>
+      </div>
+      <p data-hero-note="">The demo is coming soon.</p>
+    </GatherHero>,
+  );
+}
+
+test("the coming-soon line starts exactly where the first button starts", () => {
+  vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    return this.tagName === "BUTTON" ? 45 : 0;
+  });
+  const { container } = renderHeroWithNote();
+  expect(container.querySelector<HTMLElement>("[data-hero-note]")!.style.left).toBe("45px");
+});
+
+test("no background words are drawn behind the coming-soon line", () => {
+  // the line hangs 28px below the text block: the block measures 240px, its overflow 268px
+  vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(268);
+  const drawn: Array<[number, number]> = [];
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
+    const ctx = fakeContext();
+    (ctx as Record<string, unknown>).fillText = (_t: string, x: number, y: number) => drawn.push([x, y]);
+    return ctx as unknown as RenderingContext;
+  });
+  const { container } = renderHeroWithNote();
+  const copy = container.querySelector<HTMLElement>("section > div")!;
+  const left = parseFloat(copy.style.left);
+  const right = left + parseFloat(copy.style.width);
+  const lineTop = parseFloat(copy.style.top) + 240;
+  const lineBottom = parseFloat(copy.style.top) + 268;
+
+  expect(drawn.length).toBeGreaterThan(100); // the crowd was drawn
+  const behindTheLine = drawn.filter(
+    ([x, y]) => x < right && x > left - 40 && y >= lineTop - 10 && y <= lineBottom,
+  );
+  expect(behindTheLine).toEqual([]);
+});
+
 // ---------- the background scroll ----------
 
 const DRIFT_TOKENS: Record<string, string> = {

@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- fix(web): seat the demo note under its button in a clear space (#12)
 - feat(web): add scroll reveals and feedback to the landing sections (#11)
 
 ## 2026-11-10
