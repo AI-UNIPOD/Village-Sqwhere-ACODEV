@@ -29,14 +29,17 @@
     transform var(--dur-press) var(--ease-out);
 }
 
-@media (min-width: 600px) {
+@media (min-width: 768px) {
   .button {
     inline-size: auto;
   }
 }
 
-.button:hover:not([aria-disabled="true"]) {
-  background: var(--action-hover);
+/* Hover only where a pointer can hover: a tap on a phone would leave it stuck on. */
+@media (hover: hover) and (pointer: fine) {
+  .button:hover:not([aria-disabled="true"]) {
+    background: var(--action-hover);
+  }
 }
 
 .button:active:not([aria-disabled="true"]),
@@ -198,9 +201,14 @@
   transition: transform var(--dur-press) var(--ease-out);
 }
 
-.link:hover::after,
 .link:focus-visible::after {
   transform: scaleX(1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link:hover::after {
+    transform: scaleX(1);
+  }
 }
 
 /* ---------- error messages ---------- */
@@ -288,8 +296,10 @@
     transform var(--dur-press) var(--ease-out);
 }
 
-.retry:hover {
-  background: var(--surface-sunken);
+@media (hover: hover) and (pointer: fine) {
+  .retry:hover {
+    background: var(--surface-sunken);
+  }
 }
 
 /* ---------- motion: transform and opacity only ---------- */

@@ -91,8 +91,11 @@
   border-radius: var(--radius-full);
 }
 
-.play:hover {
-  background: var(--surface-sunken);
+/* Hover only where a pointer can hover: a tap on a phone would leave it stuck on. */
+@media (hover: hover) and (pointer: fine) {
+  .play:hover {
+    background: var(--surface-sunken);
+  }
 }
 
 .play:active {
