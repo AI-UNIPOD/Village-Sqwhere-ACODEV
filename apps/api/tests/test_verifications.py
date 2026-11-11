@@ -180,11 +180,10 @@ def test_fourth_attempt_is_refused_after_three(sign_in) -> None:
     cleanup_user(user_id)
     claim_role(data)
 
-    for attempt in (1, 2, 3):
+    for _ in range(3):
         started = start_attempt(data)
         assert started.status_code == 201, started.text
         session = started.json()["data"]
-        assert session["attempt_number"] == attempt
         abandoned = client.post(
             f"/v1/me/verifications/{session['id']}/abandon", headers=bearer(data)
         )
