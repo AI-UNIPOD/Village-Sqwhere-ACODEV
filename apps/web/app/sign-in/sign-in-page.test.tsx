@@ -85,6 +85,16 @@ test.each([
   expect(screen.getByRole("link", { name: "Village Sqwhere" }).getAttribute("href")).toBe(homeHref);
 });
 
+// Browser translation turned "Village Sqwhere" into "Village Square" and "EN" into "IN".
+test.each([
+  ["en", "Passer en français"],
+  ["fr", "Switch to English"],
+] as const)("the %s page keeps the brand name and the language switch out of translation", (lang, label) => {
+  render(<SignInPage lang={lang} />);
+  expect(screen.getByText("Village Sqwhere").getAttribute("translate")).toBe("no");
+  expect(screen.getByRole("link", { name: label }).getAttribute("translate")).toBe("no");
+});
+
 test("says what is read from GitHub and links to GitHub to create an account", () => {
   render(<SignInPage lang="en" />);
   expect(screen.getByText("We read your GitHub profile and email address only.")).toBeTruthy();
