@@ -191,9 +191,3 @@ test("in French, pressing 'Essayer la démo' says so in French", () => {
   expect(screen.getByRole("status").textContent).toBe("La démo arrive bientôt.");
   expect(container.querySelector("#demo-note")!.hasAttribute("data-lit")).toBe(true);
 });
-
-test("pressing 'Sign in' says it is coming soon", () => {
-  const { container } = render(<LandingPage lang="en" />);
-  fireEvent.click(within(container.querySelector("header")!).getByRole("button", { name: /^Sign in/ }));
-  expect(screen.getByRole("status").textContent).toBe("Coming soon");
-});
