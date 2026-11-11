@@ -30,6 +30,12 @@ exception: the API needs `JWT_SECRET_KEY`. Copy `.env.example` to `.env` at the 
 set it (the file says how to make one). To sign in locally, also add your own GitHub OAuth
 app's client ID and secret there. Tests need neither. Never commit real secrets.
 
+The API tests write to a separate database, `village_sqwhere_test`, so they never touch your
+development data. Create it once with the commands in [`apps/api/README.md`](apps/api/README.md),
+then set `TEST_DATABASE_URL` in your `.env` (the value is in `.env.example`). Without it,
+`pnpm test:api` stops at start-up and says what is missing. CI uses its own database and needs
+no setting.
+
 ### Everyday commands (run from the repo root)
 
 | Command | What it does |
@@ -37,7 +43,7 @@ app's client ID and secret there. Tests need neither. Never commit real secrets.
 | `pnpm dev:web` | Web app on http://localhost:3000 |
 | `pnpm dev:api` | API on http://localhost:8000 (interactive docs at `/docs`) |
 | `pnpm lint:web` / `pnpm test:web` / `pnpm build:web` | Lint / test / production-build the web app |
-| `pnpm lint:api` / `pnpm test:api` | Lint and format-check / test the API (tests that use the database need `pnpm db:up` first) |
+| `pnpm lint:api` / `pnpm test:api` | Lint and format-check / test the API (tests need `pnpm db:up` and the test database described above) |
 | `pnpm db:up` / `pnpm db:down` | Start / stop the local database |
 
 For tests that re-run as you save, use `pnpm --filter web exec vitest` (web) or
