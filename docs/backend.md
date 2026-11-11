@@ -410,6 +410,11 @@ each role. The start endpoint records GitHub repository evidence and creates a `
 session. Analysis can update the session later; the API does not claim that analysis is done
 when the session is created.
 
+The response includes `current_phase` while AI work is active. It is `codebase_analysis` when
+the session is waiting for or receiving repository analysis, `technical_defence` when the
+analysis is complete and the interview can begin, and `report_generation` while the final
+review brief is being prepared. It is `null` for terminal states and `awaiting_review`.
+
 #### `POST /v1/me/verifications/{role_slug}`
 
 Starts a verification attempt for one of the signed-in developer's claimed roles.

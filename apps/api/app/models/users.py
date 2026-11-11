@@ -42,6 +42,12 @@ class VerificationStatus(StrEnum):
     ABANDONED = "abandoned"
 
 
+class VerificationPhase(StrEnum):
+    CODEBASE_ANALYSIS = "codebase_analysis"
+    TECHNICAL_DEFENCE = "technical_defence"
+    REPORT_GENERATION = "report_generation"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -210,6 +216,16 @@ class VerificationSession(Base):
         ),
         default=VerificationStatus.PENDING,
         nullable=False,
+    )
+    current_phase: Mapped[VerificationPhase | None] = mapped_column(
+        Enum(
+            VerificationPhase,
+            name="verification_phase",
+            create_type=False,
+            native_enum=True,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        nullable=True,
     )
     source: Mapped[AuthProvider | None] = mapped_column(
         Enum(

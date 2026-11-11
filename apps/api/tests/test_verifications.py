@@ -7,7 +7,8 @@ from sqlalchemy import delete, select, update
 
 from app.main import app
 from app.models.lookups import Role
-from app.models.users import UserRole, VerificationSession, VerificationStatus
+from app.models.users import UserRole, VerificationPhase, VerificationSession, VerificationStatus
+from app.services.verification import CodebaseAnalysisResult, run_codebase_analysis
 from tests.conftest import test_async_session as db_session
 
 client = TestClient(app)
@@ -73,7 +74,36 @@ def test_applicant_can_start_list_and_abandon_verification(sign_in) -> None:
     assert session["role"] == "backend-engineer"
     assert session["attempt_number"] == 1
     assert session["status"] == "pending"
+    assert session["current_phase"] == "codebase_analysis"
     assert session["evidence"] == [{"repository_url": "https://github.com/example/project"}]
+
+    class FakeAnalyzer:
+        async def analyze(self, repositories: list[str], role_slug: str) -> CodebaseAnalysisResult:
+            assert repositories == ["https://github.com/example/project"]
+            assert role_slug == "backend-engineer"
+            return CodebaseAnalysisResult(
+                score=82,
+                summary="The repository has a clear backend structure and automated tests.",
+                strengths=["Clear service boundaries"],
+                concerns=["Coverage is not reported"],
+                evidence=[{"kind": "test_suite", "value": "pytest"}],
+                model="test-codebase-analyzer",
+            )
+
+    async def _run_analysis() -> None:
+        async with db_session() as db:
+            result = await db.execute(
+                select(VerificationSession).where(VerificationSession.id == UUID(session["id"]))
+            )
+            verification = result.scalar_one()
+            analysis = await run_codebase_analysis(
+                db, verification, "backend-engineer", FakeAnalyzer()
+            )
+            assert analysis.score == 82
+            assert verification.status == VerificationStatus.IN_PROGRESS
+            assert verification.current_phase == VerificationPhase.TECHNICAL_DEFENCE
+
+    asyncio.run(_run_analysis())
 
     listed = client.get("/v1/me/verifications", headers=bearer(data))
     assert listed.status_code == 200

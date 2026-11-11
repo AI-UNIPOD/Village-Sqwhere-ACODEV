@@ -9,7 +9,13 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.lookups import Role
-from app.models.users import AuthProvider, UserRole, VerificationSession, VerificationStatus
+from app.models.users import (
+    AuthProvider,
+    UserRole,
+    VerificationPhase,
+    VerificationSession,
+    VerificationStatus,
+)
 from app.schemas.verification import (
     StartVerificationRequest,
     VerificationItemResponse,
@@ -27,6 +33,7 @@ def session_to_response(session: VerificationSession) -> VerificationResponse:
         role_name=session.user_role.role.name,
         attempt_number=session.attempt_number,
         status=session.status.value,
+        current_phase=session.current_phase.value if session.current_phase else None,
         source=session.source.value if session.source else None,
         evidence=session.evidence,
         ai_score=float(session.ai_score) if session.ai_score is not None else None,
@@ -126,6 +133,7 @@ async def start_verification(
         role_id=user_role.role_id,
         attempt_number=1,
         status=VerificationStatus.PENDING,
+        current_phase=VerificationPhase.CODEBASE_ANALYSIS,
         source=AuthProvider.GITHUB,
         evidence=[{"repository_url": repository} for repository in payload.repositories],
         started_at=datetime.now(UTC),

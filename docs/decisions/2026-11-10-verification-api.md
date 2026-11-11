@@ -12,7 +12,11 @@ repository URLs as evidence and creates a `pending` session. Applicants can list
 abandon their attempts. Verified developers can list and decide cases for roles they hold.
 
 The API records evidence and lifecycle state. A separate worker is responsible for repository
-analysis and moving a session into `awaiting_review`.
+analysis and moving a session into `awaiting_review`. The session keeps its overall `status`
+separate from `current_phase`, so applicants can see whether work is active and which AI phase
+is running without adding a new lifecycle status for every phase. The codebase analysis service
+accepts a provider-neutral analyzer interface and stores a validated, versioned result in
+`ai_result`.
 
 ## Options we considered
 
@@ -24,5 +28,6 @@ analysis and moving a session into `awaiting_review`.
 ## Consequences
 
 The frontend has stable endpoints for polling and peer review has explicit role checks. The
-worker contract, GitHub permissions and evidence format need a later decision before analysis
-is connected.
+frontend can now show the active AI phase. The live provider, GitHub permissions, worker queue,
+and technical defence contract still need separate decisions before production analysis is
+connected.
