@@ -449,6 +449,88 @@ def test_verified_peer_can_review_and_pass_attempt(sign_in) -> None:
     cleanup_user(reviewer_id)
 
 
+def start_attempt(data: dict):
+    return client.post(
+        "/v1/me/verifications/backend-engineer",
+        headers=bearer(data),
+        json={"repositories": ["https://github.com/example/project"]},
+    )
+
+
+def test_second_attempt_is_refused_while_one_is_active(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+
+    assert start_attempt(data).status_code == 201
+    second = start_attempt(data)
+
+    assert second.status_code == 409
+    assert second.json()["detail"]["code"] == "VERIFICATION_IN_PROGRESS"
+    cleanup_user(user_id)
+
+
+def test_fourth_attempt_is_refused_after_three(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+
+    for _ in range(3):
+        started = start_attempt(data)
+        assert started.status_code == 201, started.text
+        session = started.json()["data"]
+        abandoned = client.post(
+            f"/v1/me/verifications/{session['id']}/abandon", headers=bearer(data)
+        )
+        assert abandoned.status_code == 200
+
+    fourth = start_attempt(data)
+
+    assert fourth.status_code == 409
+    assert fourth.json()["detail"]["code"] == "VERIFICATION_ATTEMPTS_EXHAUSTED"
+    cleanup_user(user_id)
+
+
+def test_reviewer_cannot_see_or_decide_their_own_attempt(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+    session_id = start_attempt(data).json()["data"]["id"]
+    # verified in the role, so a reviewer for it, with their own attempt waiting for review
+    mark_role_verified(user_id, "backend-engineer")
+
+    async def _queue() -> None:
+        async with db_session() as session:
+            await session.execute(
+                update(VerificationSession)
+                .where(VerificationSession.id == UUID(session_id))
+                .values(status=VerificationStatus.AWAITING_REVIEW)
+            )
+            await session.commit()
+
+    asyncio.run(_queue())
+
+    queue = client.get("/v1/reviews/verifications", headers=bearer(data))
+    assert queue.status_code == 200
+    assert session_id not in [item["id"] for item in queue.json()["data"]]
+
+    case = client.get(f"/v1/reviews/verifications/{session_id}", headers=bearer(data))
+    assert case.status_code == 404
+
+    decision = client.post(
+        f"/v1/reviews/verifications/{session_id}/decision",
+        headers=bearer(data),
+        json={"decision": "passed"},
+    )
+    assert decision.status_code == 404
+    mine = client.get(f"/v1/me/verifications/{session_id}", headers=bearer(data))
+    assert mine.json()["data"]["status"] == "awaiting_review"
+    cleanup_user(user_id)
+
+
 def test_unverified_user_cannot_review(sign_in) -> None:
     data = sign_in("github-code-ada")
     user_id = UUID(data["user"]["id"])
@@ -458,4 +540,30 @@ def test_unverified_user_cannot_review(sign_in) -> None:
 
     assert response.status_code == 200
     assert response.json()["data"] == []
+    cleanup_user(user_id)
+
+
+def test_each_new_attempt_reports_its_own_number(sign_in) -> None:
+    # the database numbers attempts; the API must report that number, not one it guessed
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+
+    for attempt in (1, 2, 3):
+        started = client.post(
+            "/v1/me/verifications/backend-engineer",
+            headers=bearer(data),
+            json={"repositories": ["https://github.com/example/project"]},
+        )
+        assert started.status_code == 201, started.text
+        session = started.json()["data"]
+        assert session["attempt_number"] == attempt
+        detail = client.get(f"/v1/me/verifications/{session['id']}", headers=bearer(data))
+        assert detail.json()["data"]["attempt_number"] == attempt
+        abandoned = client.post(
+            f"/v1/me/verifications/{session['id']}/abandon", headers=bearer(data)
+        )
+        assert abandoned.status_code == 200
+
     cleanup_user(user_id)

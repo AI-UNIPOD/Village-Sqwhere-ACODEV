@@ -133,7 +133,6 @@ async def start_verification(
     session = VerificationSession(
         user_id=current_user.id,
         role_id=user_role.role_id,
-        attempt_number=1,
         status=VerificationStatus.PENDING,
         current_phase=VerificationPhase.CODEBASE_ANALYSIS,
         source=AuthProvider.GITHUB,

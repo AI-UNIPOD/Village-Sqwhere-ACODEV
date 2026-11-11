@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     Enum,
+    FetchedValue,
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
@@ -211,7 +212,10 @@ class VerificationSession(Base):
     id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
     role_id: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    attempt_number: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    # numbered by the database trigger; read back after insert, never set here
+    attempt_number: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, server_default=FetchedValue()
+    )
     status: Mapped[VerificationStatus] = mapped_column(
         Enum(
             VerificationStatus,

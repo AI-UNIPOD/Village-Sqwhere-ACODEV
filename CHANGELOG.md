@@ -10,6 +10,10 @@ its number:
 
 ## 2026-11-11
 
+- fix(api): return the real attempt number when a verification starts (#19)
+- docs: add the api endpoints to progress and architecture (#13)
+- fix(web): seat the demo note under its button in a clear space (#12)
+- feat(web): add scroll reveals and feedback to the landing sections (#11)
 - feat(api): add verification phase tracking and analysis boundary
 - feat(api): add bounded GitHub repository snapshots for verification
 - feat(api): add Groq codebase analysis adapter
@@ -20,11 +24,13 @@ its number:
 - feat(api): add verification report worker
 - feat(api): add verification worker runner
 - feat(api): add final report Gemini fallback
+- feat(api): add verification and peer review endpoints (#10)
 
 ## 2026-11-10
 
-- feat(api): add developer roles, tech stack and feed topics
-- feat(api): add verification and peer review endpoints
+- feat(web): drift the hero background words from right to left (#9)
+- feat(web): add the landing page in English and French (#8)
+- feat(api): add developer roles, tech stack and feed topics (#7)
 
 ## 2026-11-07
 
