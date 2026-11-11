@@ -171,10 +171,15 @@ Every screen has all four.
 | Content rises into place as it scrolls into view, once | 400ms (`--dur-reveal`), 200ms fade only with reduced motion | `--ease-out` |
 | Items in a row or list arrive one after another | `--delay-stagger` (80ms) between items | as the item's own motion |
 | A link's underline draws in on hover or keyboard focus | 160ms (`--dur-press`) | `--ease-out` |
+| Landing hero background words scroll right to left, forever | `--space-8` every `--dur-drift` (2s), about 16px a second | `--ease-linear`, for continuous motion only |
 
 Reveals never hide headings or lead text, never hide anything without JavaScript, and
 leave content already on screen alone. An item counts as in view once 15% of it shows
 above the bottom 8% of the screen. Those two numbers are set in code, not tokens.
+
+The scroll is the only motion that never ends, so it stops while the pointer rests on a
+word, with the hero's pause button, off screen, in a hidden tab and with reduced motion. It
+loops without a seam, and the text, the square and the button stay clear while it passes.
 
 Animate `transform` and `opacity` only. With reduced motion, keep fades and colour
 changes and remove movement. Never remove feedback.

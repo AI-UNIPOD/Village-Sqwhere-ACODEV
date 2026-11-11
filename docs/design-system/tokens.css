@@ -94,6 +94,7 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-strong: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-linear: linear;
   --dur-press: 160ms;
   --dur-menu: 180ms;
   --dur-menu-out: 120ms;
@@ -107,6 +108,7 @@
   --dur-reveal: 400ms;
   --delay-stagger: 80ms;
   --dur-icon: 320ms;
+  --dur-drift: 2s;
   --delay-spinner: 400ms;
 }
 
