@@ -57,9 +57,12 @@ def github(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """Pretend GitHub sign-in is set up, and fake GitHub's side of the code exchange."""
     exchanged_codes: list[str] = []
 
-    async def fake_fetch_github_user(code: str, redirect_uri: str) -> dict[str, object] | None:
+    async def fake_fetch_github_user(
+        code: str, redirect_uri: str
+    ) -> tuple[dict[str, object], str] | None:
         exchanged_codes.append(code)
-        return FAKE_GITHUB_USERS.get(code)
+        profile = FAKE_GITHUB_USERS.get(code)
+        return (profile, f"token-for-{code}") if profile else None
 
     monkeypatch.setattr(auth, "GITHUB_CLIENT_ID", "test-client-id")
     monkeypatch.setattr(auth, "GITHUB_CLIENT_SECRET", "test-client-secret")

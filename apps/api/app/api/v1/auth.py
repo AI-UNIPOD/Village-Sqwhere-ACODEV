@@ -88,8 +88,11 @@ async def start_oauth(
     )
 
 
-async def fetch_github_user(code: str, redirect_uri: str) -> dict | None:
-    """Exchange the OAuth code with GitHub and return the GitHub user, or None if refused."""
+async def fetch_github_user(code: str, redirect_uri: str) -> tuple[dict, str] | None:
+    """Exchange the OAuth code with GitHub.
+
+    Returns the GitHub user and the access token, or None if GitHub refused the code.
+    """
     async with httpx.AsyncClient() as client:
         token_res = await client.post(
             "https://github.com/login/oauth/access_token",
@@ -118,7 +121,7 @@ async def fetch_github_user(code: str, redirect_uri: str) -> dict | None:
             timeout=10.0,
         )
         profile_res.raise_for_status()
-        return profile_res.json()
+        return profile_res.json(), gh_access_token
 
 
 def _drop_expired(store: dict, now: datetime) -> None:
@@ -152,9 +155,10 @@ async def oauth_callback(
 
     is_new = False
     try:
-        gh_user = await fetch_github_user(code, redirect_uri)
-        if gh_user is None:
+        github_account = await fetch_github_user(code, redirect_uri)
+        if github_account is None:
             return _redirect_with_error("ACCESS_DENIED")
+        gh_user, gh_access_token = github_account
 
         provider_user_id = str(gh_user["id"])
         username = gh_user.get("login") or f"gh_{provider_user_id}"
