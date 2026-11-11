@@ -1,0 +1,175 @@
+/* One calm column under the same top bar as sign-in. It holds a single message that is a
+   pending note, a success note or an error, as in the Messages spec. */
+.main {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  justify-items: center;
+  padding: var(--space-12) var(--space-4);
+}
+
+.column {
+  inline-size: 100%;
+  max-inline-size: 44ch;
+  animation: rise var(--dur-reveal) var(--ease-out) both;
+}
+
+/* ---------- message ---------- */
+.message {
+  --mix: 7%;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  padding: var(--pad-card);
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--tone) var(--mix), var(--surface));
+  /* a new state is a new element, so it fades in */
+  animation: fade var(--dur-modal) var(--ease-out);
+}
+
+.message[data-kind="error"] {
+  --tone: var(--error);
+  --tone-tint: var(--error-tint);
+}
+
+.message[data-kind="success"] {
+  --tone: var(--success);
+  --tone-tint: var(--success-tint);
+}
+
+.message[data-kind="pending"] {
+  --tone: var(--text-muted);
+  --tone-tint: var(--surface-sunken);
+}
+
+:global([data-theme="dark"]) .message {
+  --mix: 11%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .message {
+    --mix: 11%;
+  }
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border-radius: var(--radius-full);
+  background: var(--tone-tint);
+  color: var(--tone);
+}
+
+.tile svg {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+/* the "pending" ring of the Messages spec. It stays hidden for --delay-spinner, so a fast
+   exchange never flashes it. */
+.ring {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  border: 2px solid var(--tone);
+  border-block-start-color: transparent;
+  border-radius: var(--radius-full);
+  animation:
+    fade var(--dur-press) var(--ease-out) var(--delay-spinner) backwards,
+    turn var(--dur-moment) var(--ease-linear) infinite;
+}
+
+.title {
+  font: var(--type-label);
+}
+
+.text {
+  margin-block-start: var(--space-1);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* ---------- actions ---------- */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  margin-block-start: var(--space-3);
+}
+
+.primary,
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--tap-min);
+  font: var(--type-label);
+}
+
+.primary {
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--action);
+  color: var(--on-action);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+/* Hover only where a pointer can hover: a tap on a phone would leave it stuck on. */
+@media (hover: hover) and (pointer: fine) {
+  .primary:hover {
+    background: var(--action-hover);
+  }
+}
+
+.primary:active {
+  transform: scale(0.97);
+}
+
+.link {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: var(--underline-offset);
+}
+
+/* ---------- motion: transform and opacity only ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Reduced motion keeps the fades and drops the movement. The ring stops turning; the title and
+   aria-busy still tell the person it is working. */
+@media (prefers-reduced-motion: reduce) {
+  .column {
+    animation-name: fade;
+  }
+
+  .ring {
+    animation: fade var(--dur-press) var(--ease-out) var(--delay-spinner) backwards;
+  }
+
+  .primary {
+    transition-duration: 0.01ms;
+  }
+}

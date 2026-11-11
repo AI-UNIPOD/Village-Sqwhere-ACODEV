@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -59,6 +62,13 @@ test.each([
   expect(screen.getAllByRole("button", { name: button })).toHaveLength(1);
 });
 
+test("the stylesheet changes layout only at the design system breakpoints", () => {
+  const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
+  const widths = [...css.matchAll(/(?:min|max)-width:\s*(\d+)px/g)].map((m) => Number(m[1]));
+  expect(widths.length).toBeGreaterThan(0);
+  for (const width of widths) expect([768, 1100]).toContain(width);
+});
+
 test("the button carries the GitHub mark and is named by its label alone", () => {
   render(<SignInPage lang="en" />);
   const button = screen.getByRole("button", { name: "Continue with GitHub" });
@@ -83,6 +93,16 @@ test.each([
   render(<SignInPage lang={lang} />);
   expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe(otherHref);
   expect(screen.getByRole("link", { name: "Village Sqwhere" }).getAttribute("href")).toBe(homeHref);
+});
+
+// Browser translation turned "Village Sqwhere" into "Village Square" and "EN" into "IN".
+test.each([
+  ["en", "Passer en français"],
+  ["fr", "Switch to English"],
+] as const)("the %s page keeps the brand name and the language switch out of translation", (lang, label) => {
+  render(<SignInPage lang={lang} />);
+  expect(screen.getByText("Village Sqwhere").getAttribute("translate")).toBe("no");
+  expect(screen.getByRole("link", { name: label }).getAttribute("translate")).toBe("no");
 });
 
 test("says what is read from GitHub and links to GitHub to create an account", () => {
@@ -212,6 +232,16 @@ test("any other failure says sign-in did not start", async () => {
 
   expect((await screen.findByRole("alert")).textContent).toContain("Sign-in didn't start");
   expect(assign).not.toHaveBeenCalled();
+});
+
+// On plain http at a LAN address the browser has no crypto.subtle, so the challenge cannot be made.
+test("a browser that cannot hash says sign-in did not start and sends nothing", async () => {
+  vi.stubGlobal("crypto", { getRandomValues: (bytes: Uint8Array) => bytes });
+  render(<SignInPage lang="en" />);
+  fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Sign-in didn't start");
+  expect(fetchMock).not.toHaveBeenCalled();
 });
 
 test("with no error in the address, no alert shows", () => {

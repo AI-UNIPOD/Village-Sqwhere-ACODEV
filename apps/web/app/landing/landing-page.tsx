@@ -43,11 +43,12 @@ export function SoonButton({
 // custom properties for the stagger: the item's place in its row of 2 or 4, or in its list
 const order = (vars: Record<string, number>) => vars as CSSProperties;
 
+// translate="no": browser translation turned the name into "Village Square".
 function Brand({ lang, logoClass, wordmarkClass }: { lang: Lang; logoClass: string; wordmarkClass: string }) {
   return (
     <Link className={styles.brand} href={`/${lang}`}>
       <Logo size={32} className={logoClass} />
-      <span className={wordmarkClass}>Village Sqwhere</span>
+      <span className={wordmarkClass} translate="no">Village Sqwhere</span>
     </Link>
   );
 }
@@ -78,12 +79,14 @@ export function LandingPage({ lang }: { lang: Lang }) {
       </header>
 
       {/* A plain link on purpose: a full page load. A client navigation keeps the old language
-          hidden in the page and makes React drop the theme set on <html>. */}
+          hidden in the page and makes React drop the theme set on <html>. translate="no" stops
+          browser translation turning "EN" into "IN". */}
       <a
         className={`${styles.fab} ${styles.fabTop}`}
         href={`/${other}`}
         hrefLang={other}
         lang={other}
+        translate="no"
         aria-label={t.switchLabel}
       >
         {t.switchText}
