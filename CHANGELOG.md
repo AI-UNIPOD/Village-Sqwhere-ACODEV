@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-11
 
+- feat(api): add hub models and schemas (#34)
 - feat(db): add hub terms and a test agreement (#33)
 - feat(web): add the auth callback page that finishes github sign-in (#32)
 - fix(web): give the onboarding page a title in english and french (#31)
