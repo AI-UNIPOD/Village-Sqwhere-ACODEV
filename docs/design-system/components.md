@@ -168,10 +168,11 @@ Every screen has all four.
 | Drawers | 400ms in, 260ms out | `--ease-drawer` |
 | Sheets | 500ms in, 320ms out | `--ease-drawer` |
 | A match lands, a Green Tick is earned | 520ms, once per screen | `--ease-strong` |
-| Landing hero background words drift | 12s per cycle (`--dur-drift`), `--space-8` each way | `--ease-drawer` |
+| Landing hero background words scroll right to left, forever | `--space-8` every `--dur-drift` (2s), about 16px a second | `--ease-linear`, for continuous motion only |
 
-The drift is the only motion that never ends, so it stops while the pointer rests on a
-word, with the hero's pause button, off screen, in a hidden tab and with reduced motion.
+The scroll is the only motion that never ends, so it stops while the pointer rests on a
+word, with the hero's pause button, off screen, in a hidden tab and with reduced motion. It
+loops without a seam, and the text, the square and the button stay clear while it passes.
 
 Animate `transform` and `opacity` only. With reduced motion, keep fades and colour
 changes and remove movement. Never remove feedback.
