@@ -79,7 +79,7 @@ def test_posts_isolation_creation_and_cleanup() -> None:
 
 
 def test_posts_isolation_verifies_row_is_gone() -> None:
-    # In a fresh connection, assert the row created by previous test was truncated by fixture.
+    # In a fresh connection, assert the cleanup fixture leaves the table empty before each test.
     async def _run() -> None:
         async with db_session() as session:
             count = (
