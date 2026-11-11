@@ -10,6 +10,8 @@ its number:
 
 ## 2026-11-10
 
+- feat(web): drift the hero background words from right to left (#9)
+- feat(web): add the landing page in English and French (#8)
 - feat(api): add developer roles, tech stack and feed topics
 - feat(api): add verification and peer review endpoints
 

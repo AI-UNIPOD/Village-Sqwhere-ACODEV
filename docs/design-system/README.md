@@ -28,7 +28,7 @@ drift, if the logo paths change, or if an app stylesheet uses a raw colour.
    with `next/font` in `app/layout.tsx` (Latin and Latin Extended). Do not import them
    again.
 2. Use the `Logo` component from `apps/web/app/logo.tsx` for the logo, never a copy of the
-   paths. The browser tab icon is `apps/web/app/icon.svg`, the `on-paper` file.
+   paths. The browser tab icon is `apps/web/app/icon.svg`, the `laterite` file.
 3. Style components with the semantic variables only: `var(--bg)`, `var(--text)`,
    `var(--action)`, `var(--space-4)`, `var(--radius-s)`, `font: var(--type-body)`.
 4. Never write a hex value, a pixel gap or a font size in a component. If the value you
