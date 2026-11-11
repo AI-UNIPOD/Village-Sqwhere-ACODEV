@@ -9,6 +9,10 @@ from sqlalchemy import delete, select, update
 from app.main import app
 from app.models.lookups import Role
 from app.models.users import UserRole, VerificationPhase, VerificationSession, VerificationStatus
+from app.services.codebase_analysis import (
+    AnalysisCriterion,
+    build_codebase_analysis_prompt,
+)
 from app.services.verification import (
     CodebaseAnalysisResult,
     GitHubRepositoryClient,
@@ -28,6 +32,26 @@ def test_github_repository_client_accepts_only_github_https_urls() -> None:
     )
     with pytest.raises(GitHubRepositoryError):
         GitHubRepositoryClient._repository_parts("https://example.com/org/repo")
+
+
+def test_codebase_analysis_prompt_treats_repository_data_as_untrusted() -> None:
+    prompt = build_codebase_analysis_prompt(
+        "backend-engineer",
+        [
+            RepositorySnapshot(
+                repository_url="https://github.com/example/project",
+                default_branch="main",
+                languages={"Python": 1000},
+                file_paths=["app/main.py"],
+                test_paths=[],
+                recent_commits=[],
+            )
+        ],
+    )
+
+    assert "untrusted data" in prompt.system
+    assert AnalysisCriterion.TEST_COVERAGE.value in prompt.user
+    assert "backend-engineer" in prompt.user
 
 
 def bearer(data: dict) -> dict[str, str]:

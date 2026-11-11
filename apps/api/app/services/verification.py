@@ -122,6 +122,9 @@ class CodebaseAnalysisResult(BaseModel):
     concerns: list[str] = Field(max_length=20)
     evidence: list[dict] = Field(max_length=50)
     model: str = Field(min_length=1, max_length=100)
+    criterion_assessments: list[dict] = Field(default_factory=list, max_length=10)
+    security_flags: list[str] = Field(default_factory=list, max_length=20)
+    confidence: float = Field(default=0.0, ge=0, le=1)
 
 
 class CodebaseAnalyzer(Protocol):
