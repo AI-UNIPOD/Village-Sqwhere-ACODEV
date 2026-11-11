@@ -321,6 +321,62 @@ def test_interview_abandon_marks_transcript_incomplete(sign_in, monkeypatch) -> 
     cleanup_user(user_id)
 
 
+def test_interview_audio_answer_sends_an_allowed_audio_type_on(sign_in, monkeypatch) -> None:
+    configure_test_interview(monkeypatch)
+    transcriber = use_recording_transcriber(monkeypatch)
+    data = sign_in("github-code-moussa")
+    user_id = UUID(data["user"]["id"])
+    session_id = prepare_interview_session(data)
+
+    with client.websocket_connect(
+        f"/v1/me/verifications/{session_id}/interview"
+        f"?token={data['access_token']}&audio_content_type=audio/webm;codecs=opus"
+    ) as websocket:
+        assert websocket.receive_json()["kind"] == "welcome"
+        assert websocket.receive_json()["type"] == "question"
+        websocket.send_bytes(b"audio")
+        assert websocket.receive_json() == {"type": "audio_buffered", "bytes": 5}
+        websocket.send_json({"type": "answer_end"})
+        assert websocket.receive_json()["type"] == "answer_saved"
+
+    assert transcriber.audio_types == ["audio/webm;codecs=opus"]
+    cleanup_user(user_id)
+
+
+@pytest.mark.parametrize(
+    "audio_type",
+    [
+        "audio/webm%0d%0aContent-Disposition:%20form-data;%20name=%22prompt%22",
+        "audio/webm%0aX-Injected:%201",
+        "text/html",
+        "",
+    ],
+    ids=["header injection", "line feed", "not audio", "empty"],
+)
+def test_interview_audio_answer_refuses_a_type_outside_the_allow_list(
+    sign_in, monkeypatch, audio_type
+) -> None:
+    configure_test_interview(monkeypatch)
+    transcriber = use_recording_transcriber(monkeypatch)
+    data = sign_in("github-code-moussa")
+    user_id = UUID(data["user"]["id"])
+    session_id = prepare_interview_session(data)
+
+    with client.websocket_connect(
+        f"/v1/me/verifications/{session_id}/interview"
+        f"?token={data['access_token']}&audio_content_type={audio_type}"
+    ) as websocket:
+        assert websocket.receive_json()["kind"] == "welcome"
+        assert websocket.receive_json()["type"] == "question"
+        websocket.send_bytes(b"audio")
+        assert websocket.receive_json()["type"] == "audio_buffered"
+        websocket.send_json({"type": "answer_end"})
+        assert websocket.receive_json() == {"type": "error", "code": "AUDIO_TYPE_NOT_ALLOWED"}
+
+    assert transcriber.audio_types == []
+    cleanup_user(user_id)
+
+
 def bearer(data: dict) -> dict[str, str]:
     return {"Authorization": f"Bearer {data['access_token']}"}
 
@@ -332,6 +388,24 @@ def configure_test_interview(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", None)
     monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", None)
     monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", None)
+
+
+class RecordingTranscriber:
+    """Stands in for Groq's transcriber and remembers the audio type it was asked for."""
+
+    def __init__(self) -> None:
+        self.audio_types: list[str] = []
+
+    async def transcribe(self, audio: bytes, content_type: str) -> str:
+        self.audio_types.append(content_type)
+        return "I kept the services small and tested each one."
+
+
+def use_recording_transcriber(monkeypatch: pytest.MonkeyPatch) -> RecordingTranscriber:
+    transcriber = RecordingTranscriber()
+    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", "test-key")
+    monkeypatch.setattr(interviews_api, "GroqWhisperTranscriber", lambda: transcriber)
+    return transcriber
 
 
 def prepare_interview_session(data: dict) -> UUID:

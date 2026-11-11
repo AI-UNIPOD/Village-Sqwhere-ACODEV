@@ -46,6 +46,22 @@ from app.services.interview import (
 router = APIRouter()
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 MAX_ANSWER_CHARS = 10_000
+# The audio type comes from the client and ends up in a request header, so only these exact
+# values are accepted, and only a value from this set is ever sent on.
+DEFAULT_AUDIO_TYPE = "audio/webm"
+ALLOWED_AUDIO_TYPES = frozenset(
+    {
+        "audio/webm",
+        "audio/webm;codecs=opus",
+        "audio/ogg",
+        "audio/ogg;codecs=opus",
+        "audio/mp4",
+        "audio/mpeg",
+        "audio/wav",
+        "audio/x-wav",
+        "audio/flac",
+    }
+)
 
 
 async def websocket_user(token: str | None, db) -> User | None:
@@ -211,11 +227,17 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                     if not audio_buffer:
                         await websocket.send_json({"type": "error", "code": "AUDIO_MISSING"})
                         continue
-                    try:
-                        answer = await transcriber.transcribe(
-                            bytes(audio_buffer),
-                            websocket.query_params.get("audio_content_type", "audio/webm"),
+                    audio_type = websocket.query_params.get(
+                        "audio_content_type", DEFAULT_AUDIO_TYPE
+                    ).lower()
+                    if audio_type not in ALLOWED_AUDIO_TYPES:
+                        await websocket.send_json(
+                            {"type": "error", "code": "AUDIO_TYPE_NOT_ALLOWED"}
                         )
+                        audio_buffer.clear()
+                        continue
+                    try:
+                        answer = await transcriber.transcribe(bytes(audio_buffer), audio_type)
                     except InterviewUnavailable as error:
                         await websocket.send_json(
                             {
