@@ -82,7 +82,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
               {t.ctaTour}
             </a>
           </div>
-          <p className={styles.note} aria-hidden="true">
+          <p className={styles.note} aria-hidden="true" data-hero-note="">
             {t.demoNote}
           </p>
         </GatherHero>

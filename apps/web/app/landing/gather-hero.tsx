@@ -144,6 +144,10 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       geo = hg;
       heroWidth = width;
       copyEl.style.top = `${hg.copyTop}px`;
+      // a note under the actions ("coming soon") starts where the first action starts
+      const note = copyEl.querySelector<HTMLElement>("[data-hero-note]");
+      const firstAction = copyEl.querySelector<HTMLElement>("button, a");
+      if (note && firstAction) note.style.left = `${firstAction.offsetLeft}px`;
       heroEl.style.height = `${hg.height}px`;
       squareEl.style.cssText = `left:${hg.x}px;top:${hg.y}px;width:${hg.square}px;height:${hg.square}px;background-size:${hg.cell}px ${hg.cell}px`;
       treeEl.style.left = `${hg.x}px`;
@@ -168,7 +172,9 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       }
       canvasEl.style.width = `${width}px`;
       canvasEl.style.height = `${hg.height}px`;
-      avoid = heroAvoid(hg);
+      // the clear zone covers everything the text block shows, including a note that hangs
+      // below it outside the layout, so no background word is drawn behind it
+      avoid = heroAvoid({ ...hg, copyHeight: Math.max(hg.copyHeight, copyEl.scrollHeight) });
       words = layoutCrowd({
         width,
         height: hg.height,
