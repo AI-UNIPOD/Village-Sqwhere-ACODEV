@@ -10,11 +10,11 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
 
 - **apps/web**: the user interface, in English and French. It is meant to talk to the API
   over HTTP (`NEXT_PUBLIC_API_URL` in `.env.example`), but it does not call the API yet.
-- **apps/api**: business logic: sign-in and profiles today, with ideas, matching,
-  agreements and hubs still to build. Settings come from environment variables or a root
-  `.env` file (`apps/api/app/config.py`): `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`,
-  `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `JWT_SECRET_KEY`. The API will not start
-  without `JWT_SECRET_KEY`.
+- **apps/api**: business logic: sign-in, profiles and role verification today, with ideas,
+  matching, agreements and hubs still to build. Settings come from environment variables or
+  a root `.env` file (`apps/api/app/config.py`): `DATABASE_URL`, `CORS_ORIGINS`,
+  `FRONTEND_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `JWT_SECRET_KEY`. The API
+  will not start without `JWT_SECRET_KEY`.
 - **PostgreSQL + pgvector**: the main data store, set up by the scripts in `infra/db/init/`.
   The schema has an `idea_embeddings` table with a pgvector column, for finding similar
   ideas. Nothing writes to it yet.
@@ -36,6 +36,13 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `PATCH /v1/me/roles/{role_slug}` (make it the primary role), `DELETE /v1/me/roles/{role_slug}`
   (refused with `409` once the role has verification attempts), `PUT /v1/me/technologies`
   and `PUT /v1/me/feed-topics` (each replaces the whole list, by technology slug).
+- **Verification of a claimed role** (Bearer token), up to three attempts per role:
+  `POST /v1/me/verifications/{role_slug}` (start, with GitHub repositories as evidence),
+  `GET /v1/me/verifications`, `GET /v1/me/verifications/{session_id}` (poll one attempt)
+  and `POST /v1/me/verifications/{session_id}/abandon`.
+- **Peer review** (Bearer token, for developers verified in the attempt's role, never their
+  own attempt): `GET /v1/reviews/verifications`, `GET /v1/reviews/verifications/{session_id}`
+  and `POST /v1/reviews/verifications/{session_id}/decision` (`passed` or `failed`).
 - OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
   API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
 
