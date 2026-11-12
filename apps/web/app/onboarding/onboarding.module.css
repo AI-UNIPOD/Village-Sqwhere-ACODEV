@@ -168,7 +168,7 @@
   overflow-y: auto;
 }
 
-@media (min-width: 600px) {
+@media (min-width: 768px) {
   .countryList { grid-template-columns: 1fr 1fr; }
 }
 
