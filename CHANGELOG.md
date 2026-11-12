@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-12
 
+- fix(web): use the design system breakpoint on onboarding (#42)
 - fix(web): give onboarding choice cards press feedback (#38)
 - fix(web): keep colour fades for buttons with reduced motion (#40)
 - fix(web): name onboarding technologies in french on the french page (#52)
