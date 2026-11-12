@@ -10,7 +10,6 @@
 }
 
 .button {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -51,24 +50,32 @@
   cursor: progress;
 }
 
-.mark {
+/* One 16px slot before the label holds the GitHub mark and the spinner, stacked in one grid
+   cell, so the label never moves. After --delay-spinner the mark fades out as the spinner fades
+   in, so a fast start never flashes either. */
+.slot {
+  display: grid;
   flex: none;
   inline-size: var(--space-4);
   block-size: var(--space-4);
 }
 
-/* The spinner sits beside the label without moving it. It stays hidden for --delay-spinner,
-   so a fast start never flashes it. */
-.spinner {
-  position: absolute;
-  inset-inline-start: var(--space-4);
+.slot > * {
+  grid-area: 1 / 1;
   inline-size: var(--space-4);
   block-size: var(--space-4);
+}
+
+.slot[data-loading="true"] .mark {
+  animation: swap-out var(--dur-press) var(--ease-out) var(--delay-spinner) forwards;
+}
+
+.spinner {
   border: 2px solid var(--on-action);
   border-block-start-color: transparent;
   border-radius: var(--radius-full);
   animation:
-    fade var(--dur-press) var(--ease-out) var(--delay-spinner) backwards,
+    swap-in var(--dur-press) var(--ease-out) var(--delay-spinner) backwards,
     turn var(--dur-moment) var(--ease-linear) infinite;
 }
 
@@ -330,6 +337,27 @@
   }
 }
 
+/* the swap between the mark and the spinner: opacity plus a light blur while it happens */
+@keyframes swap-in {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+@keyframes swap-out {
+  to {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes turn {
   to {
     transform: rotate(1turn);
@@ -337,7 +365,8 @@
 }
 
 /* Reduced motion keeps the fades and the colour changes and drops the movement. The rings stop
-   turning; the state words and aria-busy still tell the person it is working. */
+   turning, the mark and spinner swap by fading only, and the state words and aria-busy still tell
+   the person it is working. */
 @media (prefers-reduced-motion: reduce) {
   :global([data-ready]) .rise,
   .tick {
@@ -350,6 +379,10 @@
 
   .spinner {
     animation: fade var(--dur-press) var(--ease-out) var(--delay-spinner) backwards;
+  }
+
+  .slot[data-loading="true"] .mark {
+    animation-name: fade-out;
   }
 
   .message {

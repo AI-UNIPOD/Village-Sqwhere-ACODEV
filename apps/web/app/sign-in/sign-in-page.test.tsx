@@ -17,6 +17,14 @@ function reply(status: number, body: unknown) {
 
 const started = () => reply(200, { data: { authorize_url: AUTHORIZE_URL, expires_at: "2026-11-06T18:30:00Z" } });
 
+const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
+
+// the declarations of the first rule written exactly for `selector`
+const rule = (selector: string) => {
+  const start = css.indexOf(`\n${selector} {`);
+  return start < 0 ? "" : css.slice(css.indexOf("{", start) + 1, css.indexOf("}", start));
+};
+
 // the two steps, with the state word each one speaks
 const steps = () => screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
 
@@ -63,7 +71,6 @@ test.each([
 });
 
 test("the stylesheet changes layout only at the design system breakpoints", () => {
-  const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
   const widths = [...css.matchAll(/(?:min|max)-width:\s*(\d+)px/g)].map((m) => Number(m[1]));
   expect(widths.length).toBeGreaterThan(0);
   for (const width of widths) expect([768, 1100]).toContain(width);
@@ -75,7 +82,7 @@ test("the button carries the GitHub mark and is named by its label alone", () =>
   const mark = button.querySelector("svg");
   expect(mark).not.toBeNull();
   expect(mark?.getAttribute("aria-hidden")).toBe("true");
-  expect(mark?.nextSibling?.textContent).toBe("Continue with GitHub");
+  expect(mark?.parentElement?.nextSibling?.textContent).toBe("Continue with GitHub");
 });
 
 test.each([
@@ -172,6 +179,45 @@ test("while it works the button keeps its label and a second click sends nothing
   expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
   await waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+// From 768px the button is auto width, so a spinner placed on its own over the button's edge landed
+// on the GitHub mark. Both live in the one slot before the label, stacked in one grid cell.
+test("while sign-in starts the spinner shares the GitHub mark's slot before the label", async () => {
+  fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
+  render(<SignInPage lang="en" />);
+  const button = screen.getByRole("button", { name: "Continue with GitHub" });
+  const mark = button.querySelector("svg");
+
+  fireEvent.click(button);
+  await waitFor(() => expect(button.getAttribute("aria-busy")).toBe("true"));
+
+  const slot = mark?.parentElement;
+  expect(slot).not.toBe(button);
+  expect(slot?.children).toHaveLength(2);
+  expect(slot?.nextSibling?.textContent).toBe("Continue with GitHub");
+  expect(button.children).toHaveLength(1);
+});
+
+test("the spinner is not placed on its own over the button", () => {
+  expect(rule(".spinner")).not.toMatch(/position:\s*absolute/);
+  expect(rule(".slot")).toMatch(/display:\s*grid/);
+});
+
+// The mark and the spinner swap after --delay-spinner, so a fast start never flashes either.
+test("the mark fades out as the spinner fades in, after the spinner delay", () => {
+  const out = rule('.slot[data-loading="true"] .mark');
+  expect(out).toMatch(/var\(--delay-spinner\)/);
+  expect(out).toMatch(/var\(--dur-press\) var\(--ease-out\)/);
+  expect(rule(".spinner")).toMatch(/var\(--delay-spinner\)/);
+  expect(css).toMatch(/blur\(2px\)/);
+});
+
+test("with reduced motion the swap is a fade only: no blur and no turning", () => {
+  const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+  expect(reduced).not.toMatch(/blur\(/);
+  expect(reduced).not.toMatch(/\bturn\b/);
+  expect(reduced).toMatch(/\.slot\[data-loading="true"\] \.mark/);
 });
 
 // A native button turns Enter and Space into a click, so focus and click cover the keyboard.
