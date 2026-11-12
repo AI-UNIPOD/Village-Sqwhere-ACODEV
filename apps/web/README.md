@@ -17,7 +17,14 @@ The site is bilingual by address: pages live in `app/[lang]/` and are served at 
 `proxy.ts` sends the bare `/` to the visitor's language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
 landing page is `app/landing/`, and the onboarding page shown after the first sign-in is
-`app/onboarding/` (at `/en/onboarding`). Style pages only with the design system tokens, imported in
+`app/onboarding/` (at `/en/onboarding`).
+
+Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
+(`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
+started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is
+signed in, `apiFetch()` calls the API with the access token and refreshes it when it expires,
+`signOut()` forgets the session and revokes it, and `RequireSession` sends signed-out visitors
+to sign-in. Only the tokens are stored; pages read the profile from `GET /v1/me`. Style pages only with the design system tokens, imported in
 `app/globals.css` from [`docs/design-system/`](../../docs/design-system/README.md), and use
 `Logo` from `app/logo.tsx` for the logo. See the root [CONTRIBUTING.md](../../CONTRIBUTING.md) for the team workflow.
 

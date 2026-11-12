@@ -28,6 +28,12 @@
 
 .brand { min-block-size: var(--tap-min); }
 
+.headerLinks {
+  display: flex;
+  align-items: center;
+  gap: var(--nav-gap);
+}
+
 .column {
   max-inline-size: 40rem;
   margin-inline: auto;
