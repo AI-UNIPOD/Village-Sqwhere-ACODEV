@@ -3,12 +3,12 @@
 Read this first. Update "Current state" and "What's next" in place after meaningful work.
 Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions/`.
 
-## Current state (2026-11-11)
+## Current state (2026-11-12)
 
 - Monorepo: `apps/web` (Next.js 16, landing page in English and French), `apps/api` (FastAPI
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
-- Team rules are in `AGENTS.md`. CI has not run since an account billing limit blocked GitHub
-  Actions, so #29, #35, #34 and #20 landed on local checks (last green run on `main`: #33).
+- Team rules are in `AGENTS.md`. The `ci` workflow is switched off since an account billing
+  limit blocked GitHub Actions, so everything after #33 (up to #55) landed on local checks.
 - The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics and
   verification (GitHub analysis, a five-question AI interview over a WebSocket, a report) with
   peer review by developers verified in that role, Groq and Gemini fallbacks and a separate
@@ -27,30 +27,30 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   show their share of three minutes, "coming soon" presses are announced, and phones get
   section links (`docs/decisions/2026-11-11-landing-section-interactions.md`).
 - Onboarding after first sign-in is at `/en/onboarding` and `/fr/onboarding`: a welcome, then
-  one question per screen, then a developer card. Static demo data, nothing saved, no API calls.
-  API gaps: `docs/decisions/2026-11-11-onboarding-page.md`.
+  one question per screen, then a developer card. Answers stay in sessionStorage for the tab and
+  never reach the API. API gaps: `docs/decisions/2026-11-11-onboarding-page.md`.
+- Unknown addresses get a 404 in their language; landing and sign-in have an error page. French
+  copy puts a narrow no-break space before ? ! : ; (`docs/design-system/voice-and-tone.md`).
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
   `apps/web` uses it: tokens, fonts, the logo and tab icon, with tests that hold it.
 
 ## What's next
 
-1. Fix the GitHub Actions limit and re-run CI on `main`.
+1. Fix the GitHub Actions billing limit, turn the `ci` workflow back on and re-run CI on `main`.
 2. Build the six hub endpoints on the new models, then the rest of the core flow from PRD v2.2:
    share an idea, AI matching, the owner approving the team and the four hub phases. The PRD
    is not in this repository yet; ask Tanny for it before starting.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-4. Connect the onboarding page to the API once its gaps are closed (see
-   `docs/decisions/2026-11-11-onboarding-page.md`).
+4. Connect the onboarding page to the API once the gaps in its decision record are closed.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-6. Watch the landing page motion in a browser, including with reduced motion, and have a
-   French-speaking teammate check the French.
-7. Move the session out of localStorage before launch, and sign-in state out of API memory
-   (the sign-in decision record suggests a `refresh_tokens` table). Have the API carry the
-   language through GitHub.
-8. Turn on GitHub protection for `main` (needs an org admin and a paid plan, or a public
-   repository). Until then the rules hold by team agreement
-   (`docs/decisions/2026-11-04-team-workflow-and-ci.md`).
+6. Web follow-ups: one header for the app screens, shared parts out of `app/landing/`, a wider
+   hero text column on phones, a server-rendered 404 (production sends an empty shell), watching
+   the landing motion by eye, and a French-speaking teammate's check of the copy.
+7. Before launch, move the session out of localStorage and sign-in state out of API memory
+   (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
+8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
+   until then rules hold by agreement (`docs/decisions/2026-11-04-team-workflow-and-ci.md`).
 
 ## Open questions
 
