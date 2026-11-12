@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
 import { copy as landing } from "../landing/copy";
 import { GatherHero } from "../landing/gather-hero";
@@ -83,9 +83,6 @@ function useReturnedProblem(): ProblemKey | null {
   // an unknown code still means GitHub did not finish: say so rather than show nothing
   return code ? (FROM_GITHUB.get(code) ?? "exchangeFailed") : null;
 }
-
-// custom property for the entrance stagger: the item's place in the copy block
-const place = (i: number) => ({ "--i": i }) as CSSProperties;
 
 function AlertIcon() {
   return (
@@ -207,14 +204,10 @@ export function SignInPage({ lang }: { lang: Lang }) {
 
       <main>
         <GatherHero labelledBy="sign-in-title" labels={{ pause: shared.pause, play: shared.play }}>
-          <h1 id="sign-in-title" className={styles.rise} style={place(0)}>
-            {t.heading}
-          </h1>
-          <p className={`${landingStyles.sub} ${styles.rise}`} style={place(1)}>
-            {t.intro}
-          </p>
+          <h1 id="sign-in-title">{t.heading}</h1>
+          <p className={landingStyles.sub}>{t.intro}</p>
 
-          <div className={`${styles.action} ${styles.rise}`} style={place(2)}>
+          <div className={styles.action}>
             <button
               ref={buttonRef}
               type="button"
@@ -231,7 +224,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
             </button>
           </div>
 
-          <ol className={`${styles.track} ${styles.rise}`} style={place(3)} aria-label={t.stepsLabel}>
+          <ol className={styles.track} aria-label={t.stepsLabel}>
             {steps.map(([label, state], i) => (
               <li className={styles.step} data-state={state} key={label}>
                 <Marker n={i + 1} state={state} />
@@ -253,8 +246,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
               is as tall as the tallest, and only one shows: the error lands right by the button. */}
           <div className={styles.stage}>
             <div
-              className={`${styles.trust} ${styles.rise}`}
-              style={place(4)}
+              className={styles.trust}
               data-hidden={!!problem}
               aria-hidden={!!problem}
               inert={!!problem}

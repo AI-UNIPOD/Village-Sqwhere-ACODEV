@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-12
 
+- fix(web): show the sign-in heading and text without a reveal (#47)
 - fix(web): announce a sign-in error once and swap it in smoothly (#45)
 - fix(web): keep onboarding answers when the page reloads (#54)
 - fix(web): let the onboarding country list scroll with the page (#50)
