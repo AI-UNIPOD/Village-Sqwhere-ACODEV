@@ -86,9 +86,7 @@ def current_template() -> AgreementTemplate:
     return run(work)
 
 
-def make_hub(
-    owner: User, *, archived: bool = False, terms: dict[str, Any] | None = None
-) -> Hub:
+def make_hub(owner: User, *, archived: bool = False, terms: dict[str, Any] | None = None) -> Hub:
     """A hub with its owner's signature and active membership, saved straight to the
     database the way POST /v1/hubs saves it."""
     idea = make_idea(owner)
