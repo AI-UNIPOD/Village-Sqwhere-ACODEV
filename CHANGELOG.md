@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-12
 
+- feat(api): add Gemini audio fallback and approval verification (#37)
 - fix(web): show the chosen country while the list is filtered (#48)
 - fix(web): use a narrow no-break space before french punctuation (#41)
 - feat(web): add a not-found page in english and french (#55)
