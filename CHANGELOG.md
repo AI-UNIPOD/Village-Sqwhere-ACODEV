@@ -8,9 +8,14 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
-## 2026-11-12
+## 2026-11-13
 
 - feat(web): finish github sign-in with token refresh and sign-out (#59)
+
+## 2026-11-12
+
+- feat(api): add the create hub endpoint (#58)
+- feat(api): add the current agreement endpoint (#57)
 - docs: update progress after the web review merges (#56)
 - feat(web): point the hero's main button to sign-in (#39)
 - fix(web): show the sign-in heading and text without a reveal (#47)

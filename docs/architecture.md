@@ -48,6 +48,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 - **Peer review** (Bearer token, for developers verified in the attempt's role, never their
   own attempt): `GET /v1/reviews/verifications`, `GET /v1/reviews/verifications/{session_id}`
   and `POST /v1/reviews/verifications/{session_id}/decision` (`passed` or `failed`).
+- **Hubs** (Bearer token): `GET /v1/agreements/current` (the published agreement with the
+  highest version, which a hub owner signs) and `POST /v1/hubs` (the idea's author creates
+  its one hub, signing the agreement; the hub, the signature and the owner's membership are
+  saved together). The other hub routes are still to build.
 - OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
   API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
 

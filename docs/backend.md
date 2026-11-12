@@ -597,6 +597,125 @@ Only `passed` and `failed` are accepted. A reviewer must be verified in the appl
 cannot review their own attempt, and cannot decide a case that is no longer awaiting review. A
 passed decision marks the applicant's role and profile as verified through the database trigger.
 
+### Hubs
+
+A hub is the space where a team builds an idea together. Every member signs the same
+standard agreement (an NDA) before they join, including the owner when they create the hub.
+
+**Error codes for hubs.** Errors use the same shape as the rest of the API,
+`{"detail": {"code": "...", "message": "..."}}`. Branch on `code`, never on `message`.
+
+| Status | Code | When |
+| --- | --- | --- |
+| `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
+| `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
+| `404` | `NOT_FOUND` | The idea does not exist, is deleted, or is someone else's draft. |
+| `409` | `IDEA_NOT_OPEN` | The idea is a draft or closed. Open it first. |
+| `409` | `HUB_ALREADY_EXISTS` | The idea already has a hub (one hub per idea). |
+| `409` | `AGREEMENT_MISMATCH` | The signed `template_id` or `template_sha256` is not the current agreement. Fetch `GET /v1/agreements/current` again and show it before signing. |
+| `422` | (FastAPI's list) | A field breaks a rule. `detail` is a list, and each item's `loc` names the field. |
+| `503` | `AGREEMENT_NOT_PUBLISHED` | No agreement is published on this server, so no hub can be created. A setup problem, not something the person can fix. |
+
+#### `GET /v1/agreements/current`
+
+Returns the agreement a person reads and signs before creating a hub: the published
+agreement with the highest version. When the team publishes a new version, it replaces the
+old one here at once. Send its `template_id` and `body_sha256` back when creating the hub.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
+      "version": 1,
+      "title": "TEST AGREEMENT (NOT LEGAL TEXT)",
+      "body": "# TEST AGREEMENT, NOT LEGAL TEXT\n\nThis text is a placeholder...",
+      "body_sha256": "4f0c3a...64 lowercase hex characters",
+      "published_at": "2026-11-11T09:12:44.120000Z",
+      "hub_terms": {}
+    }
+  }
+  ```
+  `body_sha256` is the SHA-256 of `body`, so it proves which exact text was signed.
+  `hub_terms` is always `{}` here: a hub's own terms are set when it is created.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `503 AGREEMENT_NOT_PUBLISHED`.
+
+#### `POST /v1/hubs`
+
+Creates a hub from an idea. Only the idea's author can, and only while the idea is `open`.
+One idea has at most one hub. The author signs the current agreement in the same request and
+becomes the hub's owner and first active member. The hub, the signature and the membership
+are saved together, or nothing is saved.
+
+* **Authentication:** Bearer token required (the idea's author)
+* **Request Body:**
+  ```json
+  {
+    "idea_id": "0193f2d0-3f4b-7e5d-9a43-0000000000d1",
+    "name": "Farm Ledger Hub",
+    "description": "Building the offline ledger MVP.",
+    "terms": {
+      "ownership_model": "custom",
+      "notes": "The owner keeps 40%, the rest is split equally."
+    },
+    "agreement": {
+      "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
+      "template_sha256": "4f0c3a...the body_sha256 from GET /v1/agreements/current",
+      "signed_legal_name": "Amina Bello"
+    }
+  }
+  ```
+  * `name`: 1 to 120 characters after trimming spaces.
+  * `description`: optional, up to 2000 characters, or `null`.
+  * `terms`: optional. Left out, it is `{"ownership_model": "equal_split"}`. `ownership_model`
+    is `equal_split`, `owner_majority` or `custom`. `notes` is optional, 1 to 1000 characters
+    after trimming. No other keys. At most 4096 characters as JSON. **Terms can never change
+    after the hub is created**, and every member who joins signs these same terms.
+  * `agreement`: the `template_id` and `body_sha256` from `GET /v1/agreements/current`, and
+    the person's legal name (2 to 200 characters after trimming).
+  * Any other field, such as `owner_id` or `status`, is refused with `422`.
+* **Success Response (201 Created):**
+  ```json
+  {
+    "data": {
+      "id": "0193f2e0-4a5c-7f6e-9b54-0000000000e1",
+      "name": "Farm Ledger Hub",
+      "description": "Building the offline ledger MVP.",
+      "status": "active",
+      "terms": {
+        "ownership_model": "custom",
+        "notes": "The owner keeps 40%, the rest is split equally."
+      },
+      "idea": {
+        "id": "0193f2d0-3f4b-7e5d-9a43-0000000000d1",
+        "title": "Offline-first farm ledger",
+        "summary": "A ledger app for smallholder farmers that works fully offline."
+      },
+      "owner": {
+        "id": "0193f2a0-0c1e-7b2a-9f10-0000000000a1",
+        "username": "amina-bello",
+        "display_name": "Amina Bello",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1001",
+        "is_verified": false
+      },
+      "member_count": 1,
+      "agreement": { "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1", "version": 1 },
+      "created_at": "2026-11-12T13:20:11.482000Z",
+      "updated_at": "2026-11-12T13:20:11.482000Z",
+      "archived_at": null,
+      "viewer": { "membership_status": "active", "member_role": "owner" }
+    }
+  }
+  ```
+  `member_count` counts active members only. `viewer` is the signed-in person's own
+  membership. The idea's confidential details are never in a hub card. The server keeps the
+  signer's IP address (from the connection, never from a header) and browser user agent as
+  evidence, and never returns them.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `422` (a field breaks a rule),
+  `404 NOT_FOUND`, `403 NOT_IDEA_AUTHOR`, `409 IDEA_NOT_OPEN`, `409 HUB_ALREADY_EXISTS`,
+  `409 AGREEMENT_MISMATCH`, `503 AGREEMENT_NOT_PUBLISHED`.
+
 ---
 
 ## 4. Frontend Integration Guide: Authentication
