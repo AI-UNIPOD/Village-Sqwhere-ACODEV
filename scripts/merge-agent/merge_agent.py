@@ -56,8 +56,8 @@ SONNET = "claude-sonnet-5-5"
 HAIKU = "claude-haiku-5-5"
 # No MCP servers and no saved sessions: each call stands alone and loads only what it needs.
 CLAUDE_FLAGS = "--strict-mcp-config --no-session-persistence"
-# Only the opening and closing markers: a line of "=======" is also a Markdown heading underline.
-MARKER = re.compile(r"^(<{7}|>{7})( |$)", re.MULTILINE)
+# Not the "=======" separator: the same line underlines a Markdown heading.
+MARKER = re.compile(r"^(<{7}|\|{7}|>{7})( |$)", re.MULTILINE)
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 log = logging.getLogger("merge-agent")
@@ -313,7 +313,13 @@ class Agent:
             self.merge(pr, main_sha)
             return
         self.checkout(pr)
-        merge = run(["git", "merge", "--no-ff", "--no-commit", "-q", f"origin/{BASE}"], merged=True)
+        # zdiff3 puts the common base in each conflict, so the resolver can see what each side
+        # changed instead of guessing.
+        merge = run(
+            ["git", "-c", "merge.conflictStyle=zdiff3", "merge", "--no-ff", "--no-commit", "-q"]
+            + [f"origin/{BASE}"],
+            merged=True,
+        )
         conflicted = git("diff", "--name-only", "--diff-filter=U").splitlines()
         if merge.returncode and not conflicted:
             raise AgentError(f"git merge failed: {tail(merge.stdout, 10)}")
@@ -403,7 +409,8 @@ class Agent:
             ("api: lint", command(*pnpm, "lint:api")),
             ("api: test", command(*pnpm, "test:api")),
         ]
-        if (CLONE / "scripts" / "merge-agent").is_dir():
+        # The tracked file, not the folder: ignored caches can outlive a checkout.
+        if (CLONE / "scripts" / "merge-agent" / "merge_agent.py").is_file():
             steps += [
                 ("agent: lint", command(*pnpm, "lint:agent")),
                 ("agent: test", command(*pnpm, "test:agent")),
@@ -636,7 +643,9 @@ class Agent:
             f"(#{pr['number']}) in this git working tree. These files have conflict markers:\n"
             f"{listed}\n\n"
             "Resolve each one so it keeps the intent of both sides: the pull request's change and "
-            f"what landed on {BASE}. Read AGENTS.md first and follow it.\n"
+            f"what landed on {BASE}. Each conflict shows the pull request's side, then the common "
+            f"base after `|||||||`, then {BASE}'s side: compare each side with the base to see "
+            "what it changed. Read AGENTS.md first and follow it.\n"
             "- Edit only the files listed. Do not create or change any other file.\n"
             "- Remove every conflict marker.\n"
             "- If a conflict cannot be resolved without guessing what the author wanted, leave its "

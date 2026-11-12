@@ -99,6 +99,7 @@ def test_leaves_ci_infra_rules_and_itself_to_a_person():
 
 def test_finds_conflict_markers_but_not_a_markdown_heading_underline():
     assert agent.has_markers("a\n<<<<<<< HEAD\nb\n=======\nc\n>>>>>>> origin/main\n")
+    assert agent.has_markers("a\n||||||| base\nb\n")
     assert not agent.has_markers("Title\n=======\n\ntext\n")
 
 
