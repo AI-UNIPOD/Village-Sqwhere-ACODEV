@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-12
+
+- feat(web): add a not-found page in english and french (#55)
+
 ## 2026-11-11
 
 - docs: update progress after the latest api and web merges (#36)
