@@ -20,11 +20,17 @@ const shape = (value: unknown): unknown =>
 
 // The en dash and the em dash, written as character codes so this file holds no dash itself.
 const DASHES = String.fromCharCode(0x2013, 0x2014);
-const words = [copy, ROLES, TOPICS];
+const words = [copy, ROLES, TECHNOLOGIES, TOPICS];
 
 test("English and French have the same keys, and every text is filled in", () => {
   expect(shape(copy.fr)).toEqual(shape(copy.en));
   for (const text of strings(words)) expect(text.trim()).not.toBe("");
+});
+
+test("every role, technology and topic has a name in English and French", () => {
+  for (const item of [...ROLES, ...TECHNOLOGIES, ...TOPICS]) {
+    expect(Object.keys(item.name).sort(), item.slug).toEqual(["en", "fr"]);
+  }
 });
 
 test("copy follows the voice rules: no dashes, no exclamation marks", () => {

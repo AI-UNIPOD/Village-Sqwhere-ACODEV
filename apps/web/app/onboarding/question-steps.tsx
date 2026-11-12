@@ -179,9 +179,9 @@ export function RoleStep({ lang, answers, update, error }: StepProps) {
 export function StackStep({ lang, answers, update, error }: StepProps) {
   const t = copy[lang];
   const [query, setQuery] = useState("");
-  const options = TECHNOLOGIES.filter((tech) => matches(tech.name, query)).map((tech) => ({
+  const options = TECHNOLOGIES.filter((tech) => matches(tech.name[lang], query)).map((tech) => ({
     slug: tech.slug,
-    label: tech.name,
+    label: tech.name[lang],
   }));
   return (
     <>

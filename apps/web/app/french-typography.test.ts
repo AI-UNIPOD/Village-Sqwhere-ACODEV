@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { copy as authCallback } from "./auth-callback/copy";
 import { copy as landing } from "./landing/copy";
 import { copy as onboarding } from "./onboarding/copy";
-import { ROLES, TOPICS } from "./onboarding/options";
+import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
 import { copy as signIn } from "./sign-in/copy";
 
 // The special spaces and hyphen, written as character codes so this file holds no invisible
@@ -26,6 +26,7 @@ const french = strings([
   onboarding.fr,
   signIn.fr,
   ROLES.map((role) => [role.name.fr, role.hint.fr]),
+  TECHNOLOGIES.map((tech) => tech.name.fr),
   TOPICS.map((topic) => topic.name.fr),
 ]);
 
