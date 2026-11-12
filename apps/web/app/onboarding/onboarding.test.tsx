@@ -266,6 +266,18 @@ test("after skipping from the welcome screen the card invites the developer to f
   expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
 });
 
+// The row sticks to the bottom of the screen on the question steps only (see the stylesheet).
+test("only the question steps get the sticky Continue row", () => {
+  start("en", "role");
+  expect(screen.getByRole("button", { name: "Continue" }).parentElement?.className).toContain("questionActions");
+  cleanup();
+
+  start("en", "done");
+  expect(screen.getByRole("button", { name: "Set up my profile" }).parentElement?.className).not.toContain(
+    "questionActions",
+  );
+});
+
 // The role cards rise in one after another. That entrance is for the first arrival only: when
 // the person comes back to the step, the cards are already there and must not move again.
 const roleCards = () => screen.getAllByRole("radio")[0].closest("[data-entrance]")?.getAttribute("data-entrance");

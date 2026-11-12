@@ -111,7 +111,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
         {step === "stack" && <StackStep {...props} />}
         {step === "country" && <CountryStep {...props} />}
         {step === "topics" && <TopicsStep {...props} />}
-        <div className={styles.actions}>
+        <div className={`${styles.actions} ${styles.questionActions}`}>
           <button type="button" className={landing.btn} onClick={advance}>
             {t.next}
           </button>
