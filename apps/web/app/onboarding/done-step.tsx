@@ -72,7 +72,7 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
             <Tags
               label={t.stackLabel}
               mono
-              items={TECHNOLOGIES.filter((tech) => answers.stack.includes(tech.slug)).map((tech) => tech.name)}
+              items={TECHNOLOGIES.filter((tech) => answers.stack.includes(tech.slug)).map((tech) => tech.name[lang])}
             />
             <Tags
               label={t.topicsLabel}
