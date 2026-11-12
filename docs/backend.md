@@ -498,11 +498,14 @@ Text answers use `{"type":"answer","text":"..."}`. Audio is sent as binary frame
 closed with `{"type":"answer_end"}`. With `GROQ_API_KEY` configured, the server sends the
 audio to `GROQ_STT_MODEL`, checks the transcript with `GROQ_GUARD_MODEL`, and gets the next
 question from `GROQ_INTERVIEW_MODEL`. If Groq is unavailable or returns invalid structured output,
-the conversation falls back to `GEMINI_INTERVIEW_MODEL`. If neither provider is available,
+the conversation falls back to `GEMINI_INTERVIEW_MODEL`. Audio transcription also falls back to
+Gemini multimodal input when Groq Whisper is unavailable. If neither provider is available,
 deterministic conversation keeps text interviews usable. Questions one to three cover architecture
 and ownership, role fundamentals, and testing and reliability. Questions four and five use the
 codebase analysis and prior answers for adaptive depth, trade-offs, and problem solving. Audio
 reports `TRANSCRIPTION_UNAVAILABLE` when transcription is not configured.
+Groq interview requests use a conservative 115,000-token input budget, below the 131,072-token
+GPT-OSS context window. Requests over that budget go directly to the Gemini interview fallback.
 
 An audio answer can name its type with the optional `audio_content_type` query parameter,
 which defaults to `audio/webm`. The value must be one of `audio/webm`, `audio/webm;codecs=opus`,
@@ -591,7 +594,8 @@ Records a peer review decision:
 ```
 
 Only `passed` and `failed` are accepted. A reviewer must be verified in the applicant's role,
-cannot review their own attempt, and cannot decide a case that is no longer awaiting review.
+cannot review their own attempt, and cannot decide a case that is no longer awaiting review. A
+passed decision marks the applicant's role and profile as verified through the database trigger.
 
 ---
 

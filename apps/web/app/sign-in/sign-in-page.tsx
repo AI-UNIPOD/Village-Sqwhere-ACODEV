@@ -106,7 +106,7 @@ function AlertIcon() {
   );
 }
 
-// Primer Octicons "mark-github", 16px. It takes the button's text colour and stays still.
+// Primer Octicons "mark-github", 16px. It takes the button's text colour.
 function GitHubMark() {
   return (
     <svg className={styles.mark} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
@@ -222,9 +222,11 @@ export function SignInPage({ lang }: { lang: Lang }) {
               aria-busy={working}
               onClick={start}
             >
-              <GitHubMark />
+              <span className={styles.slot} data-loading={status === "loading"}>
+                <GitHubMark />
+                {status === "loading" && <span className={styles.spinner} aria-hidden="true" />}
+              </span>
               {t.button}
-              {status === "loading" && <span className={styles.spinner} aria-hidden="true" />}
             </button>
           </div>
 
