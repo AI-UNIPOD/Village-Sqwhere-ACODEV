@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 
 import { copy as landing } from "../landing/copy";
 import { GatherHero } from "../landing/gather-hero";
@@ -149,6 +149,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
   const returned = useReturnedProblem();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const messageRef = useRef<HTMLDivElement>(null);
+  const messageId = useId();
   const working = status === "loading" || status === "redirecting";
   const problem: ProblemKey | null = status === "idle" ? returned : working ? null : status;
 
@@ -265,14 +266,19 @@ export function SignInPage({ lang }: { lang: Lang }) {
                 </a>
               </p>
             </div>
+            {/* Focus moving to the message reads its title and text, then Try again is next. It
+                has no alert role: some screen readers would read a focused alert twice. */}
             {(Object.keys(t.problems) as ProblemKey[]).map((key) => {
               const active = key === problem;
+              const id = `${messageId}-${key}`;
               return (
                 <div
                   className={styles.message}
                   data-active={active}
                   key={key}
-                  role={active ? "alert" : undefined}
+                  role="group"
+                  aria-labelledby={`${id}-title`}
+                  aria-describedby={`${id}-text`}
                   tabIndex={active ? -1 : undefined}
                   ref={active ? messageRef : undefined}
                   aria-hidden={!active}
@@ -282,8 +288,12 @@ export function SignInPage({ lang }: { lang: Lang }) {
                     <AlertIcon />
                   </span>
                   <div>
-                    <p className={styles.messageTitle}>{t.problems[key].title}</p>
-                    <p className={styles.messageText}>{t.problems[key].text}</p>
+                    <p className={styles.messageTitle} id={`${id}-title`}>
+                      {t.problems[key].title}
+                    </p>
+                    <p className={styles.messageText} id={`${id}-text`}>
+                      {t.problems[key].text}
+                    </p>
                     <button type="button" className={styles.retry} onClick={start}>
                       {t.retry}
                     </button>
