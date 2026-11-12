@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-12
 
+- fix(web): show the onboarding header on loading and error screens (#46)
 - fix(web): keep onboarding chips the same width when selected (#53)
 - fix(web): use the design system breakpoint on onboarding (#42)
 - fix(web): give onboarding choice cards press feedback (#38)
