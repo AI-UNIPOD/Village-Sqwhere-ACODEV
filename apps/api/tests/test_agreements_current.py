@@ -1,22 +1,23 @@
 """GET /v1/agreements/current: the agreement a hub owner reads and signs before creating a hub."""
 
-import asyncio
 import hashlib
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import Generator
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
-from app.main import app
 from app.models import AgreementTemplate
-from tests.conftest import test_engine
-from tests.hub_support import auth, bad_auth_headers, make_user, run
+from tests.hub_support import (
+    auth,
+    bad_auth_headers,
+    make_user,
+    request_with_no_published_agreement,
+    run,
+)
 
 URL = "/v1/agreements/current"
 
@@ -158,30 +159,7 @@ def test_refuses_a_deleted_user(client: TestClient) -> None:
 
 
 def test_says_so_when_no_agreement_is_published() -> None:
-    """The shared test database always has published templates, so this test shadows the
-    table with an empty temporary one on its own connection. Postgres looks in the
-    session's temporary schema first, and the transaction is rolled back at the end."""
-    user = make_user()
-
-    async def go() -> httpx.Response:
-        async with test_engine.connect() as connection:
-            await connection.begin()
-            await connection.execute(
-                text("CREATE TEMP TABLE agreement_templates (LIKE public.agreement_templates)")
-            )
-
-            async def override() -> AsyncGenerator[AsyncSession]:
-                yield AsyncSession(bind=connection, expire_on_commit=False)
-
-            app.dependency_overrides[get_db] = override
-            # in this loop, because the connection belongs to it
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as http:
-                resp = await http.get(URL, headers=auth(user))
-            await connection.rollback()
-            return resp
-
-    resp = asyncio.run(go())
+    resp = request_with_no_published_agreement("GET", URL, auth(make_user()))
 
     assert resp.status_code == 503
     assert resp.json()["detail"]["code"] == "AGREEMENT_NOT_PUBLISHED"

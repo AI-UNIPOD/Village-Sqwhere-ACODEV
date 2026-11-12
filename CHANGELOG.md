@@ -11,9 +11,11 @@ its number:
 ## 2026-11-13
 
 - ci: add a local merge agent that tests and merges pull requests (#61)
+- feat(web): finish github sign-in with token refresh and sign-out (#59)
 
 ## 2026-11-12
 
+- feat(api): add the create hub endpoint (#58)
 - feat(api): add the current agreement endpoint (#57)
 - docs: update progress after the web review merges (#56)
 - feat(web): point the hero's main button to sign-in (#39)

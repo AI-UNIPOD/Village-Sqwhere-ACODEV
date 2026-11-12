@@ -6,12 +6,15 @@ import { ViewTransition, addTransitionType, startTransition, useEffect, useRef, 
 import { GatherHero } from "../landing/gather-hero";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
+import { RequireSession } from "../session/session-ui";
 import { copy, fill } from "./copy";
 import { DoneStep } from "./done-step";
 import { ArrowLeft } from "./icons";
 import { OnboardingFrame } from "./onboarding-frame";
 import styles from "./onboarding.module.css";
-import { DEMO_PROFILE, firstName } from "./options";
+import { OnboardingSkeleton } from "./onboarding-skeleton";
+import { firstName, type Profile } from "./options";
+import { useProfile } from "./profile";
 import { CountryStep, RoleStep, StackStep, TopicsStep } from "./question-steps";
 import { useSavedAnswers } from "./saved-answers";
 import {
@@ -33,7 +36,7 @@ const SLIDE = { "step-forward": "step-forward", "step-back": "step-back", defaul
 
 // The whole flow: one question per screen, the screen held in the URL as ?step= so the
 // browser's back button works. Answers live in this component's state and in sessionStorage.
-export function Onboarding({ lang }: { lang: Lang }) {
+export function Onboarding({ lang, profile }: { lang: Lang; profile: Profile }) {
   const t = copy[lang];
   const router = useRouter();
   const requested = parseStep(useSearchParams().get("step"));
@@ -85,10 +88,10 @@ export function Onboarding({ lang }: { lang: Lang }) {
     body = (
       <GatherHero labelledBy="welcome-title" labels={{ pause: t.pause, play: t.play }}>
         <h1 id="welcome-title" className={styles.title} tabIndex={-1}>
-          {fill(t.welcomeTitle, { name: firstName(DEMO_PROFILE) })}
+          {fill(t.welcomeTitle, { name: firstName(profile) })}
         </h1>
         <p className={landing.sub}>{t.welcomeSub}</p>
-        <p className={styles.signedIn}>{fill(t.signedIn, { username: DEMO_PROFILE.username })}</p>
+        <p className={styles.signedIn}>{fill(t.signedIn, { username: profile.username })}</p>
         <div className={landing.ctas}>
           <button type="button" className={`${landing.btn} ${landing.heroButton}`} onClick={() => move(1)}>
             {t.start}
@@ -104,7 +107,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
       </GatherHero>
     );
   } else if (step === "done") {
-    body = <DoneStep lang={lang} answers={answers} profile={DEMO_PROFILE} onChange={() => go("role", "back")} />;
+    body = <DoneStep lang={lang} answers={answers} profile={profile} onChange={() => go("role", "back")} />;
   } else {
     body = (
       <div className={`${styles.column} ${styles.step}`}>
@@ -151,5 +154,19 @@ export function Onboarding({ lang }: { lang: Lang }) {
         {announcement}
       </p>
     </OnboardingFrame>
+  );
+}
+
+function WithProfile({ lang }: { lang: Lang }) {
+  const profile = useProfile();
+  return profile ? <Onboarding lang={lang} profile={profile} /> : <OnboardingSkeleton />;
+}
+
+// The page is only for a signed-in developer, greeted by their own GitHub name.
+export function SignedInOnboarding({ lang }: { lang: Lang }) {
+  return (
+    <RequireSession lang={lang} fallback={<OnboardingSkeleton />}>
+      <WithProfile lang={lang} />
+    </RequireSession>
   );
 }

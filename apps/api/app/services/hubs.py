@@ -1,9 +1,13 @@
 """Rules the hub endpoints share, kept in one place."""
 
-from sqlalchemy import select
+from uuid import UUID
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import AgreementTemplate
+from app.models import AgreementTemplate, Hub, HubMember, HubMemberStatus
+from app.schemas.hubs import Hub as HubCard
+from app.schemas.hubs import HubAgreement, HubIdea, HubOwner, HubViewer
 
 
 async def current_agreement_template(db: AsyncSession) -> AgreementTemplate | None:
@@ -19,3 +23,41 @@ async def current_agreement_template(db: AsyncSession) -> AgreementTemplate | No
         .limit(1)
     )
     return result.scalar_one_or_none()
+
+
+async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
+    """What any signed-in user may see of a hub, plus their own place in it.
+
+    The idea's confidential details are never part of it.
+    """
+    member_count = await db.execute(
+        select(func.count())
+        .select_from(HubMember)
+        .where(HubMember.hub_id == hub.id, HubMember.status == HubMemberStatus.ACTIVE)
+    )
+    membership = await db.execute(
+        select(HubMember)
+        .where(HubMember.hub_id == hub.id, HubMember.user_id == viewer_id)
+        .execution_options(populate_existing=True)
+    )
+    viewer = membership.scalar_one_or_none()
+    return HubCard(
+        id=hub.id,
+        name=hub.name,
+        description=hub.description,
+        status=hub.status,
+        terms=hub.terms,
+        idea=HubIdea.model_validate(hub.idea),
+        owner=HubOwner.model_validate(hub.owner),
+        member_count=member_count.scalar_one(),
+        agreement=HubAgreement(
+            template_id=hub.agreement_template.id, version=hub.agreement_template.version
+        ),
+        created_at=hub.created_at,
+        updated_at=hub.updated_at,
+        archived_at=hub.archived_at,
+        viewer=HubViewer(
+            membership_status=viewer.status if viewer else None,
+            member_role=viewer.member_role if viewer else None,
+        ),
+    )
