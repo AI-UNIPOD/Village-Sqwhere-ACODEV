@@ -119,6 +119,35 @@ test("the demo and the tour say they are coming soon and do nothing", () => {
   expect(container.querySelector("#tour-note")?.textContent).toBe("The guided tour is coming soon.");
 });
 
+// the hero's actions, in order: everything you can press under the headline
+function heroActions(headline: string) {
+  const copy = screen.getByRole("heading", { level: 1, name: headline }).parentElement!;
+  return Array.from(copy.querySelectorAll<HTMLElement>("a, button"));
+}
+
+test.each([
+  ["en", "Builders across Africa, one square.", "Join the village", "Take the tour", "Try the demo, Coming soon"],
+  ["fr", "Toute l'Afrique, une seule place.", "Rejoindre le village", "Faire la visite", "Essayer la démo, Bientôt disponible"],
+] as const)("the %s hero leads to sign-in first, then the tour, then the demo", (lang, headline, join, tour, demo) => {
+  render(<LandingPage lang={lang} />);
+  const actions = heroActions(headline);
+  expect(actions.map((action) => action.textContent)).toEqual([join, tour, demo]);
+
+  const [first, , last] = actions;
+  expect(first).toBe(screen.getByRole("link", { name: join }));
+  expect(first.getAttribute("href")).toBe(`/${lang}/sign-in`);
+  expect(last.tagName).toBe("BUTTON");
+  expect(last.getAttribute("aria-disabled")).toBe("true");
+});
+
+test("the demo note sits under the demo button, not under the first action", () => {
+  vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (this: HTMLElement) {
+    return this.textContent?.startsWith("Try the demo") ? 320 : 0;
+  });
+  const { container } = render(<LandingPage lang="en" />);
+  expect(container.querySelector<HTMLElement>("#demo-note")!.style.left).toBe("320px");
+});
+
 test.each([
   ["en", "Sign in"],
   ["fr", "Connexion"],

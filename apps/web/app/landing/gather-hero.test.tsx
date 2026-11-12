@@ -206,6 +206,30 @@ test("the coming-soon line starts exactly where the first button starts", () => 
   expect(container.querySelector<HTMLElement>("[data-hero-note]")!.style.left).toBe("45px");
 });
 
+test("the coming-soon line starts under the button it belongs to, wherever that button is", () => {
+  vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    return this.tagName === "BUTTON" ? 260 : 0;
+  });
+  const { container } = render(
+    <GatherHero labelledBy="title" labels={labels}>
+      <h1 id="title">Builders across Africa, one square.</h1>
+      <div>
+        <a href="#join">Join the village</a>
+        <a href="#tour">Take the tour</a>
+        <button type="button" data-note="demo-note">
+          Try the demo
+        </button>
+      </div>
+      <p id="demo-note" data-hero-note="">
+        The demo is coming soon.
+      </p>
+    </GatherHero>,
+  );
+  expect(container.querySelector<HTMLElement>("[data-hero-note]")!.style.left).toBe("260px");
+});
+
 test("no background words are drawn behind the coming-soon line", () => {
   // the line hangs 28px below the text block: the block measures 240px, its overflow 268px
   vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(268);

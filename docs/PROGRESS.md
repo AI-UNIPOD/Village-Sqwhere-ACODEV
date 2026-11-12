@@ -20,7 +20,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
   language). It matches the approved B3v design, hero and background motion included, checked
-  by tests and measurements. "Try the demo" and "Start the tour" show "Coming soon".
+  by tests and measurements. The hero leads to sign-in; the demo and tour start say "Coming soon".
 - `/{lang}/sign-in` starts GitHub sign-in; `/{lang}/auth/callback` finishes it, keeps the
   session in localStorage (`docs/decisions/2026-11-11-web-session-in-local-storage.md`).
 - Below the hero, sections reveal once, the header marks the section being read, tour stops
