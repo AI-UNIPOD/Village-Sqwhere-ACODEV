@@ -14,8 +14,8 @@ import { ArrowLeft } from "./icons";
 import styles from "./onboarding.module.css";
 import { DEMO_PROFILE, firstName } from "./options";
 import { CountryStep, RoleStep, StackStep, TopicsStep } from "./question-steps";
+import { useSavedAnswers } from "./saved-answers";
 import {
-  NO_ANSWERS,
   QUESTIONS,
   REQUIRED,
   STEP_IDS,
@@ -33,15 +33,16 @@ import {
 const SLIDE = { "step-forward": "step-forward", "step-back": "step-back", default: "none" };
 
 // The whole flow: one question per screen, the screen held in the URL as ?step= so the
-// browser's back button works. Answers live in this component's state only for now.
+// browser's back button works. Answers live in this component's state and in sessionStorage.
 export function Onboarding({ lang }: { lang: Lang }) {
   const t = copy[lang];
   const other: Lang = lang === "en" ? "fr" : "en";
   const router = useRouter();
   const requested = parseStep(useSearchParams().get("step"));
-  const [answers, setAnswers] = useState<Answers>(NO_ANSWERS);
+  const { answers, ready, change } = useSavedAnswers();
   const [missing, setMissing] = useState<StepId | null>(null);
-  const step = reachable(requested, answers);
+  // Until the saved answers are back, a later step must not be sent to the first question.
+  const step = ready ? reachable(requested, answers) : requested;
   const shown = useRef(step);
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
   const move = (by: 1 | -1) => go(STEP_IDS[STEP_IDS.indexOf(step) + by], by === 1 ? "forward" : "back");
 
   function update(patch: Partial<Answers>) {
-    setAnswers((current) => ({ ...current, ...patch }));
+    change({ ...answers, ...patch });
     setMissing(null);
   }
 

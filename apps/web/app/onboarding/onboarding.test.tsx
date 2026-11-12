@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import type { Lang } from "../locales";
 import { Onboarding } from "./onboarding";
+import { ANSWERS_KEY } from "./saved-answers";
 
 const nav = vi.hoisted(() => {
   const push = vi.fn();
@@ -16,6 +17,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 beforeEach(() => {
+  sessionStorage.clear();
   nav.search = "";
   vi.stubGlobal(
     "matchMedia",
@@ -244,4 +246,44 @@ test("after skipping from the welcome screen the card invites the developer to f
   expect(screen.queryByText("Stack")).toBeNull();
   click("button", "Set up my profile");
   expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
+});
+
+// A reload, a dropped tab or a hot reload remounts the page. WCAG 3.3.7: nothing the person
+// already entered may be asked for again.
+test("a reload on a later step keeps the step and the answers", () => {
+  const go = start();
+  answerRequired(go);
+  cleanup();
+
+  const goAgain = start("en", "country");
+  expect(nav.replace).not.toHaveBeenCalled();
+  expect(heading("Where do you build from?")).toBeTruthy();
+
+  goAgain("stack");
+  expect(screen.getByRole("button", { name: "React" }).getAttribute("aria-pressed")).toBe("true");
+  goAgain("role");
+  expect((screen.getByRole("radio", { name: /Frontend Engineer/ }) as HTMLInputElement).checked).toBe(true);
+});
+
+test("a corrupt saved value is ignored: no answers, and a later step goes back to the role", () => {
+  sessionStorage.setItem(ANSWERS_KEY, "{not json");
+  start("en", "country");
+  expect(nav.replace).toHaveBeenCalledWith("/en/onboarding?step=role");
+  expect(heading("What do you do most?")).toBeTruthy();
+  expect(screen.getAllByRole("radio").every((radio) => !(radio as HTMLInputElement).checked)).toBe(true);
+});
+
+test("blocked storage falls back to answers kept in the page only", () => {
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    throw new DOMException("blocked", "SecurityError");
+  });
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new DOMException("blocked", "SecurityError");
+  });
+  const go = start();
+  go("role");
+  click("radio", /Frontend Engineer/);
+  go("stack");
+  go("role");
+  expect((screen.getByRole("radio", { name: /Frontend Engineer/ }) as HTMLInputElement).checked).toBe(true);
 });
