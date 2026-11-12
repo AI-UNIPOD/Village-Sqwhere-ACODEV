@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import type { Lang } from "../locales";
-import { CountryStep } from "./question-steps";
+import { CountryStep, StackStep } from "./question-steps";
 import { NO_ANSWERS } from "./steps";
 
 afterEach(cleanup);
@@ -39,4 +39,39 @@ test.each([
   expect(filter.value).toBe("");
   expect(screen.getAllByRole("radio")).toHaveLength(54);
   expect(screen.queryByRole("heading", { level: 2, name: t.title })).toBeNull();
+});
+
+const showStack = (lang: Lang) =>
+  render(<StackStep lang={lang} answers={NO_ANSWERS} update={vi.fn()} error={false} />);
+
+test("the French stack step names technologies in French, and keeps product names", () => {
+  showStack("fr");
+  expect(screen.getByRole("button", { name: "Vision par ordinateur" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Bases de données vectorielles" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "LLM" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "PostgreSQL" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Computer Vision" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Vector Databases" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "LLMs" })).toBeNull();
+});
+
+test("the English stack step keeps the English names", () => {
+  showStack("en");
+  expect(screen.getByRole("button", { name: "Computer Vision" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Vector Databases" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "LLMs" })).toBeTruthy();
+});
+
+test("the stack filter matches the names shown in the page language", () => {
+  showStack("fr");
+  const filter = screen.getByLabelText("Filtrer les technologies");
+
+  fireEvent.change(filter, { target: { value: "ordinateur" } });
+  expect(screen.getAllByRole("button", { pressed: false }).map((b) => b.textContent)).toEqual([
+    "Vision par ordinateur",
+  ]);
+
+  fireEvent.change(filter, { target: { value: "computer" } });
+  expect(screen.queryByRole("button", { name: "Vision par ordinateur" })).toBeNull();
+  expect(screen.getByRole("heading", { level: 2, name: "Aucun résultat" })).toBeTruthy();
 });
