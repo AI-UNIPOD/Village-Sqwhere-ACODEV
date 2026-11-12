@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-13
+
+- ci: add a local merge agent that tests and merges pull requests (#61)
+
 ## 2026-11-12
 
 - feat(api): add the current agreement endpoint (#57)

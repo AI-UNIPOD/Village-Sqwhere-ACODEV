@@ -73,9 +73,11 @@ For tests that re-run as you save, use `pnpm --filter web exec vitest` (web) or
 5. **Push and open a pull request** into `main`. The title is a one-line conventional
    commit, because we squash merge and the title becomes the commit on `main`. Fill in the
    template.
-6. **Wait for CI to go green** (below), then ask a teammate to review.
-7. **Answer every review comment.** Push fixes to the same branch.
-8. **Squash merge** once CI is green and a teammate has approved, then delete the branch.
+6. **The merge agent takes it from there** (below): within a few minutes it runs the checks,
+   squash merges the pull request if they all pass and deletes the branch. To hold it back,
+   for example for a review, add the `do-not-merge` label.
+7. **If it flags the pull request, fix it on the branch.** It runs the checks again on the
+   next push. Answer every review comment the same way.
 
 If `main` moves while you work, merge it into your branch (`git merge main`). Do not start a
 branch from another unmerged branch.
@@ -95,6 +97,22 @@ GitHub Actions runs `.github/workflows/ci.yml` on every pull request and on ever
 
 If a check fails, click it to read the log, fix the problem on your branch and push again.
 CI re-runs on its own.
+
+### The merge agent
+
+GitHub Actions is off for now (billing limit), so the checks above run on Tanny's machine
+instead. `scripts/merge-agent/` checks every open pull request into `main` every 5 minutes,
+merged with the latest `main`. Then:
+
+| You see | It means | You do |
+| --- | --- | --- |
+| The pull request merged and the branch gone | Every check passed | Nothing |
+| `agent: checks failed` and a comment | A check failed; the comment says which and why | Fix it and push |
+| `agent: conflicts` and a comment | Conflicts it would not or could not resolve | Merge `main` in, resolve, push |
+| `agent: review conflicts` and a comment | It resolved conflicts and the checks passed | Read the resolution, then remove the label |
+
+Removing an `agent:` label makes it try the same commit again. How it works and how to run it:
+[`scripts/merge-agent/README.md`](scripts/merge-agent/README.md).
 
 There is no automatic deployment yet. A deploy job will be added once the team has access
 to the Systalink platform (see `infra/README.md`).

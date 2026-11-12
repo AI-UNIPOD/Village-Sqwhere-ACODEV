@@ -54,6 +54,7 @@ apps/
   api/        service FastAPI
 infra/        base de données locale (Docker) et notes de déploiement
 docs/         architecture, décisions, avancement et système de design
+scripts/      agent de fusion qui teste et fusionne les pull requests
 .github/      workflow de CI et modèle de pull request
 AGENTS.md     règles pour l'équipe et ses agents de code
 CHANGELOG.md  historique des changements, du plus récent au plus ancien
