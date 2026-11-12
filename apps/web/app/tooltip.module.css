@@ -1,0 +1,89 @@
+/* A tooltip for an icon button. A level 2 surface (--surface-raised, --shadow-2, a 1px --line
+   edge) with the small corner tooltips get in spacing-and-layout.md. It grows from the button
+   over --dur-menu and leaves over --dur-menu-out, on --ease-out, moving by transform and
+   opacity only. tooltip.tsx decides when it shows, with three attributes:
+   data-open     it is showing
+   data-wait     a mouse is over the button: hold it back for --delay-spinner first
+   data-instant  another tooltip closed a moment ago: no wait and no fade
+   data-flip     a tooltip under its button has no room below: it goes above */
+.tip {
+  position: absolute;
+  z-index: 40;
+  inline-size: max-content;
+  /* beside a round button at 360px there are 300px, so this never leaves the screen */
+  max-inline-size: min(16rem, calc(100vw - var(--space-8)));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+  color: var(--text);
+  font: var(--type-body-s);
+  letter-spacing: normal;
+  text-align: start;
+  text-decoration: none;
+  text-transform: none;
+  cursor: default;
+  visibility: hidden;
+  opacity: 0;
+  transform: scale(0.97);
+  transition:
+    opacity var(--dur-menu-out) var(--ease-out),
+    transform var(--dur-menu-out) var(--ease-out),
+    visibility 0s linear var(--dur-menu-out);
+}
+
+/* The gap between the button and the tooltip belongs to the tooltip, so the pointer can cross
+   it and rest on the tooltip without it closing. */
+.tip::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--space-2) * -1);
+}
+
+.left {
+  top: 50%;
+  right: calc(100% + var(--space-2));
+  translate: 0 -50%;
+  transform-origin: right center;
+}
+
+.below {
+  top: calc(100% + var(--space-2));
+  left: 50%;
+  translate: -50% 0;
+  transform-origin: center top;
+}
+
+/* under the button, but above it when there is no room below (data-flip) */
+.below[data-flip] {
+  top: auto;
+  bottom: calc(100% + var(--space-2));
+  transform-origin: center bottom;
+}
+
+.tip[data-open] {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--dur-menu) var(--ease-out),
+    transform var(--dur-menu) var(--ease-out),
+    visibility 0s;
+}
+
+.tip[data-open][data-wait] {
+  transition-delay: var(--delay-spinner);
+}
+
+.tip[data-instant] {
+  transition-duration: 0s;
+  transition-delay: 0s;
+}
+
+/* Reduced motion keeps the fade and drops the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    transform: none;
+  }
+}
