@@ -72,7 +72,6 @@
 }
 
 .back svg,
-.chip svg,
 .error svg {
   inline-size: var(--space-4);
   block-size: var(--space-4);
@@ -181,7 +180,7 @@
 
 .countryList { gap: var(--space-2); }
 
-@media (min-width: 600px) {
+@media (min-width: 768px) {
   .countryList { grid-template-columns: 1fr 1fr; }
 }
 
@@ -198,8 +197,11 @@
   cursor: pointer;
   transition:
     background-color var(--dur-press) var(--ease-out),
-    border-color var(--dur-press) var(--ease-out);
+    border-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
 }
+
+.choice:active { transform: scale(0.97); }
 
 /* the real radio covers the card, so a tap anywhere picks it and the keyboard still works */
 .choice input {
@@ -241,8 +243,9 @@
 
 .choice:has(input:checked) .tick { opacity: 1; }
 
-/* The role cards rise in once, one after another (--i is the card's place). */
-.roleList .choice {
+/* The role cards rise in one after another (--i is the card's place), only when data-entrance
+   is play: coming back to the step shows them at rest. */
+.roleList[data-entrance="play"] .choice {
   animation: rise var(--dur-reveal) var(--ease-out) both;
   animation-delay: calc(var(--delay-stagger) * min(var(--i, 0), 5));
 }
@@ -278,7 +281,6 @@
 }
 
 .chip {
-  gap: var(--space-1);
   min-block-size: calc(var(--tap-min) - var(--space-2));
   padding: 0 var(--space-3);
   background: var(--bg);
@@ -451,10 +453,16 @@
 /* Reduced motion: fades and colour changes stay, movement goes. The spinner stops turning
    but still shows that something is happening. */
 @media (prefers-reduced-motion: reduce) {
-  .roleList .choice,
+  .roleList[data-entrance="play"] .choice,
   .card,
   .tag,
   .spinner {
     animation-name: fade;
+  }
+
+  .back:active,
+  .chip:active,
+  .choice:active {
+    transform: none;
   }
 }
