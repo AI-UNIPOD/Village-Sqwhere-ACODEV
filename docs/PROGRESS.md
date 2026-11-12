@@ -13,9 +13,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   verification (GitHub analysis, a five-question AI interview over a WebSocket, a report) with
   peer review by developers verified in that role, Groq and Gemini fallbacks and a separate
   worker. Guide: `docs/backend.md`; routes: `docs/architecture.md`.
-- Models and schemas for ideas, hubs, agreements and members exist. Routes so far:
-  `GET /v1/agreements/current` and `POST /v1/hubs`; ideas and posts have none yet. Schema: `infra/db/init/` (new scripts need a rebuilt local database,
-  see `infra/README.md`); `004` is a TEST agreement. API tests need `TEST_DATABASE_URL`.
+- Hubs so far: `GET /v1/agreements/current` and `POST /v1/hubs`; ideas and posts have models
+  but no routes. Schema: `infra/db/init/` (new scripts need a rebuilt local database, see
+  `infra/README.md`); `004` is a TEST agreement. API tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
