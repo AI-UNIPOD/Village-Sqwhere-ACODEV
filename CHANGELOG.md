@@ -8,6 +8,11 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-12
+
+- feat(api): route oversized interview prompts to Gemini
+- feat(api): use Gemini audio fallback and record verified applicants
+
 ## 2026-11-11
 
 - docs: update progress after the latest api and web merges (#36)

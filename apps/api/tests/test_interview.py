@@ -14,11 +14,12 @@ from app.models.users import (
     VerificationStatus,
 )
 from app.services import gemini_interview, groq_interview
-from app.services.gemini_interview import GeminiInterviewAgent
+from app.services.gemini_interview import GeminiAudioTranscriber, GeminiInterviewAgent
 from app.services.groq_interview import GroqInterviewAgent
 from app.services.interview import (
     INTERVIEW_COMPETENCIES,
     DefaultInterviewAgent,
+    FallbackAudioTranscriber,
     FallbackInterviewAgent,
     InterviewHistoryItem,
     InterviewUnavailable,
@@ -144,6 +145,22 @@ def test_groq_agent_requests_json_object_mode(monkeypatch: pytest.MonkeyPatch) -
 
     assert response["choices"]
     assert request_payload["response_format"] == {"type": "json_object"}
+    assert request_payload["max_completion_tokens"] == 2048
+
+
+def test_groq_agent_rejects_context_before_calling_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(groq_interview, "GROQ_INTERVIEW_CONTEXT_BUDGET_TOKENS", 10)
+    agent = GroqInterviewAgent(api_key="test-key", model="test-model")
+
+    async def provider_must_not_run(model: str, system: str, user: str) -> str:
+        raise AssertionError("Groq should not be called over the context budget")
+
+    agent._chat = provider_must_not_run
+
+    with pytest.raises(InterviewUnavailable, match="context budget exceeded"):
+        asyncio.run(agent.opening("backend-engineer", {"summary": "evidence"}))
 
 
 def test_gemini_agent_requires_configuration() -> None:
@@ -151,6 +168,40 @@ def test_gemini_agent_requires_configuration() -> None:
 
     with pytest.raises(InterviewUnavailable, match="not configured"):
         asyncio.run(agent.opening("backend-engineer", {}))
+
+
+def test_gemini_audio_transcriber_sends_inline_audio(monkeypatch: pytest.MonkeyPatch) -> None:
+    transcriber = GeminiAudioTranscriber(api_key="test-key", model="test-model")
+    captured: dict = {}
+
+    def fake_urlopen(request, timeout):
+        captured["payload"] = json.loads(request.data)
+        return BytesIO(b'{"candidates":[{"content":{"parts":[{"text":"spoken answer"}]}}]}')
+
+    monkeypatch.setattr(gemini_interview, "urlopen", fake_urlopen)
+
+    transcript = asyncio.run(transcriber.transcribe(b"audio", "audio/webm"))
+
+    assert transcript == "spoken answer"
+    part = captured["payload"]["contents"][0]["parts"][1]["inlineData"]
+    assert part["mimeType"] == "audio/webm"
+    assert part["data"] == "YXVkaW8="
+
+
+def test_audio_transcriber_falls_back_to_gemini() -> None:
+    class Unavailable:
+        async def transcribe(self, audio: bytes, content_type: str) -> str:
+            raise InterviewUnavailable("Groq unavailable")
+
+    class Available:
+        async def transcribe(self, audio: bytes, content_type: str) -> str:
+            return "Gemini transcript"
+
+    transcript = asyncio.run(
+        FallbackAudioTranscriber(Unavailable(), Available()).transcribe(b"audio", "audio/webm")
+    )
+
+    assert transcript == "Gemini transcript"
 
 
 def test_gemini_agent_generates_structured_adaptive_conversation() -> None:
