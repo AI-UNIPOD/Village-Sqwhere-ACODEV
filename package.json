@@ -14,6 +14,9 @@
     "dev:api": "uv run --directory apps/api fastapi dev app/main.py",
     "test:api": "uv run --directory apps/api pytest",
     "lint:api": "uv run --directory apps/api ruff check . && uv run --directory apps/api ruff format --check .",
+    "lint:agent": "uv run --directory apps/api ruff check ../../scripts/merge-agent && uv run --directory apps/api ruff format --check ../../scripts/merge-agent",
+    "test:agent": "uv run --directory apps/api pytest ../../scripts/merge-agent",
+    "merge-agent": "uv run --no-project python scripts/merge-agent/merge_agent.py",
     "db:up": "docker compose -f infra/docker-compose.yml up -d",
     "db:down": "docker compose -f infra/docker-compose.yml down"
   }
