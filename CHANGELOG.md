@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-12
+
+- fix(web): announce a sign-in error once and swap it in smoothly (#45)
+
 ## 2026-11-11
 
 - docs: update progress after the latest api and web merges (#36)
