@@ -166,6 +166,26 @@ test("stack chips toggle aria-pressed and the count follows", () => {
   expect(screen.getByText("1 selected")).toBeTruthy();
 });
 
+// A tick inside the chip made it wider, so chips jumped to another row as picks built up.
+test("a chip looks the same size when pressed: only its fill changes, nothing is added", () => {
+  const go = start();
+  answerRequired(go);
+  const docker = screen.getByRole("button", { name: "Docker" });
+  const before = docker.innerHTML;
+  fireEvent.click(docker);
+  expect(docker.getAttribute("aria-pressed")).toBe("true");
+  expect(docker.innerHTML).toBe(before);
+  expect(docker.querySelector("svg")).toBeNull();
+
+  go("topics");
+  const fintech = screen.getByRole("button", { name: "Fintech" });
+  const topicBefore = fintech.innerHTML;
+  fireEvent.click(fintech);
+  expect(fintech.getAttribute("aria-pressed")).toBe("true");
+  expect(fintech.innerHTML).toBe(topicBefore);
+  expect(fintech.querySelector("svg")).toBeNull();
+});
+
 test("Continue with no technology shows an error and stays", () => {
   const go = start();
   go("role");
@@ -286,4 +306,48 @@ test("blocked storage falls back to answers kept in the page only", () => {
   go("stack");
   go("role");
   expect((screen.getByRole("radio", { name: /Frontend Engineer/ }) as HTMLInputElement).checked).toBe(true);
+});
+
+// The row sticks to the bottom of the screen on the question steps only (see the stylesheet).
+test("only the question steps get the sticky Continue row", () => {
+  start("en", "role");
+  expect(screen.getByRole("button", { name: "Continue" }).parentElement?.className).toContain("questionActions");
+  cleanup();
+
+  start("en", "done");
+  expect(screen.getByRole("button", { name: "Set up my profile" }).parentElement?.className).not.toContain(
+    "questionActions",
+  );
+});
+
+// The role cards rise in one after another. That entrance is for the first arrival only: when
+// the person comes back to the step, the cards are already there and must not move again.
+const roleCards = () => screen.getAllByRole("radio")[0].closest("[data-entrance]")?.getAttribute("data-entrance");
+
+test("the role cards play their entrance when the role step is reached from the welcome screen", () => {
+  const go = start();
+  click("button", "Set up my profile");
+  go("role");
+  expect(roleCards()).toBe("play");
+});
+
+test("the role cards are at rest after Back from the stack step", () => {
+  const go = start();
+  click("button", "Set up my profile");
+  go("role");
+  click("radio", /Frontend Engineer/);
+  click("button", "Continue");
+  go("stack");
+  click("button", "Back");
+  go("role");
+  expect(roleCards()).toBe("rest");
+});
+
+test("the role cards are at rest after Change my answers", () => {
+  const go = start();
+  answerRequired(go);
+  go("done");
+  click("button", "Change my answers");
+  go("role");
+  expect(roleCards()).toBe("rest");
 });

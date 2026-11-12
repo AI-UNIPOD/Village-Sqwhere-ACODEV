@@ -26,12 +26,21 @@ Every string exists in both languages in the same pull request. French is often 
 so buttons and labels must have room to grow. Write the French yourself or ask a
 French-speaking teammate; do not ship machine translation unchecked.
 
+French punctuation follows French typography:
+
+- A narrow no-break space (U+202F) goes before `?`, `!`, `;` and `:`, and inside « »:
+  `Nouveau ici[U+202F]?`, `«[U+202F]{query}[U+202F]»`. Never an ordinary space and never
+  none, so a `?` or a closing guillemet cannot wrap alone onto the next line on a phone.
+- A colon between digits is a time (0:30) and a colon in a URL is not punctuation. Leave both.
+- Write "e-mail" with a non-breaking hyphen (U+2011), so it never splits across two lines.
+- In code, write these as `\u202f` and `\u2011` escapes, so they stay visible in a review.
+
 | Moment | English | Français |
 | --- | --- | --- |
 | Main action | Send invite | Envoyer l'invitation |
 | Skip | Not now | Pas maintenant |
 | Slow connection | Matching is taking longer. The connection is slow. We'll show results here as they arrive. | La recherche prend plus de temps. La connexion est lente. Les résultats s'afficheront ici dès leur arrivée. |
-| Field error | Enter a full email address, like ada@example.com. | Saisissez une adresse e-mail complète, par exemple ada@example.com. |
+| Field error | Enter a full email address, like ada@example.com. | Saisissez une adresse e‑mail complète, par exemple ada@example.com. |
 | Empty state | No matches yet. Add two skills and we'll start looking. | Pas encore de correspondances. Ajoutez deux compétences et nous lancerons la recherche. |
 
 ## Instead of this, write this
