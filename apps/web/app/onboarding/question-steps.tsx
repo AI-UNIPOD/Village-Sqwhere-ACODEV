@@ -145,14 +145,15 @@ function Choice(props: {
   );
 }
 
-export function RoleStep({ lang, answers, update, error }: StepProps) {
+// The cards rise in only on the first arrival from the welcome screen, never on a return.
+export function RoleStep({ lang, answers, update, error, entrance }: StepProps & { entrance: boolean }) {
   const t = copy[lang].role;
   return (
     <>
       <Head id="role" title={t.title} why={t.why} />
       <fieldset className={styles.group} aria-describedby={describedBy("role", error)}>
         <legend className={landing.srOnly}>{t.title}</legend>
-        <div className={styles.roleList}>
+        <div className={styles.roleList} data-entrance={entrance ? "play" : "rest"}>
           {ROLES.map((role, i) => (
             <Choice
               key={role.slug}
