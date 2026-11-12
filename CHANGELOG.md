@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-12
+
+- fix(web): let the onboarding country list scroll with the page (#50)
+
 ## 2026-11-11
 
 - docs: update progress after the latest api and web merges (#36)
