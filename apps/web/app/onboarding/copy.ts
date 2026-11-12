@@ -20,7 +20,7 @@ type Copy = {
   skip: string;
   role: Question & { error: string };
   stack: Question & { error: string; filter: string; selected: string };
-  country: Question & { filter: string };
+  country: Question & { filter: string; selected: string };
   topics: Question;
   empty: Empty;
   doneTitle: string;
@@ -73,6 +73,7 @@ const en: Copy = {
     title: "Where do you build from?",
     why: "Teammates in nearby time zones find it easier to meet.",
     filter: "Filter countries",
+    selected: "Selected: {country}",
   },
   topics: {
     title: "Which ideas do you want to see?",
@@ -140,6 +141,7 @@ const fr: Copy = {
     title: "Depuis où construisez-vous?",
     why: "Des coéquipiers dans des fuseaux horaires proches se retrouvent plus facilement.",
     filter: "Filtrer les pays",
+    selected: "Sélection: {country}",
   },
   topics: {
     title: "Quelles idées voulez-vous voir?",
