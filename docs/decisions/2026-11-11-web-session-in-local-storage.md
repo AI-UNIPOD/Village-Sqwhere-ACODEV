@@ -29,6 +29,13 @@ with their expiry times. Sign-in survives closing the browser. Nothing changes i
 - On a shared computer, the next person stays signed in until the tokens expire or someone
   signs out.
 - Revisit before launch, or as soon as the API can set an httpOnly cookie.
-- The language on return comes from the browser, not the sign-in page. Someone who chose
-  French on an English browser comes back in English. Fixing that needs the API to carry
-  the language through GitHub.
+- *Update, 12 November 2026:* the sign-in page keeps its language in sessionStorage, and the
+  callback page moves to that language before it uses the one-time code. Someone who chose
+  French on an English browser now comes back in French, with no API change.
+- *Update, 12 November 2026:* only the tokens are stored, never the profile. Pages read the
+  profile from `GET /v1/me`. An access token about to expire (they last 15 minutes) is
+  refreshed with the refresh token, which the API rotates. Two tabs refreshing at the same
+  moment can sign the person out, because the second refresh uses a revoked token. This is
+  rare and safe, so it waits until the session moves out of localStorage.
+- *Update, 12 November 2026:* signing out clears the session and the tab's onboarding answers
+  first, then calls `POST /v1/auth/logout`, so it works even when the API cannot be reached.
