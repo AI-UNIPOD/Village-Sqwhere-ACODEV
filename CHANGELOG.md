@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-13
 
-- ci: add a local merge agent that tests and merges pull requests (#61)
+- docs: let green pull requests merge without a teammate approval (#61)
 - feat(web): finish github sign-in with token refresh and sign-out (#59)
 
 ## 2026-11-12

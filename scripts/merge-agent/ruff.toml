@@ -1,2 +1,0 @@
-# Same rules as the API.
-extend = "../../apps/api/pyproject.toml"

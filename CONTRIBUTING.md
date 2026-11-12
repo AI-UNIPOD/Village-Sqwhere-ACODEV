@@ -100,9 +100,9 @@ CI re-runs on its own.
 
 ### The merge agent
 
-GitHub Actions is off for now (billing limit), so the checks above run on Tanny's machine
-instead. `scripts/merge-agent/` checks every open pull request into `main` every 5 minutes,
-merged with the latest `main`. Then:
+GitHub Actions is off for now (billing limit), so the checks above run on Tanny's PC instead.
+Tanny's merge agent, which lives on that PC and not in this repository, checks every open pull
+request into `main` every 5 minutes, merged with the latest `main`. Then:
 
 | You see | It means | You do |
 | --- | --- | --- |
@@ -111,8 +111,9 @@ merged with the latest `main`. Then:
 | `agent: conflicts` and a comment | Conflicts it would not or could not resolve | Merge `main` in, resolve, push |
 | `agent: review conflicts` and a comment | It resolved conflicts and the checks passed | Read the resolution, then remove the label |
 
-Removing an `agent:` label makes it try the same commit again. How it works and how to run it:
-[`scripts/merge-agent/README.md`](scripts/merge-agent/README.md).
+Removing an `agent:` label makes it try the same commit again. Why it works this way:
+[`docs/decisions/2026-11-13-merge-agent.md`](docs/decisions/2026-11-13-merge-agent.md). Questions
+about it go to Tanny.
 
 There is no automatic deployment yet. A deploy job will be added once the team has access
 to the Systalink platform (see `infra/README.md`).

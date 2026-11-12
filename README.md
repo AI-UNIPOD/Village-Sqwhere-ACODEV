@@ -51,7 +51,6 @@ apps/
   api/        FastAPI service
 infra/        local database (Docker) and deployment notes
 docs/         architecture, decisions, progress and the design system
-scripts/      merge agent that tests and merges pull requests
 .github/      CI workflow and pull request template
 AGENTS.md     rules for the team and their coding agents
 CHANGELOG.md  what changed, newest first

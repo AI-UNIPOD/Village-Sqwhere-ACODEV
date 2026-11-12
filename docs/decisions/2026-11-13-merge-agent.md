@@ -1,4 +1,4 @@
-# A merge agent that tests and merges pull requests
+# Green pull requests merge without a teammate's approval
 
 ## Context
 
@@ -9,62 +9,43 @@ checked, merged when green, conflicts handled, and branches deleted, without som
 
 ## Decision
 
-Tanny chose, on 13 November 2026, a merge agent in `scripts/merge-agent/`:
+Tanny chose, on 13 November 2026:
 
-- **It runs on Tanny's Windows machine** from Task Scheduler every 5 minutes, in its own clone
-  under `%LOCALAPPDATA%`, so it never touches anyone's working copy. It needs no GitHub Actions
-  minutes, secrets or tokens beyond the `gh` and Claude Code sign-ins already on that machine.
-- **It runs the same checks as `ci.yml`**, on each pull request merged with the latest `main`.
-  It makes its own test database from `infra/db/init/`, as CI does, so it reads no `.env` file.
-  Without the gitleaks secret scan nothing merges.
-- **A pull request's code runs only in containers** (Tanny's choice, 13 November 2026). Install,
-  lint, test, build and lockfile rebuilds run in Docker containers that get the merged files
-  without `.git`, none of the machine's folders or variables, and no extra privileges, on a
-  network of their own with a throwaway Postgres. The machine's own git, `gh` and Claude
-  sign-ins stay outside them.
-- **It merges on green checks alone.** This replaces the rule that a teammate must approve
-  first (`AGENTS.md` section 3). Reviews are still welcome. A `do-not-merge` label holds a pull
-  request back.
-- **A plain script makes every merge and delete decision.** The decisions are fixed rules
-  (checks passed, branch and `main` unchanged, branch not protected or in use), so a model adds
-  cost and risk without adding judgement. The pull request's own text cannot talk a script into
-  merging.
-- **Models only where judgement helps.** Claude Haiku 5.5 turns the end of a failed log into two
-  or three plain sentences. Claude Sonnet 5.5 resolves merge conflicts, with file tools only
-  inside the clone and a budget of 40 turns and 3 US dollars. No subagents: one pull request at a
-  time also stops two merges from racing.
-- **A person reviews every automatic conflict resolution.** The agent pushes the resolution as a
-  normal merge commit (never a force-push), labels the pull request `agent: review conflicts`
-  and merges only after someone removes the label. Conflicts in `.github/`, `infra/`,
-  `AGENTS.md` or the agent itself are never resolved automatically.
+- **A merge agent on Tanny's PC**, run every 5 minutes by Windows Task Scheduler. It is not in
+  this repository: it reaches pull requests through Tanny's `gh` sign-in and its own clone, so a
+  pull request cannot change the agent that checks it.
+- **The same checks as `ci.yml`**, on each pull request merged with the latest `main`: the title
+  rule, the dash check, web and API install, lint, test and build, a fresh database from
+  `infra/db/init/`, and the gitleaks secret scan. Nothing merges unless every one passes.
+- **A pull request's code runs only in Docker containers**, with none of Tanny's files, variables
+  or sign-ins and a throwaway Postgres. Git hooks in a pull request never run on Tanny's PC.
+- **Green pull requests merge without a teammate's approval.** This replaces the approval rule in
+  `AGENTS.md` section 3. Reviews are still welcome; the `do-not-merge` label holds a pull request
+  back. The agent squash merges with the pull request title and deletes the branch.
+- **Failures and conflicts are flagged** with an `agent:` label and one comment (see
+  `CONTRIBUTING.md`). Claude Haiku 5.5 explains a failed check in the comment. Claude Sonnet 5.5
+  may resolve conflicts, but the result merges only after a person removes the
+  `agent: review conflicts` label. Conflicts in `.github/`, `infra/` and `AGENTS.md` are always
+  left to a person.
 - **Vercel's checks are ignored.** Its previews are blocked for some contributors' commits,
   which says nothing about the code.
 
 ## Options we considered
 
-- **A GitHub Actions workflow:** the natural home, but Actions is off. It would also need a
-  personal access token, because pushes made with the job's own token do not start CI.
-- **Claude Haiku running the routine steps as an agent:** costs tokens on every run and lets text
-  in a pull request influence a merge. A script does the same steps for free.
+- **A GitHub Actions workflow:** the natural home, but Actions is off.
+- **Keeping the agent in this repository:** reviewed and tested like other code, but a green pull
+  request that changed the agent would be merged by the agent itself, and nobody else runs it.
 - **Requiring a teammate's approval before the agent merges:** matches the old rule, but in
   practice almost nothing was reviewed, so the agent would rarely merge anything.
-- **Requiring Vercel's checks:** would block pull requests for reasons unrelated to the code.
 - **Rebasing branches onto `main`:** needs force-pushes, which `AGENTS.md` forbids on shared
   branches.
 
 ## Consequences
 
-- Green pull requests reach `main` within minutes, as one squash commit each, and their branches
-  are deleted.
-- A pull request's code cannot read Tanny's files or sign-ins. What is left: the containers
-  share Docker Desktop's virtual machine, have internet access for installs and the web build's
-  fonts, and could reach services on the machine through `host.docker.internal`, such as the
-  development database. A disposable machine would remove that too, at the cost of more setup.
-- Each run downloads its dependencies again, about a minute more, because a cache shared
-  between pull requests would let one plant files for the next.
-- It works only while Tanny's machine is on, signed in, and has Docker Desktop running. Merges,
-  comments and pushes appear under Tanny's GitHub account.
-- A failure caused by the machine (no network, for example) is reported like a real one. Removing
-  the label retries.
-- Revisit when GitHub Actions is back: move the checks back to CI and keep the agent for merging
-  and conflicts, or replace it with GitHub's own auto-merge once `main` can be protected.
+- Green pull requests reach `main` within minutes, as one squash commit each.
+- Merges, comments and pushes appear under Tanny's GitHub account, and only while Tanny's PC is
+  on with Docker Desktop running.
+- A failure caused by the PC (no network, for example) is reported like a real one. Removing the
+  label retries.
+- Revisit when GitHub Actions is back: move the checks to CI, or use GitHub's own auto-merge once
+  `main` can be protected.

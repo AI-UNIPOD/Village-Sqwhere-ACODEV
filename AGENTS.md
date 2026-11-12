@@ -139,9 +139,9 @@ checks pull request titles with the same hook, because the title becomes the com
 - One feature or fix per pull request. Do not stack pull requests (a branch made from
   another unmerged branch). If `main` moves, merge `main` into your branch.
 - The pull request title follows the commit rule. Fill in the template.
-- A pull request merges only when every check is green. While GitHub Actions is off, the merge
-  agent (`scripts/merge-agent/`) runs the checks, squash merges green pull requests and
-  deletes the branch, so `main` gets one commit per pull request. A teammate's review is
+- A pull request merges only when every check is green. While GitHub Actions is off, Tanny's
+  merge agent runs the checks from Tanny's PC (it is not in this repository), squash merges
+  green pull requests and deletes the branch, so `main` gets one commit per pull request. A teammate's review is
   welcome but not required. Add the `do-not-merge` label to hold a pull request back.
 - When the agent flags a pull request (`agent: checks failed` or `agent: conflicts`), fix it on
   the branch. When it resolves conflicts itself (`agent: review conflicts`), read the
@@ -223,7 +223,6 @@ Run from the repository root:
 ```bash
 pnpm lint:web && pnpm test:web && pnpm build:web
 pnpm lint:api && pnpm test:api
-pnpm lint:agent && pnpm test:agent   # only when you change scripts/merge-agent
 ```
 
 API tests that use the database need it running first: `pnpm db:up` (Docker). A test that
