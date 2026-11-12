@@ -303,20 +303,6 @@
 }
 
 /* ---------- motion: transform and opacity only ---------- */
-/* The items rise in once the hero has placed the text (it sets data-ready). Before that the
-   hero hides them, and without JavaScript nothing waits, so the content always shows. */
-:global([data-ready]) .rise {
-  animation: rise var(--dur-reveal) var(--ease-out) both;
-  animation-delay: calc(var(--delay-stagger) * var(--i, 0));
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-4));
-  }
-}
-
 @keyframes pop {
   from {
     opacity: 0;
@@ -339,7 +325,6 @@
 /* Reduced motion keeps the fades and the colour changes and drops the movement. The rings stop
    turning; the state words and aria-busy still tell the person it is working. */
 @media (prefers-reduced-motion: reduce) {
-  :global([data-ready]) .rise,
   .tick {
     animation-name: fade;
   }

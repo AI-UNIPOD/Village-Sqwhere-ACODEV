@@ -62,6 +62,26 @@ test.each([
   expect(screen.getAllByRole("button", { name: button })).toHaveLength(1);
 });
 
+// Reveals never hide headings or lead text (docs/design-system/components.md, Motion). The hero
+// keeps its own motion, but the words and the button are there the moment it places them.
+test("the text block carries no entrance of its own", () => {
+  render(<SignInPage lang="en" />);
+  const heading = screen.getByRole("heading", { level: 1 });
+  const items = [
+    heading,
+    heading.nextElementSibling,
+    screen.getByRole("button", { name: "Continue with GitHub" }).parentElement,
+    screen.getByRole("list", { name: "How signing in works" }),
+    screen.getByRole("link", { name: "No GitHub account? Create one on GitHub" }).parentElement?.parentElement,
+  ];
+  for (const item of items) {
+    expect(item?.className).not.toMatch(/rise/);
+    expect(item?.getAttribute("style") ?? "").not.toMatch(/--i/);
+  }
+  const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
+  expect(css).not.toMatch(/\.rise\b|@keyframes rise/);
+});
+
 test("the stylesheet changes layout only at the design system breakpoints", () => {
   const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
   const widths = [...css.matchAll(/(?:min|max)-width:\s*(\d+)px/g)].map((m) => Number(m[1]));
