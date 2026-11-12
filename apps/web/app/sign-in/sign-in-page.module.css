@@ -365,9 +365,12 @@
     transform: none;
   }
 
-  .button,
-  .retry,
+  .button:active:not([aria-disabled="true"]),
+  .retry:active {
+    transform: none;
+  }
+
   .link::after {
-    transition-duration: 0.01ms;
+    transition-property: border-color;
   }
 }

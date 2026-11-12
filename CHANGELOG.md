@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-12
 
+- fix(web): keep colour fades for buttons with reduced motion (#40)
 - fix(web): name onboarding technologies in french on the french page (#52)
 - feat(api): add Gemini audio fallback and approval verification (#37)
 - fix(web): show the chosen country while the list is filtered (#48)

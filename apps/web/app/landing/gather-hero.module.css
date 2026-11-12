@@ -116,9 +116,10 @@
   display: block;
 }
 
+/* Reduced motion: the press shows in the colour change, not a scale. */
 @media (prefers-reduced-motion: reduce) {
-  .play {
-    transition-duration: 0.01ms;
+  .play:active {
+    transform: none;
   }
 }
 
