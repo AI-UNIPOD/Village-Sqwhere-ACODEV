@@ -35,3 +35,22 @@ test("the link says it opens a new tab in French", () => {
     screen.getByRole("link", { name: "@kofi-ships (profil GitHub, s'ouvre dans un nouvel onglet)" }),
   ).toBeTruthy();
 });
+
+test("the French card shows technologies in French", () => {
+  const stack = ["react", "computer-vision", "llms", "vector-databases"];
+  render(
+    <DoneStep
+      lang="fr"
+      answers={{ ...answers, stack }}
+      profile={{ displayName: "Kofi Mensah", username: "kofi-ships" }}
+      onChange={() => {}}
+    />,
+  );
+  const tags = screen.getAllByRole("listitem").slice(0, stack.length);
+  expect(tags.map((tag) => tag.textContent)).toEqual([
+    "React",
+    "LLM",
+    "Vision par ordinateur",
+    "Bases de données vectorielles",
+  ]);
+});

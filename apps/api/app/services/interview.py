@@ -66,6 +66,18 @@ class InterviewUnavailable(Exception):
     pass
 
 
+class FallbackAudioTranscriber:
+    def __init__(self, primary: AudioTranscriber, fallback: AudioTranscriber) -> None:
+        self.primary = primary
+        self.fallback = fallback
+
+    async def transcribe(self, audio: bytes, content_type: str) -> str:
+        try:
+            return await self.primary.transcribe(audio, content_type)
+        except InterviewUnavailable:
+            return await self.fallback.transcribe(audio, content_type)
+
+
 class DefaultInterviewAgent:
     _questions: Sequence[str] = (
         "Describe a project you built, its architecture, and the part you personally owned.",

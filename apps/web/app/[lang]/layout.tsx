@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Onest, Unbounded } from "next/font/google";
-import { notFound } from "next/navigation";
 import Script from "next/script";
 
 import { copy } from "../landing/copy";
@@ -35,12 +34,13 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
 
 export default async function RootLayout({ children, params }: LayoutProps<"/[lang]">) {
   const { lang } = await params;
-  if (!hasLocale(lang)) notFound();
+  // An unknown language is not stopped here: every page under it calls notFound(), and
+  // [lang]/not-found.tsx draws the 404 inside this document, in English.
 
   return (
     // the early theme script sets data-theme on <html> before React hydrates
     <html
-      lang={lang}
+      lang={hasLocale(lang) ? lang : "en"}
       className={`${unbounded.variable} ${onest.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >

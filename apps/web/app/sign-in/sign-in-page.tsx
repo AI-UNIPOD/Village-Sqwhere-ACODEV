@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
 import { copy as landing } from "../landing/copy";
 import { GatherHero } from "../landing/gather-hero";
@@ -84,9 +84,6 @@ function useReturnedProblem(): ProblemKey | null {
   return code ? (FROM_GITHUB.get(code) ?? "exchangeFailed") : null;
 }
 
-// custom property for the entrance stagger: the item's place in the copy block
-const place = (i: number) => ({ "--i": i }) as CSSProperties;
-
 function AlertIcon() {
   return (
     <svg
@@ -106,7 +103,7 @@ function AlertIcon() {
   );
 }
 
-// Primer Octicons "mark-github", 16px. It takes the button's text colour and stays still.
+// Primer Octicons "mark-github", 16px. It takes the button's text colour.
 function GitHubMark() {
   return (
     <svg className={styles.mark} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
@@ -149,6 +146,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
   const returned = useReturnedProblem();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const messageRef = useRef<HTMLDivElement>(null);
+  const messageId = useId();
   const working = status === "loading" || status === "redirecting";
   const problem: ProblemKey | null = status === "idle" ? returned : working ? null : status;
 
@@ -206,14 +204,10 @@ export function SignInPage({ lang }: { lang: Lang }) {
 
       <main>
         <GatherHero labelledBy="sign-in-title" labels={{ pause: shared.pause, play: shared.play }}>
-          <h1 id="sign-in-title" className={styles.rise} style={place(0)}>
-            {t.heading}
-          </h1>
-          <p className={`${landingStyles.sub} ${styles.rise}`} style={place(1)}>
-            {t.intro}
-          </p>
+          <h1 id="sign-in-title">{t.heading}</h1>
+          <p className={landingStyles.sub}>{t.intro}</p>
 
-          <div className={`${styles.action} ${styles.rise}`} style={place(2)}>
+          <div className={styles.action}>
             <button
               ref={buttonRef}
               type="button"
@@ -222,13 +216,15 @@ export function SignInPage({ lang }: { lang: Lang }) {
               aria-busy={working}
               onClick={start}
             >
-              <GitHubMark />
+              <span className={styles.slot} data-loading={status === "loading"}>
+                <GitHubMark />
+                {status === "loading" && <span className={styles.spinner} aria-hidden="true" />}
+              </span>
               {t.button}
-              {status === "loading" && <span className={styles.spinner} aria-hidden="true" />}
             </button>
           </div>
 
-          <ol className={`${styles.track} ${styles.rise}`} style={place(3)} aria-label={t.stepsLabel}>
+          <ol className={styles.track} aria-label={t.stepsLabel}>
             {steps.map(([label, state], i) => (
               <li className={styles.step} data-state={state} key={label}>
                 <Marker n={i + 1} state={state} />
@@ -250,8 +246,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
               is as tall as the tallest, and only one shows: the error lands right by the button. */}
           <div className={styles.stage}>
             <div
-              className={`${styles.trust} ${styles.rise}`}
-              style={place(4)}
+              className={styles.trust}
               data-hidden={!!problem}
               aria-hidden={!!problem}
               inert={!!problem}
@@ -263,14 +258,19 @@ export function SignInPage({ lang }: { lang: Lang }) {
                 </a>
               </p>
             </div>
+            {/* Focus moving to the message reads its title and text, then Try again is next. It
+                has no alert role: some screen readers would read a focused alert twice. */}
             {(Object.keys(t.problems) as ProblemKey[]).map((key) => {
               const active = key === problem;
+              const id = `${messageId}-${key}`;
               return (
                 <div
                   className={styles.message}
                   data-active={active}
                   key={key}
-                  role={active ? "alert" : undefined}
+                  role="group"
+                  aria-labelledby={`${id}-title`}
+                  aria-describedby={`${id}-text`}
                   tabIndex={active ? -1 : undefined}
                   ref={active ? messageRef : undefined}
                   aria-hidden={!active}
@@ -280,8 +280,12 @@ export function SignInPage({ lang }: { lang: Lang }) {
                     <AlertIcon />
                   </span>
                   <div>
-                    <p className={styles.messageTitle}>{t.problems[key].title}</p>
-                    <p className={styles.messageText}>{t.problems[key].text}</p>
+                    <p className={styles.messageTitle} id={`${id}-title`}>
+                      {t.problems[key].title}
+                    </p>
+                    <p className={styles.messageText} id={`${id}-text`}>
+                      {t.problems[key].text}
+                    </p>
                     <button type="button" className={styles.retry} onClick={start}>
                       {t.retry}
                     </button>
