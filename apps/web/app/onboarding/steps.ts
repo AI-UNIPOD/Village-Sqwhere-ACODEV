@@ -31,8 +31,9 @@ export function isAnswered(step: Question, answers: Answers) {
   return true;
 }
 
-// A reload loses the answers, so a link to a later step goes back to the first required
-// question that is still open. The done page needs nothing: "Skip for now" leads straight to it.
+// A link to a later step goes back to the first required question that is still open. A reload
+// keeps its step because the saved answers are restored first. The done page needs nothing:
+// "Skip for now" leads straight to it.
 export function reachable(step: StepId, answers: Answers): StepId {
   const before = isQuestion(step) ? QUESTIONS.slice(0, QUESTIONS.indexOf(step)) : [];
   return before.find((question) => !isAnswered(question, answers)) ?? step;

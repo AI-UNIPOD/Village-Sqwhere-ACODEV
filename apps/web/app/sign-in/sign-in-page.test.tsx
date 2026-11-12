@@ -71,7 +71,6 @@ test.each([
 });
 
 test("the stylesheet changes layout only at the design system breakpoints", () => {
-  const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
   const widths = [...css.matchAll(/(?:min|max)-width:\s*(\d+)px/g)].map((m) => Number(m[1]));
   expect(widths.length).toBeGreaterThan(0);
   for (const width of widths) expect([768, 1100]).toContain(width);
@@ -83,7 +82,7 @@ test("the button carries the GitHub mark and is named by its label alone", () =>
   const mark = button.querySelector("svg");
   expect(mark).not.toBeNull();
   expect(mark?.getAttribute("aria-hidden")).toBe("true");
-  expect(mark?.nextSibling?.textContent).toBe("Continue with GitHub");
+  expect(mark?.parentElement?.nextSibling?.textContent).toBe("Continue with GitHub");
 });
 
 test.each([
@@ -180,6 +179,40 @@ test("while it works the button keeps its label and a second click sends nothing
   expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
   await waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+// From 768px the button is auto width, so a spinner placed on its own over the button's edge landed
+// on the GitHub mark. Both live in the one slot before the label, stacked in one grid cell.
+test("while sign-in starts the spinner shares the GitHub mark's slot before the label", async () => {
+  fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
+  render(<SignInPage lang="en" />);
+  const button = screen.getByRole("button", { name: "Continue with GitHub" });
+  const mark = button.querySelector("svg");
+
+  fireEvent.click(button);
+  await waitFor(() => expect(button.getAttribute("aria-busy")).toBe("true"));
+
+  const slot = mark?.parentElement;
+  expect(slot).not.toBe(button);
+  expect(slot?.children).toHaveLength(2);
+  expect(slot?.nextSibling?.textContent).toBe("Continue with GitHub");
+  expect(button.children).toHaveLength(1);
+});
+
+test("the spinner is not placed on its own over the button", () => {
+  expect(rule(".spinner")).not.toMatch(/position:\s*absolute/);
+  expect(rule(".slot")).toMatch(/display:\s*grid/);
+});
+
+// A third-party mark carries no motion (components.md), so after --delay-spinner the mark is
+// hidden at once while the spinner fades in; a fast start never flashes either.
+test("the GitHub mark is hidden without motion when the spinner shows", () => {
+  const out = rule('.slot[data-loading="true"] .mark');
+  expect(out).toMatch(/visibility:\s*hidden/);
+  expect(out).toMatch(/var\(--delay-spinner\)/);
+  expect(out).not.toMatch(/animation/);
+  expect(rule(".spinner")).toMatch(/var\(--delay-spinner\)/);
+  expect(css).not.toMatch(/blur\(/);
 });
 
 // A native button turns Enter and Space into a click, so focus and click cover the keyboard.
