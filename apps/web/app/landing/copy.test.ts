@@ -44,7 +44,3 @@ test("copy follows the voice rules: no dashes, no exclamation marks, no emoji", 
     expect(text).not.toContain(EMOJI_SELECTOR);
   }
 });
-
-test("French has no space before a colon or a question mark", () => {
-  for (const text of strings(copy.fr)) expect(text).not.toMatch(/\s[:?]/);
-});

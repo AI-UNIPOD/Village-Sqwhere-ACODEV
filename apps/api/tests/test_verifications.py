@@ -13,6 +13,7 @@ from app.main import app
 from app.models.lookups import Role
 from app.models.users import (
     InterviewStatus,
+    User,
     UserRole,
     VerificationInterview,
     VerificationInterviewTurn,
@@ -668,6 +669,25 @@ def test_verified_peer_can_review_and_pass_attempt(sign_in) -> None:
     )
     assert decision.status_code == 200
     assert decision.json()["data"]["status"] == "passed"
+
+    async def _assert_verified() -> None:
+        async with db_session() as db:
+            role_result = await db.execute(select(Role).where(Role.slug == "backend-engineer"))
+            role = role_result.scalar_one()
+            role_result = await db.execute(
+                select(UserRole).where(
+                    UserRole.user_id == applicant_id,
+                    UserRole.role_id == role.id,
+                )
+            )
+            applicant_role = role_result.scalar_one()
+            user_result = await db.execute(select(User).where(User.id == applicant_id))
+            applicant_user = user_result.scalar_one()
+            assert applicant_role.verified_at is not None
+            assert applicant_user.is_verified is True
+            assert applicant_user.verified_at is not None
+
+    asyncio.run(_assert_verified())
 
     cleanup_user(applicant_id)
     cleanup_user(reviewer_id)

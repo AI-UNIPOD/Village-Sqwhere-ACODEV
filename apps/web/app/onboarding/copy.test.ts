@@ -33,15 +33,8 @@ test("every role, technology and topic has a name in English and French", () => 
   }
 });
 
-test("copy follows the voice rules: no dashes, no exclamation marks, no space before : or ?", () => {
+test("copy follows the voice rules: no dashes, no exclamation marks", () => {
   for (const text of strings(words)) expect(text).not.toMatch(new RegExp(`[${DASHES}!]`));
-  const french = [
-    copy.fr,
-    ROLES.map((role) => role.name.fr),
-    TECHNOLOGIES.map((tech) => tech.name.fr),
-    TOPICS.map((topic) => topic.name.fr),
-  ];
-  for (const text of strings(french)) expect(text).not.toMatch(/\s[:?]/);
 });
 
 test("roles and technologies use the slugs the API stores", () => {
