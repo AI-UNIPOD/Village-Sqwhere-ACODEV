@@ -119,7 +119,6 @@ function ChipGroup(props: {
             aria-pressed={on}
             onClick={() => props.onToggle(option.slug)}
           >
-            {on && <Check />}
             {option.label}
           </button>
         );
