@@ -17,6 +17,14 @@ function reply(status: number, body: unknown) {
 
 const started = () => reply(200, { data: { authorize_url: AUTHORIZE_URL, expires_at: "2026-11-06T18:30:00Z" } });
 
+const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
+
+// the declarations of the first rule written exactly for `selector`
+const rule = (selector: string) => {
+  const start = css.indexOf(`\n${selector} {`);
+  return start < 0 ? "" : css.slice(css.indexOf("{", start) + 1, css.indexOf("}", start));
+};
+
 // the two steps, with the state word each one speaks
 const steps = () => screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
 
@@ -183,16 +191,16 @@ test("the button is a native button that keyboard focus reaches", () => {
   expect(document.activeElement).toBe(button);
 });
 
-test("a network failure shows an alert with try again, focuses it, and fails the first step", async () => {
+test("a network failure shows a message with try again, focuses it, and fails the first step", async () => {
   fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
   render(<SignInPage lang="en" />);
   const button = screen.getByRole("button", { name: "Continue with GitHub" });
 
   fireEvent.click(button);
 
-  const alert = await screen.findByRole("alert");
-  expect(alert.textContent).toContain("We couldn't reach Village Sqwhere");
-  await waitFor(() => expect(document.activeElement).toBe(alert));
+  const message = await screen.findByRole("group");
+  expect(message.textContent).toContain("We couldn't reach Village Sqwhere");
+  await waitFor(() => expect(document.activeElement).toBe(message));
   expect(button.getAttribute("aria-disabled")).toBe("false");
   expect(steps()[0]).toMatch(", failed");
   expect(assign).not.toHaveBeenCalled();
@@ -200,16 +208,44 @@ test("a network failure shows an alert with try again, focuses it, and fails the
   expect(screen.queryByRole("link", { name: "No GitHub account? Create one on GitHub" })).toBeNull();
 });
 
-test("try again starts sign-in and clears the alert", async () => {
+// Focus moving to the message reads it out. An alert role on the same element would read it twice.
+test("a failure is announced once: focus lands on the message, named by its title", async () => {
+  fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  render(<SignInPage lang="en" />);
+  fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
+
+  const message = await screen.findByRole("group", { name: "We couldn't reach Village Sqwhere" });
+  await waitFor(() => expect(document.activeElement).toBe(message));
+  expect(screen.queryByRole("alert")).toBeNull();
+  const description = document.getElementById(message.getAttribute("aria-describedby") ?? "");
+  expect(description?.textContent).toBe(
+    "The connection dropped before sign-in could start. Check your network, then try again.",
+  );
+});
+
+// The message takes focus only so Try again comes next; it is not a control, so no ring.
+test("the focused message draws no focus ring", () => {
+  expect(rule(".message:focus")).toMatch(/outline:\s*none/);
+});
+
+// Leaving faster than the message arrives, so the cell is never blank.
+test("the trust lines fade out over the exit time before they hide", () => {
+  const hidden = rule('.trust[data-hidden="true"]');
+  expect(hidden).toMatch(/opacity:\s*0/);
+  expect(hidden).toMatch(/opacity var\(--dur-modal-out\)/);
+  expect(hidden).toMatch(/visibility 0s linear var\(--dur-modal-out\)/);
+});
+
+test("try again starts sign-in and clears the message", async () => {
   fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockImplementation(started);
   render(<SignInPage lang="en" />);
   fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
-  await screen.findByRole("alert");
+  await screen.findByRole("group");
 
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
   await waitFor(() => expect(assign).toHaveBeenCalledWith(AUTHORIZE_URL));
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("group")).toBeNull();
 });
 
 test("a server without GitHub set up gets its own message", async () => {
@@ -219,9 +255,9 @@ test("a server without GitHub set up gets its own message", async () => {
   render(<SignInPage lang="fr" />);
   fireEvent.click(screen.getByRole("button", { name: "Continuer avec GitHub" }));
 
-  const alert = await screen.findByRole("alert");
-  expect(alert.textContent).toContain("La connexion avec GitHub n'est pas encore prête");
-  await waitFor(() => expect(document.activeElement).toBe(alert));
+  const message = await screen.findByRole("group");
+  expect(message.textContent).toContain("La connexion avec GitHub n'est pas encore prête");
+  await waitFor(() => expect(document.activeElement).toBe(message));
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeTruthy();
 });
 
@@ -230,7 +266,7 @@ test("any other failure says sign-in did not start", async () => {
   render(<SignInPage lang="en" />);
   fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
 
-  expect((await screen.findByRole("alert")).textContent).toContain("Sign-in didn't start");
+  expect((await screen.findByRole("group")).textContent).toContain("Sign-in didn't start");
   expect(assign).not.toHaveBeenCalled();
 });
 
@@ -240,13 +276,13 @@ test("a browser that cannot hash says sign-in did not start and sends nothing", 
   render(<SignInPage lang="en" />);
   fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
 
-  expect((await screen.findByRole("alert")).textContent).toContain("Sign-in didn't start");
+  expect((await screen.findByRole("group")).textContent).toContain("Sign-in didn't start");
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
-test("with no error in the address, no alert shows", () => {
+test("with no error in the address, no message shows", () => {
   render(<SignInPage lang="en" />);
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("group")).toBeNull();
 });
 
 test.each([
@@ -259,10 +295,10 @@ test.each([
   search = `?error=${code}`;
   render(<SignInPage lang={lang} />);
 
-  const alert = await screen.findByRole("alert");
-  expect(alert.textContent).toContain(title);
-  expect(alert.textContent).toContain(text);
-  await waitFor(() => expect(document.activeElement).toBe(alert));
+  const message = await screen.findByRole("group");
+  expect(message.textContent).toContain(title);
+  expect(message.textContent).toContain(text);
+  await waitFor(() => expect(document.activeElement).toBe(message));
   expect(steps()[0]).toMatch(lang === "en" ? ", failed" : ", échec");
   expect(fetchMock).not.toHaveBeenCalled();
 });
@@ -275,5 +311,5 @@ test("after a failure from GitHub, try again starts a new sign-in", async () => 
   fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
 
   await waitFor(() => expect(assign).toHaveBeenCalledWith(AUTHORIZE_URL));
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("group")).toBeNull();
 });
