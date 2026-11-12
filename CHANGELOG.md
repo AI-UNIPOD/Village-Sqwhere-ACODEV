@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-12
 
+- fix(web): keep onboarding answers when the page reloads (#54)
 - fix(web): let the onboarding country list scroll with the page (#50)
 - fix(web): rise the onboarding role cards only when moving forward (#44)
 - fix(web): show the onboarding header on loading and error screens (#46)
