@@ -4,10 +4,12 @@ import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { PKCE_VERIFIER_KEY, SignInPage } from "./sign-in-page";
+import { SESSION_KEY } from "../session/session";
+import { PKCE_VERIFIER_KEY, SIGN_IN_LANG_KEY, SignInPage } from "./sign-in-page";
 
 const AUTHORIZE_URL = "https://github.com/login/oauth/authorize?client_id=demo&state=abc";
 const assign = vi.fn();
+const replace = vi.fn();
 const fetchMock = vi.fn();
 let search = "";
 
@@ -45,11 +47,13 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   vi.stubGlobal("location", {
     assign,
+    replace,
     get search() {
       return search;
     },
   });
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -58,6 +62,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   fetchMock.mockReset();
   assign.mockReset();
+  replace.mockReset();
   search = "";
 });
 
@@ -167,6 +172,28 @@ test("starts sign-in with a PKCE challenge, says so, then goes to GitHub", async
   expect(body.code_challenge_method).toBe("S256");
   expect(body.redirect_uri).toMatch(/\/v1\/auth\/oauth\/github\/callback$/);
   expect(sessionStorage.getItem(PKCE_VERIFIER_KEY)).toMatch(/^[A-Za-z0-9_-]{43,}$/);
+});
+
+test("remembers the language sign-in started in, so the return comes back to it", async () => {
+  fetchMock.mockImplementation(started);
+  render(<SignInPage lang="fr" />);
+  fireEvent.click(screen.getByRole("button", { name: "Continuer avec GitHub" }));
+  await waitFor(() => expect(assign).toHaveBeenCalled());
+  expect(sessionStorage.getItem(SIGN_IN_LANG_KEY)).toBe("fr");
+});
+
+test("someone already signed in goes straight on to onboarding", () => {
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: "2099-01-01T00:00:00Z", refresh_expires_at: "2099-01-01T00:00:00Z" }),
+  );
+  render(<SignInPage lang="fr" />);
+  expect(replace).toHaveBeenCalledExactlyOnceWith("/fr/onboarding");
+});
+
+test("a visitor stays on the sign-in page", () => {
+  render(<SignInPage lang="en" />);
+  expect(replace).not.toHaveBeenCalled();
 });
 
 test.each([

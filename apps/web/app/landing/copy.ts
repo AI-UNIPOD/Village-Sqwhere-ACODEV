@@ -9,6 +9,7 @@ type Copy = {
   navHow: string;
   navTour: string;
   signIn: string;
+  signOut: string;
   soon: string;
   demoNote: string;
   tourNote: string;
@@ -47,6 +48,7 @@ const en: Copy = {
   navHow: "How it works",
   navTour: "Tour",
   signIn: "Sign in",
+  signOut: "Sign out",
   soon: "Coming soon",
   demoNote: "The demo is coming soon.",
   tourNote: "The guided tour is coming soon.",
@@ -109,6 +111,7 @@ const fr: Copy = {
   navHow: "Comment ça marche",
   navTour: "Visite",
   signIn: "Connexion",
+  signOut: "Déconnexion",
   soon: "Bientôt disponible",
   demoNote: "La démo arrive bientôt.",
   tourNote: "La visite guidée arrive bientôt.",

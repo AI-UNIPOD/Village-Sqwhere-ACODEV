@@ -2,8 +2,9 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { StrictMode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { PKCE_VERIFIER_KEY } from "../sign-in/sign-in-page";
-import { CallbackPage, SESSION_KEY } from "./callback-page";
+import { PKCE_VERIFIER_KEY, SIGN_IN_LANG_KEY } from "../sign-in/sign-in-page";
+import { SESSION_KEY } from "../session/session";
+import { CallbackPage } from "./callback-page";
 import { copy } from "./copy";
 
 const replace = vi.fn();
@@ -66,6 +67,23 @@ test("an error from the API goes to the sign-in page, which explains it", () => 
   render(<CallbackPage lang="fr" />);
   expect(replace).toHaveBeenCalledExactlyOnceWith("/fr/sign-in?error=ACCESS_DENIED");
   expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test("a return in the wrong language goes to the language sign-in started in, code unused", () => {
+  open("?login_code=lc_demo");
+  sessionStorage.setItem(SIGN_IN_LANG_KEY, "fr");
+  render(<CallbackPage lang="en" />);
+  expect(replace).toHaveBeenCalledExactlyOnceWith("/fr/auth/callback?login_code=lc_demo");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test("a return in the language sign-in started in finishes there", async () => {
+  open("?login_code=lc_demo");
+  sessionStorage.setItem(SIGN_IN_LANG_KEY, "fr");
+  fetchMock.mockReturnValue(signedIn());
+  render(<CallbackPage lang="fr" />);
+  await waitFor(() => expect(replace).toHaveBeenCalledExactlyOnceWith("/fr/onboarding"));
+  expect(sessionStorage.getItem(SIGN_IN_LANG_KEY)).toBeNull();
 });
 
 test("the error code is encoded in the address", () => {

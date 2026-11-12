@@ -6,18 +6,12 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import { copy as landing } from "../landing/copy";
 import landingStyles from "../landing/landing-page.module.css";
 import { ThemeToggle } from "../landing/theme-toggle";
-import type { Lang } from "../locales";
+import { hasLocale, type Lang } from "../locales";
 import { Logo } from "../logo";
-import { PKCE_VERIFIER_KEY } from "../sign-in/sign-in-page";
+import { API_URL, isTokenData, saveSession } from "../session/session";
+import { PKCE_VERIFIER_KEY, SIGN_IN_LANG_KEY } from "../sign-in/sign-in-page";
 import { copy, type ProblemKey } from "./copy";
 import styles from "./callback-page.module.css";
-
-// The session lives in localStorage so it survives a reload and is shared between tabs. The
-// trade-off is that any script on this origin can read it, so the site must stay free of
-// third-party scripts. See docs/decisions/2026-11-11-web-session-in-local-storage.md.
-export const SESSION_KEY = "vs_session";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type Status = "loading" | "success" | ProblemKey;
 
@@ -36,22 +30,14 @@ async function exchange(code: string, verifier: string): Promise<Status> {
   }
   if (response.status === 401) return "refused";
   const body = await response.json().catch(() => null);
-  const data = body?.data;
-  if (!response.ok || typeof data?.access_token !== "string") return "other";
+  if (!response.ok || !isTokenData(body?.data)) return "other";
   try {
-    localStorage.setItem(
-      SESSION_KEY,
-      JSON.stringify({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
-        refresh_expires_at: data.refresh_expires_at,
-      }),
-    );
+    saveSession(body.data);
   } catch {
     return "other";
   }
   sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+  sessionStorage.removeItem(SIGN_IN_LANG_KEY);
   return "success";
 }
 
@@ -102,6 +88,13 @@ export function CallbackPage({ lang }: { lang: Lang }) {
     // A login code works once and React runs effects twice in development, so only the first run goes on.
     if (started.current) return;
     started.current = true;
+    // The API sends everyone back to one address and the proxy picks a language from the
+    // browser, so return to the language sign-in started in, before the one-time code is used.
+    const startedIn = sessionStorage.getItem(SIGN_IN_LANG_KEY);
+    if (startedIn && hasLocale(startedIn) && startedIn !== lang) {
+      window.location.replace(`/${startedIn}/auth/callback${window.location.search}`);
+      return;
+    }
     // The page is prerendered, so the query can only be read here.
     const params = new URLSearchParams(window.location.search);
     const error = params.get("error");
