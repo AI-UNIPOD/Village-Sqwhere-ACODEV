@@ -1,0 +1,24 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  inline-size: 100%;
+  max-inline-size: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-16) var(--gutter);
+}
+
+.title {
+  font: var(--type-display-m);
+  text-wrap: balance;
+}
+
+.text {
+  margin-block-start: var(--space-2);
+  color: var(--text-muted);
+  font: var(--type-body-l);
+}
+
+.home {
+  margin-block-start: var(--space-8);
+}
