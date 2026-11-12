@@ -204,20 +204,15 @@ test("the spinner is not placed on its own over the button", () => {
   expect(rule(".slot")).toMatch(/display:\s*grid/);
 });
 
-// The mark and the spinner swap after --delay-spinner, so a fast start never flashes either.
-test("the mark fades out as the spinner fades in, after the spinner delay", () => {
+// A third-party mark carries no motion (components.md), so after --delay-spinner the mark is
+// hidden at once while the spinner fades in; a fast start never flashes either.
+test("the GitHub mark is hidden without motion when the spinner shows", () => {
   const out = rule('.slot[data-loading="true"] .mark');
+  expect(out).toMatch(/visibility:\s*hidden/);
   expect(out).toMatch(/var\(--delay-spinner\)/);
-  expect(out).toMatch(/var\(--dur-press\) var\(--ease-out\)/);
+  expect(out).not.toMatch(/animation/);
   expect(rule(".spinner")).toMatch(/var\(--delay-spinner\)/);
-  expect(css).toMatch(/blur\(2px\)/);
-});
-
-test("with reduced motion the swap is a fade only: no blur and no turning", () => {
-  const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
-  expect(reduced).not.toMatch(/blur\(/);
-  expect(reduced).not.toMatch(/\bturn\b/);
-  expect(reduced).toMatch(/\.slot\[data-loading="true"\] \.mark/);
+  expect(css).not.toMatch(/blur\(/);
 });
 
 // A native button turns Enter and Space into a click, so focus and click cover the keyboard.
