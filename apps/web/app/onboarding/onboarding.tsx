@@ -41,6 +41,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
   const requested = parseStep(useSearchParams().get("step"));
   const [answers, setAnswers] = useState<Answers>(NO_ANSWERS);
   const [missing, setMissing] = useState<StepId | null>(null);
+  const [roleEntrance, setRoleEntrance] = useState(false);
   const step = reachable(requested, answers);
   const shown = useRef(step);
 
@@ -55,6 +56,8 @@ export function Onboarding({ lang }: { lang: Lang }) {
   }, [step]);
 
   function go(to: StepId, direction: "forward" | "back") {
+    // Only the way in from the welcome screen plays the role cards' entrance.
+    setRoleEntrance(to === "role" && direction === "forward");
     startTransition(() => {
       addTransitionType(`step-${direction}`);
       router.push(stepHref(lang, to), { scroll: false });
@@ -106,7 +109,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
   } else {
     body = (
       <div className={`${styles.column} ${styles.step}`}>
-        {step === "role" && <RoleStep {...props} />}
+        {step === "role" && <RoleStep {...props} entrance={roleEntrance} />}
         {step === "stack" && <StackStep {...props} />}
         {step === "country" && <CountryStep {...props} />}
         {step === "topics" && <TopicsStep {...props} />}

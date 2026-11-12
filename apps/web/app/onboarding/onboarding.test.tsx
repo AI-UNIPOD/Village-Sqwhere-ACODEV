@@ -245,3 +245,35 @@ test("after skipping from the welcome screen the card invites the developer to f
   click("button", "Set up my profile");
   expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
 });
+
+// The role cards rise in one after another. That entrance is for the first arrival only: when
+// the person comes back to the step, the cards are already there and must not move again.
+const roleCards = () => screen.getAllByRole("radio")[0].closest("[data-entrance]")?.getAttribute("data-entrance");
+
+test("the role cards play their entrance when the role step is reached from the welcome screen", () => {
+  const go = start();
+  click("button", "Set up my profile");
+  go("role");
+  expect(roleCards()).toBe("play");
+});
+
+test("the role cards are at rest after Back from the stack step", () => {
+  const go = start();
+  click("button", "Set up my profile");
+  go("role");
+  click("radio", /Frontend Engineer/);
+  click("button", "Continue");
+  go("stack");
+  click("button", "Back");
+  go("role");
+  expect(roleCards()).toBe("rest");
+});
+
+test("the role cards are at rest after Change my answers", () => {
+  const go = start();
+  answerRequired(go);
+  go("done");
+  click("button", "Change my answers");
+  go("role");
+  expect(roleCards()).toBe("rest");
+});

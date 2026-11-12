@@ -228,8 +228,9 @@
 
 .choice:has(input:checked) .tick { opacity: 1; }
 
-/* The role cards rise in once, one after another (--i is the card's place). */
-.roleList .choice {
+/* The role cards rise in one after another (--i is the card's place), only when data-entrance
+   is play: coming back to the step shows them at rest. */
+.roleList[data-entrance="play"] .choice {
   animation: rise var(--dur-reveal) var(--ease-out) both;
   animation-delay: calc(var(--delay-stagger) * min(var(--i, 0), 5));
 }
@@ -438,7 +439,7 @@
 /* Reduced motion: fades and colour changes stay, movement goes. The spinner stops turning
    but still shows that something is happening. */
 @media (prefers-reduced-motion: reduce) {
-  .roleList .choice,
+  .roleList[data-entrance="play"] .choice,
   .card,
   .tag,
   .spinner {
