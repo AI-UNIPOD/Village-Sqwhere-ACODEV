@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-13
+
+- feat(api): add the get hub endpoint (#60)
+
 ## 2026-11-12
 
 - feat(api): add the create hub endpoint (#58)
