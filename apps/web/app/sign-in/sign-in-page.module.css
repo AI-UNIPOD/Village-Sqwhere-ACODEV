@@ -10,7 +10,6 @@
 }
 
 .button {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -51,19 +50,29 @@
   cursor: progress;
 }
 
-.mark {
+/* One 16px slot before the label holds the GitHub mark and the spinner, stacked in one grid
+   cell, so the label never moves. After --delay-spinner the mark is hidden at once (a
+   third-party mark carries no motion) and the spinner fades in, so a fast start never flashes
+   either. */
+.slot {
+  display: grid;
   flex: none;
   inline-size: var(--space-4);
   block-size: var(--space-4);
 }
 
-/* The spinner sits beside the label without moving it. It stays hidden for --delay-spinner,
-   so a fast start never flashes it. */
-.spinner {
-  position: absolute;
-  inset-inline-start: var(--space-4);
+.slot > * {
+  grid-area: 1 / 1;
   inline-size: var(--space-4);
   block-size: var(--space-4);
+}
+
+.slot[data-loading="true"] .mark {
+  visibility: hidden;
+  transition: visibility 0s linear var(--delay-spinner);
+}
+
+.spinner {
   border: 2px solid var(--on-action);
   border-block-start-color: transparent;
   border-radius: var(--radius-full);
@@ -169,10 +178,16 @@
   align-self: start;
   color: var(--text-muted);
   font: var(--type-body-s);
+  transition: opacity var(--dur-modal) var(--ease-out);
 }
 
+/* The lines leave faster than a message arrives, then hide, so the cell is never blank. */
 .trust[data-hidden="true"] {
   visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--dur-modal-out) var(--ease-out),
+    visibility 0s linear var(--dur-modal-out);
 }
 
 .trust p + p {
@@ -244,6 +259,12 @@
   opacity: 1;
   transform: none;
   transition-delay: 0s;
+}
+
+/* Focus lands here only so Try again comes next. The panel is not a control, so it draws no
+   ring; Try again keeps its own. */
+.message:focus {
+  outline: none;
 }
 
 :global([data-theme="dark"]) .message {
@@ -341,9 +362,12 @@
     transform: none;
   }
 
-  .button,
-  .retry,
+  .button:active:not([aria-disabled="true"]),
+  .retry:active {
+    transform: none;
+  }
+
   .link::after {
-    transition-duration: 0.01ms;
+    transition-property: border-color;
   }
 }
