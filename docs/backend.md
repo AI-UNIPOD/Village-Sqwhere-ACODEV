@@ -597,6 +597,44 @@ Only `passed` and `failed` are accepted. A reviewer must be verified in the appl
 cannot review their own attempt, and cannot decide a case that is no longer awaiting review. A
 passed decision marks the applicant's role and profile as verified through the database trigger.
 
+### Hubs
+
+A hub is the space where a team builds an idea together. Every member signs the same
+standard agreement (an NDA) before they join, including the owner when they create the hub.
+
+**Error codes for hubs.** Errors use the same shape as the rest of the API,
+`{"detail": {"code": "...", "message": "..."}}`. Branch on `code`, never on `message`.
+
+| Status | Code | When |
+| --- | --- | --- |
+| `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
+| `503` | `AGREEMENT_NOT_PUBLISHED` | No agreement is published on this server, so no hub can be created. A setup problem, not something the person can fix. |
+
+#### `GET /v1/agreements/current`
+
+Returns the agreement a person reads and signs before creating a hub: the published
+agreement with the highest version. When the team publishes a new version, it replaces the
+old one here at once. Send its `template_id` and `body_sha256` back when creating the hub.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
+      "version": 1,
+      "title": "TEST AGREEMENT (NOT LEGAL TEXT)",
+      "body": "# TEST AGREEMENT, NOT LEGAL TEXT\n\nThis text is a placeholder...",
+      "body_sha256": "4f0c3a...64 lowercase hex characters",
+      "published_at": "2026-11-11T09:12:44.120000Z",
+      "hub_terms": {}
+    }
+  }
+  ```
+  `body_sha256` is the SHA-256 of `body`, so it proves which exact text was signed.
+  `hub_terms` is always `{}` here: a hub's own terms are set when it is created.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `503 AGREEMENT_NOT_PUBLISHED`.
+
 ---
 
 ## 4. Frontend Integration Guide: Authentication
