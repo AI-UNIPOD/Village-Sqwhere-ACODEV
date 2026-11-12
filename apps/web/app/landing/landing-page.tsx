@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
+import { AccountNavLink } from "../session/session-ui";
 import { copy } from "./copy";
 import { GatherHero } from "./gather-hero";
 import styles from "./landing-page.module.css";
@@ -72,9 +73,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
           <a className={styles.navLink} href="#tour">
             {t.navTour}
           </a>
-          <Link className={styles.navLink} href={`/${lang}/sign-in`}>
-            {t.signIn}
-          </Link>
+          <AccountNavLink lang={lang} signIn={t.signIn} signOut={t.signOut} className={styles.navLink} />
         </nav>
       </header>
 

@@ -3,10 +3,9 @@ import type { Lang } from "../locales";
 
 type Text = Record<Lang, string>;
 
-// A made-up developer. GET /v1/me replaces it once the web app calls the API. A GitHub
-// account may have no name, so the real name can be missing and the username stands in.
+// The signed-in developer. A GitHub account may have no name, so the real name can be
+// missing and the username stands in.
 export type Profile = { displayName: string | null; username: string };
-export const DEMO_PROFILE: Profile = { displayName: "Aminata Diallo", username: "aminata-builds" };
 
 export function firstName({ displayName, username }: Profile) {
   return displayName?.split(" ")[0] ?? username;

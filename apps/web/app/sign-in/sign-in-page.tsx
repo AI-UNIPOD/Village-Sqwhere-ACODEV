@@ -9,13 +9,13 @@ import landingStyles from "../landing/landing-page.module.css";
 import { ThemeToggle } from "../landing/theme-toggle";
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
+import { API_URL, useSession } from "../session/session";
 import { copy, type ProblemKey } from "./copy";
 import styles from "./sign-in-page.module.css";
 
-// The callback page reads the verifier from here to finish the sign-in.
+// The callback page reads the verifier and the starting language from here to finish the sign-in.
 export const PKCE_VERIFIER_KEY = "pkce_verifier";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export const SIGN_IN_LANG_KEY = "sign_in_lang";
 
 type Status = "idle" | "loading" | "redirecting" | ProblemKey;
 type StepState = "todo" | "active" | "done" | "failed";
@@ -37,11 +37,12 @@ async function createPkce() {
 }
 
 // Asks the API for the GitHub address to send the browser to.
-async function startGitHub(): Promise<{ url: string } | { problem: ProblemKey }> {
+async function startGitHub(lang: Lang): Promise<{ url: string } | { problem: ProblemKey }> {
   let challenge: string;
   try {
     const pkce = await createPkce();
     sessionStorage.setItem(PKCE_VERIFIER_KEY, pkce.verifier);
+    sessionStorage.setItem(SIGN_IN_LANG_KEY, lang);
     challenge = pkce.challenge;
   } catch {
     // crypto.subtle is missing on plain http away from localhost, and storage can be blocked:
@@ -154,12 +155,18 @@ export function SignInPage({ lang }: { lang: Lang }) {
     if (problem) messageRef.current?.focus();
   }, [problem]);
 
+  // Someone already signed in has nothing to do here.
+  const signedIn = !!useSession();
+  useEffect(() => {
+    if (signedIn) window.location.replace(`/${lang}/onboarding`);
+  }, [lang, signedIn]);
+
   async function start() {
     if (working) return;
     // the "Try again" button is about to go inert, so keep the keyboard on the page
     buttonRef.current?.focus();
     setStatus("loading");
-    const result = await startGitHub();
+    const result = await startGitHub(lang);
     if ("problem" in result) {
       setStatus(result.problem);
       return;

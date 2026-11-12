@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import type { Lang } from "../locales";
 import { Onboarding } from "./onboarding";
+import type { Profile } from "./options";
 import { ANSWERS_KEY } from "./saved-answers";
 
 const nav = vi.hoisted(() => {
@@ -40,14 +41,17 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// A made-up developer, as GitHub would describe them.
+const profile: Profile = { displayName: "Aminata Diallo", username: "aminata-builds" };
+
 // Renders the flow and returns a function that moves the mocked URL to another step, the way
 // the router would after a push.
 function start(lang: Lang = "en", step = "") {
   nav.search = step && `step=${step}`;
-  const view = render(<Onboarding lang={lang} />);
+  const view = render(<Onboarding lang={lang} profile={profile} />);
   return (to: string) => {
     nav.search = `step=${to}`;
-    view.rerender(<Onboarding lang={lang} />);
+    view.rerender(<Onboarding lang={lang} profile={profile} />);
   };
 }
 
