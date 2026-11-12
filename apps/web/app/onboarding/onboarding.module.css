@@ -448,5 +448,9 @@
     animation-name: fade;
   }
 
-  .choice:active { transform: none; }
+  .back:active,
+  .chip:active,
+  .choice:active {
+    transform: none;
+  }
 }
