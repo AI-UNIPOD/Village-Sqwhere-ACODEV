@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-12
+
+- fix(web): show the sign-in spinner in place of the github mark (#49)
+
 ## 2026-11-11
 
 - docs: update progress after the latest api and web merges (#36)
