@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-12
 
+- feat(api): add the current agreement endpoint (#57)
 - docs: update progress after the web review merges (#56)
 - feat(web): point the hero's main button to sign-in (#39)
 - fix(web): show the sign-in heading and text without a reveal (#47)
