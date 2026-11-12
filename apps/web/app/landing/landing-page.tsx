@@ -98,17 +98,20 @@ export function LandingPage({ lang }: { lang: Lang }) {
           <h1 id="hero-title">{t.headline}</h1>
           <p className={styles.sub}>{t.sub}</p>
           <div className={styles.ctas}>
+            <Link className={`${styles.btn} ${styles.heroButton}`} href={`/${lang}/sign-in`}>
+              {t.ctaJoin}
+            </Link>
+            <a className={`${styles.ghost} ${styles.heroButton}`} href="#tour">
+              {t.ctaTour}
+            </a>
             <SoonButton
-              className={`${styles.btn} ${styles.heroButton}`}
+              className={`${styles.ghost} ${styles.heroButton}`}
               soon={t.soon}
               announce={t.demoNote}
               note="demo-note"
             >
               {t.ctaDemo}
             </SoonButton>
-            <a className={`${styles.ghost} ${styles.heroButton}`} href="#tour">
-              {t.ctaTour}
-            </a>
           </div>
           <p className={styles.note} id="demo-note" aria-hidden="true" data-hero-note="">
             {t.demoNote}

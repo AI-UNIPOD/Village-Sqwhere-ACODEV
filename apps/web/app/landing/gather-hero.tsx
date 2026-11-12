@@ -183,10 +183,14 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       geo = hg;
       heroWidth = width;
       copyEl.style.top = `${hg.copyTop}px`;
-      // a note under the actions ("coming soon") starts where the first action starts
+      // a note under the actions ("coming soon") starts where the action that owns it starts
+      // (the one whose data-note is the note's id), or at the first action when none does
       const note = copyEl.querySelector<HTMLElement>("[data-hero-note]");
-      const firstAction = copyEl.querySelector<HTMLElement>("button, a");
-      if (note && firstAction) note.style.left = `${firstAction.offsetLeft}px`;
+      const owner = Array.from(copyEl.querySelectorAll<HTMLElement>("[data-note]")).find(
+        (el) => el.dataset.note === note?.id,
+      );
+      const noteStart = owner ?? copyEl.querySelector<HTMLElement>("button, a");
+      if (note && noteStart) note.style.left = `${noteStart.offsetLeft}px`;
       heroEl.style.height = `${hg.height}px`;
       squareEl.style.cssText = `left:${hg.x}px;top:${hg.y}px;width:${hg.square}px;height:${hg.square}px;background-size:${hg.cell}px ${hg.cell}px`;
       treeEl.style.left = `${hg.x}px`;

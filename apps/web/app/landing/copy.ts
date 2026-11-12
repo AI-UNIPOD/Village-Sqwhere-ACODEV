@@ -20,6 +20,7 @@ type Copy = {
   play: string;
   headline: string;
   sub: string;
+  ctaJoin: string;
   ctaDemo: string;
   ctaTour: string;
   howTitle: string;
@@ -57,6 +58,7 @@ const en: Copy = {
   play: "Play animation",
   headline: "Builders across Africa, one square.",
   sub: "Share an idea. Get matched with co-⁠builders. Build it together.",
+  ctaJoin: "Join the village",
   ctaDemo: "Try the demo",
   ctaTour: "Take the tour",
   howTitle: "From an idea to a team, in four steps.",
@@ -118,6 +120,7 @@ const fr: Copy = {
   play: "Lire l'animation",
   headline: "Toute l'Afrique, une seule place.",
   sub: "Partagez une idée. Trouvez vos partenaires. Construisez ensemble.",
+  ctaJoin: "Rejoindre le village",
   ctaDemo: "Essayer la démo",
   ctaTour: "Faire la visite",
   howTitle: "D'une idée à une équipe, en quatre étapes.",

@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-12
 
+- feat(web): point the hero's main button to sign-in (#39)
 - fix(web): show the sign-in heading and text without a reveal (#47)
 - fix(web): announce a sign-in error once and swap it in smoothly (#45)
 - fix(web): keep onboarding answers when the page reloads (#54)
