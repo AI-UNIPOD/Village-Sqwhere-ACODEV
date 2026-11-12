@@ -16,7 +16,12 @@ Tanny chose, on 13 November 2026, a merge agent in `scripts/merge-agent/`:
   minutes, secrets or tokens beyond the `gh` and Claude Code sign-ins already on that machine.
 - **It runs the same checks as `ci.yml`**, on each pull request merged with the latest `main`.
   It makes its own test database from `infra/db/init/`, as CI does, so it reads no `.env` file.
-  Without gitleaks it stops, so no pull request merges without the secret scan.
+  Without the gitleaks secret scan nothing merges.
+- **A pull request's code runs only in containers** (Tanny's choice, 13 November 2026). Install,
+  lint, test, build and lockfile rebuilds run in Docker containers that get the merged files
+  without `.git`, none of the machine's folders or variables, and no extra privileges, on a
+  network of their own with a throwaway Postgres. The machine's own git, `gh` and Claude
+  sign-ins stay outside them.
 - **It merges on green checks alone.** This replaces the rule that a teammate must approve
   first (`AGENTS.md` section 3). Reviews are still welcome. A `do-not-merge` label holds a pull
   request back.
@@ -51,12 +56,13 @@ Tanny chose, on 13 November 2026, a merge agent in `scripts/merge-agent/`:
 
 - Green pull requests reach `main` within minutes, as one squash commit each, and their branches
   are deleted.
-- It runs each pull request's code (install scripts, tests, build) unsandboxed on Tanny's
-  machine, as Tanny, next to Tanny's GitHub admin and Claude sign-ins. Anyone with push access,
-  or a bad dependency in a pull request, can run code there. We accept this because only the
-  team can push branches and pull requests from forks are skipped. A disposable machine or a
-  container would remove it, at the cost of more setup.
-- It works only while Tanny's machine is on, signed in, and has the database running. Merges,
+- A pull request's code cannot read Tanny's files or sign-ins. What is left: the containers
+  share Docker Desktop's virtual machine, have internet access for installs and the web build's
+  fonts, and could reach services on the machine through `host.docker.internal`, such as the
+  development database. A disposable machine would remove that too, at the cost of more setup.
+- Each run downloads its dependencies again, about a minute more, because a cache shared
+  between pull requests would let one plant files for the next.
+- It works only while Tanny's machine is on, signed in, and has Docker Desktop running. Merges,
   comments and pushes appear under Tanny's GitHub account.
 - A failure caused by the machine (no network, for example) is reported like a real one. Removing
   the label retries.

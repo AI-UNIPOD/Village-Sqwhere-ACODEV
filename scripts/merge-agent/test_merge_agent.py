@@ -128,10 +128,18 @@ def test_keeps_model_text_free_of_dashes():
     assert agent.plain(text) == "It failed, the test, lines 3-5."
 
 
-def test_stops_before_testing_anything_without_the_secret_scan(monkeypatch):
-    monkeypatch.setattr(agent.shutil, "which", lambda name: None)
-    with pytest.raises(agent.AgentError, match="gitleaks not found"):
-        agent.find_gitleaks()
+def test_runs_pull_request_code_in_a_locked_down_container(monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "never-in-the-container")
+    args = agent.runner_args("box-0", "box-net", agent.NODE_IMAGE, {"CI": "1"})
+
+    assert args[:2] == ["docker", "create"]
+    assert args[-3:] == [agent.NODE_IMAGE, "sleep", "infinity"]
+    for flag in ("--cap-drop", "--security-opt", "--pids-limit", "--memory"):
+        assert flag in args
+    # no folder from this machine, and only the variables given
+    assert not {"-v", "--volume", "--mount"} & set(args)
+    assert [args[i + 1] for i, arg in enumerate(args) if arg == "-e"] == ["CI=1"]
+    assert "never-in-the-container" not in " ".join(args)
 
 
 def test_runs_the_commit_rule_on_titles():

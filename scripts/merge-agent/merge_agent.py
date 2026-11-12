@@ -50,8 +50,32 @@ LOCKFILES = ("pnpm-lock.yaml", "apps/api/uv.lock")
 # Conflicts here change how the team builds, checks or merges code, so a person resolves them.
 FLAG_ONLY = (".github/", "infra/", "scripts/merge-agent/", "AGENTS.md")
 DASH_CHECK_SKIP = ("pnpm-lock.yaml", "apps/api/uv.lock", "apps/web/AGENTS.md")
-DEV_DATABASE_URL = "postgresql://village:village@localhost:5432/village_sqwhere"
-TEST_DATABASE = "village_sqwhere_agent_test"
+# A pull request's code (install, lint, test, build, lockfiles) runs only in these containers,
+# never on this machine, so it cannot reach this machine's files or sign-ins.
+PG_IMAGE = "pgvector/pgvector:0.8.7-pg17"  # as in infra/docker-compose.yml and ci.yml
+NODE_IMAGE = "node:24-bookworm-slim"  # .nvmrc
+UV_IMAGE = "ghcr.io/astral-sh/uv:python3.13-bookworm-slim"  # apps/api/.python-version
+GITLEAKS_IMAGE = "ghcr.io/gitleaks/gitleaks:v8.30.1"  # the version ci.yml installs
+IMAGES = (PG_IMAGE, NODE_IMAGE, UV_IMAGE, GITLEAKS_IMAGE)
+SANDBOX_LABEL = "village-sqwhere-merge-agent"
+LOCKDOWN = (
+    "--cap-drop",
+    "ALL",
+    "--security-opt",
+    "no-new-privileges",
+    "--pids-limit",
+    "1024",
+    "--memory",
+    "6g",
+)
+# Reachable only on one run's own Docker network and deleted with it, so it is not a secret.
+SANDBOX_DATABASE_URL = "postgresql://village:village@db:5432/village_sqwhere"
+NODE_ENV = {"NEXT_TELEMETRY_DISABLED": "1", "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0"}
+# CI makes the API tests use DATABASE_URL, the throwaway database, as in ci.yml.
+API_ENV = {"CI": "1", "DATABASE_URL": SANDBOX_DATABASE_URL}
+# The root `prepare` script runs `git config`, and the containers get no .git folder.
+# Dependency build scripts are already off in pnpm-workspace.yaml.
+PNPM_INSTALL = "corepack enable && pnpm install --ignore-scripts"
 SONNET = "claude-sonnet-5-5"
 HAIKU = "claude-haiku-5-5"
 # No MCP servers and no saved sessions: each call stands alone and loads only what it needs.
@@ -227,32 +251,141 @@ def find_sh() -> str:
     raise AgentError("sh not found. Install Git for Windows.")
 
 
-def find_pnpm() -> list[str]:
-    """pnpm on the PATH, because the package.json scripts call `pnpm` themselves.
-
-    Without `corepack enable` (which needs admin rights on Windows), corepack puts a pnpm shim
-    in the agent's own folder instead.
-    """
-    if not shutil.which("pnpm"):
-        corepack = shutil.which("corepack")
-        if not corepack:
-            raise AgentError("pnpm not found. Install Node.js 22 or newer, which ships corepack.")
-        shims = HOME / "bin"
-        shims.mkdir(parents=True, exist_ok=True)
-        run([corepack, "enable", "--install-directory", str(shims), "pnpm"], cwd=HOME, check=True)
-        os.environ["PATH"] = f"{shims}{os.pathsep}{os.environ.get('PATH', '')}"
-    return [shutil.which("pnpm")]
+def sandbox_name(pr: dict) -> str:
+    return f"vs-agent-{pr['number']}-{pr['headRefOid'][:8]}"
 
 
-def find_gitleaks() -> str:
-    """The secret scan is one of the checks, so nothing merges without it."""
-    found = shutil.which("gitleaks")
-    if not found:
-        raise AgentError(
-            "gitleaks not found, so nothing is tested or merged. Install it and put it on the "
-            "PATH: https://github.com/gitleaks/gitleaks"
+def runner_args(name: str, network: str, image: str, env: dict[str, str]) -> list[str]:
+    """`docker create` for a container that runs pull request code: no folder or variable from
+    this machine except the variables given, no extra privileges, and limits on processes and
+    memory."""
+    args = ["docker", "create", "--name", name, "--label", SANDBOX_LABEL, "--network", network]
+    args += ["-w", "/work", *LOCKDOWN]
+    for key, value in env.items():
+        args += ["-e", f"{key}={value}"]
+    return [*args, image, "sleep", "infinity"]
+
+
+def remove_sandboxes() -> None:
+    """Containers and networks left by a run that died. Only one run goes at a time."""
+    found = f"label={SANDBOX_LABEL}"
+    containers = run(["docker", "ps", "-aq", "--filter", found], cwd=HOME).stdout.split()
+    if containers:
+        run(["docker", "rm", "-f", *containers], cwd=HOME)
+    networks = run(["docker", "network", "ls", "-q", "--filter", found], cwd=HOME).stdout.split()
+    if networks:
+        run(["docker", "network", "rm", *networks], cwd=HOME)
+
+
+class Sandbox:
+    """Containers for one pull request, on their own network, all removed on exit."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.network = f"{name}-net"
+        self.containers: list[str] = []
+
+    def __enter__(self) -> Sandbox:
+        run(
+            ["docker", "network", "create", "--label", SANDBOX_LABEL, self.network],
+            cwd=HOME,
+            check=True,
         )
-    return found
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        if self.containers:
+            run(["docker", "rm", "-f", *self.containers], cwd=HOME)
+        run(["docker", "network", "rm", self.network], cwd=HOME)
+
+    def runner(self, image: str, env: dict[str, str]) -> str:
+        """A started container with the clone's staged files in /work and no .git folder."""
+        name = f"{self.name}-{len(self.containers)}"
+        run(runner_args(name, self.network, image, env), cwd=HOME, check=True)
+        self.containers.append(name)
+        with tempfile.TemporaryDirectory(dir=HOME) as tmp:
+            # The index holds the merge with main, conflict resolution included. Exact bytes,
+            # whatever line-ending setting this machine has.
+            git(
+                "-c",
+                "core.autocrlf=false",
+                "checkout-index",
+                "--all",
+                f"--prefix={Path(tmp).as_posix()}/work/",
+            )
+            run(["docker", "cp", str(Path(tmp) / "work"), f"{name}:/"], cwd=HOME, check=True)
+        run(["docker", "start", name], cwd=HOME, check=True)
+        return name
+
+    def exec(self, container: str, script: str, workdir: str = "/work") -> tuple[bool, str]:
+        result = run(
+            ["docker", "exec", "-w", workdir, container, "sh", "-c", script], cwd=HOME, merged=True
+        )
+        return result.returncode == 0, result.stdout
+
+    def copy_out(self, container: str, path: str) -> None:
+        run(["docker", "cp", f"{container}:/work/{path}", str(CLONE / path)], cwd=HOME, check=True)
+
+    def database(self) -> tuple[bool, str]:
+        """A fresh database from this tree's infra/db/init, as the api job in ci.yml. It keeps
+        its data in memory and is reachable only as `db` on this sandbox's network."""
+        name = f"{self.name}-db"
+        run(
+            [
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                name,
+                "--label",
+                SANDBOX_LABEL,
+                "--network",
+                self.network,
+                "--network-alias",
+                "db",
+                "--tmpfs",
+                "/var/lib/postgresql/data",
+                "-e",
+                "POSTGRES_USER=village",
+                "-e",
+                "POSTGRES_PASSWORD=village",
+                "-e",
+                "POSTGRES_DB=village_sqwhere",
+                PG_IMAGE,
+            ],
+            cwd=HOME,
+            check=True,
+        )
+        self.containers.append(name)
+        psql = [
+            "docker",
+            "exec",
+            "-i",
+            name,
+            "psql",
+            "-h",
+            "127.0.0.1",
+            "-q",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-U",
+            "village",
+            "-d",
+            "village_sqwhere",
+        ]
+        # Over TCP, so it waits for the real server and not the one the image runs during setup.
+        ready = ["docker", "exec", name, "pg_isready", "-q", "-h", "127.0.0.1", "-U", "village"]
+        for _ in range(60):
+            if run(ready, cwd=HOME).returncode == 0:
+                break
+            time.sleep(1)
+        else:
+            return False, "The test database did not start within a minute."
+        for script in sorted((CLONE / "infra" / "db" / "init").glob("*.sql")):
+            result = run(psql, cwd=HOME, stdin=script.read_text(encoding="utf-8"), merged=True)
+            if result.returncode:
+                return False, f"{script.name}:\n{result.stdout}"
+        return True, ""
 
 
 class Agent:
@@ -369,20 +502,14 @@ class Agent:
 
     def preflight(self) -> None:
         self.sh = find_sh()
-        self.pnpm = find_pnpm()
-        self.gitleaks = find_gitleaks()
         self.claude = shutil.which("claude")
         run(["gh", "auth", "status"], cwd=HOME, check=True)
-        self.db_container = run(
-            ["docker", "compose", "-f", "infra/docker-compose.yml", "ps", "-q", "db"]
-        ).stdout.strip()
-        ready = (
-            self.db_container
-            and run(["docker", "exec", self.db_container, "pg_isready", "-U", "village"]).returncode
-            == 0
-        )
-        if not ready:
-            raise AgentError("the database is not running. Start it with: pnpm db:up")
+        if run(["docker", "info"], cwd=HOME).returncode:
+            raise AgentError("Docker is not running. Start Docker Desktop: every check runs in it.")
+        remove_sandboxes()
+        for image in IMAGES:
+            if run(["docker", "image", "inspect", image], cwd=HOME).returncode:
+                run(["docker", "pull", "-q", image], cwd=HOME, check=True)
         if not self.state.get("labels_ready") and not self.dry_run:
             for name, (color, about) in LABELS.items():
                 gh("label", "create", name, "--color", color, "--description", about, "--force",
@@ -393,42 +520,48 @@ class Agent:
 
     def checks(self, pr: dict) -> tuple[str | None, str]:
         """Run every check in order. Return the first failed step and its output."""
-        env = dict(os.environ)
-        env.pop("CI", None)
-        env.update(
-            DATABASE_URL=DEV_DATABASE_URL,
-            TEST_DATABASE_URL=DEV_DATABASE_URL.rsplit("/", 1)[0] + "/" + TEST_DATABASE,
-            NEXT_TELEMETRY_DISABLED="1",
-        )
+        with Sandbox(sandbox_name(pr)) as box:
+            web = box.runner(NODE_IMAGE, NODE_ENV)
+            api = box.runner(UV_IMAGE, API_ENV)
 
-        def command(*cmd: str) -> Callable[[], tuple[bool, str]]:
-            def step() -> tuple[bool, str]:
-                result = run(list(cmd), env=env, merged=True)
-                return result.returncode == 0, result.stdout
+            def step(container: str, script: str, workdir: str = "/work") -> Callable:
+                return lambda: box.exec(container, script, workdir)
 
-            return step
-
-        pnpm = self.pnpm
-        steps: list[tuple[str, Callable[[], tuple[bool, str]]]] = [
-            ("pr-title", lambda: self.title_step(pr["title"])),
-            ("dash-check", self.dash_step),
-            ("web: install", command(*pnpm, "install", "--frozen-lockfile")),
-            ("web: lint", command(*pnpm, "lint:web")),
-            ("web: test", command(*pnpm, "test:web")),
-            ("web: build", command(*pnpm, "build:web")),
-            ("api: database", self.database_step),
-            ("api: install", command("uv", "sync", "--locked", "--directory", "apps/api")),
-            ("api: lint", command(*pnpm, "lint:api")),
-            ("api: test", command(*pnpm, "test:api")),
-        ]
-        # The tracked file, not the folder: ignored caches can outlive a checkout.
-        if (CLONE / "scripts" / "merge-agent" / "merge_agent.py").is_file():
-            steps += [
-                ("agent: lint", command(*pnpm, "lint:agent")),
-                ("agent: test", command(*pnpm, "test:agent")),
+            agent = "../../scripts/merge-agent"
+            steps: list[tuple[str, Callable[[], tuple[bool, str]]]] = [
+                ("pr-title", lambda: self.title_step(pr["title"])),
+                ("dash-check", self.dash_step),
+                ("web: install", step(web, f"{PNPM_INSTALL} --frozen-lockfile")),
+                ("web: lint", step(web, "pnpm lint:web")),
+                ("web: test", step(web, "pnpm test:web")),
+                ("web: build", step(web, "pnpm build:web")),
+                ("api: database", box.database),
+                ("api: install", step(api, "uv sync --locked", "/work/apps/api")),
+                (
+                    "api: lint",
+                    step(
+                        api, "uv run ruff check . && uv run ruff format --check .", "/work/apps/api"
+                    ),
+                ),
+                ("api: test", step(api, "uv run pytest", "/work/apps/api")),
             ]
-        steps.append(("secret-scan", command(self.gitleaks, "git", "--redact", ".")))
+            # The tracked file, not the folder: ignored caches can outlive a checkout.
+            if (CLONE / "scripts" / "merge-agent" / "merge_agent.py").is_file():
+                steps += [
+                    (
+                        "agent: lint",
+                        step(
+                            api,
+                            f"uv run ruff check {agent} && uv run ruff format --check {agent}",
+                            "/work/apps/api",
+                        ),
+                    ),
+                    ("agent: test", step(api, f"uv run pytest {agent}", "/work/apps/api")),
+                ]
+            steps.append(("secret-scan", self.secret_scan_step))
+            return self.run_steps(pr, steps)
 
+    def run_steps(self, pr: dict, steps: list) -> tuple[str | None, str]:
         logs = HOME / "logs"
         logs.mkdir(exist_ok=True)
         with open(
@@ -455,29 +588,36 @@ class Agent:
         message = "Em dash or en dash found. Use a comma, colon, full stop or brackets."
         return not found, "\n".join([*found, message]) if found else ""
 
-    def database_step(self) -> tuple[bool, str]:
-        """A fresh test database from this tree's infra/db/init, as the api job in ci.yml."""
-        psql = [
-            "docker",
-            "exec",
-            "-i",
-            self.db_container,
-            *"psql -q -v ON_ERROR_STOP=1 -U village".split(),
-        ]
-        for sql in (
-            f"DROP DATABASE IF EXISTS {TEST_DATABASE} WITH (FORCE)",
-            f"CREATE DATABASE {TEST_DATABASE} OWNER village",
-        ):
-            result = run([*psql, "-d", "postgres", "-c", sql], merged=True)
-            if result.returncode:
-                raise AgentError(f"could not reset the test database: {tail(result.stdout, 5)}")
-        for script in sorted((CLONE / "infra" / "db" / "init").glob("*.sql")):
-            result = run(
-                [*psql, "-d", TEST_DATABASE], stdin=script.read_text(encoding="utf-8"), merged=True
-            )
-            if result.returncode:
-                return False, f"{script.name}:\n{result.stdout}"
-        return True, ""
+    def secret_scan_step(self) -> tuple[bool, str]:
+        """gitleaks from its image, over the clone's history, which it can read but not change."""
+        result = run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--label",
+                SANDBOX_LABEL,
+                "--network",
+                "none",
+                *LOCKDOWN,
+                "--mount",
+                f"type=bind,source={CLONE},target=/repo,readonly",
+                # the clone belongs to this machine's user, not the container's
+                "-e",
+                "GIT_CONFIG_COUNT=1",
+                "-e",
+                "GIT_CONFIG_KEY_0=safe.directory",
+                "-e",
+                "GIT_CONFIG_VALUE_0=/repo",
+                GITLEAKS_IMAGE,
+                "git",
+                "--redact",
+                "/repo",
+            ],
+            cwd=HOME,
+            merged=True,
+        )
+        return result.returncode == 0, result.stdout
 
     # Outcomes.
 
@@ -601,11 +741,11 @@ class Agent:
                     f"The automatic resolution changed other files: `{'`, `'.join(stray)}`.",
                 )
                 return
-        if "pnpm-lock.yaml" in conflicted:
-            run([*self.pnpm, "install", "--lockfile-only"], check=True)
-        if "apps/api/uv.lock" in conflicted:
-            run(["uv", "lock", "--directory", "apps/api"], check=True)
         git("add", "--", *conflicted)
+        relock = [lockfile for lockfile in LOCKFILES if lockfile in conflicted]
+        if relock:
+            self.relock(pr, relock)
+            git("add", "--", *relock)
 
         failed, output = self.checks(pr)
         if failed:
@@ -642,6 +782,22 @@ class Agent:
         )
         self.flag(pr, REVIEW, body)
         self.remember(pr, new_head, main_sha, "review")
+
+    def relock(self, pr: dict, lockfiles: list[str]) -> None:
+        """Rebuild conflicted lockfiles from the merged manifests, in containers."""
+        with Sandbox(f"{sandbox_name(pr)}-lock") as box:
+            if "pnpm-lock.yaml" in lockfiles:
+                node = box.runner(NODE_IMAGE, NODE_ENV)
+                ok, output = box.exec(node, f"{PNPM_INSTALL} --lockfile-only")
+                if not ok:
+                    raise AgentError(f"pnpm could not rebuild the lockfile: {tail(output, 10)}")
+                box.copy_out(node, "pnpm-lock.yaml")
+            if "apps/api/uv.lock" in lockfiles:
+                api = box.runner(UV_IMAGE, {})
+                ok, output = box.exec(api, "uv lock", "/work/apps/api")
+                if not ok:
+                    raise AgentError(f"uv could not rebuild the lockfile: {tail(output, 10)}")
+                box.copy_out(api, "apps/api/uv.lock")
 
     def ask_sonnet(self, pr: dict, files: list[str]) -> None:
         if not self.claude:

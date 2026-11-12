@@ -10,10 +10,12 @@ off (see `docs/PROGRESS.md`). Why it works this way:
 For each open pull request into `main`, oldest first:
 
 1. **Skips** drafts, pull requests from forks, and any with the `do-not-merge` label.
-2. **Tests** the pull request merged with the latest `main`, in its own clone, with the same
-   checks as `.github/workflows/ci.yml`: the title rule, the dash check, web install, lint,
-   test and build, a fresh test database from `infra/db/init/`, API install, lint and test,
-   this agent's own lint and tests, and the gitleaks secret scan.
+2. **Tests** the pull request merged with the latest `main`, with the same checks as
+   `.github/workflows/ci.yml`: the title rule, the dash check, web install, lint, test and
+   build, a fresh test database from `infra/db/init/`, API install, lint and test, this
+   agent's own lint and tests, and the gitleaks secret scan. Everything that runs the pull
+   request's code runs in Docker containers, on a network of their own with a throwaway
+   database, and the containers are removed afterwards.
 3. **Merges** when every check passes: a squash merge titled `<pull request title> (#<number>)`,
    only if neither the branch nor `main` moved since the checks. Then it **deletes the branch**,
    unless the branch is `main`, changed after the merge, or is used by another open pull request.
@@ -39,11 +41,10 @@ On the machine that runs it, all signed in as the person whose account merges:
   access to the repository.
 - [Claude Code](https://claude.com/claude-code), signed in (`claude`). Without it, the agent
   still tests and merges, but explains no failures and resolves no conflicts.
-- Git for Windows, Node.js 22 or newer (for `corepack pnpm`), uv, and Docker Desktop with the
-  database running (`pnpm db:up`). The agent makes its own `village_sqwhere_agent_test`
-  database, so it needs no `.env` file and never touches yours.
-- [gitleaks](https://github.com/gitleaks/gitleaks) on the `PATH`. Without it the agent tests
-  and merges nothing, because the secret scan is one of the checks.
+- Git for Windows, uv (to run the agent), and Docker Desktop, running. The checks use pinned
+  images for Postgres with pgvector, Node.js, uv and gitleaks, pulled on the first run. Each
+  run makes its own throwaway database, so the agent needs no `.env` file, no database URL
+  and never touches your development database. Without Docker it tests and merges nothing.
 
 No environment variables are required. Two are optional:
 
@@ -80,10 +81,12 @@ again after the agent changes on `main`.
 
 ## Limits
 
-- It runs each pull request's code (install, tests, build) on that machine, as that person,
-  with their GitHub and Claude sign-ins. Anyone who can push a branch to this repository, or a
-  bad dependency in a pull request, can run code there. Pull requests from forks are skipped.
-- It runs only while that machine is on and signed in, and the database is up.
+- It runs each pull request's code (install, tests, build) in containers that get the files
+  but no `.git` folder, no folder or variable from that machine, and no extra privileges. They
+  still share Docker Desktop's virtual machine, have internet access (installs and the web
+  build's fonts need it) and could reach services on that machine through
+  `host.docker.internal`. Pull requests from forks are skipped.
+- It runs only while that machine is on and signed in, and Docker Desktop is running.
 - Merges, comments and pushes appear under that person's GitHub account.
 - A failure caused by the machine (no network during `pnpm install`, for example) is reported
   like any other. Remove the label to retry.
