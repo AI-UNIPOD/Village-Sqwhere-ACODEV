@@ -11,6 +11,15 @@ its number:
 ## 2026-11-12
 
 - fix(web): use the design system breakpoint on onboarding (#42)
+- fix(web): give onboarding choice cards press feedback (#38)
+- fix(web): keep colour fades for buttons with reduced motion (#40)
+- fix(web): name onboarding technologies in french on the french page (#52)
+- feat(api): add Gemini audio fallback and approval verification (#37)
+- fix(web): show the chosen country while the list is filtered (#48)
+- fix(web): use a narrow no-break space before french punctuation (#41)
+- feat(web): add a not-found page in english and french (#55)
+- feat(web): add an error page for the landing and sign-in pages (#51)
+- fix(web): show the sign-in spinner in place of the github mark (#49)
 
 ## 2026-11-11
 
