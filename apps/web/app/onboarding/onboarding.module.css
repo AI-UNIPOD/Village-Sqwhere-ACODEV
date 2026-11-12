@@ -141,6 +141,24 @@
   margin-block-start: var(--space-8);
 }
 
+/* On a question step the row stays at the bottom of the screen while a long list scrolls, so
+   Continue is always in reach. The margin above leaves room after the last item. */
+.questionActions {
+  position: sticky;
+  inset-block-end: 0;
+  margin-inline: calc(var(--gutter) * -1);
+  padding: var(--space-3) var(--gutter);
+  border-block-start: 1px solid var(--line);
+  background: var(--bg);
+}
+
+/* The row is one button high plus its padding and border. Keeping items this far from the
+   bottom edge stops the keyboard from scrolling one under it. */
+.choice,
+.chip {
+  scroll-margin-block-end: calc(var(--tap-min) + var(--space-6) + var(--space-3));
+}
+
 .error {
   display: flex;
   align-items: flex-start;
@@ -161,12 +179,7 @@
   gap: var(--space-3);
 }
 
-.countryList {
-  gap: var(--space-2);
-  max-block-size: 24rem;
-  padding: var(--space-1);
-  overflow-y: auto;
-}
+.countryList { gap: var(--space-2); }
 
 @media (min-width: 600px) {
   .countryList { grid-template-columns: 1fr 1fr; }

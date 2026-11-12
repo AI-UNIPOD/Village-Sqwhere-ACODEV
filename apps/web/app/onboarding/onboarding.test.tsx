@@ -245,3 +245,15 @@ test("after skipping from the welcome screen the card invites the developer to f
   click("button", "Set up my profile");
   expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
 });
+
+// The row sticks to the bottom of the screen on the question steps only (see the stylesheet).
+test("only the question steps get the sticky Continue row", () => {
+  start("en", "role");
+  expect(screen.getByRole("button", { name: "Continue" }).parentElement?.className).toContain("questionActions");
+  cleanup();
+
+  start("en", "done");
+  expect(screen.getByRole("button", { name: "Set up my profile" }).parentElement?.className).not.toContain(
+    "questionActions",
+  );
+});
