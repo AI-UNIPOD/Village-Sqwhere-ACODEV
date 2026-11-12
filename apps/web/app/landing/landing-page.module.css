@@ -651,14 +651,17 @@
   content: none;
 }
 
-/* Reduced motion: the approved landing page's own buttons change at once. The section
-   interactions follow the design system: fades and colour changes stay, movement goes. */
+/* Reduced motion follows the design system: fades and colour changes stay, movement goes.
+   A press shows in the colour change, not a scale, and the theme icon swaps by fading. */
 @media (prefers-reduced-motion: reduce) {
-  .fab,
-  .btn,
-  .ghost,
+  .fab:active,
+  .btn:active:not([aria-disabled="true"]),
+  .ghost:active:not([aria-disabled="true"]) {
+    transform: none;
+  }
+
   .mode svg {
-    transition-duration: 0.01ms;
+    transition-property: opacity;
   }
 
   .reveal {

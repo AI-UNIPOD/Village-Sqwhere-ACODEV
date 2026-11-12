@@ -169,7 +169,7 @@
     animation: fade var(--dur-press) var(--ease-out) var(--delay-spinner) backwards;
   }
 
-  .primary {
-    transition-duration: 0.01ms;
+  .primary:active {
+    transform: none;
   }
 }
