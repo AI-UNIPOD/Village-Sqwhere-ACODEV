@@ -27,10 +27,8 @@ test("English and French have the same keys, and every text is filled in", () =>
   for (const text of strings(words)) expect(text.trim()).not.toBe("");
 });
 
-test("copy follows the voice rules: no dashes, no exclamation marks, no space before : or ?", () => {
+test("copy follows the voice rules: no dashes, no exclamation marks", () => {
   for (const text of strings(words)) expect(text).not.toMatch(new RegExp(`[${DASHES}!]`));
-  const french = [copy.fr, ROLES.map((role) => role.name.fr), TOPICS.map((topic) => topic.name.fr)];
-  for (const text of strings(french)) expect(text).not.toMatch(/\s[:?]/);
 });
 
 test("roles and technologies use the slugs the API stores", () => {

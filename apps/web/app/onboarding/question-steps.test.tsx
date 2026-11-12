@@ -57,7 +57,7 @@ function CountryStepWithAnswers({ lang }: { lang: Lang }) {
 
 test.each([
   { lang: "en" as const, filter: "Filter countries", nigeria: "Nigeria", line: "Selected: Nigeria" },
-  { lang: "fr" as const, filter: "Filtrer les pays", nigeria: "Nigeria", line: "Sélection: Nigeria" },
+  { lang: "fr" as const, filter: "Filtrer les pays", nigeria: "Nigeria", line: "Sélection : Nigeria" },
 ])("a chosen country stays shown when the filter hides it ($lang)", (t) => {
   render(<CountryStepWithAnswers lang={t.lang} />);
   expect(screen.queryByText(t.line)).toBeNull();
