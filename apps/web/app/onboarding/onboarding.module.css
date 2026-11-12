@@ -185,8 +185,11 @@
   cursor: pointer;
   transition:
     background-color var(--dur-press) var(--ease-out),
-    border-color var(--dur-press) var(--ease-out);
+    border-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
 }
+
+.choice:active { transform: scale(0.97); }
 
 /* the real radio covers the card, so a tap anywhere picks it and the keyboard still works */
 .choice input {
@@ -446,7 +449,8 @@
   }
 
   .back:active,
-  .chip:active {
+  .chip:active,
+  .choice:active {
     transform: none;
   }
 }
