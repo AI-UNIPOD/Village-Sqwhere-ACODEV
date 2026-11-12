@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY, saveSession } from "./session";
-import { AccountNavLink, RequireSession } from "./session-ui";
+import { AccountNavLink, RequireSession, SignOutButton } from "./session-ui";
 
 const replace = vi.fn();
 
@@ -58,4 +58,15 @@ test("anyone else is sent to sign-in in their language", () => {
   expect(screen.queryByText("Inside")).toBeNull();
   expect(screen.getByText("Loading")).toBeTruthy();
   expect(replace).toHaveBeenCalledWith("/fr/sign-in");
+});
+
+test("signing out from a page for signed-in people goes home, not to sign-in", () => {
+  signIn();
+  render(
+    <RequireSession lang="fr" fallback={<p>Loading</p>}>
+      <SignOutButton lang="fr" label="Déconnexion" className="link" />
+    </RequireSession>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Déconnexion" }));
+  expect(replace).toHaveBeenCalledExactlyOnceWith("/fr");
 });

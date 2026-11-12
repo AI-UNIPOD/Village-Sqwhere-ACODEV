@@ -86,6 +86,16 @@ test("a return in the language sign-in started in finishes there", async () => {
   expect(sessionStorage.getItem(SIGN_IN_LANG_KEY)).toBeNull();
 });
 
+test("blocked storage explains the problem instead of hanging", async () => {
+  search = "?login_code=lc_demo";
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    throw new DOMException("blocked", "SecurityError");
+  });
+  render(<CallbackPage lang="en" />);
+  expect(await screen.findByText(copy.en.problems.noVerifier.title)).toBeTruthy();
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
 test("the error code is encoded in the address", () => {
   open("?error=" + encodeURIComponent("A&B=1"));
   render(<CallbackPage lang="en" />);

@@ -16,7 +16,7 @@ export function SignOutButton({ lang, label, className }: { lang: Lang; label: s
       onClick={() => {
         if (busy) return;
         setBusy(true);
-        void signOut(lang);
+        signOut(lang);
       }}
     >
       {label}

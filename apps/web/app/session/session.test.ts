@@ -113,3 +113,27 @@ test("signing out still works when the API cannot be reached", async () => {
   expect(localStorage.getItem(SESSION_KEY)).toBeNull();
   expect(replace).toHaveBeenCalledWith("/en");
 });
+
+test("calls made together share one refresh, so the second does not sign the person out", async () => {
+  store("2026-11-12T09:59:00Z");
+  fetchMock.mockImplementation((url: string) =>
+    Promise.resolve(url.endsWith("/v1/auth/token") ? tokens("access-new", "rt_new") : reply(200)),
+  );
+  const [a, b] = await Promise.all([apiFetch("/v1/me"), apiFetch("/v1/me")]);
+  expect([a.status, b.status]).toEqual([200, 200]);
+  expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("/v1/auth/token"))).toHaveLength(1);
+  expect(stored().refresh_token).toBe("rt_new");
+});
+
+test("a refused refresh keeps the new pair another tab already saved", async () => {
+  store("2026-11-12T09:59:00Z");
+  fetchMock.mockImplementationOnce(() => {
+    // another tab rotated the token while this request was on its way
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ ...stored(), access_token: "access-tab", refresh_token: "rt_tab" }));
+    return Promise.resolve(reply(401, { detail: { code: "REFRESH_TOKEN_INVALID" } }));
+  });
+  fetchMock.mockResolvedValueOnce(reply(200));
+  await apiFetch("/v1/me");
+  expect(authOf(fetchMock.mock.calls[1]).Authorization).toBe("Bearer access-tab");
+  expect(stored().refresh_token).toBe("rt_tab");
+});

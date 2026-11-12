@@ -15,6 +15,15 @@ import styles from "./callback-page.module.css";
 
 type Status = "loading" | "success" | ProblemKey;
 
+// Blocked storage reads as empty, so the page explains the problem instead of hanging.
+function readTab(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
 // Trades the one-time login code for a session. The code works once, so each outcome is told
 // apart: only a network failure leaves it possibly still valid.
 async function exchange(code: string, verifier: string): Promise<Status> {
@@ -36,14 +45,18 @@ async function exchange(code: string, verifier: string): Promise<Status> {
   } catch {
     return "other";
   }
-  sessionStorage.removeItem(PKCE_VERIFIER_KEY);
-  sessionStorage.removeItem(SIGN_IN_LANG_KEY);
+  try {
+    sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+    sessionStorage.removeItem(SIGN_IN_LANG_KEY);
+  } catch {
+    // storage blocked: nothing was kept to remove
+  }
   return "success";
 }
 
 async function finishSignIn(lang: Lang, code: string, setStatus: Dispatch<SetStateAction<Status>>) {
   setStatus("loading");
-  const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+  const verifier = readTab(PKCE_VERIFIER_KEY);
   const result: Status = !code ? "noCode" : verifier ? await exchange(code, verifier) : "noVerifier";
   setStatus(result);
   // replace, not assign: Back must not return to a code that has been used
@@ -90,7 +103,7 @@ export function CallbackPage({ lang }: { lang: Lang }) {
     started.current = true;
     // The API sends everyone back to one address and the proxy picks a language from the
     // browser, so return to the language sign-in started in, before the one-time code is used.
-    const startedIn = sessionStorage.getItem(SIGN_IN_LANG_KEY);
+    const startedIn = readTab(SIGN_IN_LANG_KEY);
     if (startedIn && hasLocale(startedIn) && startedIn !== lang) {
       window.location.replace(`/${startedIn}/auth/callback${window.location.search}`);
       return;
