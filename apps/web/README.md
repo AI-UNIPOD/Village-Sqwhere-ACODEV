@@ -20,3 +20,10 @@ landing page is `app/landing/`, and the onboarding page shown after the first si
 `app/onboarding/` (at `/en/onboarding`). Style pages only with the design system tokens, imported in
 `app/globals.css` from [`docs/design-system/`](../../docs/design-system/README.md), and use
 `Logo` from `app/logo.tsx` for the logo. See the root [CONTRIBUTING.md](../../CONTRIBUTING.md) for the team workflow.
+
+An address that matches no page shows a not-found page in the address's language:
+`app/[lang]/[...rest]` calls `notFound()` and `app/[lang]/not-found.tsx` renders it. An unknown
+language, like `/xx/page`, gets the English version: every page under `[lang]` calls `notFound()`
+for a language it does not know, and the root layout falls back to English. `global-not-found.tsx`
+is not used, because `[lang]/[...rest]` matches every address, so no address is left unmatched.
+Both use `app/page-not-found/`.
