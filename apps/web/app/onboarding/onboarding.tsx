@@ -1,16 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ViewTransition, addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 
 import { GatherHero } from "../landing/gather-hero";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
-import { Logo } from "../logo";
 import { copy, fill } from "./copy";
 import { DoneStep } from "./done-step";
 import { ArrowLeft } from "./icons";
+import { OnboardingFrame } from "./onboarding-frame";
 import styles from "./onboarding.module.css";
 import { DEMO_PROFILE, firstName } from "./options";
 import { CountryStep, RoleStep, StackStep, TopicsStep } from "./question-steps";
@@ -36,7 +35,6 @@ const SLIDE = { "step-forward": "step-forward", "step-back": "step-back", defaul
 // browser's back button works. Answers live in this component's state only for now.
 export function Onboarding({ lang }: { lang: Lang }) {
   const t = copy[lang];
-  const other: Lang = lang === "en" ? "fr" : "en";
   const router = useRouter();
   const requested = parseStep(useSearchParams().get("step"));
   const [answers, setAnswers] = useState<Answers>(NO_ANSWERS);
@@ -128,23 +126,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header} data-site-header="">
-        <Link className={`${landing.brand} ${styles.brand}`} href={`/${lang}`}>
-          <Logo size={32} className={landing.navLogo} />
-          <span className={landing.navWordmark} translate="no">Village Sqwhere</span>
-        </Link>
-        {/* A plain link on purpose: a full page load, as on the landing page. */}
-        <a
-          className={landing.navLink}
-          href={`/${other}/onboarding`}
-          hrefLang={other}
-          lang={other}
-          translate="no"
-        >
-          {t.switchText}
-        </a>
-      </header>
+    <OnboardingFrame lang={lang}>
       <main className={styles.main}>
         {n > 0 && (
           <div className={`${styles.column} ${styles.top}`}>
@@ -167,6 +149,6 @@ export function Onboarding({ lang }: { lang: Lang }) {
       <p className={landing.srOnly} role="status">
         {announcement}
       </p>
-    </div>
+    </OnboardingFrame>
   );
 }

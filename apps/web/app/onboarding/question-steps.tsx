@@ -119,7 +119,6 @@ function ChipGroup(props: {
             aria-pressed={on}
             onClick={() => props.onToggle(option.slug)}
           >
-            {on && <Check />}
             {option.label}
           </button>
         );
@@ -180,9 +179,9 @@ export function RoleStep({ lang, answers, update, error, entrance }: StepProps &
 export function StackStep({ lang, answers, update, error }: StepProps) {
   const t = copy[lang];
   const [query, setQuery] = useState("");
-  const options = TECHNOLOGIES.filter((tech) => matches(tech.name, query)).map((tech) => ({
+  const options = TECHNOLOGIES.filter((tech) => matches(tech.name[lang], query)).map((tech) => ({
     slug: tech.slug,
-    label: tech.name,
+    label: tech.name[lang],
   }));
   return (
     <>
@@ -211,11 +210,17 @@ export function StackStep({ lang, answers, update, error }: StepProps) {
 export function CountryStep({ lang, answers, update }: StepProps) {
   const t = copy[lang];
   const [query, setQuery] = useState("");
-  const countries = countriesFor(lang).filter((country) => matches(country.name, query));
+  const all = countriesFor(lang);
+  const countries = all.filter((country) => matches(country.name, query));
+  const chosen = all.find((country) => country.code === answers.country);
   return (
     <>
       <Head id="country" title={t.country.title} why={t.country.why} />
       <Filter id="country" label={t.country.filter} value={query} onChange={setQuery} />
+      {/* the filter can hide the chosen country, so the choice is also said here */}
+      <p className={styles.selected} role="status">
+        {chosen && fill(t.country.selected, { country: chosen.name })}
+      </p>
       {countries.length > 0 ? (
         <fieldset className={styles.group} aria-describedby="country-why">
           <legend className={landing.srOnly}>{t.country.title}</legend>

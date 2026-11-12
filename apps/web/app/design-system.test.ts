@@ -72,3 +72,72 @@ test("the app imports the design system tokens", () => {
   const globals = readFileSync(join(__dirname, "globals.css"), "utf8");
   expect(globals).toContain('@import "../../../docs/design-system/tokens.css";');
 });
+
+// every top-level `@media (prefers-reduced-motion: reduce) { ... }` body, comments cut out
+function reducedMotionBlocks(css: string): string[] {
+  const query = "@media (prefers-reduced-motion: reduce)";
+  const clean = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const blocks: string[] = [];
+  for (let start = clean.indexOf(query); start !== -1; start = clean.indexOf(query, start + 1)) {
+    const open = clean.indexOf("{", start);
+    let end = open;
+    for (let depth = 0; ; end++) {
+      if (clean[end] === "{") depth++;
+      if (clean[end] === "}" && --depth === 0) break;
+    }
+    blocks.push(clean.slice(open + 1, end));
+  }
+  return blocks;
+}
+
+const appCssFiles = readdirSync(__dirname, { recursive: true })
+  .map(String)
+  .filter((f) => f.endsWith(".css"))
+  .map((file) => ({
+    file: file.replaceAll("\\", "/"),
+    css: readFileSync(join(__dirname, file), "utf8"),
+  }));
+
+// the selectors of the rules in `css` whose body matches `declaration`
+function selectorsWith(css: string, declaration: RegExp): string[] {
+  return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter((m) => declaration.test(m[2]))
+    .flatMap((m) => m[1].split(",").map((s) => s.replace(/\s+/g, " ").trim()));
+}
+
+// A slowed-down press also slows the colour fades. Reduced motion keeps fades and colour
+// changes (components.md, Motion), so a block may not squash every transition to nothing.
+test("reduced motion keeps colour and opacity transitions", () => {
+  const squashed = appCssFiles.flatMap(({ file, css }) =>
+    reducedMotionBlocks(css).flatMap((block) =>
+      /transition-duration:\s*0\.01ms/.test(block) ? [file] : [],
+    ),
+  );
+  expect(squashed).toEqual([]);
+});
+
+// The press feedback is a scale, which is movement. A colour change carries the feedback.
+test("reduced motion turns off every :active scale", () => {
+  const scaled = appCssFiles.flatMap(({ file, css }) => {
+    const clean = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const reduced = reducedMotionBlocks(css).join("\n");
+    const off = selectorsWith(reduced, /transform:\s*none/);
+    return selectorsWith(clean, /transform:\s*scale\(/)
+      .filter((selector) => selector.includes(":active"))
+      .filter((selector) => !off.includes(selector))
+      .map((selector) => `${file}: ${selector}`);
+  });
+  expect(scaled).toEqual([]);
+});
+
+// Movement that is not a press is not transitioned under reduced motion: the theme icon
+// turns without rotating and the link underline appears at once.
+test.each([
+  ["landing/landing-page.module.css", ".mode svg", "opacity"],
+  ["sign-in/sign-in-page.module.css", ".link::after", "border-color"],
+])("reduced motion in %s fades %s without moving it", (file, selector, kept) => {
+  const css = appCssFiles.find((f) => f.file === file)?.css ?? "";
+  const reduced = reducedMotionBlocks(css).join("\n");
+  const keepsOnly = new RegExp(String.raw`transition-property:\s*${kept}\s*;`);
+  expect(selectorsWith(reduced, keepsOnly)).toContain(selector);
+});

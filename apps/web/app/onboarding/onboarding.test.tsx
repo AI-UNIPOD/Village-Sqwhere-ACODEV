@@ -164,6 +164,26 @@ test("stack chips toggle aria-pressed and the count follows", () => {
   expect(screen.getByText("1 selected")).toBeTruthy();
 });
 
+// A tick inside the chip made it wider, so chips jumped to another row as picks built up.
+test("a chip looks the same size when pressed: only its fill changes, nothing is added", () => {
+  const go = start();
+  answerRequired(go);
+  const docker = screen.getByRole("button", { name: "Docker" });
+  const before = docker.innerHTML;
+  fireEvent.click(docker);
+  expect(docker.getAttribute("aria-pressed")).toBe("true");
+  expect(docker.innerHTML).toBe(before);
+  expect(docker.querySelector("svg")).toBeNull();
+
+  go("topics");
+  const fintech = screen.getByRole("button", { name: "Fintech" });
+  const topicBefore = fintech.innerHTML;
+  fireEvent.click(fintech);
+  expect(fintech.getAttribute("aria-pressed")).toBe("true");
+  expect(fintech.innerHTML).toBe(topicBefore);
+  expect(fintech.querySelector("svg")).toBeNull();
+});
+
 test("Continue with no technology shows an error and stays", () => {
   const go = start();
   go("role");
