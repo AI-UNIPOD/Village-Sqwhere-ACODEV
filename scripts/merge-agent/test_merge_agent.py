@@ -128,6 +128,12 @@ def test_keeps_model_text_free_of_dashes():
     assert agent.plain(text) == "It failed, the test, lines 3-5."
 
 
+def test_stops_before_testing_anything_without_the_secret_scan(monkeypatch):
+    monkeypatch.setattr(agent.shutil, "which", lambda name: None)
+    with pytest.raises(agent.AgentError, match="gitleaks not found"):
+        agent.find_gitleaks()
+
+
 def test_runs_the_commit_rule_on_titles():
     sh = agent.find_sh()
     assert agent.title_problem("feat(web): add the idea form", HOOK, sh) is None

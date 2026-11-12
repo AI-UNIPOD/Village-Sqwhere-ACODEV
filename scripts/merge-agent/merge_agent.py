@@ -244,6 +244,17 @@ def find_pnpm() -> list[str]:
     return [shutil.which("pnpm")]
 
 
+def find_gitleaks() -> str:
+    """The secret scan is one of the checks, so nothing merges without it."""
+    found = shutil.which("gitleaks")
+    if not found:
+        raise AgentError(
+            "gitleaks not found, so nothing is tested or merged. Install it and put it on the "
+            "PATH: https://github.com/gitleaks/gitleaks"
+        )
+    return found
+
+
 class Agent:
     def __init__(self, dry_run: bool) -> None:
         self.dry_run = dry_run
@@ -359,6 +370,7 @@ class Agent:
     def preflight(self) -> None:
         self.sh = find_sh()
         self.pnpm = find_pnpm()
+        self.gitleaks = find_gitleaks()
         self.claude = shutil.which("claude")
         run(["gh", "auth", "status"], cwd=HOME, check=True)
         self.db_container = run(
@@ -415,10 +427,7 @@ class Agent:
                 ("agent: lint", command(*pnpm, "lint:agent")),
                 ("agent: test", command(*pnpm, "test:agent")),
             ]
-        if shutil.which("gitleaks"):
-            steps.append(("secret-scan", command("gitleaks", "git", "--redact", ".")))
-        else:
-            log.warning("gitleaks is not installed, so the secret scan is skipped")
+        steps.append(("secret-scan", command(self.gitleaks, "git", "--redact", ".")))
 
         logs = HOME / "logs"
         logs.mkdir(exist_ok=True)

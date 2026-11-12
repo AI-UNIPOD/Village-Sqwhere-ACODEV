@@ -13,7 +13,7 @@ For each open pull request into `main`, oldest first:
 2. **Tests** the pull request merged with the latest `main`, in its own clone, with the same
    checks as `.github/workflows/ci.yml`: the title rule, the dash check, web install, lint,
    test and build, a fresh test database from `infra/db/init/`, API install, lint and test,
-   this agent's own lint and tests, and gitleaks when it is installed.
+   this agent's own lint and tests, and the gitleaks secret scan.
 3. **Merges** when every check passes: a squash merge titled `<pull request title> (#<number>)`,
    only if neither the branch nor `main` moved since the checks. Then it **deletes the branch**,
    unless the branch is `main`, changed after the merge, or is used by another open pull request.
@@ -42,7 +42,8 @@ On the machine that runs it, all signed in as the person whose account merges:
 - Git for Windows, Node.js 22 or newer (for `corepack pnpm`), uv, and Docker Desktop with the
   database running (`pnpm db:up`). The agent makes its own `village_sqwhere_agent_test`
   database, so it needs no `.env` file and never touches yours.
-- Optional: [gitleaks](https://github.com/gitleaks/gitleaks) on the `PATH` for the secret scan.
+- [gitleaks](https://github.com/gitleaks/gitleaks) on the `PATH`. Without it the agent tests
+  and merges nothing, because the secret scan is one of the checks.
 
 No environment variables are required. Two are optional:
 
@@ -79,6 +80,9 @@ again after the agent changes on `main`.
 
 ## Limits
 
+- It runs each pull request's code (install, tests, build) on that machine, as that person,
+  with their GitHub and Claude sign-ins. Anyone who can push a branch to this repository, or a
+  bad dependency in a pull request, can run code there. Pull requests from forks are skipped.
 - It runs only while that machine is on and signed in, and the database is up.
 - Merges, comments and pushes appear under that person's GitHub account.
 - A failure caused by the machine (no network during `pnpm install`, for example) is reported
