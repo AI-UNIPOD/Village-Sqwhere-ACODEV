@@ -44,6 +44,10 @@ router = APIRouter()
 # what the owner sees beyond the team itself: people who were asked and their answer
 OWNER_ONLY_STATUSES = (HubMemberStatus.INVITED, HubMemberStatus.DECLINED)
 
+# The most active members a hub has, the owner included. The web app shows the same limit
+# (TEAM_MAX in apps/web/app/hubs/team.tsx). Why five: docs/decisions/2026-11-13-hub-team-cap.md
+MAX_ACTIVE_MEMBERS = 5
+
 
 async def find_hub(db: AsyncSession, hub_id: UUID, *, lock: bool = False) -> Hub:
     query = select(Hub).where(Hub.id == hub_id).execution_options(populate_existing=True)
@@ -92,6 +96,22 @@ def require_active_hub(hub: Hub) -> None:
             status.HTTP_409_CONFLICT,
             "HUB_ARCHIVED",
             "This hub is archived, so nobody can join it.",
+        )
+
+
+async def require_room(db: AsyncSession, hub: Hub) -> None:
+    """Refuse when the team is full. Callers hold the hub row's lock, so two people cannot
+    both take the last place."""
+    active = await db.execute(
+        select(func.count())
+        .select_from(HubMember)
+        .where(HubMember.hub_id == hub.id, HubMember.status == HubMemberStatus.ACTIVE)
+    )
+    if active.scalar_one() >= MAX_ACTIVE_MEMBERS:
+        raise hub_error(
+            status.HTTP_409_CONFLICT,
+            "TEAM_FULL",
+            f"The team is full: a hub takes at most {MAX_ACTIVE_MEMBERS} members.",
         )
 
 
@@ -209,6 +229,7 @@ async def invite_to_hub(
             "ALREADY_INVITED",
             "This developer already has a pending invitation.",
         )
+    await require_room(db, hub)
     if member is None:
         member = HubMember(
             hub_id=hub.id,
@@ -268,6 +289,7 @@ async def accept_invitation(
     hub = await find_hub(db, hub_id, lock=True)
     member = await pending_invitation(db, hub, current_user.id)
     require_active_hub(hub)
+    await require_room(db, hub)
     template = hub.agreement_template
     if payload.template_id != template.id or payload.template_sha256 != template.body_sha256:
         raise hub_error(

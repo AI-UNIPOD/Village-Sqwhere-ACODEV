@@ -737,6 +737,7 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | `409` | `ALREADY_MEMBER` | The person is already an active member. |
 | `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
 | `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances. |
+| `409` | `TEAM_FULL` | The hub already has 5 active members, the owner included. |
 | `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
 | `409` | `IDEA_NOT_OPEN` | The idea is a draft or closed. Open it first. |
 | `409` | `HUB_ALREADY_EXISTS` | The idea already has a hub (one hub per idea). |
@@ -899,6 +900,11 @@ The owner invites developers. An invited person reads the hub's agreement and ei
 to join or declines. Only active members, who have signed, see the idea's confidential brief
 and the team. Why these rules: `docs/decisions/2026-11-13-hub-invitations.md`.
 
+A hub has at most **5 active members, the owner included**. A full team takes no new
+invitations, and an invitation sent while there was room cannot be accepted once the team is
+full (`409 TEAM_FULL`). Pending invitations do not count. Why five:
+`docs/decisions/2026-11-13-hub-team-cap.md`.
+
 ```text
 (no row) --invite--> invited --accept + sign--> active
                         |  \--decline--> declined --invite--> invited
@@ -939,7 +945,8 @@ The owner invites one developer. The username is matched without regard to case.
   ```
   Someone who declined, left or was removed can be invited again.
 * **Errors:** `403 NOT_HUB_OWNER`, `404 USER_NOT_FOUND`, `409 ALREADY_MEMBER`,
-  `409 ALREADY_INVITED`, `409 HUB_ARCHIVED`, `422` (a missing or malformed username).
+  `409 ALREADY_INVITED`, `409 HUB_ARCHIVED`, `409 TEAM_FULL`, `422` (a missing or malformed
+  username).
 
 #### `DELETE /v1/hubs/{hub_id}/invitations/{user_id}`
 
@@ -966,7 +973,7 @@ The invited person signs the hub's agreement and becomes an active member. Show 
   The signature, its IP address and user agent are saved as evidence and never returned. A
   person invited back after leaving keeps their earlier signature of the same text.
 * **Errors:** `404 INVITATION_NOT_FOUND`, `409 ALREADY_MEMBER`, `409 HUB_ARCHIVED`,
-  `409 AGREEMENT_MISMATCH`, `422`.
+  `409 TEAM_FULL`, `409 AGREEMENT_MISMATCH`, `422`.
 
 #### `POST /v1/hubs/{hub_id}/invitation/decline`
 
