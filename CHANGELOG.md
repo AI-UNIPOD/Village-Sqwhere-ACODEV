@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(web): add writing and editing a post (#106)
 - feat(web): add the post page (#102)
 - feat(web): add the feed with likes and saves (#101)
 - feat(api): add comment lists with reply previews (#99)
