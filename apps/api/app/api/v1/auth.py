@@ -12,7 +12,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import DbSession, user_to_profile
+from app import config
+from app.api.deps import DbSession, demo_switched_off, user_to_profile
 from app.config import (
     FRONTEND_URL,
     GITHUB_CLIENT_ID,
@@ -47,6 +48,10 @@ _OAUTH_STATES: dict[str, tuple[AuthProvider, str, str, datetime]] = {}
 
 # One-time login codes from the callback: code -> (user_id, is_new_user, code_challenge, expiry)
 _LOGIN_CODES: dict[str, tuple[UUID, bool, str, datetime]] = {}
+
+# The shared demo account "Try the demo" signs in as. The demo seed script creates it with this
+# id; the made-up developers it creates are demo accounts too, but nobody signs in as them.
+DEMO_ACCOUNT_ID = UUID("00000000-0000-4000-8000-00000000de30")
 
 # In-memory revocation set for refresh tokens
 _REVOKED_REFRESH_TOKENS: set[str] = set()
@@ -372,6 +377,8 @@ async def exchange_token(
                 "message": "User not found or deleted",
             },
         )
+    if existing_user.is_demo and not config.DEMO_ENABLED:
+        raise demo_switched_off()
 
     # Invalidate previous refresh token (token rotation)
     _REVOKED_REFRESH_TOKENS.add(payload.refresh_token)
@@ -389,6 +396,36 @@ async def exchange_token(
             refresh_expires_at=new_refresh_expires,
             is_new_user=False,
             user=user_to_profile(existing_user),
+        )
+    )
+
+
+@router.post("/auth/demo", response_model=TokenResponse)
+async def demo_sign_in(db: DbSession) -> TokenResponse:
+    """Signs in as the shared, read-only demo account. No GitHub and no body: the demo is for
+    looking around before signing up. Refresh and sign-out work as for any account."""
+    demo = None
+    if config.DEMO_ENABLED:
+        demo = await db.scalar(
+            select(User).where(User.id == DEMO_ACCOUNT_ID, User.is_demo, User.deleted_at.is_(None))
+        )
+    if demo is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DEMO_UNAVAILABLE", "message": "The demo is not available here."},
+        )
+
+    access_token = create_access_token(demo.id)
+    refresh_token, refresh_expires_at = create_refresh_token(demo.id)
+    return TokenResponse(
+        data=TokenData(
+            access_token=access_token,
+            token_type="Bearer",
+            expires_in=900,
+            refresh_token=refresh_token,
+            refresh_expires_at=refresh_expires_at,
+            is_new_user=False,
+            user=user_to_profile(demo),
         )
     )
 

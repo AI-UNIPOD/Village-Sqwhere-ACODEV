@@ -1,12 +1,13 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app import config
 from app.core.security import decode_access_token
 from app.database import get_db
 from app.models.users import User, UserFeedTopic, UserRole, UserSector, UserTechnology
@@ -90,6 +91,7 @@ def user_to_profile(user: User) -> UserProfile:
             if hasattr(user.platform_role, "value")
             else str(user.platform_role)
         ),
+        is_demo=user.is_demo,
         roles=role_details,
         technologies=technologies,
         feed_topics=feed_topics,
@@ -100,6 +102,7 @@ def user_to_profile(user: User) -> UserProfile:
 
 
 async def get_current_user(
+    request: Request,
     db: DbSession,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security_bearer)],
 ) -> User:
@@ -150,7 +153,35 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    if user.is_demo:
+        refuse_demo(request.method)
     return user
+
+
+def demo_switched_off() -> HTTPException:
+    # Tokens the demo handed out stop working as soon as the demo is switched off.
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail={"code": "DEMO_UNAVAILABLE", "message": "The demo is off. Sign in with GitHub."},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def refuse_demo(method: str) -> None:
+    """The demo account is shared and anyone can sign in as it, so it may only read. Every
+    signed-in route resolves the user here, so a new write route is covered with no check of
+    its own."""
+    if not config.DEMO_ENABLED:
+        raise demo_switched_off()
+    if method not in ("GET", "HEAD", "OPTIONS"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "DEMO_READ_ONLY",
+                "message": "The demo can look at everything but change nothing. "
+                "Sign in with GitHub to take part.",
+            },
+        )
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

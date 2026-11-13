@@ -41,6 +41,9 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_SECONDS = int(os.getenv("ACCESS_TOKEN_EXPIRE_SECONDS", 900))  # 15 minutes
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 30))  # 30 days
 
+# "Try the demo": a shared, read-only account anyone can sign in as. Off unless set to "true".
+DEMO_ENABLED = os.getenv("DEMO_ENABLED", "false").strip().lower() == "true"
+
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")

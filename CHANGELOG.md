@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add a read-only demo sign-in (#115)
 - feat(api): add sectors for onboarding (#114)
 - test(api): compare saved lists without order in the two tabs test (#113)
 - fix(api): answer 422 instead of 500 for a lone surrogate in a request (#112)
