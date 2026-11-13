@@ -33,8 +33,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    and next steps need a new schema script); later, semantic similarity for matching.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-4. Save the onboarding sectors with `PUT /v1/me/sectors`, then the country and a completion
-   flag once the API has fields for them.
+4. Save the onboarding country and a completion flag once the API has fields (the sectors and
+   the feed's technologies are saved).
 5. Demo, from `docs/decisions/2026-11-13-read-only-demo.md`: the seed script with made-up
    content, outside `infra/db/init/`. Sign-in, read-only and the wall are in.
 6. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
