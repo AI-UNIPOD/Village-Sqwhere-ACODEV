@@ -31,7 +31,7 @@ from tests.hub_support import (
     run,
 )
 
-MEMBER_CARD = {"user", "member_role", "status", "joined_at", "updated_at"}
+MEMBER_CARD = {"user", "member_role", "status", "decline_kind", "joined_at", "updated_at"}
 
 
 def invite(client: TestClient, hub: Hub, owner: User, username: str) -> Any:
@@ -791,6 +791,32 @@ def test_a_developer_withdraws_their_request(client: TestClient) -> None:
     assert_error(answer(client, hub, owner, developer, "approve"), 404, "REQUEST_NOT_FOUND")
     # no wait: the owner said nothing
     assert ask(client, hub, developer).status_code == 201
+
+
+def test_the_owner_sees_which_no_ended_each_declined_row(client: TestClient) -> None:
+    owner, invitee, turned_down, withdrew = make_user(), make_user(), make_user(), make_user()
+    hub = make_hub(owner)
+    assert invite(client, hub, owner, invitee.username).status_code == 201
+    assert decline(client, hub, invitee).status_code == 200
+    for developer in (turned_down, withdrew):
+        assert ask(client, hub, developer).status_code == 201
+    assert answer(client, hub, owner, turned_down, "decline").status_code == 200
+    assert withdraw(client, hub, withdrew).status_code == 200
+
+    rows = client.get(f"/v1/hubs/{hub.id}/members", headers=auth(owner)).json()["data"]
+
+    kinds = {row["user"]["id"]: (row["status"], row["decline_kind"]) for row in rows}
+    assert kinds == {
+        str(owner.id): ("active", None),
+        str(invitee.id): ("declined", "invitation_declined"),
+        str(turned_down.id): ("declined", "request_declined"),
+        str(withdrew.id): ("declined", "request_withdrawn"),
+    }
+    # asking or being invited again starts afresh, so the old "no" is gone
+    wait_out(hub, turned_down)
+    assert ask(client, hub, turned_down).status_code == 201
+    assert invite(client, hub, owner, withdrew.username).json()["data"]["decline_kind"] is None
+    assert membership(hub, turned_down).decline_kind is None
 
 
 def test_only_a_pending_request_can_be_withdrawn(client: TestClient) -> None:

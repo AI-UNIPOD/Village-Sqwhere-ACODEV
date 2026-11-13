@@ -52,6 +52,14 @@ class HubMemberStatus(StrEnum):
     REMOVED = "removed"
 
 
+class HubDeclineKind(StrEnum):
+    """Which "no" put a membership in "declined"."""
+
+    INVITATION_DECLINED = "invitation_declined"
+    REQUEST_DECLINED = "request_declined"
+    REQUEST_WITHDRAWN = "request_withdrawn"
+
+
 def _computed_by_the_database(key: str) -> None:
     # The trigger would overwrite the value, but the object would keep what Python set,
     # so code could show a hash or terms nobody signed.
@@ -231,6 +239,10 @@ class HubMember(Base):
     )
     can_ask_again_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    # infra/db/init/013-hub-decline-kind.sql; only ever set while the status is "declined"
+    decline_kind: Mapped[HubDeclineKind | None] = mapped_column(
+        _pg_enum(HubDeclineKind, "hub_decline_kind"), nullable=True
     )
     # set by the hub_members_set_updated_at trigger
     updated_at: Mapped[datetime] = mapped_column(
