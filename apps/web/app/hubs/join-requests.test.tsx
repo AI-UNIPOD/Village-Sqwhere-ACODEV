@@ -162,6 +162,22 @@ test("asking too soon after a decline says when the developer can ask again, in 
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
+test("a developer still waiting sees the date as soon as the page opens, with no button to press", async () => {
+  await view({ viewer: { membership_status: "declined", member_role: "member", can_ask_again_at: "2026-11-15T12:00:00.123456+00:00" } });
+  const note = await screen.findByText(/^The owner turned down your last request\. You can ask again from November 15, 2026 at \d{1,2}:\d{2}\s[AP]M\.$/);
+  expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
+  // nothing was pressed, so nothing is announced and the person's place is left alone
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(document.activeElement).not.toBe(note);
+  expect(posted()).toEqual([]);
+});
+
+test("once the wait is over the card carries no date, and the button is back", async () => {
+  await view({ viewer: { membership_status: "declined", member_role: "member", can_ask_again_at: null } });
+  expect(await ask()).toBeTruthy();
+  expect(screen.queryByText(/turned down/)).toBeNull();
+});
+
 test("the wait is said in French, with the date written the French way", async () => {
   await view(placed("declined"), { "POST /v1/hubs/hub-1/join-requests": coolingDown("2026-11-15T12:00:00+00:00") }, {}, "fr");
   fireEvent.click(await screen.findByRole("button", { name: "Demander à rejoindre" }));

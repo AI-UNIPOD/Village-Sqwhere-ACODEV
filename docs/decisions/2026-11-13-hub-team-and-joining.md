@@ -98,7 +98,10 @@ The API now lets a developer ask to join a hub and the owner approve or decline
   The API refuses a request made too soon with 409 `REQUEST_COOLING_DOWN` and the date the wait
   ends: 48 hours after a decline, 30 days after the fifth in a row. The sentence with that date,
   written in the page's language, takes the place of the button, because another press would only
-  be refused. If the date cannot be read, the sentence says "later".
+  be refused. If the date cannot be read, the sentence says "later". The hub card carries the
+  same date (`viewer.can_ask_again_at`, set only while the wait is ahead), so a page opened
+  during the wait shows the sentence at once and never offers the button. The refused press
+  stays as the fallback for a card read before the decline.
 
 ### What the API could not tell the web
 
@@ -112,9 +115,6 @@ The API now lets a developer ask to join a hub and the owner approve or decline
   declined (see above).
 - **Withdrawing a request.** A developer cannot withdraw their own request: there is no route, so
   the web offers none. The owner can decline it.
-- **When a wait ends, before a press.** The hub card says `declined` during the wait and carries no
-  date, so a page opened again shows "Ask to join" and only the refused press brings the date. A
-  `can_ask_again_at` on the card's `viewer` would let the page say it at once.
 
 ### Consequences
 

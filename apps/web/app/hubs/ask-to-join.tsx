@@ -18,6 +18,13 @@ import { askToJoin, loadHub, type Hub } from "./hubs-api";
 // A refusal that means the developer already has a place in the hub: the page shows that place.
 const ALREADY: Record<string, string> = { ALREADY_MEMBER: "active", ALREADY_INVITED: "invited", ALREADY_REQUESTED: "requested" };
 
+// The date a wait after a decline ends, or null when there is none or it cannot be read. The
+// API gives one only while the wait is still ahead.
+function waitUntil(value: unknown): Date | null {
+  const until = new Date(typeof value === "string" ? value : NaN);
+  return Number.isNaN(until.getTime()) ? null : until;
+}
+
 // The step the developer can take towards an idea's hub: ask the owner to let them in, or the
 // next step of a request they already made. The hub card says where they stand, so the answer
 // is the same on every visit.
@@ -32,15 +39,21 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
   // only a request made on this page arrives with motion, never one found on load
   const [justAsked, setJustAsked] = useState(false);
   // the owner turned the last request down and the developer must wait: until when, or "later"
-  // when the API's date cannot be read
+  // when the API's date cannot be read. The hub's card says so on load; a press too soon says
+  // so too, for a card read before the decline.
   const [wait, setWait] = useState<Date | "later" | null>(null);
+  const [refused, setRefused] = useState(false);
   const note = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (!hubId) return;
     let live = true;
     loadHub(hubId).then(
-      (found) => live && setHub(found),
+      (found) => {
+        if (!live) return;
+        setHub(found);
+        setWait(waitUntil(found.viewer.can_ask_again_at));
+      },
       (error: unknown) => {
         if (live && !(error instanceof SignedOutError)) setFailed(true);
       },
@@ -52,8 +65,8 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
 
   // the button that was pressed is gone: keep the person's place on what replaced it
   useEffect(() => {
-    if (justAsked || wait) note.current?.focus();
-  }, [justAsked, wait]);
+    if (justAsked || refused) note.current?.focus();
+  }, [justAsked, refused]);
 
   if (!hubId) return <p className={ideas.lead}>{t.ask.noHub}</p>;
   if (failed) {
@@ -92,8 +105,8 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
       else if (code === "IDEA_CLOSED") setClosed(true);
       else if (code === "HUB_ARCHIVED") setHub({ ...hub, status: "archived" });
       else if (code === "REQUEST_COOLING_DOWN") {
-        const until = new Date(String((error as IdeaError).detail?.can_ask_again_at));
-        setWait(Number.isNaN(until.getTime()) ? "later" : until);
+        setWait(waitUntil((error as IdeaError).detail?.can_ask_again_at) ?? "later");
+        setRefused(true);
       }
       else setProblem(code === "TEAM_FULL" ? t.team.full : t.team.actionFailed);
     } finally {
@@ -138,9 +151,9 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
   }
   if (closed) return <p className={ideas.lead}>{t.ask.closed}</p>;
   if (wait) {
-    // the button would only be refused again, so the date takes its place
+    // the button would only be refused, so the date takes its place
     return (
-      <div role="status">
+      <div role={refused ? "status" : undefined}>
         <p ref={note} tabIndex={-1} className={ideas.lead}>
           {wait === "later" ? t.ask.waitLater : fill(t.ask.wait, { date: wait.toLocaleString(lang, { dateStyle: "long", timeStyle: "short" }) })}
         </p>
