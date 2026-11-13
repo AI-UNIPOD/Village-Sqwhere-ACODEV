@@ -59,6 +59,16 @@ that were shown; if the API says the agreement changed, the page shows the new t
 again. The agreement's Markdown is rendered by `agreement-text.tsx` as headings, lists and
 paragraphs only, never as markup.
 
+The hub page shows a member the team (`GET /v1/hubs/{id}/members`) and the private brief
+(`GET /v1/hubs/{id}/idea`). The owner invites by GitHub username, withdraws an invitation and
+invites again after a decline (`team.tsx`); an invited developer sees the invitation, not the
+team's brief. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
+
+An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
+(`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares
+the agreement block and the signature checks with the create-hub page (`agreement-block.tsx`),
+and sends the id and hash of the text that was shown.
+
 The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to

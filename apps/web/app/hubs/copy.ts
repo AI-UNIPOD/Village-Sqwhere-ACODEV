@@ -57,7 +57,6 @@ type Copy = {
   ideaHeading: string;
   editIdea: string;
   teamHeading: string;
-  inviteNext: string;
   notMember: string;
   verified: string;
   githubProfile: string;
@@ -68,6 +67,45 @@ type Copy = {
   phasesNote: string;
   notStarted: string;
   missingHub: Screen;
+  // the team and the brief on a hub's page
+  team: {
+    invited: string;
+    declined: string;
+    withdraw: string;
+    inviteAgain: string;
+    named: string;
+    withdrawDialog: { title: string; text: string; confirm: string; cancel: string };
+    loadFailed: string;
+    actionFailed: string;
+    full: string;
+    form: { label: string; help: string; send: string; sent: string };
+    errors: { notFound: string; alreadyMember: string; alreadyInvited: string; archived: string; invalid: string; failed: string };
+  };
+  brief: { heading: string; private: string; empty: string; write: string; loadFailed: string };
+  // for a developer who was invited
+  invitation: {
+    title: string;
+    text: string;
+    sign: string;
+    decline: string;
+    dialog: { title: string; text: string; confirm: string; cancel: string };
+    failed: string;
+  };
+  declinedNote: string;
+  joined: string;
+  invitations: { heading: string; by: string };
+  // joining a hub by signing its agreement
+  join: {
+    pageTitle: string;
+    title: string;
+    lead: string;
+    frozen: string;
+    sign: string;
+    confirm: { title: string; confirm: string; cancel: string };
+    send: string;
+    noInvitation: Screen;
+    archived: Screen;
+  };
   // on an idea's card
   createHub: string;
   openHub: string;
@@ -168,7 +206,6 @@ const en: Copy = {
   ideaHeading: "The idea",
   editIdea: "Edit the idea",
   teamHeading: "Team",
-  inviteNext: "Inviting teammates comes next. You will choose them from developers whose verified role fills a gap.",
   notMember: "You are not a member of this hub.",
   verified: "Verified",
   githubProfile: "GitHub profile, opens in a new tab",
@@ -179,6 +216,74 @@ const en: Copy = {
   phasesNote: "The team moves through these one at a time. They open when the team is in place.",
   notStarted: "Not started",
   missingHub: { title: "We couldn't find this hub", text: "It may have been removed, or the address is wrong." },
+  team: {
+    invited: "Invited",
+    declined: "Declined",
+    withdraw: "Withdraw",
+    inviteAgain: "Invite again",
+    named: "{action}: {name}",
+    withdrawDialog: {
+      title: "Withdraw this invitation?",
+      text: "They can be invited again later.",
+      confirm: "Withdraw",
+      cancel: "Keep it",
+    },
+    loadFailed: "We couldn't load the team. Nothing was changed, so check your connection and try again.",
+    actionFailed: "That did not go through. Nothing was changed, so try again.",
+    full: "The team is full: five members is the most a hub takes.",
+    form: {
+      label: "GitHub username",
+      help: "The developer must have signed in to Village Sqwhere once.",
+      send: "Send invite",
+      sent: "Invitation sent to {name}.",
+    },
+    errors: {
+      notFound:
+        "No developer here has that username. Check the spelling, or ask them to sign in to Village Sqwhere first.",
+      alreadyMember: "They are already in this hub.",
+      alreadyInvited: "They already have an invitation.",
+      archived: "This hub is archived, so nobody can be invited.",
+      invalid: "Enter a GitHub username, like ada-obi.",
+      failed: "The invitation was not sent. What you typed is still here, so check your connection and try again.",
+    },
+  },
+  brief: {
+    heading: "The brief",
+    private: "Only the team sees this.",
+    empty: "The owner has not written a brief yet.",
+    write: "Write the brief",
+    loadFailed: "We couldn't load the brief. Nothing was changed, so try again.",
+  },
+  invitation: {
+    title: "You are invited to this hub.",
+    text: "Read the agreement and the terms, then sign to join. Until you sign you cannot read the brief.",
+    sign: "Read and sign",
+    decline: "Decline",
+    dialog: {
+      title: "Decline this invitation?",
+      text: "The owner can invite you again later.",
+      confirm: "Decline",
+      cancel: "Go back",
+    },
+    failed: "We couldn't decline the invitation. Nothing was changed, so try again.",
+  },
+  declinedNote: "You declined the invitation to this hub.",
+  joined: "You are in. The brief and the team are now open to you.",
+  invitations: { heading: "Invitations", by: "Invited by {name}" },
+  join: {
+    pageTitle: "Join a hub | Village Sqwhere",
+    title: "Join {name}",
+    lead: "{owner} invited you to build {idea}. Read the terms and the agreement, then sign to join.",
+    frozen: "Every member signs these same terms. They cannot be changed.",
+    sign: "Sign and join",
+    confirm: { title: "Join this hub?", confirm: "Sign and join", cancel: "Go back" },
+    send: "We couldn't complete your signature. Nothing you typed was lost, so check your connection and try again.",
+    noInvitation: {
+      title: "There is no invitation to sign",
+      text: "You can only join a hub you were invited to. Ask the owner to invite you.",
+    },
+    archived: { title: "This hub is archived, so nobody can join.", text: "Nothing was signed." },
+  },
   createHub: "Create the hub",
   openHub: "Open the hub",
   loading: "Getting your hubs",
@@ -289,8 +394,6 @@ const fr: Copy = {
   ideaHeading: "L'idée",
   editIdea: "Modifier l'idée",
   teamHeading: "Équipe",
-  inviteNext:
-    "L'invitation des coéquipiers vient ensuite. Vous les choisirez parmi les développeurs dont le rôle vérifié comble un manque.",
   notMember: "Vous n'êtes pas membre de cet espace.",
   verified: "Vérifié",
   githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
@@ -303,6 +406,74 @@ const fr: Copy = {
   missingHub: {
     title: "Nous n'avons pas trouvé cet espace",
     text: "Il a peut-être été supprimé, ou l'adresse est incorrecte.",
+  },
+  team: {
+    invited: "Invité",
+    declined: "Refusé",
+    withdraw: "Retirer",
+    inviteAgain: "Inviter à nouveau",
+    named: "{action}\u202f: {name}",
+    withdrawDialog: {
+      title: "Retirer cette invitation\u202f?",
+      text: "Cette personne pourra être invitée à nouveau plus tard.",
+      confirm: "Retirer l'invitation",
+      cancel: "La garder",
+    },
+    loadFailed: "Nous n'avons pas pu charger l'équipe. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
+    actionFailed: "Cela n'a pas abouti. Rien n'a été modifié, réessayez.",
+    full: "L'équipe est complète\u202f: cinq membres, c'est le maximum pour un espace.",
+    form: {
+      label: "Nom d'utilisateur GitHub",
+      help: "Le développeur doit s'être connecté une fois à Village Sqwhere.",
+      send: "Envoyer l'invitation",
+      sent: "Invitation envoyée à {name}.",
+    },
+    errors: {
+      notFound:
+        "Aucun développeur ici n'a ce nom d'utilisateur. Vérifiez l'orthographe, ou demandez-lui de se connecter d'abord à Village Sqwhere.",
+      alreadyMember: "Cette personne est déjà dans cet espace.",
+      alreadyInvited: "Cette personne a déjà une invitation.",
+      archived: "Cet espace est archivé, personne ne peut donc être invité.",
+      invalid: "Saisissez un nom d'utilisateur GitHub, par exemple ada-obi.",
+      failed: "L'invitation n'a pas été envoyée. Ce que vous avez saisi est toujours là, vérifiez votre connexion et réessayez.",
+    },
+  },
+  brief: {
+    heading: "Le brief",
+    private: "Seule l'équipe voit ceci.",
+    empty: "Le porteur n'a pas encore rédigé de brief.",
+    write: "Rédiger le brief",
+    loadFailed: "Nous n'avons pas pu charger le brief. Rien n'a été modifié, réessayez.",
+  },
+  invitation: {
+    title: "Une invitation à cet espace vous attend.",
+    text: "Lisez l'accord et les conditions, puis signez pour rejoindre l'espace. Tant que vous n'avez pas signé, vous ne pouvez pas lire le brief.",
+    sign: "Lire et signer",
+    decline: "Refuser",
+    dialog: {
+      title: "Refuser cette invitation\u202f?",
+      text: "Le porteur pourra vous inviter à nouveau plus tard.",
+      confirm: "Refuser",
+      cancel: "Revenir",
+    },
+    failed: "Nous n'avons pas pu refuser l'invitation. Rien n'a été modifié, réessayez.",
+  },
+  declinedNote: "Vous avez refusé l'invitation à cet espace.",
+  joined: "C'est fait, vous êtes dans l'équipe. Le brief et l'équipe vous sont maintenant ouverts.",
+  invitations: { heading: "Invitations", by: "Invitation de {name}" },
+  join: {
+    pageTitle: "Rejoindre un espace | Village Sqwhere",
+    title: "Rejoindre {name}",
+    lead: "{owner} vous invite à construire {idea}. Lisez les conditions et l'accord, puis signez pour rejoindre l'espace.",
+    frozen: "Chaque membre signe ces mêmes conditions. Elles ne peuvent pas être modifiées.",
+    sign: "Signer et rejoindre",
+    confirm: { title: "Rejoindre cet espace\u202f?", confirm: "Signer et rejoindre", cancel: "Revenir" },
+    send: "Nous n'avons pas pu enregistrer votre signature. Rien de ce que vous avez saisi n'est perdu, vérifiez votre connexion et réessayez.",
+    noInvitation: {
+      title: "Aucune invitation à signer",
+      text: "On ne peut rejoindre qu'un espace où l'on est invité. Demandez au porteur de vous inviter.",
+    },
+    archived: { title: "Cet espace est archivé, personne ne peut donc le rejoindre.", text: "Rien n'a été signé." },
   },
   createHub: "Créer l'espace",
   openHub: "Ouvrir l'espace",

@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { AppFrame } from "../app-frame";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
-import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { ArrowLeft, Check } from "../onboarding/icons";
@@ -15,12 +14,14 @@ import onboarding from "../onboarding/onboarding.module.css";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
+import { BriefSection } from "./brief";
 import { copy } from "./copy";
 import { loadHub, type Hub } from "./hubs-api";
 import styles from "./hubs.module.css";
-import { HubsSkeleton } from "./my-hubs";
+import { HubsSkeleton, MissingHub } from "./my-hubs";
+import { InvitationCard, Person, Team } from "./team";
 
-function HubCard({ lang, id, created }: { lang: Lang; id: string | null; created: boolean }) {
+function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null; created: boolean; joined: boolean }) {
   const t = copy[lang];
   // undefined while loading, null when there is no such hub (or the address has no id)
   const [hub, setHub] = useState<Hub | null | undefined>(id ? undefined : null);
@@ -43,30 +44,12 @@ function HubCard({ lang, id, created }: { lang: Lang; id: string | null; created
   }, [id]);
 
   if (failure) throw failure;
-  if (hub === null) {
-    return (
-      <main className={`${onboarding.column} ${onboarding.step}`}>
-        <h1 className={onboarding.title}>{t.missingHub.title}</h1>
-        <p className={onboarding.why}>{t.missingHub.text}</p>
-        <div className={onboarding.actions}>
-          <Link className={landing.btn} href={`/${lang}/hubs`}>
-            {t.yourHubs}
-          </Link>
-        </div>
-      </main>
-    );
-  }
+  if (hub === null) return <MissingHub lang={lang} />;
   if (!hub) return <HubsSkeleton lang={lang} />;
 
-  const { owner } = hub;
   const isOwner = hub.viewer.member_role === "owner";
-  const isMember = hub.viewer.membership_status === "active";
-  const named = owner.display_name !== owner.username;
-  const github = (text: string) => (
-    <a href={`https://github.com/${encodeURIComponent(owner.username)}`} target="_blank" rel="noopener noreferrer">
-      {text} <span className={landing.srOnly}>({t.githubProfile})</span>
-    </a>
-  );
+  const status = hub.viewer.membership_status;
+  const isMember = status === "active";
   const ownership = hub.terms.ownership_model && t.ownership[hub.terms.ownership_model];
 
   return (
@@ -83,12 +66,20 @@ function HubCard({ lang, id, created }: { lang: Lang; id: string | null; created
         </span>
       </p>
       {created && isOwner && (
-        <p className={ideas.done} role="status">
+        <p className={`${ideas.done} ${styles.moment}`} role="status">
           <Check />
           {t.created}
         </p>
       )}
-      {!isMember && <p className={ideas.lead}>{t.notMember}</p>}
+      {joined && isMember && (
+        <p className={`${ideas.done} ${styles.moment}`} role="status">
+          <Check />
+          {t.joined}
+        </p>
+      )}
+      {status === "invited" && <InvitationCard lang={lang} hub={hub} onChange={setHub} />}
+      {status === "declined" && <p className={ideas.lead}>{t.declinedNote}</p>}
+      {!isMember && status !== "invited" && status !== "declined" && <p className={ideas.lead}>{t.notMember}</p>}
       {hub.description && <p className={styles.text}>{hub.description}</p>}
 
       <h2 className={`${ideas.heading} ${styles.heading}`}>{t.ideaHeading}</h2>
@@ -100,32 +91,21 @@ function HubCard({ lang, id, created }: { lang: Lang; id: string | null; created
         </p>
       )}
 
+      {isMember && <BriefSection lang={lang} hubId={hub.id} ideaId={hub.idea.id} isOwner={isOwner} moment={created || joined} />}
+
       <h2 className={`${ideas.heading} ${styles.heading}`}>{t.teamHeading}</h2>
-      <p className={ideas.meta}>{fill(t.members, { n: hub.member_count })}</p>
-      <div className={`${village.person} ${styles.person}`}>
-        <span className={village.avatar} aria-hidden="true">
-          {(named ? owner.display_name : owner.username)
-            .split(" ")
-            .map((word) => word[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase()}
-        </span>
-        <div>
-          <p className={village.name}>{named ? owner.display_name : github(owner.username)}</p>
-          {named && <p className={village.username}>{github(`@${owner.username}`)}</p>}
-          <p className={ideas.meta}>
-            {t.owner}
-            {owner.is_verified && (
-              <span className={styles.verified}>
-                <Check />
-                {t.verified}
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
-      {isOwner && <p className={ideas.lead}>{t.inviteNext}</p>}
+      {isMember ? (
+        <Team lang={lang} hub={hub} />
+      ) : (
+        <>
+          <p className={ideas.meta}>{fill(t.members, { n: hub.member_count })}</p>
+          <ul className={styles.members}>
+            <li className={styles.member}>
+              <Person lang={lang} user={hub.owner} role={t.owner} />
+            </li>
+          </ul>
+        </>
+      )}
 
       <h2 className={`${ideas.heading} ${styles.heading}`}>{t.termsHeading}</h2>
       {ownership && <p className={styles.strong}>{ownership.title}</p>}
@@ -159,7 +139,7 @@ export function HubPage({ lang }: { lang: Lang }) {
   return (
     <AppFrame lang={lang} path={`hubs/view${id ? `?id=${encodeURIComponent(id)}` : ""}`}>
       <RequireSession lang={lang} fallback={<HubsSkeleton lang={lang} />}>
-        <HubCard key={id ?? "none"} lang={lang} id={id} created={search.get("created") === "1"} />
+        <HubCard key={id ?? "none"} lang={lang} id={id} created={search.get("created") === "1"} joined={search.get("joined") === "1"} />
       </RequireSession>
     </AppFrame>
   );
