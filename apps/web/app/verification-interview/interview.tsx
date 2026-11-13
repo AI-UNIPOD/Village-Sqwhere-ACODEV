@@ -62,9 +62,10 @@ function useAttempt(id: string | null): Attempt | "missing" | null {
   return found;
 }
 
-function Shell({ lang, children, busy }: { lang: Lang; children: ReactNode; busy?: boolean }) {
+function Shell(props: { lang: Lang; children: ReactNode; busy?: boolean; locked?: boolean }) {
+  const { lang, children, busy, locked } = props;
   return (
-    <AppFrame lang={lang} path="verification">
+    <AppFrame lang={lang} path="verification" locked={locked}>
       <main className={`${onboarding.column} ${styles.main}`} aria-busy={busy}>
         {children}
       </main>
@@ -316,7 +317,7 @@ function Conversation({ lang, attemptId }: { lang: Lang; attemptId: string }) {
   const live = status === "connecting" || status === "asking" || status === "reading";
   const ending = live ? null : ENDINGS[status];
   return (
-    <Shell lang={lang}>
+    <Shell lang={lang} locked={live}>
       <div className={styles.head}>
         <h1 className={onboarding.title}>{t.title}</h1>
         {live && (

@@ -299,6 +299,25 @@ test("the browser warns before unloading only while the interview is live", asyn
   expect(warned()).toBe(false);
 });
 
+// A tap on the logo or on "Sign out" would end the attempt with no question asked.
+test("while the interview is live, the header offers no way out", async () => {
+  const begin = await intro();
+  expect(screen.getByRole("link", { name: "Village Sqwhere" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Français" })).toBeTruthy();
+
+  fireEvent.click(begin);
+  await waitFor(() => expect(FakeSocket.all).toHaveLength(1));
+  const socket = FakeSocket.all[0];
+  socket.say(question(1));
+  expect(screen.queryByRole("link", { name: "Village Sqwhere" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Français" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+  expect(screen.getByText("Village Sqwhere")).toBeTruthy();
+
+  socket.say({ type: "interview_complete", status: "processing" });
+  expect(screen.getByRole("link", { name: "Village Sqwhere" })).toBeTruthy();
+});
+
 test("the socket closes when the page goes away", async () => {
   const socket = await begun();
   cleanup();
@@ -343,12 +362,13 @@ test("the screen works in French, and its header links to the verification page"
   route.lang = "fr";
   fetchMock.mockResolvedValue(ready());
   render(<Interview lang="fr" />);
-  fireEvent.click(await screen.findByRole("button", { name: "Commencer l'entretien" }));
+  const begin = await screen.findByRole("button", { name: "Commencer l'entretien" });
+  expect(screen.getByRole("link", { name: "English" }).getAttribute("href")).toBe("/en/verification");
+  fireEvent.click(begin);
   await waitFor(() => expect(FakeSocket.all).toHaveLength(1));
   FakeSocket.all[0].say(question(1));
   expect(screen.getByText("Intervieweur")).toBeTruthy();
   expect(screen.getByRole("textbox", { name: "Votre réponse" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: "English" }).getAttribute("href")).toBe("/en/verification");
 });
 
 test.each([
