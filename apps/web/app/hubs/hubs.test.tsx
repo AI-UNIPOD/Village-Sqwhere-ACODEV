@@ -7,6 +7,7 @@ import { copy } from "./copy";
 import { HubPage } from "./hub-page";
 import { MyHubs } from "./my-hubs";
 import { NewHub } from "./new-hub";
+import { agreement, api, fetchMock, hub, idea, owner, posted, refusal, reply } from "./test-support";
 
 const nav = vi.hoisted(() => {
   const push = vi.fn();
@@ -18,65 +19,6 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(nav.search),
   useParams: () => ({ lang: "en" }),
 }));
-
-const fetchMock = vi.fn();
-const reply = (status: number, body: unknown = {}) => new Response(JSON.stringify(body), { status });
-const refusal = (status: number, code: string) => reply(status, { detail: { code, message: "English text from the API" } });
-
-const idea = (over: Record<string, unknown> = {}) => ({
-  id: "idea-1",
-  title: "Borehole map for Kaduna",
-  summary: "Villages do not know which boreholes work.",
-  details: null,
-  stage: "concept",
-  status: "open",
-  roles_needed: [],
-  published_at: "2026-11-12T10:00:00Z",
-  updated_at: "2026-11-12T10:00:00Z",
-  ...over,
-});
-
-const agreement = (over: Record<string, unknown> = {}) => ({
-  template_id: "template-1",
-  version: 1,
-  title: "TEST AGREEMENT (NOT LEGAL TEXT)",
-  body: "# Hub agreement\n\nMembers keep the idea private.\n\n- No <b>sharing</b>\n- See [the terms](http://example.com)\n\n1. First clause\n2. Second clause",
-  body_sha256: "a".repeat(64),
-  ...over,
-});
-
-const hub = (over: Record<string, unknown> = {}) => ({
-  id: "hub-1",
-  name: "Borehole map hub",
-  description: "Start with the SMS format.",
-  status: "active",
-  terms: { ownership_model: "custom", notes: "The owner keeps 40%." },
-  idea: { id: "idea-1", title: "Borehole map for Kaduna", summary: "Villages do not know which boreholes work." },
-  owner: { username: "kwabena-owusu", display_name: "Kwabena Owusu", is_verified: true },
-  member_count: 1,
-  agreement: { version: 1 },
-  viewer: { membership_status: "active", member_role: "owner" },
-  ...over,
-});
-
-// Answers each address by its longest matching start; a list of answers is used one per call.
-function api(routes: Record<string, unknown>) {
-  const used: Record<string, number> = {};
-  fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-    const path = `${init?.method ?? "GET"} ${String(url).replace("http://localhost:8000", "")}`;
-    const match = Object.keys(routes)
-      .sort((a, b) => b.length - a.length)
-      .find((route) => path.startsWith(route));
-    if (!match) return Promise.resolve(reply(500, { detail: `no answer for ${path}` }));
-    const answers = routes[match];
-    const answer = Array.isArray(answers) ? answers[Math.min(used[match] ?? 0, answers.length - 1)] : answers;
-    used[match] = (used[match] ?? 0) + 1;
-    return Promise.resolve(answer instanceof Response ? answer.clone() : reply(200, answer));
-  });
-}
-
-const posted = () =>
-  fetchMock.mock.calls.filter(([, init]) => init?.method === "POST").map(([url, init]) => [String(url).replace("http://localhost:8000", ""), JSON.parse(init.body)]);
 
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const press = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
@@ -260,9 +202,9 @@ test("with no idea in the address, nothing is loaded and the page says so", () =
 
 // ---------- one hub ----------
 
-test("the owner sees the hub, its idea, the terms as signed, the four phases and what comes next", async () => {
+test("the owner sees the hub, its idea, the terms as signed and the four phases", async () => {
   nav.search = "id=hub-1&created=1";
-  api({ "GET /v1/hubs/hub-1": { data: hub() } });
+  api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
   render(<HubPage lang="en" />);
   expect(await screen.findByRole("heading", { level: 1, name: "Borehole map hub" })).toBeTruthy();
   expect(screen.getByRole("status").textContent).toContain("Your hub is ready. You are its owner and first member.");
@@ -272,9 +214,8 @@ test("the owner sees the hub, its idea, the terms as signed, the four phases and
   expect(screen.getByText("The owner keeps 40%.")).toBeTruthy();
   expect(screen.getByText("Version 1 of the hub agreement")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Edit the idea" }).getAttribute("href")).toBe("/en/ideas/compose?id=idea-1");
-  expect(screen.getByText(/Inviting teammates comes next/)).toBeTruthy();
   for (const phase of ["Brainstorm", "Design and architecture", "Build", "Review and test"]) expect(screen.getByText(phase)).toBeTruthy();
-  const github = screen.getByRole("link", { name: "@kwabena-owusu (GitHub profile, opens in a new tab)" });
+  const github = await screen.findByRole("link", { name: "@kwabena-owusu (GitHub profile, opens in a new tab)" });
   expect(github.getAttribute("href")).toBe("https://github.com/kwabena-owusu");
 });
 
@@ -300,7 +241,7 @@ test("a hub that is not there says so and leads back", async () => {
 
 test("your hubs list each hub with your part in it, and open it", async () => {
   const second = hub({ id: "hub-2", name: "Clinic queue hub", status: "archived", member_count: 3, viewer: { membership_status: "active", member_role: "member" } });
-  api({ "GET /v1/me/hubs": { data: [hub(), second], next_offset: null } });
+  api({ "GET /v1/me/hubs": { data: [hub(), second], next_offset: null }, "GET /v1/me/hubs?status=invited": { data: [] } });
   render(<MyHubs lang="en" />);
   const first = await screen.findByRole("link", { name: "Borehole map hub" });
   expect(first.getAttribute("href")).toBe("/en/hubs/view?id=hub-1");
@@ -311,7 +252,7 @@ test("your hubs list each hub with your part in it, and open it", async () => {
 });
 
 test("with no hubs, the page says where a hub comes from", async () => {
-  api({ "GET /v1/me/hubs": { data: [], next_offset: null } });
+  api({ "GET /v1/me/hubs": { data: [], next_offset: null }, "GET /v1/me/hubs?status=invited": { data: [] } });
   render(<MyHubs lang="en" />);
   expect(await screen.findByRole("heading", { level: 2, name: "No hubs yet" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Your ideas" }).getAttribute("href")).toBe("/en/ideas/mine");

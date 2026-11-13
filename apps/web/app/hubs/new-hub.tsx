@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { ConfirmDialog } from "../confirm-dialog";
@@ -17,9 +17,13 @@ import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import { AgreementText } from "./agreement-text";
 import { copy } from "./copy";
+import { FieldError, Warning } from "./form-parts";
 import { LIMITS, OWNERSHIP, createHub, loadAgreement, type Agreement, type Ownership } from "./hubs-api";
 import styles from "./hubs.module.css";
 import { HubsSkeleton } from "./my-hubs";
+
+// Other screens import the warning from here.
+export { Warning };
 
 type Blocked = keyof (typeof copy)["en"]["blocked"];
 type FieldName = "name" | "description" | "notes" | "read" | "legalName";
@@ -51,31 +55,6 @@ function blockedBy(error: unknown, ideaLoaded: boolean): Blocked | null {
   if (error.code === "HUB_ALREADY_EXISTS") return "exists";
   if (error.code === "IDEA_NOT_OPEN") return "notOpen";
   return error.status === 404 || (error.status === 422 && !ideaLoaded) ? "missing" : null;
-}
-
-// An inline note that must not be missed: an icon tile, a title and one sentence.
-export function Warning({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className={styles.warning}>
-      <span className={styles.warningIcon} aria-hidden="true">
-        <AlertCircle />
-      </span>
-      <div>
-        <p className={styles.warningTitle}>{title}</p>
-        <p className={styles.warningText}>{children}</p>
-      </div>
-    </div>
-  );
-}
-
-function FieldError({ id, children }: { id: string; children?: string }) {
-  if (!children) return null;
-  return (
-    <p id={`${id}-error`} className={onboarding.error} role="alert">
-      <AlertCircle />
-      {children}
-    </p>
-  );
 }
 
 function BlockedScreen({ lang, why, ideaId }: { lang: Lang; why: Blocked; ideaId: string | null }) {
