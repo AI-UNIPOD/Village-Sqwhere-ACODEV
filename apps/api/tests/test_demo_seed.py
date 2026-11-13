@@ -3,8 +3,8 @@ import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
-from app import config
-from app.demo_seed import PEOPLE, seed
+from app import config, database
+from app.demo_seed import PEOPLE, main, seed
 from tests.conftest import test_async_session as db_session
 
 
@@ -80,3 +80,25 @@ def test_running_the_seed_again_rewrites_only_the_feed(client: TestClient, visit
     after = seeded_posts()
     assert len(after) == len(before) == 12
     assert after.isdisjoint(before)
+
+
+def test_the_script_writes_nothing_where_the_demo_is_off(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def no_database():
+        raise AssertionError("the script opened the database with the demo off")
+
+    monkeypatch.setattr(config, "DEMO_ENABLED", False)
+    monkeypatch.setattr(database, "async_session", no_database)
+
+    assert asyncio.run(main()) == 1
+    assert capsys.readouterr().err.strip() == (
+        "The demo is off here (DEMO_ENABLED is not true), so nothing was written."
+    )
+
+
+def test_the_script_seeds_where_the_demo_is_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(config, "DEMO_ENABLED", True)
+    monkeypatch.setattr(database, "async_session", db_session)
+
+    assert asyncio.run(main()) == 0
