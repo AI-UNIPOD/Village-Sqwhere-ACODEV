@@ -108,6 +108,12 @@ link and up to five topics. The kind and the topics cannot change after posting,
 API's `PATCH` takes only the title, the text and the link; an edit sends only what changed. It
 shares its field and its leave warning with the idea composer.
 
+The For you tab says what it shows and lets the developer change it in place
+(`feed-topics.tsx`): the chosen technologies are saved with `PUT /v1/me/feed-topics` (the
+request key is `technologies`), kept in the profile, and the feed loads again. None chosen
+means every post. Onboarding's topics step is not saved here: it asks about sectors, which the
+API does not know.
+
 The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to

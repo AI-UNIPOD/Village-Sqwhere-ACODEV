@@ -180,3 +180,73 @@
   flex-wrap: wrap;
   gap: var(--space-3);
 }
+
+/* ---------- the topics of your feed ---------- */
+.topics { margin-block-start: var(--space-4); }
+
+/* what the feed shows on the left, the way to change it on the right, wrapping on a phone */
+.topicsLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.topicsLine p {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* The choice opens in place under the line. It arrives with the menu timing and leaves a little
+   faster; `display` is switched at the end of the leaving, so the fade is seen. A browser that
+   cannot do that simply shows and hides it. */
+.topicsPanel {
+  display: grid;
+  gap: var(--space-4);
+  margin-block-start: var(--space-3);
+  padding: var(--pad-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  transition:
+    opacity var(--dur-menu) var(--ease-out),
+    transform var(--dur-menu) var(--ease-out),
+    display var(--dur-menu) allow-discrete;
+}
+
+.topicsPanel[hidden] {
+  display: none;
+  opacity: 0;
+  transform: translateY(calc(var(--space-2) * -1));
+  transition-duration: var(--dur-menu-out);
+}
+
+@starting-style {
+  .topicsPanel {
+    opacity: 0;
+    transform: translateY(calc(var(--space-2) * -1));
+  }
+}
+
+/* the grid's gap already spaces the rows */
+.topicsPanel > div:last-child,
+.topicsPanel > [role="alert"] { margin-block-start: 0; }
+
+.topicsLabel { font: var(--type-label); }
+
+.topicsHelp {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* Reduced motion: the fade stays, the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  .topicsPanel[hidden] { transform: none; }
+
+  @starting-style {
+    .topicsPanel { transform: none; }
+  }
+}

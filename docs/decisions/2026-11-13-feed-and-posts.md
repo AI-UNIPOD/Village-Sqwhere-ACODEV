@@ -113,3 +113,33 @@ edit).
   Yours empty state leads to the same place with a quieter "Write your first post"), and Edit
   beside Delete for the author on the post page. Publishing and saving go to the post with
   `?done=published` or `?done=saved`, read from the address.
+
+## Choosing the topics of your feed
+
+- **The choice opens in place on For you, not on a page of its own and not in a dialog.** It is
+  a small, repeatable preference that changes what the list under it shows, so it stays next to
+  that list: one quiet line says what the feed shows ("Showing posts about Go and Python"), and
+  its button opens the same chips used on the profile and in the composers. A dialog would hide
+  the list it changes, and a page would be a trip for one setting. The button has
+  `aria-expanded` and `aria-controls`, focus moves into the choice when it opens and back to the
+  button when it closes (Save, Cancel or Escape), and the choice is not reachable while closed.
+- **It moves like a menu:** `--dur-menu` in and `--dur-menu-out` out, opacity and a small
+  upward translate, no translate with reduced motion. The panel is hidden with the `hidden`
+  attribute and `display` is part of the transition, so the fade is seen on the way out too.
+- **Saving replaces the whole list and loads the feed again from the top.** The request is
+  `PUT /v1/me/feed-topics` with the key `technologies` (not `topics`). The API's answer is kept
+  in the kept profile (`keepMe`, with `feed_topics` added to `Me`), so the line is right on every
+  screen. Saving with nothing chosen means "show everything", which is the API's meaning of an
+  empty list. A failed save keeps the choice open and says nothing was changed. Own posts always
+  show on the feed whatever the topics (the API's rule), and the line says so once.
+- **The line names up to three topics, then two and a count** ("Go, Python and 2 more"), in
+  the order of the technologies list, so it reads the same after a reload.
+- **Onboarding's topics are left alone.** Its topics step asks about ten sectors (fintech,
+  agritech, health, education, climate and energy, mobility and logistics, commerce, civic tech,
+  media and culture, developer tools; `TOPICS` in `app/onboarding/options.ts`, marked there as a
+  draft list). The API's feed topics are technology slugs, and `GET /v1/technologies` returns
+  the 19 technologies that `TECHNOLOGIES` already holds (react, go, python and so on). None of
+  the ten sector slugs is among them, so saving them would be refused as `UNKNOWN_SLUG`, and
+  mapping a sector to technologies would be inventing a meaning. Onboarding still throws its
+  topics away, as before. The fix is a decision about the taxonomy (sectors need their own
+  table in the API, or the step asks about technologies), not a web change.
