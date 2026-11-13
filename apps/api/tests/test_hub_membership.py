@@ -152,7 +152,11 @@ def test_the_owner_invites_a_developer_by_username(client: TestClient) -> None:
     assert stored.invited_by == owner.id
     assert stored.signature_id is None
     viewer = client.get(f"/v1/hubs/{hub.id}", headers=auth(invitee)).json()["data"]["viewer"]
-    assert viewer == {"membership_status": "invited", "member_role": "member"}
+    assert viewer == {
+        "membership_status": "invited",
+        "member_role": "member",
+        "can_ask_again_at": None,
+    }
 
 
 def test_only_the_owner_can_invite_or_withdraw(client: TestClient) -> None:
@@ -361,7 +365,11 @@ def test_accepting_signs_the_hubs_agreement_and_joins(client: TestClient) -> Non
 
     assert response.status_code == 200, response.text
     card = response.json()["data"]
-    assert card["viewer"] == {"membership_status": "active", "member_role": "member"}
+    assert card["viewer"] == {
+        "membership_status": "active",
+        "member_role": "member",
+        "can_ask_again_at": None,
+    }
     assert card["member_count"] == 2
     stored = membership(hub, invitee)
     assert stored.status == HubMemberStatus.ACTIVE
@@ -577,6 +585,7 @@ def test_a_developer_asks_to_join_and_the_owner_approves(client: TestClient) -> 
     assert asked.json()["data"]["viewer"] == {
         "membership_status": "requested",
         "member_role": "member",
+        "can_ask_again_at": None,
     }
     stored = membership(hub, developer)
     assert (stored.status, stored.invited_by) == (HubMemberStatus.REQUESTED, None)
@@ -625,8 +634,12 @@ def test_the_owner_declines_and_the_developer_may_ask_again_after_48_hours(
     until = cooling_until(ask(client, hub, developer))
     assert abs(until - (datetime.now(UTC) + timedelta(hours=48))) < timedelta(minutes=1)
     assert membership(hub, developer).status == HubMemberStatus.DECLINED
+    # the card shows the same time, so the screen can say it before any press
+    assert datetime.fromisoformat(viewer["can_ask_again_at"]) == until
 
     wait_out(hub, developer)
+    card = client.get(f"/v1/hubs/{hub.id}", headers=auth(developer)).json()["data"]
+    assert card["viewer"]["can_ask_again_at"] is None  # the wait is over
     assert ask(client, hub, developer).status_code == 201
     assert membership(hub, developer).status == HubMemberStatus.REQUESTED
 
