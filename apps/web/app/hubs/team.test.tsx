@@ -283,14 +283,14 @@ test("declining asks first, then declines and says so", async () => {
   expect(posted()).toEqual([]);
 
   fireEvent.click(within(dialog).getByRole("button", { name: "Decline" }));
-  expect(await screen.findByText("You are not in this hub. You declined its invitation, or the owner declined your request.")).toBeTruthy();
+  expect(await screen.findByText("You are not in this hub. You declined its invitation, the owner declined your request, or you withdrew it.")).toBeTruthy();
   expect(posted()).toEqual([["/v1/hubs/hub-1/invitation/decline", null]]);
   expect(screen.queryByRole("link", { name: "Read and sign" })).toBeNull();
 });
 
 test("a developer who declined sees their line and nothing private", async () => {
   await open({ viewer: { membership_status: "declined", member_role: "member" } }, []);
-  expect(screen.getByText("You are not in this hub. You declined its invitation, or the owner declined your request.")).toBeTruthy();
+  expect(screen.getByText("You are not in this hub. You declined its invitation, the owner declined your request, or you withdrew it.")).toBeTruthy();
   expect(screen.queryByText("You are not a member of this hub.")).toBeNull();
   expect(screen.queryByRole("link", { name: "Read and sign" })).toBeNull();
 });

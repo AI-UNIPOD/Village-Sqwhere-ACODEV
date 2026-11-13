@@ -103,6 +103,17 @@ The API now lets a developer ask to join a hub and the owner approve or decline
   during the wait shows the sentence at once and never offers the button. The refused press
   stays as the fallback for a card read before the decline.
 
+- **A developer can take a waiting request back** (added 13 November 2026, at Tanny's request to
+  the API's owner). "Withdraw my request" sits under "You asked to join" on the idea's page and
+  on the hub's page, which is where "Waiting for the owner" on Your hubs leads. It asks no
+  confirmation: nothing is lost, and the API starts no wait, so "Ask to join" is back at once.
+  One line says the request was withdrawn and takes focus, because the button is gone. The API
+  marks a withdrawn request `declined`; the hub's page does not then say that someone declined.
+  Opened again later, the page cannot tell the three cases apart, so its one line names all
+  three: an invitation declined, a request declined, a request withdrawn.
+  If the owner answered first (404 `REQUEST_NOT_FOUND`), the page reads the hub's card again and
+  shows where the developer stands, with a line saying the owner had already answered.
+
 ### What the API could not tell the web
 
 - **Requests waiting for an owner.** Nothing cheap says that requests wait: the hub card carries
@@ -113,8 +124,6 @@ The API now lets a developer ask to join a hub and the owner approve or decline
   same for `GET /v1/me/hubs`, would let the web add that line and the dot.
 - **Who declined.** A `declined` membership does not say whether the owner or the developer
   declined (see above).
-- **Withdrawing a request.** A developer cannot withdraw their own request: there is no route, so
-  the web offers none. The owner can decline it.
 
 ### Consequences
 
