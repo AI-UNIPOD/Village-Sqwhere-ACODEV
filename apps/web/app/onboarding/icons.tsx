@@ -57,3 +57,9 @@ export const SearchX = ({ className }: { className?: string }) => (
     <path d="m21 21-4.3-4.3M8.5 8.5l5 5M13.5 8.5l-5 5" />
   </Icon>
 );
+
+export const TriangleAlert = () => (
+  <Icon>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01" />
+  </Icon>
+);
