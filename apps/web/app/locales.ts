@@ -2,6 +2,9 @@ export const LOCALES = ["en", "fr"] as const;
 export type Lang = (typeof LOCALES)[number];
 const DEFAULT_LANG: Lang = "en";
 
+// Each language in its own words, for a link that switches to it.
+export const LANGUAGE_NAMES: Record<Lang, string> = { en: "English", fr: "Français" };
+
 export function hasLocale(value: string): value is Lang {
   return (LOCALES as readonly string[]).includes(value);
 }

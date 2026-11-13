@@ -24,12 +24,13 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   by tests and measurements. The hero leads to sign-in; the demo and tour start say "Coming soon".
 - GitHub sign-in works end to end (real account, own language); `app/session/` refreshes and
   signs out (`docs/decisions/2026-11-11-web-session-in-local-storage.md`).
-- Below the hero, sections reveal once, the header marks the section being read, "coming soon"
-  presses are announced, phones get section links, and the scrolled-away header is pinned as a
-  pill (`docs/decisions/2026-11-11-landing-section-interactions.md`, `2026-11-13-landing-pill-header.md`).
+- Below the hero, sections reveal once, the header marks the section being read and pins as a
+  pill once scrolled away (`docs/decisions/2026-11-13-landing-pill-header.md`).
 - Onboarding after sign-in is at `/en/onboarding` and `/fr/onboarding`, for signed-in people
   only, greeting them by their name from `GET /v1/me`. The last screen saves the main role and
   the stack; country and topics stay in the tab (`docs/decisions/2026-11-11-onboarding-page.md`).
+- The village (`/en/village`) is the signed-in home: the profile from `GET /v1/me` and four steps
+  to a team, in the shared `AppFrame` header (`docs/decisions/2026-11-13-village-home.md`).
 - Unknown addresses get a 404 in their language; landing and sign-in have an error page. French
   copy puts a narrow no-break space before ? ! : ; (`docs/design-system/voice-and-tone.md`).
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
@@ -44,9 +45,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    Systalink platform access, a deploy job in CI.
 4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-6. Web follow-ups: one header for the app screens, shared parts out of `app/landing/`, a wider
-   hero text column on phones, a server-rendered 404 (production sends an empty shell), watching
-   the landing motion by eye, and a French-speaking teammate's check of the copy.
+6. Web screens next: role verification, the peer review queue, ideas, hubs, a profile page and
+   navigation. Also a server-rendered 404 and a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
 8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);

@@ -1,8 +1,9 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import type { Lang } from "../locales";
-import { Onboarding } from "./onboarding";
+import { SESSION_KEY } from "../session/session";
+import { Onboarding, SignedInOnboarding } from "./onboarding";
 import type { Profile } from "./options";
 import { ANSWERS_KEY } from "./saved-answers";
 
@@ -14,6 +15,7 @@ const nav = vi.hoisted(() => {
 
 vi.mock("next/navigation", () => ({
   useRouter: () => nav.router,
+  useParams: () => ({ lang: "en" }),
   useSearchParams: () => new URLSearchParams(nav.search),
 }));
 
@@ -38,7 +40,10 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  // a spy left on storage would block the next test's session
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 // A made-up developer, as GitHub would describe them.
@@ -254,10 +259,8 @@ test("the profile card shows what was chosen", () => {
   const next = screen.getByRole("heading", { name: "What happens next" }).nextElementSibling as HTMLElement;
   expect(within(next).getAllByRole("listitem")).toHaveLength(3);
 
-  const village = screen.getByRole("button", { name: /^Go to the village/ });
-  expect(village.getAttribute("aria-disabled")).toBe("true");
-  fireEvent.click(village);
-  expect(screen.getAllByRole("status").some((s) => s.textContent === "Coming soon")).toBe(true);
+  // nobody is signed in here, so the save never ends and the way to the village stays closed
+  expect(screen.getByRole("button", { name: "Go to the village" }).getAttribute("aria-disabled")).toBe("true");
 
   click("button", "Change my answers");
   expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
@@ -354,4 +357,36 @@ test("the role cards are at rest after Change my answers", () => {
   click("button", "Change my answers");
   go("role");
   expect(roleCards()).toBe("rest");
+});
+
+// The page as the address opens it: signed in, with GET /v1/me answering these roles.
+function open(roles: unknown[], step = "") {
+  nav.search = step && `step=${step}`;
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: "2099-01-01T00:00:00Z", refresh_expires_at: "2099-01-01T00:00:00Z" }),
+  );
+  const me = { username: "aminata-builds", display_name: "Aminata Diallo", roles, technologies: [] };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: me }), { status: 200 })));
+  render(<SignedInOnboarding lang="en" />);
+}
+
+const backend = { slug: "backend-engineer", name: "Backend & Systems Engineer", is_primary: true, verified_at: null };
+
+test("a developer who already has a role goes from the bare address to the village", async () => {
+  open([backend]);
+  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/en/village"));
+  expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+});
+
+test("a link to a step still opens for a developer who has a role", async () => {
+  open([backend], "role");
+  expect(await screen.findByRole("heading", { level: 1, name: "What do you do most?" })).toBeTruthy();
+  expect(nav.replace).not.toHaveBeenCalledWith("/en/village");
+});
+
+test("a developer with no role yet gets the welcome", async () => {
+  open([]);
+  expect(await screen.findByRole("heading", { level: 1, name: "Welcome to the village, Aminata." })).toBeTruthy();
+  expect(nav.replace).not.toHaveBeenCalledWith("/en/village");
 });

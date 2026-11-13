@@ -5,7 +5,6 @@ type Empty = { title: string; stack: string; country: string; clear: string };
 
 type Copy = {
   pageTitle: string;
-  switchText: string;
   pause: string;
   play: string;
   welcomeTitle: string;
@@ -34,7 +33,6 @@ type Copy = {
   saved: string;
   saveFailed: string;
   village: string;
-  soon: string;
   change: string;
   githubProfile: string;
   loading: string;
@@ -45,7 +43,6 @@ type Copy = {
 
 const en: Copy = {
   pageTitle: "Set up your profile | Village Sqwhere",
-  switchText: "Français",
   pause: "Pause animation",
   play: "Play animation",
   welcomeTitle: "Welcome to the village, {name}.",
@@ -102,7 +99,6 @@ const en: Copy = {
   saved: "Your role and stack are saved. Your country and topics are not saved yet.",
   saveFailed: "We couldn't save your role and stack. Your answers are still here, so try again.",
   village: "Go to the village",
-  soon: "Coming soon",
   change: "Change my answers",
   githubProfile: "GitHub profile, opens in a new tab",
   loading: "Getting your profile ready",
@@ -115,7 +111,6 @@ const en: Copy = {
 // Needs a native French review before launch.
 const fr: Copy = {
   pageTitle: "Configurer votre profil | Village Sqwhere",
-  switchText: "English",
   pause: "Mettre l'animation en pause",
   play: "Lire l'animation",
   welcomeTitle: "Bienvenue au village, {name}.",
@@ -175,7 +170,6 @@ const fr: Copy = {
   saveFailed:
     "Nous n'avons pas pu enregistrer votre rôle et vos technologies. Vos réponses sont toujours là, vous pouvez donc réessayer.",
   village: "Aller au village",
-  soon: "Bientôt disponible",
   change: "Modifier mes réponses",
   githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
   loading: "Préparation de votre profil",

@@ -1,8 +1,8 @@
 "use client";
 
+import { AppFrame } from "../app-frame";
 import landing from "../landing/landing-page.module.css";
 import { copy } from "./copy";
-import { OnboardingFrame } from "./onboarding-frame";
 import styles from "./onboarding.module.css";
 import { useLang } from "./use-lang";
 
@@ -12,7 +12,7 @@ export function OnboardingSkeleton() {
   const lang = useLang();
   const t = copy[lang];
   return (
-    <OnboardingFrame lang={lang}>
+    <AppFrame lang={lang} path="onboarding">
       <main className={`${styles.column} ${styles.step}`} aria-busy="true">
         <p className={landing.srOnly} role="status">
           {t.loading}
@@ -26,6 +26,6 @@ export function OnboardingSkeleton() {
           <div className={styles.spinner} />
         </div>
       </main>
-    </OnboardingFrame>
+    </AppFrame>
   );
 }
