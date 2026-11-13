@@ -1,8 +1,9 @@
 from datetime import UTC, datetime
 from ipaddress import ip_address
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
@@ -16,7 +17,14 @@ from app.models import (
     Idea,
     IdeaStatus,
 )
-from app.schemas.hubs import Agreement, AgreementResponse, CreateHubRequest, HubResponse
+from app.schemas.hubs import (
+    Agreement,
+    AgreementResponse,
+    CreateHubRequest,
+    HubListResponse,
+    HubResponse,
+    MyHubsStatus,
+)
 from app.services.hubs import current_agreement_template, hub_card, load_hub
 
 router = APIRouter()
@@ -140,6 +148,36 @@ async def create_hub(
 
     await db.refresh(hub, ["idea", "owner", "agreement_template"])
     return HubResponse(data=await hub_card(db, hub, current_user.id))
+
+
+@router.get("/me/hubs", response_model=HubListResponse)
+async def list_my_hubs(
+    current_user: CurrentUser,
+    db: DbSession,
+    membership_status: Annotated[MyHubsStatus, Query(alias="status")] = MyHubsStatus.ACTIVE,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> HubListResponse:
+    # Archived hubs stay in the list, because their members can still read them.
+    result = await db.execute(
+        select(Hub)
+        .join(HubMember, HubMember.hub_id == Hub.id)
+        .where(
+            HubMember.user_id == current_user.id,
+            HubMember.status == HubMemberStatus(membership_status.value),
+        )
+        # the id breaks ties, so hubs made at the same moment never repeat across pages
+        .order_by(Hub.created_at.desc(), Hub.id.desc())
+        .offset(offset)
+        .limit(limit + 1)
+    )
+    hubs = list(result.scalars().all())
+    has_more = len(hubs) > limit
+    hubs = hubs[:limit]
+    return HubListResponse(
+        data=[await hub_card(db, hub, current_user.id) for hub in hubs],
+        next_offset=offset + limit if has_more else None,
+    )
 
 
 @router.get("/hubs/{hub_id}", response_model=HubResponse)

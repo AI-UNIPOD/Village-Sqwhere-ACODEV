@@ -8,13 +8,13 @@ A short overview of how Village Sqwhere fits together. Update it when the design
 Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► PostgreSQL + pgvector
 ```
 
-- **apps/web**: the user interface, in English and French. It is meant to talk to the API
-  over HTTP (`NEXT_PUBLIC_API_URL` in `.env.example`), but it does not call the API yet.
-- **apps/api**: business logic: sign-in, profiles and role verification today, with ideas,
-  matching, agreements and hubs still to build. Settings come from environment variables or
-  a root `.env` file (`apps/api/app/config.py`): `DATABASE_URL`, `CORS_ORIGINS`,
-  `FRONTEND_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `JWT_SECRET_KEY`. The API
-  will not start without `JWT_SECRET_KEY`.
+- **apps/web**: the user interface, in English and French. It calls the API for sign-in and
+  profile data, and will add the collaboration flow next.
+- **apps/api**: business logic: sign-in, profiles, role verification, ideas and initial hub
+  creation today, with matching and the remaining hub collaboration routes still to build.
+  Settings come from environment variables or a root `.env` file (`apps/api/app/config.py`):
+  `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+  and `JWT_SECRET_KEY`. The API will not start without `JWT_SECRET_KEY`.
 - **PostgreSQL + pgvector**: the main data store, set up by the scripts in `infra/db/init/`.
   The schema has an `idea_embeddings` table with a pgvector column, for finding similar
   ideas. Nothing writes to it yet.
@@ -51,8 +51,15 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 - **Hubs** (Bearer token): `GET /v1/agreements/current` (the published agreement with the
   highest version, which a hub owner signs) and `POST /v1/hubs` (the idea's author creates
   its one hub, signing the agreement; the hub, the signature and the owner's membership are
-  saved together) and `GET /v1/hubs/{hub_id}` (any signed-in user reads a hub's card, with
-  their own membership in it). The other hub routes are still to build.
+  saved together), `GET /v1/hubs/{hub_id}` (any signed-in user reads a hub's card, with
+  their own membership in it) and `GET /v1/me/hubs` (the hubs the person is in, has asked to
+  join or is invited to). The other hub routes are still to build.
+- **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
+  `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
+  `POST /v1/me/ideas/{idea_id}/publish` and `POST /v1/me/ideas/{idea_id}/close` create and
+  manage the owner's private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
+  open idea cards to signed-in developers. A card has the summary and roles needed, never the
+  confidential brief. Guide: `docs/backend.md`.
 - OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
   API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
 
