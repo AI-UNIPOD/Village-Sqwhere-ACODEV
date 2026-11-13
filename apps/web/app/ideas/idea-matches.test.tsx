@@ -190,6 +190,7 @@ test.each([
   ["ALREADY_MEMBER", 409, "They are already in this hub."],
   ["ALREADY_INVITED", 409, "They already have an invitation."],
   ["HUB_ARCHIVED", 409, "This hub is archived, so nobody can be invited."],
+  ["TEAM_FULL", 409, "The team is full: five members is the most a hub takes."],
   ["BOOM", 500, "That did not go through. Nothing was changed, so try again."],
 ])("an invitation refused with %s says so beside the row and leaves the button to try again", async (code, status, sentence) => {
   await show({ "POST /v1/hubs/hub-1/invitations": refusal(status, code) });

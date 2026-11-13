@@ -21,7 +21,7 @@ import { acceptInvitation, loadHub, loadHubAgreement, type Agreement, type Hub }
 import styles from "./hubs.module.css";
 import { HubsSkeleton, MissingHub } from "./my-hubs";
 
-type Blocked = "missing" | "noInvitation" | "archived";
+type Blocked = "missing" | "noInvitation" | "archived" | "full";
 type Errors = Partial<Record<"read" | "legalName", string>>;
 
 const ORDER = ["read", "legalName"] as const;
@@ -124,6 +124,8 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
       } else if (code === "INVITATION_NOT_FOUND") setBlocked("noInvitation");
       else if (code === "ALREADY_MEMBER") router.replace(hubAddress);
       else if (code === "HUB_ARCHIVED") setBlocked("archived");
+      // the last place went to someone else while this person was reading
+      else if (code === "TEAM_FULL") setBlocked("full");
       else setProblem("send");
     } finally {
       setBusy(false);
