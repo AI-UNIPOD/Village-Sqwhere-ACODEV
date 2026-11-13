@@ -74,7 +74,7 @@ test("the idea says what asking means, then Ask to join sends the request and th
   expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
   expect(posted()).toEqual([["/v1/hubs/hub-1/join-requests", null]]);
   // focus stays on the page's new state, not on a button that is gone
-  expect(document.activeElement).toBe(status);
+  await waitFor(() => expect(document.activeElement).toBe(status));
 });
 
 test("a second press while the request is on its way sends nothing more", async () => {
@@ -157,7 +157,7 @@ test("asking too soon after a decline says when the developer can ask again, in 
   const note = await screen.findByText(/^The owner turned down your last request\. You can ask again from November 15, 2026 at \d{1,2}:\d{2}\s[AP]M\.$/);
   expect(screen.getByRole("status").contains(note)).toBe(true);
   // the button that was pressed is gone, so the place moves to the sentence
-  expect(document.activeElement).toBe(note);
+  await waitFor(() => expect(document.activeElement).toBe(note));
   expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
   expect(screen.queryByRole("alert")).toBeNull();
 });

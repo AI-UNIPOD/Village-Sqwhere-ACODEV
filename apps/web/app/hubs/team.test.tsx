@@ -150,7 +150,7 @@ test("inviting sends the username without the @, then shows the new person, the 
   const row = screen.getAllByRole("listitem").find((item) => item.textContent?.includes("Wanjiru Kamau"))!;
   expect(within(row).getByText("Invited")).toBeTruthy();
   expect(username().value).toBe("");
-  expect(document.activeElement).toBe(username());
+  await waitFor(() => expect(document.activeElement).toBe(username()));
 });
 
 test.each([
