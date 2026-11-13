@@ -8,12 +8,9 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
-## 2026-11-14
-
-- feat(web): save the sectors chosen in onboarding (#118)
-
 ## 2026-11-13
 
+- feat(web): save the sectors chosen in onboarding (#118)
 - feat(api): let developers ask to join a hub (#116)
 - feat(api): add a read-only demo sign-in (#115)
 - feat(api): add sectors for onboarding (#114)
