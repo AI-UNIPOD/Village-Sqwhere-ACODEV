@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(web): add liking a comment (#109)
 - feat(web): add comments and replies on a post (#108)
 - feat(web): choose the topics of your feed (#107)
 - feat(web): add writing and editing a post (#106)
