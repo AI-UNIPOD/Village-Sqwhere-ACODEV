@@ -1,3 +1,4 @@
+import { configure } from "@testing-library/react";
 import { afterEach } from "vitest";
 
 import { forgetMe } from "./app/session/me";
@@ -10,3 +11,8 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 
 // The profile is kept for a whole visit (app/session/me.ts). A test is a visit of its own.
 afterEach(forgetMe);
+
+// Waiting for the screen to change gives up after a second by default. That is too short when
+// the tests share a machine with a build: a sign-in test took 1.4 seconds in the merge agent's
+// sandbox and failed. A wait that is going to pass is not slowed by a longer limit.
+configure({ asyncUtilTimeout: 5000 });

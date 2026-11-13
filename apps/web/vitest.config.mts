@@ -7,5 +7,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
+    // room for two of the five-second waits set in vitest.setup.ts
+    testTimeout: 15000,
   },
 });
