@@ -65,6 +65,13 @@ test("Hubs is marked while an invitation waits, and the mark goes when it is ans
   expect(places().getByRole("link", { name: "Hubs" })).toBeTruthy();
 });
 
+test("a post is read in the feed, so the feed is the place marked", () => {
+  signIn();
+  render(<AppFrame lang="en" path="posts/view?id=1">screen</AppFrame>);
+  expect(places().getByRole("link", { name: "Feed" }).getAttribute("aria-current")).toBe("page");
+  expect(places().getAllByRole("link").filter((link) => link.hasAttribute("aria-current")).length).toBe(1);
+});
+
 test("a screen that is in none of the places marks none", () => {
   signIn();
   render(<AppFrame lang="en" path="verification">screen</AppFrame>);
