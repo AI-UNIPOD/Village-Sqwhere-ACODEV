@@ -21,9 +21,9 @@ Tanny gave the feed and posts API to one session. That session chose the followi
    The screen decides how deep to indent, and it can open a deeper part with the thread route
    that comes in a later pull request.
 2. **A deleted comment is 404 `COMMENT_NOT_FOUND` on its own routes**, the same rule as
-   deleted posts (`2026-11-11-posts-pagination-and-visibility.md`). Its replies stay. The list
-   routes in the next pull request will show a deleted comment that still has replies as an
-   entry with no author and no text, so those replies stay reachable. A comment whose post is
+   deleted posts (`2026-11-11-posts-pagination-and-visibility.md`). Its replies stay. The lists
+   show a deleted comment that still has replies as an entry with no author and no text, so
+   those replies stay reachable. A comment whose post is
    deleted or belongs to a hub is also 404.
 3. **A bad `parent_id` is 422 `PARENT_NOT_FOUND`.** This covers a parent that is missing,
    deleted, or on another post. It is a field in the body, not the address, so 404 would point

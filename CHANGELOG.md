@@ -12,9 +12,10 @@ its number:
 
 - feat(web): add the post page (#102)
 - feat(web): add the feed with likes and saves (#101)
+- feat(api): add comment lists with reply previews (#99)
 - fix(api): refuse a null character in post text instead of failing (#100)
 - fix(web): open an address typed without a language (#98)
-- feat(api): add comments and replies on posts
+- feat(api): add comments and replies on posts (#97)
 - feat(web): rebuild the not-found page and send it as html (#96)
 - fix(web): tidy the loose ends left by the screen pull requests (#95)
 - test(web): wait five seconds before a screen check gives up (#94)
