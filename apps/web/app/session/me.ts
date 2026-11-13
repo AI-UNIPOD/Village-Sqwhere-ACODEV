@@ -48,6 +48,7 @@ export function keepMe(me: Me) {
 
 // Forgets the kept profile, for tests and for anything that changes who is signed in.
 export function forgetMe() {
+  opening = null;
   keep(null);
 }
 
@@ -58,6 +59,26 @@ export async function loadMe(): Promise<Me> {
   if (!response.ok || typeof me?.username !== "string") throw new Error(`GET /v1/me answered ${response.status}`);
   keep(me);
   return me;
+}
+
+// A page that opens asks once: the frame and the screen inside it both want the profile then.
+let opening: Promise<Me> | null = null;
+
+function openMe(): Promise<Me> {
+  if (!opening) {
+    const asked = loadMe().finally(() => {
+      if (opening === asked) opening = null;
+    });
+    opening = asked;
+  }
+  return opening;
+}
+
+// For the frame around every screen. Some screens never ask for the profile (Your hubs, a hub,
+// the idea composer), so opened by their address they would leave the frame without it: no
+// Reviews place, no demo line. A failure is let go: the frame only shows less.
+export function ensureMe() {
+  if (!kept) openMe().catch(() => {});
 }
 
 // The profile if a screen has already loaded it this visit, without asking the API.
@@ -79,7 +100,7 @@ export function useMe(): Me | null {
   const [failure, setFailure] = useState<Error | null>(null);
   useEffect(() => {
     let live = true;
-    loadMe().catch((error: unknown) => {
+    openMe().catch((error: unknown) => {
       if (live && !kept && !(error instanceof SignedOutError)) setFailure(error instanceof Error ? error : new Error(String(error)));
     });
     return () => {

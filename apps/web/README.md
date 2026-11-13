@@ -28,10 +28,11 @@ from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on th
 team. Onboarding's last screen leads there, and the bare onboarding address sends a developer
 who already has a role there too. Screens for signed-in people share one frame, `AppFrame` in
 `app/app-frame.tsx`: pass it the screen's address so the language link opens the same screen.
-The frame also holds the places (village, ideas, hubs, reviews for a verified developer,
+The frame also holds the places (village, feed, ideas, hubs, reviews for a verified developer,
 profile): a bar at the bottom of a phone, links in the header from 768px. A new place is one
 line in `PLACES` and one word in `app/app-frame-copy.ts`. The profile is kept for the visit, so
 a screen opened later shows at once; a screen that changes it calls `loadMe()` or `keepMe()`.
+The frame asks for the profile itself when no screen has, sharing one request with the screen.
 Screens crossfade with React's `<ViewTransition>` (`globals.css`), and a sticky row at the
 bottom of a screen uses `var(--app-bottom)` to sit above the bar.
 
