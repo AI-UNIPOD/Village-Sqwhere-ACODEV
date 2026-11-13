@@ -8,23 +8,30 @@ those triggers, so a write racing a delete answers 404 or 422 instead of failing
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbSession
-from app.api.v1.posts import get_visible_post, visible_posts
+from app.api.v1.posts import PageLimit, PageOffset, get_visible_post, visible_posts
 from app.models import Comment, CommentLike, DeletionReason, PlatformRole, Post, User
 from app.schemas.comments import (
     CommentCreateRequest,
     CommentItemResponse,
+    CommentListResponse,
     CommentResponse,
     CommentUpdateRequest,
+    TopLevelCommentListResponse,
+    TopLevelCommentResponse,
 )
 from app.schemas.posts import PostAuthorRef
 
 router = APIRouter()
 
 MAX_DEPTH = 1000  # comments_depth_range in the schema
+REPLY_PREVIEWS = 2
+OLDEST_FIRST = (Comment.created_at, Comment.id)
+# A deleted comment stays in lists only while it has replies, so they stay reachable.
+LISTED = or_(Comment.deleted_at.is_(None), Comment.reply_count > 0)
 
 
 def _comment_error(code: int, error: str, message: str) -> HTTPException:
@@ -70,16 +77,22 @@ async def _comment_responses(
             post_id=comment.post_id,
             parent_id=comment.parent_id,
             depth=comment.depth,
-            author=authors[comment.author_id],
-            body=comment.body,
+            deleted=comment.deleted_at is not None,
+            author=None if comment.deleted_at else authors[comment.author_id],
+            body=None if comment.deleted_at else comment.body,
             like_count=comment.like_count,
             reply_count=comment.reply_count,
             created_at=comment.created_at,
-            edited_at=comment.edited_at,
-            liked_by_me=comment.id in liked,
+            edited_at=None if comment.deleted_at else comment.edited_at,
+            liked_by_me=not comment.deleted_at and comment.id in liked,
         )
         for comment in comments
     ]
+
+
+async def _page(ordered: Select[tuple[Comment]], offset: int, limit: int, db: AsyncSession):
+    rows = list(await db.scalars(ordered.offset(offset).limit(limit + 1)))
+    return rows[:limit], (offset + limit if len(rows) > limit else None)
 
 
 async def _comment_item(comment: Comment, viewer_id: UUID, db: AsyncSession) -> CommentItemResponse:
@@ -127,6 +140,83 @@ async def create_comment(
     db.add(comment)
     await db.commit()
     return await _comment_item(comment, current_user.id, db)
+
+
+@router.get("/posts/{post_id}/comments", response_model=TopLevelCommentListResponse)
+async def list_comments(
+    post_id: UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+    offset: PageOffset = 0,
+    limit: PageLimit = 20,
+) -> TopLevelCommentListResponse:
+    await get_visible_post(post_id, db)
+    top, next_offset = await _page(
+        select(Comment)
+        .where(Comment.post_id == post_id, Comment.parent_id.is_(None), LISTED)
+        .order_by(*OLDEST_FIRST),
+        offset,
+        limit,
+        db,
+    )
+    # The first few replies of every comment on the page, in one query.
+    numbered = (
+        select(
+            Comment.id,
+            func.row_number()
+            .over(partition_by=Comment.parent_id, order_by=OLDEST_FIRST)
+            .label("n"),
+        )
+        .where(Comment.parent_id.in_([comment.id for comment in top]), LISTED)
+        .subquery()
+    )
+    previews = list(
+        await db.scalars(
+            select(Comment)
+            .join(numbered, numbered.c.id == Comment.id)
+            .where(numbered.c.n <= REPLY_PREVIEWS)
+            .order_by(*OLDEST_FIRST)
+        )
+    )
+    responses = await _comment_responses(top + previews, current_user.id, db)
+    replies: dict[UUID, list[CommentResponse]] = {comment.id: [] for comment in top}
+    for preview in responses[len(top) :]:
+        replies[preview.parent_id].append(preview)
+    return TopLevelCommentListResponse(
+        data=[
+            TopLevelCommentResponse(**comment.model_dump(), replies=replies[comment.id])
+            for comment in responses[: len(top)]
+        ],
+        next_offset=next_offset,
+    )
+
+
+@router.get("/comments/{comment_id}/replies", response_model=CommentListResponse)
+async def list_replies(
+    comment_id: UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+    offset: PageOffset = 0,
+    limit: PageLimit = 20,
+) -> CommentListResponse:
+    listed = await db.scalar(
+        select(Comment.id).where(
+            Comment.id == comment_id,
+            LISTED,
+            Comment.post_id.in_(visible_posts().with_only_columns(Post.id)),
+        )
+    )
+    if listed is None:
+        raise _comment_error(404, "COMMENT_NOT_FOUND", "Comment not found or deleted")
+    replies, next_offset = await _page(
+        select(Comment).where(Comment.parent_id == comment_id, LISTED).order_by(*OLDEST_FIRST),
+        offset,
+        limit,
+        db,
+    )
+    return CommentListResponse(
+        data=await _comment_responses(replies, current_user.id, db), next_offset=next_offset
+    )
 
 
 @router.get("/comments/{comment_id}", response_model=CommentItemResponse)

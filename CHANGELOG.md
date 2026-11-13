@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add comment lists with reply previews
 - feat(api): add comments and replies on posts
 - feat(web): rebuild the not-found page and send it as html (#96)
 - fix(web): tidy the loose ends left by the screen pull requests (#95)

@@ -1323,6 +1323,7 @@ Rules are in `docs/decisions/2026-11-13-post-comments.md`.
   "post_id": "7d1e2f3a-4b5c-4d6e-8f90-1a2b3c4d5e6f",
   "parent_id": null,
   "depth": 0,
+  "deleted": false,
   "author": {
     "id": "5b6c7d8e-9f01-4a2b-8c3d-4e5f6a7b8c9d",
     "username": "moussa-dakar",
@@ -1343,6 +1344,10 @@ Rules are in `docs/decisions/2026-11-13-post-comments.md`.
 counts direct replies, including deleted ones. A post's `comment_count` counts comments and
 replies that are not deleted.
 
+In lists, a deleted comment that still has replies appears with `"deleted": true` and
+`author`, `body` and `edited_at` set to `null`, so its replies stay reachable. A deleted
+comment without replies is left out.
+
 ### `POST /v1/posts/{post_id}/comments`
 
 Comment on a post, or reply to a comment on it.
@@ -1353,6 +1358,28 @@ Comment on a post, or reply to a comment on it.
 * A deleted, missing or hub post gives 404 `POST_NOT_FOUND`, also when the post is deleted
   while the comment is being saved. A parent that is deleted, missing or on another post gives
   422 `PARENT_NOT_FOUND`. Replying to a comment at depth 1000 gives 422 `MAX_DEPTH_EXCEEDED`.
+
+### `GET /v1/posts/{post_id}/comments`
+
+The post's comments, oldest first, paged like `GET /v1/posts` (`offset`, `limit` up to 50,
+`next_offset`). Each comment also has `replies`: its first two direct replies, oldest first.
+Use `reply_count` to offer "View N replies" and `GET /v1/comments/{comment_id}/replies` for
+the rest. A deleted, missing or hub post gives 404 `POST_NOT_FOUND`.
+
+```json
+{
+  "data": [
+    { "id": "...", "depth": 0, "reply_count": 3, "replies": [{ "id": "...", "depth": 1 }] }
+  ],
+  "next_offset": 20
+}
+```
+
+### `GET /v1/comments/{comment_id}/replies`
+
+A comment's direct replies, oldest first, paged the same way, as comment objects. Works for a
+deleted comment that still has replies. 404 `COMMENT_NOT_FOUND` if the comment is missing,
+deleted without replies, or on a deleted or hub post.
 
 ### `GET /v1/comments/{comment_id}`
 
