@@ -10,6 +10,9 @@ from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
+    Comment,
+    CommentLike,
+    CommentRevision,
     DeletionReason,
     Post,
     PostLike,
@@ -21,7 +24,16 @@ from app.models import (
 )
 from tests.conftest import test_async_session as db_session
 
-POST_MODELS = [Post, PostTopic, PostRevision, PostLike, SavedPost]
+POST_MODELS = [
+    Post,
+    PostTopic,
+    PostRevision,
+    PostLike,
+    SavedPost,
+    Comment,
+    CommentRevision,
+    CommentLike,
+]
 
 REFERENTIAL_ACTION = {
     "a": "NO ACTION",

@@ -10,6 +10,9 @@ from app.models.hubs import (
 from app.models.ideas import Idea, IdeaRoleNeed, IdeaStage, IdeaStatus
 from app.models.lookups import Base, Role, Technology
 from app.models.posts import (
+    Comment,
+    CommentLike,
+    CommentRevision,
     DeletionReason,
     Post,
     PostLike,
@@ -38,6 +41,9 @@ __all__ = [
     "AgreementTemplate",
     "AuthProvider",
     "Base",
+    "Comment",
+    "CommentLike",
+    "CommentRevision",
     "DeletionReason",
     "Hub",
     "HubMember",
