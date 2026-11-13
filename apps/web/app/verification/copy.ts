@@ -160,7 +160,7 @@ const fr: Copy = {
   retry: "Réessayer",
   noRole: {
     title: "Choisissez d'abord votre rôle principal",
-    text: "Un Green Tick porte sur votre rôle principal : nous devons le connaître avant de pouvoir le vérifier.",
+    text: "Un Green Tick porte sur votre rôle principal\u202f: nous devons le connaître avant de pouvoir le vérifier.",
     action: "Choisir mon rôle",
   },
   verified: {
@@ -182,7 +182,7 @@ const fr: Copy = {
       title: "Entretien",
       later: "Cinq questions posées par un intervieweur IA. Vous répondez par écrit.",
       warning:
-        "Cinq questions, réponses écrites. Une fois commencé, restez sur la page : la quitter met fin à la tentative.",
+        "Cinq questions, réponses écrites. Une fois commencé, restez sur la page\u202f: la quitter met fin à la tentative.",
       start: "Commencer l'entretien",
       done: "Vos réponses sont enregistrées. Le rapport pour votre relecteur est en cours de rédaction.",
       ready: "Vos réponses sont enregistrées et le rapport est prêt.",
@@ -207,7 +207,7 @@ const fr: Copy = {
   newTab: "s'ouvre dans un nouvel onglet",
   stop: {
     button: "Arrêter cette tentative",
-    title: "Arrêter cette tentative ?",
+    title: "Arrêter cette tentative\u202f?",
     text: "Elle prend fin maintenant et compte pour l'une de vos trois.",
     confirm: "Arrêter la tentative",
     keep: "Continuer",
