@@ -39,12 +39,16 @@ class CommentUpdateRequest(BaseModel):
 
 
 class CommentResponse(BaseModel):
+    """A deleted comment that still has replies is listed with `deleted` true and no author
+    or body, so its replies stay reachable."""
+
     id: UUID
     post_id: UUID
     parent_id: UUID | None
     depth: int
-    author: PostAuthorRef
-    body: str
+    deleted: bool
+    author: PostAuthorRef | None
+    body: str | None
     like_count: int
     reply_count: int
     created_at: datetime
@@ -54,3 +58,17 @@ class CommentResponse(BaseModel):
 
 class CommentItemResponse(BaseModel):
     data: CommentResponse
+
+
+class CommentListResponse(BaseModel):
+    data: list[CommentResponse]
+    next_offset: int | None = None
+
+
+class TopLevelCommentResponse(CommentResponse):
+    replies: list[CommentResponse]
+
+
+class TopLevelCommentListResponse(BaseModel):
+    data: list[TopLevelCommentResponse]
+    next_offset: int | None = None
