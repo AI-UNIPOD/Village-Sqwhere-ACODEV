@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(web): add the feed with likes and saves (#101)
 - fix(api): refuse a null character in post text instead of failing (#100)
 - fix(web): open an address typed without a language (#98)
 - feat(api): add comments and replies on posts
