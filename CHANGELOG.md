@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add the get hub endpoint (#60)
 - feat(web): finish github sign-in with token refresh and sign-out (#59)
 
 ## 2026-11-12
