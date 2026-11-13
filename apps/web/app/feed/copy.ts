@@ -112,8 +112,6 @@ type Copy = {
     verified: string;
     deleted: string;
     inReply: string;
-    likeOne: string;
-    likeMany: string;
     showAll: string;
     showSome: string;
     showOne: string;
@@ -301,8 +299,6 @@ export const copy: Record<Lang, Copy> = {
       verified: "Verified",
       deleted: "This comment was deleted",
       inReply: "In reply to {name}",
-      likeOne: "{n} like",
-      likeMany: "{n} likes",
       showAll: "Show all {n} replies",
       showSome: "Show {n} replies",
       showOne: "Show 1 reply",
@@ -500,8 +496,6 @@ export const copy: Record<Lang, Copy> = {
       verified: "Vérifié",
       deleted: "Ce commentaire a été supprimé",
       inReply: "En réponse à {name}",
-      likeOne: "{n} j'aime",
-      likeMany: "{n} j'aime",
       showAll: "Afficher les {n} réponses",
       showSome: "Afficher {n} réponses",
       showOne: "Afficher 1 réponse",

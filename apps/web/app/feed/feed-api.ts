@@ -138,3 +138,7 @@ export const updateComment = async (id: string, body: string) =>
 
 // The API lets a moderator delete anyone's comment too; the web app offers it to the author only.
 export const deleteComment = (id: string) => call<null>(`/v1/comments/${encodeURIComponent(id)}`, "DELETE");
+
+// Like a post's like: 204 with no body, and the same request each time.
+export const setCommentLike = (id: string, on: boolean) =>
+  call<null>(`/v1/comments/${encodeURIComponent(id)}/like`, on ? "PUT" : "DELETE");

@@ -163,9 +163,9 @@ said comments were coming.
   Mensah"), taken from the comment above it, so the thread can still be followed. The API allows a
   depth of 1000, and the web does not limit it. If a reply is refused with `MAX_DEPTH_EXCEEDED` the
   form says to reply to a comment higher up.
-- **No like button on a comment yet.** The route to like a comment is not on `main`, and a button
-  that does nothing is worse than none. A comment shows its like count as plain text with a heart,
-  only above zero. When the route lands, the count becomes the button, in the same place.
+- **A comment is liked like a post.** The first version had no button, because the route was not
+  on `main`; it landed with #103, and the button changes the screen at once and sends the
+  request after, as a post's does.
 - **A deleted comment that still has replies stays as a quiet note.** The API lists it with
   `deleted: true` and no author or text, so its replies stay reachable, and the screen draws
   "This comment was deleted" with no buttons and the replies under it. When the person deletes
