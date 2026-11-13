@@ -97,6 +97,8 @@ export type PublicIdea = {
   stage: Stage;
   roles_needed: { slug: string; name: string }[];
   author: { username: string; display_name: string; is_verified: boolean };
+  // null until the owner opens the idea's hub
+  hub_id: string | null;
   published_at: string;
 };
 

@@ -241,7 +241,7 @@ test("a hub that is not there says so and leads back", async () => {
 
 test("your hubs list each hub with your part in it, and open it", async () => {
   const second = hub({ id: "hub-2", name: "Clinic queue hub", status: "archived", member_count: 3, viewer: { membership_status: "active", member_role: "member" } });
-  api({ "GET /v1/me/hubs": { data: [hub(), second], next_offset: null }, "GET /v1/me/hubs?status=invited": { data: [] } });
+  api({ "GET /v1/me/hubs": { data: [hub(), second], next_offset: null }, "GET /v1/me/hubs?status=requested": { data: [] }, "GET /v1/me/hubs?status=invited": { data: [] } });
   render(<MyHubs lang="en" />);
   const first = await screen.findByRole("link", { name: "Borehole map hub" });
   expect(first.getAttribute("href")).toBe("/en/hubs/view?id=hub-1");
@@ -252,7 +252,7 @@ test("your hubs list each hub with your part in it, and open it", async () => {
 });
 
 test("with no hubs, the page says where a hub comes from", async () => {
-  api({ "GET /v1/me/hubs": { data: [], next_offset: null }, "GET /v1/me/hubs?status=invited": { data: [] } });
+  api({ "GET /v1/me/hubs": { data: [], next_offset: null }, "GET /v1/me/hubs?status=requested": { data: [] }, "GET /v1/me/hubs?status=invited": { data: [] } });
   render(<MyHubs lang="en" />);
   expect(await screen.findByRole("heading", { level: 2, name: "No hubs yet" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Your ideas" }).getAttribute("href")).toBe("/en/ideas/mine");

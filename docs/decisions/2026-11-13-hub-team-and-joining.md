@@ -54,3 +54,62 @@ The web frontend's owner chose, on 13 November 2026:
   send more invitations than there are places left.
 - The hub page reads the team and the brief with their own requests, so a slow brief never holds
   back the team.
+
+## Asking to join
+
+The API now lets a developer ask to join a hub and the owner approve or decline
+(`2026-11-13-hub-join-requests.md`). The web frontend's owner chose, on 13 November 2026:
+
+- **Asking lives on the open idea's page.** That is where a developer decides they want in, and
+  the idea card already carries `hub_id`. The page's one main button is "Ask to join", with one
+  line before it: the owner sees your profile and answers, and if they approve you read the
+  agreement and sign. The three-step "how joining works" list is gone, because it said the owner
+  invites and nobody can ask. The lists ("Open ideas", "For you") have no button: the idea's page
+  is the one place to ask.
+- **The page learns where the developer stands from the hub card** (`GET /v1/hubs/{hub_id}`,
+  `viewer.membership_status`), not from `GET /v1/me/hubs?status=requested`. The list only knows
+  requests; the card also says invited, member and archived, so the same page can say "You asked
+  to join", lead to "Read and sign" or to the hub, and it reads the same on every visit. The owner
+  of the idea is never asked about: they have their own links.
+- **Each "already" refusal shows the state the developer is really in.** `ALREADY_REQUESTED`,
+  `ALREADY_INVITED` and `ALREADY_MEMBER` change the page to that state instead of only
+  apologising. `IDEA_CLOSED` and `HUB_ARCHIVED` take the button away, because asking again cannot
+  work; `TEAM_FULL` and any other failure keep it, because they can pass.
+- **Approval leads to the existing signing page.** The API turns an approved request into an
+  invitation, so the developer sees the invitation like any other: "Read and sign" on the idea's
+  page, the invitation card on the hub's page and the invitations list on Your hubs. There is no
+  second way to sign.
+- **The owner answers in the team section.** Requests are listed first, with an "Asked to join"
+  pill and "Approve" and "Decline", each named for the person. Decline asks first, as withdrawing
+  does, because the person cannot undo it. After either answer the row is replaced by the member
+  card the API returns: "Invited" with "Withdraw", or "Declined" with "Invite again".
+  `TEAM_FULL` leaves the request in place and says the team is full; `REQUEST_NOT_FOUND` reads the
+  list again and says the request is no longer waiting. A line a screen reader hears says what
+  happened.
+- **The developer's pending requests are a section on Your hubs,** "Waiting for the owner", from
+  `GET /v1/me/hubs?status=requested`, each leading to the hub page, which a requester can open
+  (the hub card is public to signed-in people). A failure of that request hides the section, as it
+  does for invitations.
+- **The hub page and the idea page do not say who declined.** The API gives the same status,
+  `declined`, whether the developer declined an invitation or the owner declined their request, so
+  the hub page says the person is not in the hub and names both possibilities. Asking again is
+  allowed, so the idea page offers the button again.
+
+### What the API could not tell the web
+
+- **Requests waiting for an owner.** Nothing cheap says that requests wait: the hub card carries
+  no count of them, and the only list is `GET /v1/hubs/{hub_id}/members` per hub. The village and
+  the places bar therefore do not mark waiting requests the way they mark invitations, and Your
+  hubs shows no "N people asked to join". Reading every hub's members to find out would be one
+  request per hub on every screen. A `pending_request_count` on the hub card for its owner, or the
+  same for `GET /v1/me/hubs`, would let the web add that line and the dot.
+- **Who declined.** A `declined` membership does not say whether the owner or the developer
+  declined (see above).
+- **Withdrawing a request.** A developer cannot withdraw their own request: there is no route, so
+  the web offers none. The owner can decline it.
+
+### Consequences
+
+- A developer with no role or an unverified role can ask too: the API does not require either. The
+  line about fit ("Needs your role", with the way to verify) stays in the roles block, but it no
+  longer takes the place of the main button.
