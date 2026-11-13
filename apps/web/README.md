@@ -14,7 +14,8 @@ pnpm build:web
 
 Copy `.env.example` from the repo root to `apps/web/.env.local` if you need to override the API URL.
 The site is bilingual by address: pages live in `app/[lang]/` and are served at `/en` and `/fr`.
-`proxy.ts` sends the bare `/` to the visitor's language, `app/locales.ts` lists the languages,
+`proxy.ts` sends the bare `/`, and any address typed without a language, to the visitor's
+language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
 landing page is `app/landing/`, and the onboarding page shown after the first sign-in is
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role and the stack
@@ -108,8 +109,10 @@ to sign-in. Only the tokens are stored; pages read the profile from `GET /v1/me`
 An address that matches no page gets `app/global-not-found.tsx`: real HTML with a 404 status
 (`experimental.globalNotFound` in `next.config.ts`). Next builds that document once for every
 address, so it holds the page in each language, and a script that runs before first paint
-reads the language from the address; `globals.css` shows the matching one. An address with no
-known language, like `/xx` or `/ideas`, matches `app/[lang]`, whose pages call `notFound()`:
-`app/[lang]/not-found.tsx` draws the same page in English. Both use `app/page-not-found/`: the
+reads the language from the address; `globals.css` shows the matching one. An address typed
+without a language, like `/ideas`, is first sent to the visitor's language by `proxy.ts`
+(`/en/ideas` or `/fr/ideas`), so it reaches the real page, or this document if there is none.
+`app/[lang]/not-found.tsx` draws the same page for anything that still calls `notFound()`.
+Both use `app/page-not-found/`: the
 message, the address asked for, the ways back (`ways-out.tsx`) and the small scene
 (`gathering.tsx`). Why: `docs/decisions/2026-11-13-not-found-page.md`.

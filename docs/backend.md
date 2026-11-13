@@ -1142,6 +1142,7 @@ Create a new feed post.
 * **Topic rules:** Maximum 5 topics. No duplicate slugs. Each slug must match a technology in the technologies table.
 * **Hub milestone:** `type = "hub_milestone"` is currently deferred and returns HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`.
 * **Link:** `link_url` must start with `http://` or `https://` and is at most 2048 characters (HTTP 422 otherwise).
+* **Text:** the title, body, link and topics cannot contain a null character (HTTP 422).
 * **Request Body:**
   ```json
   {

@@ -56,9 +56,10 @@ The web frontend's owner chose, on 13 November 2026:
 
 ## Consequences
 
-- An address with no language at all, like `/ideas`, still matches `app/[lang]` and reaches
-  `notFound()`, so that one is still drawn by the browser (the same page, with a 404 status).
-  Next does not allow `dynamicParams = false` with Cache Components, which would have fixed it.
+- An address with no language at all, like `/ideas`, matches `app/[lang]` and would reach
+  `notFound()`, which the browser has to draw. Next does not allow `dynamicParams = false` with
+  Cache Components, so `proxy.ts` now sends every address without a language to the visitor's
+  language first: `/ideas` opens `/en/ideas`, and `/xx/page` ends on this document.
 - The fonts are loaded in `app/fonts.ts`, shared by the layout and the new document.
 - The document carries the page twice, once per language. A third language adds a third copy
   and one line in `globals.css`; a test fails if that line is missing.
