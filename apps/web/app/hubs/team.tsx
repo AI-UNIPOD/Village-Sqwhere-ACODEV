@@ -25,6 +25,7 @@ import {
   type Member,
 } from "./hubs-api";
 import styles from "./hubs.module.css";
+import { forgetInvitation } from "./invitations";
 
 export const TEAM_MAX = 5;
 
@@ -333,6 +334,7 @@ export function InvitationCard({ lang, hub, onChange }: { lang: Lang; hub: Hub; 
     setProblem(false);
     try {
       onChange(await declineInvitation(hub.id));
+      forgetInvitation(hub.id);
     } catch (error) {
       if (error instanceof SignedOutError) return;
       if (error instanceof IdeaError && (error.code === "INVITATION_NOT_FOUND" || error.code === "ALREADY_MEMBER")) {

@@ -43,6 +43,19 @@ export const loadHub = async (id: string) => (await call<{ data: Hub }>(`/v1/hub
 export const loadMyHubs = (offset = 0) =>
   call<{ data: Hub[]; next_offset: number | null }>(`/v1/me/hubs?offset=${offset}&limit=20`);
 
+// The hub of each idea the developer has a hub for, by the idea's id. The API cannot look a
+// hub up by its idea, so this reads every page of the developer's hubs, 50 at a time.
+export async function loadHubsByIdea(): Promise<Record<string, Hub>> {
+  const found: Record<string, Hub> = {};
+  let offset: number | null = 0;
+  while (offset !== null) {
+    const page: { data: Hub[]; next_offset: number | null } = await call(`/v1/me/hubs?offset=${offset}&limit=50`);
+    for (const hub of page.data) found[hub.idea.id] = hub;
+    offset = page.next_offset;
+  }
+  return found;
+}
+
 // One person's place in a hub. Only an owner is sent the `invited` and `declined` ones.
 export type Member = {
   user: { id: string; username: string; display_name: string; is_verified: boolean };

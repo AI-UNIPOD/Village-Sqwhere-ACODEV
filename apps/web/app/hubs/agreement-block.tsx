@@ -37,7 +37,9 @@ export function AgreementBlock(props: {
   const t = copy[lang];
   return (
     <fieldset className={ideas.section}>
-      <legend className={ideas.heading}>{t.agreementHeading}</legend>
+      <legend className={ideas.legend}>
+        <h2 className={ideas.heading}>{t.agreementHeading}</h2>
+      </legend>
       {/* the agreement's own title and version, exactly as the server sends them */}
       <p className={styles.agreementName}>
         {agreement.title}

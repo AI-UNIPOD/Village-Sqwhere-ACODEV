@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { copy as hubsCopy } from "../hubs/copy";
-import { inviteMember, loadMyHubs, type Hub } from "../hubs/hubs-api";
+import { inviteMember, loadHubsByIdea, type Hub } from "../hubs/hubs-api";
 import hubsStyles from "../hubs/hubs.module.css";
 import { Person, TEAM_MAX, inviteMessage } from "../hubs/team";
 import landing from "../landing/landing-page.module.css";
@@ -132,7 +132,7 @@ function Matches({ lang, id }: { lang: Lang; id: string | null }) {
     if (!id) return;
     let live = true;
     // together, because the idea says what the list is for and the hub says whether it can invite
-    Promise.allSettled([loadMyIdea(id), loadMyHubs(), loadDevelopersForIdea(id)]).then(([idea, myHubs, people]) => {
+    Promise.allSettled([loadMyIdea(id), loadHubsByIdea(), loadDevelopersForIdea(id)]).then(([idea, myHubs, people]) => {
       if (!live) return;
       const fail = (error: unknown) => {
         if (!(error instanceof SignedOutError)) setFailure(error instanceof Error ? error : new Error(String(error)));
@@ -147,8 +147,7 @@ function Matches({ lang, id }: { lang: Lang; id: string | null }) {
       if (people.status === "rejected" && !notOpen) return fail(people.reason);
       setFound({
         idea: idea.value,
-        // shortcut: the first 20 hubs only, as on Your ideas
-        hub: myHubs.value.data.find((mine) => mine.idea.id === id),
+        hub: myHubs.value[id],
         people: people.status === "fulfilled" ? people.value.data : null,
         next: people.status === "fulfilled" ? people.value.next_offset : null,
       });

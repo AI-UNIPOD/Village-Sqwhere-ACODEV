@@ -19,11 +19,17 @@ const role = (slug: string, name: string, verified = false) => ({
 });
 
 // what GET /v1/me answers for a made-up developer
-function signedInAs(me: { roles?: unknown[]; technologies?: unknown[]; display_name?: string }) {
-  fetchMock.mockResolvedValue(
-    new Response(
-      JSON.stringify({ data: { username: "aminata-n", display_name: "Aminata Ndiaye", roles: [], technologies: [], ...me } }),
-      { status: 200 },
+function signedInAs(me: { roles?: unknown[]; technologies?: unknown[]; display_name?: string }, invitations: unknown[] = []) {
+  fetchMock.mockImplementation((url: string) =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          data: String(url).includes("status=invited")
+            ? invitations
+            : { username: "aminata-n", display_name: "Aminata Ndiaye", roles: [], technologies: [], ...me },
+        }),
+        { status: 200 },
+      ),
     ),
   );
 }
@@ -67,6 +73,39 @@ test("a new member is greeted by name and sent to set up their profile first", a
   for (const title of ["Earn your Green Tick", "Share an idea, or join one", "Build together in a hub"]) {
     expect(within(step(title)).getByText("Later")).toBeTruthy();
   }
+});
+
+test("an invitation to a hub is the next thing to do, ahead of verifying", async () => {
+  signedInAs({ roles: [role("backend-engineer", "Backend & Systems Engineer")] }, [{ id: "hub-1" }]);
+  render(<Village lang="en" />);
+  const hub = within(await screen.findByRole("heading", { level: 3, name: "Build together in a hub" }).then((h) => h.closest("li")!));
+  const invitation = await hub.findByRole("link", { name: "See your invitation" });
+  expect(invitation.getAttribute("href")).toBe("/en/hubs");
+  expect(hub.getByText("Next")).toBeTruthy();
+  // the one main button moved here: verifying can still start, as an open step
+  const verify = within(step("Earn your Green Tick")).getByRole("link", { name: "Start verification" });
+  expect(invitation.className).not.toBe(verify.className);
+  expect(within(step("Earn your Green Tick")).getByText("Open")).toBeTruthy();
+  expect(hub.queryByRole("link", { name: "Your hubs" })).toBeNull();
+});
+
+test("several invitations are counted, in French too", async () => {
+  signedInAs({ roles: [] }, [{ id: "hub-1" }, { id: "hub-2" }]);
+  render(<Village lang="fr" />);
+  const link = await screen.findByRole("link", { name: "Voir vos 2 invitations" });
+  expect(link.getAttribute("href")).toBe("/fr/hubs");
+});
+
+test("with no invitation, or when they cannot be loaded, the hub step waits as before", async () => {
+  fetchMock.mockImplementation((url: string) =>
+    String(url).includes("status=invited")
+      ? Promise.resolve(new Response("{}", { status: 500 }))
+      : Promise.resolve(new Response(JSON.stringify({ data: { username: "aminata-n", display_name: "Aminata Ndiaye", roles: [role("backend-engineer", "Backend")], technologies: [] } }), { status: 200 })),
+  );
+  render(<Village lang="en" />);
+  const hub = within(await screen.findByRole("heading", { level: 3, name: "Build together in a hub" }).then((h) => h.closest("li")!));
+  expect(hub.getByText("Later")).toBeTruthy();
+  expect(hub.getByRole("link", { name: "Your hubs" })).toBeTruthy();
 });
 
 test("with a role chosen, the profile step is done and verifying the role is next", async () => {
