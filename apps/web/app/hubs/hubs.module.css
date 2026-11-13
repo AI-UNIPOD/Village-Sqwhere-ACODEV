@@ -207,6 +207,9 @@
 /* the owner's own action: the new row rises into place */
 .member[data-arrived] { animation: arrive var(--dur-reveal) var(--ease-out); }
 
+/* the "Invited" pill that takes the place of an invite button arrives the same way */
+.sent { animation: arrive var(--dur-reveal) var(--ease-out); }
+
 /* once per screen, after a hub is created or joined: the message rises in (it is the shared
    success message), then the brief a beat later */
 .momentBrief { animation: moment var(--dur-moment) var(--ease-strong) var(--delay-stagger) both; }
@@ -232,6 +235,7 @@
 /* Reduced motion: the fade stays, the movement goes. */
 @media (prefers-reduced-motion: reduce) {
   .member[data-arrived],
+  .sent,
   .momentBrief { animation-name: fade; }
 }
 

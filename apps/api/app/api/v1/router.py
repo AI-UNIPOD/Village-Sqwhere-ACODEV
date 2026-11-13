@@ -9,6 +9,7 @@ from app.api.v1.interviews import router as interviews_router
 from app.api.v1.lookups import router as lookups_router
 from app.api.v1.matches import router as matches_router
 from app.api.v1.me import router as me_router
+from app.api.v1.posts import router as posts_router
 from app.api.v1.reviews import router as reviews_router
 from app.api.v1.verifications import router as verifications_router
 
@@ -18,6 +19,7 @@ api_v1_router.include_router(interviews_router, tags=["Interviews"])
 api_v1_router.include_router(lookups_router, tags=["Lookups"])
 api_v1_router.include_router(auth_router, tags=["Auth"])
 api_v1_router.include_router(me_router, tags=["Me"])
+api_v1_router.include_router(posts_router, tags=["Posts"])
 api_v1_router.include_router(verifications_router, tags=["Verifications"])
 api_v1_router.include_router(reviews_router, tags=["Reviews"])
 api_v1_router.include_router(hubs_router, tags=["Hubs"])

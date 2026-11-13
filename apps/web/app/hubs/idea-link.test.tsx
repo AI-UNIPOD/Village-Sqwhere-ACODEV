@@ -60,9 +60,22 @@ test("an open idea leads to its hub: the one it has, or the form that creates it
   expect(card("Fare tracker").queryByRole("link", { name: /hub/ })).toBeNull();
 });
 
+test("an open idea also leads to the developers who match it, and a draft does not", async () => {
+  signedIn(reply(200, { data: [{ id: "hub-9", idea: { id: "idea-1" } }], next_offset: null }));
+  render(<MyIdeas lang="en" />);
+  await screen.findByRole("link", { name: "Borehole map" });
+  expect(card("Borehole map").getByRole("link", { name: "See who matches" }).getAttribute("href")).toBe("/en/ideas/matches?id=idea-1");
+  expect(card("Clinic queue").getByRole("link", { name: "See who matches" }).getAttribute("href")).toBe("/en/ideas/matches?id=idea-2");
+  // the card's own way on to the hub is still there
+  expect(card("Borehole map").getByRole("link", { name: "Open the hub" })).toBeTruthy();
+  expect(card("Fare tracker").queryByRole("link", { name: "See who matches" })).toBeNull();
+});
+
 test("when the hubs cannot be loaded, the ideas still show, without a hub link", async () => {
   signedIn(reply(500));
   render(<MyIdeas lang="fr" />);
   expect(await screen.findByRole("link", { name: "Borehole map" })).toBeTruthy();
   expect(screen.queryByRole("link", { name: /espace/ })).toBeNull();
+  // matching does not depend on the hubs
+  expect(card("Borehole map").getByRole("link", { name: "Voir qui correspond" }).getAttribute("href")).toBe("/fr/ideas/matches?id=idea-1");
 });

@@ -1087,3 +1087,147 @@ export async function generatePKCE() {
   ```
 * Save the new `access_token` and the new rotated `refresh_token`, then retry the original failed request. The user experiences zero interruption.
 * Refresh tokens, login codes and OAuth states are kept in the API's memory for now. A restart cancels sign-ins in progress and forgets logouts (a logged-out refresh token works again until it expires), so run a single API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
+
+---
+
+## Posts (Developer Exchange)
+
+The Developer Exchange allows developers to share knowledge, questions, releases, and architecture challenges.
+
+### Error Shapes
+
+1. **Custom business logic errors** return a structured JSON object with a specific error code:
+   ```json
+   {
+     "detail": {
+       "code": "POST_NOT_FOUND",
+       "message": "Post not found or deleted"
+     }
+   }
+   ```
+2. **Schema validation errors** (from Pydantic) return FastAPI's default list format:
+   ```json
+   {
+     "detail": [
+       {
+         "type": "string_too_short",
+         "loc": ["body", "body"],
+         "msg": "String should have at least 1 characters",
+         "input": ""
+       }
+     ]
+   }
+   ```
+
+### Error Codes for Posts
+
+| Code | Status | Reason |
+| :--- | :--- | :--- |
+| `POST_NOT_FOUND` | 404 | Post does not exist, is soft-deleted, or belongs to a hub |
+| `NOT_POST_AUTHOR` | 403 | Attempt to edit or delete another user's post |
+| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Attempt to create a post with `type = "hub_milestone"` |
+| `UNKNOWN_TOPIC` | 422 | A topic slug does not exist in the technologies table |
+| `EMPTY_UPDATE` | 422 | PATCH body contains no fields |
+| `TOO_MANY_TOPICS` | 422 | More than 5 topics submitted |
+| `DUPLICATE_TOPICS` | 422 | Duplicate topic slugs submitted |
+| `RFC_TITLE_REQUIRED` | 422 | Attempt to clear title on an RFC post |
+
+---
+
+### `POST /v1/posts`
+
+Create a new feed post.
+
+* **Authentication:** Required (Bearer token)
+* **Topic rules:** Maximum 5 topics. No duplicate slugs. Each slug must match a technology in the technologies table.
+* **Hub milestone:** `type = "hub_milestone"` is currently deferred and returns HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`.
+* **Request Body:**
+  ```json
+  {
+    "type": "general",
+    "title": "Async Python with PostgreSQL",
+    "body": "Tips and patterns for async connection pooling with asyncpg and PostgreSQL.",
+    "link_url": "https://github.com/example/async-postgres-guide",
+    "topics": ["python", "postgresql"]
+  }
+  ```
+* **Success Response (201 Created):**
+  ```json
+  {
+    "data": {
+      "id": "1894d039-3fa4-469b-9878-8314f3ff5e0d",
+      "type": "general",
+      "title": "Async Python with PostgreSQL",
+      "body": "Tips and patterns for async connection pooling with asyncpg and PostgreSQL.",
+      "link_url": "https://github.com/example/async-postgres-guide",
+      "author": {
+        "id": "908fdc10-d867-4279-bb7d-b6a2f7c00e12",
+        "username": "ada-lagos",
+        "display_name": "Ada Okafor",
+        "avatar_url": null,
+        "is_verified": true
+      },
+      "topics": [
+        { "slug": "postgresql", "name": "PostgreSQL" },
+        { "slug": "python", "name": "Python" }
+      ],
+      "like_count": 0,
+      "comment_count": 0,
+      "created_at": "2026-11-13T10:00:00Z",
+      "updated_at": "2026-11-13T10:00:00Z",
+      "edited_at": null,
+      "liked_by_me": false,
+      "saved_by_me": false
+    }
+  }
+  ```
+
+---
+
+### `GET /v1/posts/{post_id}`
+
+Retrieve a single post by ID.
+
+* **Authentication:** Required (Bearer token)
+* **Visibility:** Returns HTTP 404 `POST_NOT_FOUND` if the post does not exist, has been deleted, or has `hub_id IS NOT NULL`.
+* **Success Response (200 OK):**
+  Same shape as `POST /v1/posts`, with current user's `liked_by_me` and `saved_by_me` flags.
+
+---
+
+### `PATCH /v1/posts/{post_id}`
+
+Update a post's title, body, or link URL.
+
+* **Authentication:** Required (Author only). Non-authors receive HTTP 403 `NOT_POST_AUTHOR`.
+* **Rules:**
+  * At least one field must be provided. An empty payload returns HTTP 422 `EMPTY_UPDATE`.
+  * Passing `title: null` clears the title for standard posts, but returns HTTP 422 for RFC posts.
+  * Passing `body: null` is rejected.
+  * Topics and post type are immutable and cannot be updated.
+  * Each text change creates an audit row in `post_revisions` and updates `edited_at` automatically.
+* **Request Body:**
+  ```json
+  {
+    "title": "Updated Title",
+    "body": "Updated body text with clarifications."
+  }
+  ```
+* **Success Response (200 OK):**
+  Updated post object in the `{"data": ...}` envelope.
+
+---
+
+### `DELETE /v1/posts/{post_id}`
+
+Soft-delete a post.
+
+* **Authentication:** Required.
+* **Permissions:**
+  * Post author can delete (records deletion reason `author`).
+  * Platform moderators and admins can delete (records deletion reason `moderator`).
+  * If the author is also a moderator, the `author` reason takes precedence.
+  * Non-authors without moderator rights receive HTTP 403 `NOT_POST_AUTHOR`.
+* **Visibility:** Once deleted, the post returns HTTP 404 `POST_NOT_FOUND` to all future GET and PATCH requests.
+* **Success Response (204 No Content):** Empty body.
+

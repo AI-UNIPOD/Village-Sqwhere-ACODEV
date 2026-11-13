@@ -1,0 +1,424 @@
+import asyncio
+from collections.abc import Generator
+from uuid import UUID, uuid4
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import select, text, update
+
+from app.models import PlatformRole, Post, PostRevision, User
+from tests.conftest import test_async_session as db_session
+
+
+def _truncate_posts() -> None:
+    async def _clean() -> None:
+        async with db_session() as session:
+            await session.execute(
+                text("TRUNCATE posts, post_topics, post_likes, saved_posts, post_revisions CASCADE")
+            )
+            await session.commit()
+
+    asyncio.run(_clean())
+
+
+@pytest.fixture(autouse=True)
+def cleanup_posts() -> Generator[None]:
+    _truncate_posts()
+    try:
+        yield
+    finally:
+        _truncate_posts()
+
+
+def _set_user_role(user_id: UUID, role: PlatformRole) -> None:
+    async def _set() -> None:
+        async with db_session() as session:
+            await session.execute(update(User).where(User.id == user_id).values(platform_role=role))
+            await session.commit()
+
+    asyncio.run(_set())
+
+
+def _bearer(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+# --- Tests -----------------------------------------------------------------------------------
+
+
+def test_create_and_get_post(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    moussa = sign_in("github-code-moussa")
+    ada_auth = _bearer(ada["access_token"])
+    moussa_auth = _bearer(moussa["access_token"])
+
+    create_payload = {
+        "type": "general",
+        "title": "Building offline apps",
+        "body": "Tips for local data persistence in Africa.",
+        "link_url": "https://example.com/guide",
+        "topics": ["python", "react"],
+    }
+    create_resp = client.post("/v1/posts", headers=ada_auth, json=create_payload)
+    assert create_resp.status_code == 201, create_resp.text
+    post_data = create_resp.json()["data"]
+
+    assert post_data["type"] == "general"
+    assert post_data["title"] == "Building offline apps"
+    assert post_data["body"] == "Tips for local data persistence in Africa."
+    assert post_data["link_url"] == "https://example.com/guide"
+    assert [t["slug"] for t in post_data["topics"]] == ["python", "react"]
+    assert post_data["author"]["username"] == "ada-lagos"
+    assert post_data["like_count"] == 0
+    assert post_data["comment_count"] == 0
+    assert post_data["liked_by_me"] is False
+    assert post_data["saved_by_me"] is False
+
+    post_id = post_data["id"]
+
+    # GET by author
+    get_resp = client.get(f"/v1/posts/{post_id}", headers=ada_auth)
+    assert get_resp.status_code == 200
+    assert get_resp.json()["data"]["id"] == post_id
+
+    # GET by other user
+    get_other = client.get(f"/v1/posts/{post_id}", headers=moussa_auth)
+    assert get_other.status_code == 200
+    assert get_other.json()["data"]["author"]["username"] == "ada-lagos"
+    assert get_other.json()["data"]["liked_by_me"] is False
+    assert get_other.json()["data"]["saved_by_me"] is False
+
+
+def test_create_post_fails_with_hub_milestone(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={"type": "hub_milestone", "body": "Milestone achieved"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == {
+        "code": "HUB_MILESTONE_NOT_SUPPORTED",
+        "message": "Hub milestone posts are not supported yet",
+    }
+
+
+def test_create_post_fails_with_unknown_topic(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={"body": "Post body", "topics": ["python", "unknown-slug-xyz"]},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == {
+        "code": "UNKNOWN_TOPIC",
+        "message": "Unknown topic slug: unknown-slug-xyz",
+    }
+
+
+def test_create_post_fails_with_too_many_topics(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={
+            "body": "Post body",
+            "topics": ["python", "react", "vue", "go", "rust", "nodejs"],
+        },
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == {
+        "code": "TOO_MANY_TOPICS",
+        "message": "A post may have at most 5 topics",
+    }
+
+
+def test_create_post_with_five_topics_succeeds(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={
+            "body": "Post with 5 topics",
+            "topics": ["python", "react", "vue", "go", "rust"],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    topics = resp.json()["data"]["topics"]
+    assert len(topics) == 5
+    assert [t["slug"] for t in topics] == ["go", "python", "react", "rust", "vue"]
+
+
+def test_create_post_fails_with_duplicate_topics(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={"body": "Post body", "topics": ["python", "react", "python"]},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == {
+        "code": "DUPLICATE_TOPICS",
+        "message": "Topics must not contain duplicates",
+    }
+
+
+def test_create_post_fails_with_whitespace_body(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post("/v1/posts", headers=auth, json={"body": "   "})
+    assert resp.status_code == 422
+    assert isinstance(resp.json()["detail"], list)
+
+
+def test_create_post_rfc_without_title_fails(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post("/v1/posts", headers=auth, json={"type": "rfc", "body": "RFC Body"})
+    assert resp.status_code == 422
+    assert isinstance(resp.json()["detail"], list)
+
+
+def test_create_post_stray_field_fails(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={"body": "Post body", "hub_id": str(uuid4())},
+    )
+    assert resp.status_code == 422
+    assert isinstance(resp.json()["detail"], list)
+
+
+def test_patch_post_by_author_succeeds_and_creates_revision(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+
+    create_resp = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={
+            "title": "Original Title",
+            "body": "Original Body",
+            "link_url": "https://example.com/v1",
+        },
+    )
+    post_id = create_resp.json()["data"]["id"]
+
+    patch_resp = client.patch(
+        f"/v1/posts/{post_id}",
+        headers=auth,
+        json={"title": "Updated Title", "body": "Updated Body"},
+    )
+    assert patch_resp.status_code == 200, patch_resp.text
+    patched_data = patch_resp.json()["data"]
+    assert patched_data["title"] == "Updated Title"
+    assert patched_data["body"] == "Updated Body"
+    assert patched_data["link_url"] == "https://example.com/v1"
+    assert patched_data["edited_at"] is not None
+
+    async def _get_revisions() -> list[PostRevision]:
+        async with db_session() as session:
+            rows = (
+                (
+                    await session.execute(
+                        select(PostRevision).where(PostRevision.post_id == UUID(post_id))
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            return list(rows)
+
+    revisions = asyncio.run(_get_revisions())
+    assert len(revisions) == 1
+    assert revisions[0].title == "Original Title"
+    assert revisions[0].body == "Original Body"
+    assert revisions[0].link_url == "https://example.com/v1"
+
+
+def test_patch_post_by_non_author_returns_403(client: TestClient, sign_in) -> None:
+    ada_auth = _bearer(sign_in("github-code-ada")["access_token"])
+    moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
+
+    create_resp = client.post("/v1/posts", headers=ada_auth, json={"body": "Ada's post"})
+    post_id = create_resp.json()["data"]["id"]
+
+    patch_resp = client.patch(
+        f"/v1/posts/{post_id}",
+        headers=moussa_auth,
+        json={"body": "Hacked body"},
+    )
+    assert patch_resp.status_code == 403
+    assert patch_resp.json()["detail"] == {
+        "code": "NOT_POST_AUTHOR",
+        "message": "Only the author may edit this post",
+    }
+
+
+def test_patch_post_empty_update_returns_422(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    create_resp = client.post("/v1/posts", headers=auth, json={"body": "Body"})
+    post_id = create_resp.json()["data"]["id"]
+
+    patch_resp = client.patch(f"/v1/posts/{post_id}", headers=auth, json={})
+    assert patch_resp.status_code == 422
+    assert patch_resp.json()["detail"] == {
+        "code": "EMPTY_UPDATE",
+        "message": "At least one field must be provided",
+    }
+
+
+def test_patch_post_clearing_title(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+
+    # Non-RFC post with title can clear title
+    create_gen = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={"title": "General Title", "body": "General Body"},
+    )
+    gen_id = create_gen.json()["data"]["id"]
+
+    patch_gen = client.patch(f"/v1/posts/{gen_id}", headers=auth, json={"title": None})
+    assert patch_gen.status_code == 200
+    assert patch_gen.json()["data"]["title"] is None
+
+    # RFC post cannot clear title
+    create_rfc = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={"type": "rfc", "title": "RFC Title", "body": "RFC Body"},
+    )
+    rfc_id = create_rfc.json()["data"]["id"]
+
+    patch_rfc = client.patch(f"/v1/posts/{rfc_id}", headers=auth, json={"title": None})
+    assert patch_rfc.status_code == 422
+    assert patch_rfc.json()["detail"] == {
+        "code": "RFC_TITLE_REQUIRED",
+        "message": "RFC posts must have a title",
+    }
+
+
+def test_patch_post_body_null_returns_422(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    create_resp = client.post("/v1/posts", headers=auth, json={"body": "Body"})
+    post_id = create_resp.json()["data"]["id"]
+
+    patch_resp = client.patch(f"/v1/posts/{post_id}", headers=auth, json={"body": None})
+    assert patch_resp.status_code == 422
+    assert isinstance(patch_resp.json()["detail"], list)
+
+
+def test_delete_post_by_author(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    ada_auth = _bearer(ada["access_token"])
+
+    create_resp = client.post("/v1/posts", headers=ada_auth, json={"body": "Post to delete"})
+    post_id = create_resp.json()["data"]["id"]
+
+    del_resp = client.delete(f"/v1/posts/{post_id}", headers=ada_auth)
+    assert del_resp.status_code == 204
+    assert del_resp.text == ""
+
+    # Verify database record
+    async def _get_post() -> Post:
+        async with db_session() as session:
+            return (
+                await session.execute(select(Post).where(Post.id == UUID(post_id)))
+            ).scalar_one()
+
+    db_post = asyncio.run(_get_post())
+    assert db_post.deleted_at is not None
+    assert db_post.deletion_reason == "author"
+    assert str(db_post.deleted_by) == ada["user"]["id"]
+
+    # GET after delete is 404
+    get_resp = client.get(f"/v1/posts/{post_id}", headers=ada_auth)
+    assert get_resp.status_code == 404
+    assert get_resp.json()["detail"]["code"] == "POST_NOT_FOUND"
+
+    # PATCH after delete is 404
+    patch_resp = client.patch(f"/v1/posts/{post_id}", headers=ada_auth, json={"body": "New body"})
+    assert patch_resp.status_code == 404
+    assert patch_resp.json()["detail"]["code"] == "POST_NOT_FOUND"
+
+
+def test_delete_post_by_moderator(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    moussa = sign_in("github-code-moussa")
+    ada_auth = _bearer(ada["access_token"])
+    moussa_auth = _bearer(moussa["access_token"])
+    moussa_id = UUID(moussa["user"]["id"])
+
+    create_resp = client.post("/v1/posts", headers=ada_auth, json={"body": "Ada post"})
+    post_id = create_resp.json()["data"]["id"]
+
+    # Moussa as normal member fails 403
+    del_member = client.delete(f"/v1/posts/{post_id}", headers=moussa_auth)
+    assert del_member.status_code == 403
+    assert del_member.json()["detail"]["code"] == "NOT_POST_AUTHOR"
+
+    # Promote Moussa to moderator
+    _set_user_role(moussa_id, PlatformRole.MODERATOR)
+    try:
+        del_mod = client.delete(f"/v1/posts/{post_id}", headers=moussa_auth)
+        assert del_mod.status_code == 204
+
+        async def _get_post() -> Post:
+            async with db_session() as session:
+                return (
+                    await session.execute(select(Post).where(Post.id == UUID(post_id)))
+                ).scalar_one()
+
+        db_post = asyncio.run(_get_post())
+        assert db_post.deleted_at is not None
+        assert db_post.deletion_reason == "moderator"
+        assert db_post.deleted_by == moussa_id
+    finally:
+        _set_user_role(moussa_id, PlatformRole.MEMBER)
+
+
+def test_delete_post_by_author_who_is_also_moderator(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    ada_auth = _bearer(ada["access_token"])
+    ada_id = UUID(ada["user"]["id"])
+
+    _set_user_role(ada_id, PlatformRole.MODERATOR)
+    try:
+        create_resp = client.post("/v1/posts", headers=ada_auth, json={"body": "Mod author post"})
+        post_id = create_resp.json()["data"]["id"]
+
+        del_resp = client.delete(f"/v1/posts/{post_id}", headers=ada_auth)
+        assert del_resp.status_code == 204
+
+        async def _get_post() -> Post:
+            async with db_session() as session:
+                return (
+                    await session.execute(select(Post).where(Post.id == UUID(post_id)))
+                ).scalar_one()
+
+        db_post = asyncio.run(_get_post())
+        # Author reason wins when author is moderator
+        assert db_post.deletion_reason == "author"
+    finally:
+        _set_user_role(ada_id, PlatformRole.MEMBER)
+
+
+def test_posts_endpoints_require_authentication(client: TestClient) -> None:
+    dummy_id = str(uuid4())
+    assert client.get(f"/v1/posts/{dummy_id}").status_code == 401
+    assert client.post("/v1/posts", json={"body": "test"}).status_code == 401
+    assert client.patch(f"/v1/posts/{dummy_id}", json={"body": "test"}).status_code == 401
+    assert client.delete(f"/v1/posts/{dummy_id}").status_code == 401
+
+
+def test_get_or_delete_missing_post_returns_404(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    missing_id = str(uuid4())
+
+    get_resp = client.get(f"/v1/posts/{missing_id}", headers=auth)
+    assert get_resp.status_code == 404
+    assert get_resp.json()["detail"]["code"] == "POST_NOT_FOUND"
+
+    del_resp = client.delete(f"/v1/posts/{missing_id}", headers=auth)
+    assert del_resp.status_code == 404
+    assert del_resp.json()["detail"]["code"] == "POST_NOT_FOUND"
