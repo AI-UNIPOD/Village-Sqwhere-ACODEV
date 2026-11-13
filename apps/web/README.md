@@ -114,6 +114,13 @@ request key is `technologies`), kept in the profile, and the feed loads again. N
 means every post. Onboarding's topics step is not saved here: it asks about sectors, which the
 API does not know.
 
+Comments are a section of the post page (`comments.tsx`, `comment.tsx`, `comment-form.tsx`),
+loaded after the post, at `#comments`. The list gives each top-level comment its first two
+replies; "Show all N replies" loads the rest, and a reply's own replies open the same way, one
+level at a time (`GET /v1/comments/{id}/replies`). Indent stops at the third level. A deleted
+comment that still has replies is drawn as a placeholder with its replies under it. Comments
+are plain text. There is no like button on a comment yet.
+
 The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to

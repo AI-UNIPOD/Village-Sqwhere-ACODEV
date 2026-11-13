@@ -11,6 +11,7 @@ its number:
 ## 2026-11-13
 
 - test(web): answer the sign-in request only after it is sent (#110)
+- feat(web): add comments and replies on a post (#108)
 - feat(web): choose the topics of your feed (#107)
 - feat(web): add writing and editing a post (#106)
 - feat(api): add comment threads and comment likes (#103)

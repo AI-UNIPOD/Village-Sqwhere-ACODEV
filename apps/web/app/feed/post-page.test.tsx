@@ -38,7 +38,9 @@ const post = (over: Record<string, unknown> = {}) => ({
 const me = (username: string) => ({ data: { username, display_name: "Someone", bio: null, roles: [], technologies: [] } });
 
 // Answers each "METHOD /path" by its longest matching start; anything else is a mistake.
-function api(routes: Record<string, unknown>) {
+function api(given: Record<string, unknown>) {
+  // a post's comments are loaded by their own section; most tests are not about them
+  const routes: Record<string, unknown> = { "GET /v1/posts/post-1/comments": { data: [], next_offset: null }, ...given };
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
     const path = `${init?.method ?? "GET"} ${String(url).replace("http://localhost:8000", "")}`;
     const match = Object.keys(routes)
@@ -81,8 +83,9 @@ test("the post is shown whole, with its title as the page's heading, in English"
   expect(screen.getByText("Python")).toBeTruthy();
   expect(screen.getByRole("link", { name: /example\.com/ }).getAttribute("rel")).toBe("noopener noreferrer");
   expect(within(screen.getByRole("main")).getByRole("link", { name: "Feed" }).getAttribute("href")).toBe("/en/feed");
-  expect(screen.getByText("3 comments")).toBeTruthy();
-  expect(screen.getByText("Comments are coming soon. Until then, you can only see how many there are.")).toBeTruthy();
+  // the count in the action row and the heading of the section
+  expect(screen.getAllByText("3 comments").length).toBe(2);
+  expect(screen.queryByText(/coming soon/)).toBeNull();
   expect(screen.queryByText(/^Edited/)).toBeNull();
   // the feed is the place this page belongs to
   expect(places("Main").getByRole("link", { name: "Feed" }).getAttribute("aria-current")).toBe("page");
@@ -95,7 +98,6 @@ test("a post with no title is headed by its author, and an edited one says when"
   expect((await screen.findByRole("heading", { level: 1 })).textContent).toBe("Publication de Wanjiru Kamau");
   expect(screen.getByText("Modifiée il y a 2 heures")).toBeTruthy();
   expect(screen.getByText("Question")).toBeTruthy();
-  expect(screen.getByText("Les commentaires arrivent bientôt. D'ici là, vous pouvez seulement voir leur nombre.")).toBeTruthy();
   expect(places("Principale").getByRole("link", { name: "Fil" }).getAttribute("aria-current")).toBe("page");
 });
 
@@ -152,11 +154,11 @@ test.each([
   api({ "GET /v1/me": me("wanjiru-kamau"), "GET /v1/posts/post-1": { data: post() } });
   const page = render(<PostPage lang="en" />);
   await screen.findByRole("heading", { level: 1 });
-  expect(screen.getByRole("status").textContent).toBe(english);
+  expect(screen.getByText(english).getAttribute("role")).toBe("status");
   page.unmount();
   render(<PostPage lang="fr" />);
   await screen.findByRole("heading", { level: 1 });
-  expect(screen.getByRole("status").textContent).toBe(french);
+  expect(screen.getByText(french).getAttribute("role")).toBe("status");
 });
 
 test("with no message in the address, or one that is not known, there is none", async () => {
@@ -164,7 +166,8 @@ test("with no message in the address, or one that is not known, there is none", 
   api({ "GET /v1/me": me("wanjiru-kamau"), "GET /v1/posts/post-1": { data: post() } });
   render(<PostPage lang="en" />);
   await screen.findByRole("heading", { level: 1 });
-  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByText("Post published")).toBeNull();
+  expect(screen.queryByText("Changes saved")).toBeNull();
 });
 
 test("the author confirms, the post is deleted with no reason, and the person lands on Yours", async () => {
