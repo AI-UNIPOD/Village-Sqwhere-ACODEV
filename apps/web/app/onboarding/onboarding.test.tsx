@@ -249,7 +249,7 @@ test("the profile card shows what was chosen", () => {
   const tags = screen.getAllByRole("listitem").map((item) => item.textContent);
   expect(tags).toEqual(expect.arrayContaining(["React", "Docker", "Fintech"]));
   expect(tags).not.toContain("Go");
-  expect(screen.getByText("This is a preview. Your answers are not saved yet.")).toBeTruthy();
+  expect(screen.getByText("Saving your role and stack")).toBeTruthy();
 
   const next = screen.getByRole("heading", { name: "What happens next" }).nextElementSibling as HTMLElement;
   expect(within(next).getAllByRole("listitem")).toHaveLength(3);
