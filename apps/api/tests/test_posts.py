@@ -616,6 +616,11 @@ def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in
         "message": "Unknown topic slug: no-such-topic",
     }
 
+    too_many = [("topic", "python")] * 11
+    too_many_resp = client.get("/v1/posts", headers=ada_auth, params=too_many)
+    assert too_many_resp.status_code == 422
+    assert too_many_resp.json()["detail"]["code"] == "TOO_MANY_TOPICS"
+
     for bad in (
         {"type": "meme"},
         {"topic": "a" + chr(0)},
@@ -734,3 +739,20 @@ def test_likes_and_saves_require_authentication(client: TestClient) -> None:
     assert client.put(f"/v1/posts/{post_id}/save").status_code == 401
     assert client.delete(f"/v1/posts/{post_id}/save").status_code == 401
     assert client.get("/v1/me/saved-posts").status_code == 401
+
+
+def test_post_text_with_a_null_character_fails(client: TestClient, sign_in) -> None:
+    # PostgreSQL text cannot hold "\x00", so without the check these answered 500.
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create(client, auth, "Clean post")
+    for field, value in (
+        ("title", "A\x00B"),
+        ("body", "A\x00B"),
+        ("link_url", "https://a.b/\x00"),
+        ("topics", ["py\x00thon"]),
+    ):
+        created = client.post("/v1/posts", headers=auth, json={"body": "Post", field: value})
+        assert created.status_code == 422, field
+        if field != "topics":
+            patched = client.patch(f"/v1/posts/{post_id}", headers=auth, json={field: value})
+            assert patched.status_code == 422, field

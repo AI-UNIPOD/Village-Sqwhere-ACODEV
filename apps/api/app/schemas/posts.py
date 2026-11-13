@@ -20,12 +20,19 @@ from pydantic import (
 from app.models.posts import PostType
 from app.schemas.lookups import TechnologyRef
 
-PostTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+# PostgreSQL text cannot hold a null character, so it is refused here instead of failing there.
+NO_NULL = r"^[^\x00]*$"
+
+PostTitle = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200, pattern=NO_NULL)
+]
 
 
 def _validate_body(body: str) -> str:
     if not body.strip():
         raise ValueError("body must not be whitespace only")
+    if "\x00" in body:
+        raise ValueError("body must not contain a null character")
     return body
 
 
@@ -35,7 +42,7 @@ PostBody = Annotated[
     AfterValidator(_validate_body),
 ]
 
-PostLinkUrl = Annotated[str, StringConstraints(max_length=2048, pattern=r"^https?://")]
+PostLinkUrl = Annotated[str, StringConstraints(max_length=2048, pattern=r"^https?://[^\x00]*$")]
 
 
 # --- Requests --------------------------------------------------------------------------------
@@ -48,7 +55,7 @@ class PostCreateRequest(BaseModel):
     title: PostTitle | None = None
     body: PostBody
     link_url: PostLinkUrl | None = None
-    topics: list[str] = Field(default_factory=list)
+    topics: list[Annotated[str, StringConstraints(pattern=NO_NULL)]] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _validate_rfc_title(self) -> Self:

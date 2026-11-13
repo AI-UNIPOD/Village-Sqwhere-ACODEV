@@ -46,6 +46,7 @@ router = APIRouter()
 PageOffset = Annotated[int, Query(ge=0, le=100_000)]
 PageLimit = Annotated[int, Query(ge=1, le=50)]
 NEWEST_FIRST = (Post.created_at.desc(), Post.id.desc())
+SLUG_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
 # --- Route helpers ---------------------------------------------------------------------------
@@ -299,9 +300,13 @@ async def list_posts(
         query = query.where(Post.type == post_type)
 
     if topic:
-        slug_pattern = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+        if len(topic) > 10:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"code": "TOO_MANY_TOPICS", "message": "At most 10 topics may be filtered"},
+            )
         for t in topic:
-            if len(t) > 64 or not slug_pattern.match(t):
+            if len(t) > 64 or not SLUG_PATTERN.match(t):
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail={"code": "UNKNOWN_TOPIC", "message": f"Unknown topic slug: {t}"},
@@ -375,13 +380,14 @@ async def _set_mark(
         await db.rollback()
         # post_likes_before_insert raises check_violation (23514) on deleted posts.
         sqlstate = getattr(exc.orig, "sqlstate", None) or getattr(exc.orig, "pgcode", None)
-        if sqlstate == "23514" or "cannot like a deleted post" in str(exc).lower():
+        if sqlstate == "23514" or "cannot like a deleted" in str(exc).lower():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={"code": "POST_NOT_FOUND", "message": "Post not found or deleted"},
             ) from exc
         raise
-    await db.refresh(post)
+    if mark is PostLike and on:
+        await db.refresh(post)
     return post
 
 
