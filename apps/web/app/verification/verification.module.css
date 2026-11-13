@@ -1,0 +1,447 @@
+.main {
+  flex: 1;
+  padding-block: var(--space-8) var(--space-16);
+}
+
+@media (min-width: 768px) {
+  .main { padding-block-start: var(--space-12); }
+}
+
+.title {
+  font: var(--type-display-l);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.lead {
+  margin-block-start: var(--space-2);
+  color: var(--text-muted);
+  font: var(--type-body);
+  text-wrap: pretty;
+}
+
+.subtitle {
+  margin-block-start: var(--space-12);
+  font: var(--type-display-m);
+  letter-spacing: -0.01em;
+}
+
+.label,
+.date {
+  color: var(--text-muted);
+  font: var(--type-caption);
+}
+
+.action { margin-block-start: var(--space-4); }
+
+/* ---------- the three stages, laid out like the village's step list ---------- */
+.steps {
+  display: grid;
+  margin-block-start: var(--space-8);
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--space-8) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block-end: var(--space-6);
+}
+
+.step:last-child { padding-block-end: 0; }
+
+/* the line that joins one stage's number to the next */
+.step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--space-8) 0;
+  inset-inline-start: calc(var(--space-4) - 0.5px);
+  border-inline-start: 1px solid var(--line);
+}
+
+.num {
+  display: grid;
+  place-items: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
+  font: var(--type-mono-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.num svg {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+
+.step[data-state="now"] .num {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.step[data-state="done"] .num {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+
+.stepHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-block-size: var(--space-8);
+}
+
+.stepHead h3 { font: var(--type-title); }
+
+.step p {
+  margin-block-start: var(--space-1);
+  color: var(--text-muted);
+  font: var(--type-body);
+  text-wrap: pretty;
+}
+
+.step[data-state="later"] h3 { color: var(--text-muted); }
+
+/* the stage in play stands out as a card */
+.step[data-state="now"] .body {
+  padding: var(--pad-card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+
+/* The warning before the interview reads as part of the stage, in the text colour. */
+.step .warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+  color: var(--text);
+  font: var(--type-body-s);
+}
+
+.warning svg {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  margin-block-start: calc((1lh - var(--space-4)) / 2);
+  color: var(--warning);
+}
+
+/* ---------- work the AI is doing right now ---------- */
+/* .main raises these above the village's .pill rule, which sets the same variable. */
+.main .ai { --pill-colour: var(--ai); }
+
+.main .failed { --pill-colour: var(--error); }
+
+/* A ring that turns, shown only if the wait lasts longer than --delay-spinner. Its place is
+   kept from the start, so the word does not jump. */
+.ring {
+  flex: none;
+  inline-size: var(--space-3);
+  block-size: var(--space-3);
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-block-start-color: currentColor;
+  border-radius: var(--radius-full);
+  animation:
+    fade var(--dur-press) var(--ease-out) var(--delay-spinner) both,
+    spin var(--dur-moment) var(--ease-linear) var(--delay-spinner) infinite;
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- under the stages ---------- */
+.reassure {
+  margin-block-start: var(--space-6);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  text-wrap: pretty;
+}
+
+.repos {
+  display: grid;
+  gap: var(--space-1);
+  margin-block-start: var(--space-2);
+  font: var(--type-code);
+  list-style: none;
+}
+
+.repos a { overflow-wrap: anywhere; }
+
+.reassure + .label { margin-block-start: var(--space-6); }
+
+.stopRow { margin-block-start: var(--space-8); }
+
+/* ---------- buttons that only this screen needs ---------- */
+.quiet,
+.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--tap-min);
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: none;
+  font: var(--type-label);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+/* a low-priority action: no border, quiet colour */
+.quiet {
+  margin-inline-start: calc(var(--space-3) * -1);
+  padding-inline: var(--space-3);
+  color: var(--text-muted);
+}
+
+.danger {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.quiet:active,
+.danger:active { transform: scale(0.97); }
+
+.send {
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+/* ---------- the stop dialog ---------- */
+.dialog {
+  inline-size: min(30rem, calc(100% - var(--space-8)));
+  margin: auto;
+  padding: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-3);
+  color: var(--text);
+}
+
+.dialog::backdrop { background: var(--scrim); }
+
+.dialog[open] {
+  animation: dialog-in var(--dur-modal) var(--ease-out) both;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2)) scale(0.96);
+  }
+}
+
+.dialogTitle {
+  font: var(--type-display-m);
+  text-wrap: balance;
+}
+
+.dialogText {
+  margin-block-start: var(--space-2);
+  color: var(--text-muted);
+  font: var(--type-body);
+}
+
+.dialog > div:last-child { margin-block-start: var(--space-6); }
+
+/* ---------- the start form ---------- */
+.what {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+  padding-inline-start: var(--space-6);
+  color: var(--text-muted);
+  font: var(--type-body);
+}
+
+.what strong {
+  display: block;
+  color: var(--text);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-5);
+  margin-block-start: var(--space-8);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fieldLabel { font: var(--type-label); }
+
+.help {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  overflow-wrap: anywhere;
+}
+
+.textarea {
+  inline-size: 100%;
+  min-block-size: calc(var(--space-12) * 2);
+  padding: var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--text);
+  font: var(--type-code);
+  resize: vertical;
+}
+
+.textarea:focus { border-color: var(--text); }
+
+.textarea[aria-invalid="true"] { border-color: var(--error); }
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-block-size: var(--tap-min);
+  font: var(--type-body-s);
+  cursor: pointer;
+}
+
+.consent input {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  margin-block-start: calc((1lh - var(--space-5)) / 2);
+  accent-color: var(--action);
+  cursor: pointer;
+}
+
+/* ---------- cards: success, last attempt, no attempts left ---------- */
+.success,
+.note {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  margin-block-start: var(--space-8);
+  padding: var(--pad-card);
+  border-radius: var(--radius-l);
+}
+
+.note {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+/* the status colour mixed into the surface (docs/design-system/components.md, Messages) */
+.success {
+  --tint: 7%;
+  background: color-mix(in srgb, var(--success) var(--tint), var(--surface));
+}
+
+:global([data-theme="dark"]) .success { --tint: 11%; }
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .success { --tint: 11%; }
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--success);
+}
+
+.tile svg {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+.cardTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font: var(--type-title);
+}
+
+.cardTitle svg {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  margin-block-start: calc((1lh - var(--space-5)) / 2);
+}
+
+.cardText {
+  font: var(--type-body);
+  text-wrap: pretty;
+}
+
+.notes {
+  margin-block-start: var(--space-1);
+  font: var(--type-body);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.exhausted {
+  margin-block-start: var(--space-8);
+  font: var(--type-body);
+}
+
+/* ---------- earlier attempts ---------- */
+.history {
+  margin-block-start: var(--space-2);
+  list-style: none;
+}
+
+.past {
+  padding-block: var(--space-4);
+  border-block-start: 1px solid var(--line);
+}
+
+.pastHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.pastHead h3 { font: var(--type-title); }
+
+.past .label { margin-block-start: var(--space-3); }
+
+@media (hover: hover) and (pointer: fine) {
+  .quiet:hover {
+    background: var(--surface-sunken);
+    color: var(--text);
+  }
+
+  .danger:hover { background: var(--surface-sunken); }
+
+  .textarea:hover { border-color: var(--text); }
+
+  .textarea[aria-invalid="true"]:hover { border-color: var(--error); }
+}
+
+/* Reduced motion: fades stay, movement goes. The ring stops turning but still shows that
+   something is happening. */
+@media (prefers-reduced-motion: reduce) {
+  .ring { animation-name: fade; }
+
+  .dialog[open] { animation-name: fade; }
+
+  .quiet:active,
+  .danger:active { transform: none; }
+}

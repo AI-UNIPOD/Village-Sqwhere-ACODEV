@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Path, Response, status
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession, role_to_detail, user_to_profile
 from app.models.lookups import Role, Technology
-from app.models.users import UserFeedTopic, UserRole, UserTechnology
+from app.models.users import User, UserFeedTopic, UserRole, UserTechnology
 from app.schemas.lookups import TechnologyRef
 from app.schemas.users import (
     ClaimRoleRequest,
@@ -19,6 +20,13 @@ from app.schemas.users import (
 )
 
 router = APIRouter()
+
+
+async def lock_own_lists(db: AsyncSession, user: User) -> None:
+    """Replacing a list deletes the old rows, then inserts the new ones. Two replacements at
+    once would both insert the same rows and one would fail, so they wait on the user's row
+    and run one after the other. The last one wins."""
+    await db.execute(select(User.id).where(User.id == user.id).with_for_update())
 
 
 @router.get("/me", response_model=MeResponse)
@@ -233,6 +241,7 @@ async def replace_technologies(
 
     tech_map = {t.slug: t for t in matched_technologies}
 
+    await lock_own_lists(db, current_user)
     await db.execute(delete(UserTechnology).where(UserTechnology.user_id == current_user.id))
 
     for slug in slugs:
@@ -278,6 +287,7 @@ async def replace_feed_topics(
 
     tech_map = {t.slug: t for t in matched_technologies}
 
+    await lock_own_lists(db, current_user)
     await db.execute(delete(UserFeedTopic).where(UserFeedTopic.user_id == current_user.id))
 
     for slug in slugs:

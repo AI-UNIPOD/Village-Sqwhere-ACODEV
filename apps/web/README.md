@@ -26,6 +26,11 @@ team. Onboarding's last screen leads there, and the bare onboarding address send
 who already has a role there too. Screens for signed-in people share one header, `AppFrame` in
 `app/app-frame.tsx`: pass it the screen's address so the language link opens the same screen.
 
+Role verification is `app/verification/` (at `/en/verification`), for the developer's main role:
+a start form (public GitHub repositories and a consent box), then the attempt's three stages
+(repositories check, interview, peer review) read from `/v1/me/verifications`. It asks the API
+again every 5 seconds only while the AI is working, and never shows the API's English error text.
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is
