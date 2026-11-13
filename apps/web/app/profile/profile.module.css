@@ -102,6 +102,9 @@
   margin-block-start: var(--space-4);
 }
 
+/* ---------- stack ---------- */
+.stackChips { margin-block-start: var(--space-4); }
+
 /* ---------- account ---------- */
 .languages,
 .account {

@@ -18,6 +18,8 @@ import { copy } from "./copy";
 import { addRole, makeMainRole, removeRole } from "./profile-api";
 import styles from "./profile.module.css";
 
+const place = (role: MeRole) => ROLES.findIndex((known) => known.slug === role.slug);
+
 function verification(role: MeRole) {
   if (role.verified_at) return { state: "done", Icon: Check, label: "verified" } as const;
   if (["pending", "in_progress", "awaiting_review"].includes(role.verification.latest_status ?? "")) {
@@ -80,6 +82,10 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
   }
 
   const nameOf = (role: MeRole) => ROLES.find((known) => known.slug === role.slug)?.name[lang] ?? role.name;
+  // the main role first, then in the order of the list: the API's own order changes with every edit
+  const ordered = [...me.roles].sort(
+    (a, b) => Number(b.is_primary) - Number(a.is_primary) || place(a) - place(b),
+  );
   const free = ROLES.filter((role) => !me.roles.some((held) => held.slug === role.slug));
   // a failed add has no row to show its sentence on
   const addProblem = problem && !me.roles.some((role) => role.slug === problem.slug) ? problem : null;
@@ -90,7 +96,7 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
         {t.heading}
       </h2>
       <ul className={styles.rows}>
-        {me.roles.map((role) => {
+        {ordered.map((role) => {
           const { state, Icon, label } = verification(role);
           const underWay = state === "next";
           const titleId = `profile-role-${role.slug}`;

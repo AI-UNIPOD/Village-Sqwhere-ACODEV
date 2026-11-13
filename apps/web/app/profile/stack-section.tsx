@@ -55,7 +55,7 @@ export function StackSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
         {t.heading}
       </h2>
       <p className={ideas.lead}>{t.lead}</p>
-      <div role="group" aria-labelledby="profile-stack" className={onboarding.chips}>
+      <div role="group" aria-labelledby="profile-stack" className={`${onboarding.chips} ${styles.stackChips}`}>
         {TECHNOLOGIES.map((tech) => (
           <button
             key={tech.slug}
