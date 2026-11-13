@@ -29,8 +29,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - Onboarding after sign-in is at `/en/onboarding` and `/fr/onboarding`, for signed-in people
   only, greeting them by their name from `GET /v1/me`. The last screen saves the main role and
   the stack; country and topics stay in the tab (`docs/decisions/2026-11-11-onboarding-page.md`).
-- The village (`/en/village`) is the signed-in home: the profile from `GET /v1/me` and four steps
-  to a team, in the shared `AppFrame` header (`docs/decisions/2026-11-13-village-home.md`).
+- Signed-in screens share the `AppFrame` header: the village home (`/en/village`: profile, four
+  steps to a team) and role verification (`/en/verification`). Why: `docs/decisions/2026-11-13-*`.
 - Unknown addresses get a 404 in their language; landing and sign-in have an error page. French
   copy puts a narrow no-break space before ? ! : ; (`docs/design-system/voice-and-tone.md`).
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
@@ -45,7 +45,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    Systalink platform access, a deploy job in CI.
 4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-6. Web screens next: role verification, the peer review queue, ideas, hubs, a profile page and
+6. Web screens next: the verification interview, peer review, ideas, hubs, a profile page and
    navigation. Also a server-rendered 404 and a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
