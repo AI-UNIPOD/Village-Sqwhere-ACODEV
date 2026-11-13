@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- fix(web): scale the hero on wide screens and add a motion toggle (#62)
 - feat(web): finish github sign-in with token refresh and sign-out (#59)
 
 ## 2026-11-12
