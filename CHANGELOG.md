@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add made-up content for the demo (#120)
 - feat(api): keep demo content and real content apart (#117)
 - feat(api): let developers ask to join a hub (#116)
 - feat(api): add a read-only demo sign-in (#115)
