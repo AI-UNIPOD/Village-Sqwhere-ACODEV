@@ -14,8 +14,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   and Gemini fallbacks and a separate worker. Guide: `docs/backend.md`.
 - Ideas, matching and hubs are in place (drafts, cards, ranking, agreements, membership).
   Posts: create, read, edit, delete, like, save, a filtered list (`GET /v1/posts`), the
-  feed and saved posts. Comments and replies: create, read, edit, delete, lists. Schema:
-  `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
+  feed and saved posts. Comments and replies: create, read, edit, delete, lists, threads
+  and likes. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32+ chars) and keeps sign-in state in memory, so run one
   process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - Landing page at `/en` and `/fr` matches B3v design with motion and dark theme. Hero leads to
@@ -28,10 +28,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 ## What's next
 
 1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
-2. Comment threads and comment likes (tracker rows 67 to 75).
-3. Leaving and removing members, editing and archiving a hub, and the four hub phases (decisions
+2. Leaving and removing members, editing and archiving a hub, and the four hub phases (decisions
    and next steps need a new schema script); later, semantic similarity for matching.
-4. Add peer-review report display, production deployment configuration and, once the team has
+3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
 5. Save the onboarding country and a completion flag once the API has fields. Onboarding's
    topics are sectors and the API's feed topics are technologies: decide which the step asks.
@@ -39,7 +38,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 7. Web next: liking a comment, and a French-speaking teammate's check of the copy.
 8. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
-9. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
+8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
    until then the merge agent enforces green checks (`docs/decisions/2026-11-13-merge-agent.md`).
 
 ## Open questions
