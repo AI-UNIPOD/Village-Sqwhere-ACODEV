@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 
 import { LOGO_PATHS, Logo } from "../logo";
@@ -26,13 +26,14 @@ import {
   type Run,
 } from "./gather";
 import styles from "./gather-hero.module.css";
-import { heroAvoid, heroGeometry, isPhoneWidth, type HeroGeometry } from "./hero-layout";
+import { heroAvoid, heroGeometry, type HeroGeometry } from "./hero-layout";
+import { motionOn, setMotion, subscribeMotion } from "./motion";
 
 type GatherHeroProps = {
   /** The text block: headline, sentence and buttons. */
   children: ReactNode;
   labelledBy: string;
-  /** Spoken labels of the pause button, in the page's language. */
+  /** The motion button's labels, in the page's language: what pressing it does. */
   labels: { pause: string; play: string };
 };
 
@@ -55,7 +56,7 @@ function logoRuns(): Run[] {
 // small words. Country names walk out of the crowd into the V, the real logo fades in where
 // they stand, and they walk back out. A port of the approved B3v landing page: where each part
 // sits follows the width of the page, and the loop runs only while it is on screen, the tab is
-// visible and the visitor has not paused it or asked for reduced motion.
+// visible and motion is on (see motion.ts: the visitor's choice, else the system setting).
 export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
   const hero = useRef<HTMLElement>(null);
   const copy = useRef<HTMLDivElement>(null);
@@ -63,14 +64,9 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const tree = useRef<HTMLDivElement>(null);
   const play = useRef<HTMLButtonElement>(null);
-  const [paused, setPaused] = useState(false);
-  const pausedRef = useRef(false);
-  const wake = useRef<() => void>(() => {});
-
-  useEffect(() => {
-    pausedRef.current = paused;
-    wake.current();
-  }, [paused]);
+  // the button's label; before the script has run the button is hidden, so the server value
+  // only has to be something
+  const playing = useSyncExternalStore(subscribeMotion, motionOn, () => true);
 
   useLayoutEffect(() => {
     const heroEl = hero.current;
@@ -90,12 +86,14 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     const mask = document.createElement("canvas");
     const mg = mask.getContext("2d");
     const runs = logoRuns();
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const scheme = window.matchMedia("(prefers-color-scheme: dark)");
     // Without a drawing surface the hero keeps its still frame: the square and the logo.
     let animated = !!g && !!cg;
+    // whether the hero moves now (motion.ts), and whether it was last laid out still: motion off
+    // at load gives the still composition, motion turned off later freezes it where it is
+    let moving = motionOn();
     const state = {
-      reduced: motion.matches,
+      still: !moving,
       visible: !document.hidden,
       onscreen: true,
       clock: 0,
@@ -118,14 +116,14 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       null;
     let shift = 0;
     let paintedShift = Number.NaN;
-    // whether this layout scrolls: the tokens are there, motion is allowed, the browser can draw
+    // whether this layout scrolls: the tokens are there, motion was on, the browser can draw
     let scrolling = false;
     let raf = 0;
     let lastWidth = -1;
     let lastViewportHeight = -1;
 
     const running = () =>
-      animated && !state.reduced && !pausedRef.current && state.visible && state.onscreen;
+      animated && moving && state.visible && state.onscreen;
 
     // the canvas cannot read CSS variables, so take the theme's colours and font from the page
     function readTheme() {
@@ -156,41 +154,56 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
 
     // what the drift is doing, for tests and debugging: on, held (pointer on a word) or off
     function markDrift() {
-      const value =
-        !animated || !scrolling || pausedRef.current ? "off" : state.held ? "held" : "on";
+      const value = !animated || !scrolling || !moving ? "off" : state.held ? "held" : "on";
       if (heroEl && heroEl.getAttribute("data-drift") !== value) heroEl.setAttribute("data-drift", value);
     }
 
+    // the button shows whenever something can move, also while it is off (it turns it on)
     function showButton() {
-      if (playEl) playEl.style.display = animated && !state.reduced ? "grid" : "none";
+      if (playEl) playEl.style.display = animated ? "inline-flex" : "none";
+    }
+
+    // the note under the actions ("coming soon") is in the text's flow, so the box's height
+    // (and with it the gap, the centring and the clear zone in the crowd) includes it; it starts
+    // where the action that owns it starts (the one whose data-note is the note's id), or at
+    // the first action when none does
+    function placeNote(pad: number) {
+      if (!copyEl) return;
+      const note = copyEl.querySelector<HTMLElement>("[data-hero-note]");
+      const owner = Array.from(copyEl.querySelectorAll<HTMLElement>("[data-note]")).find(
+        (el) => el.dataset.note === note?.id,
+      );
+      const noteStart = owner ?? copyEl.querySelector<HTMLElement>("button, a");
+      if (note && noteStart) note.style.marginLeft = `${Math.max(0, noteStart.offsetLeft - pad)}px`;
     }
 
     function layout() {
       if (!heroEl || !copyEl || !squareEl || !canvasEl || !treeEl || !playEl) return;
       const width = heroEl.clientWidth;
-      copyEl.classList.toggle(styles.center, isPhoneWidth(width));
+      state.still = !moving;
+      showButton();
+      const style = getComputedStyle(copyEl);
+      const pad = parseFloat(style.paddingLeft) || 0;
       const hg = heroGeometry({
         width,
         viewportHeight: window.innerHeight,
         navHeight: document.querySelector<HTMLElement>("[data-site-header]")?.offsetHeight ?? 0,
-        measureCopy: (left, copyWidth) => {
+        copyPad: pad,
+        measure: parseFloat(style.getPropertyValue("--hero-measure")) || undefined,
+        playWidth: playEl.offsetWidth || undefined,
+        measureCopy: (left, copyWidth, stacked) => {
+          // stacked, the text is centred (the centring changes how the headline wraps)
+          copyEl.classList.toggle(styles.center, stacked);
           copyEl.style.left = `${left}px`;
           copyEl.style.width = `${copyWidth}px`;
           copyEl.style.maxWidth = "none";
+          placeNote(pad);
           return copyEl.offsetHeight;
         },
       });
       geo = hg;
       heroWidth = width;
       copyEl.style.top = `${hg.copyTop}px`;
-      // a note under the actions ("coming soon") starts where the action that owns it starts
-      // (the one whose data-note is the note's id), or at the first action when none does
-      const note = copyEl.querySelector<HTMLElement>("[data-hero-note]");
-      const owner = Array.from(copyEl.querySelectorAll<HTMLElement>("[data-note]")).find(
-        (el) => el.dataset.note === note?.id,
-      );
-      const noteStart = owner ?? copyEl.querySelector<HTMLElement>("button, a");
-      if (note && noteStart) note.style.left = `${noteStart.offsetLeft}px`;
       heroEl.style.height = `${hg.height}px`;
       squareEl.style.cssText = `left:${hg.x}px;top:${hg.y}px;width:${hg.square}px;height:${hg.square}px;background-size:${hg.cell}px ${hg.cell}px`;
       treeEl.style.left = `${hg.x}px`;
@@ -199,7 +212,6 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       treeEl.style.height = `${hg.square}px`;
       playEl.style.left = `${hg.playX}px`;
       playEl.style.top = `${hg.playY}px`;
-      showButton();
       heroEl.setAttribute("data-ready", "");
       lastWidth = width;
       lastViewportHeight = window.innerHeight;
@@ -215,10 +227,8 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       }
       canvasEl.style.width = `${width}px`;
       canvasEl.style.height = `${hg.height}px`;
-      // the clear zone covers everything the text block shows, including a note that hangs
-      // below it outside the layout, so no background word is drawn behind it
-      avoid = heroAvoid({ ...hg, copyHeight: Math.max(hg.copyHeight, copyEl.scrollHeight) });
-      scrolling = !!drift && !state.reduced && !!tg && !!mg;
+      avoid = heroAvoid(hg);
+      scrolling = !!drift && !state.still && !!tg && !!mg;
       // A scrolling crowd fills the hero evenly and a fixed mask keeps the text, the square and
       // the button clear, so no empty patch travels with it. A still crowd is laid out around
       // them, as in the approved design.
@@ -315,7 +325,7 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       // under the pointer, an English or French crowd word shows its twin in the other language
-      const pointer = state.reduced ? null : state.pointer;
+      const pointer = state.still ? null : state.pointer;
       if (pointer) {
         const fontSize = crowdFontSize(c);
         g.font = `${fontSize}px ${mono}`;
@@ -334,9 +344,9 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
         }
       }
 
-      const logo = state.reduced ? 1 : seg(t, plan.logoAt, FADE) * (1 - seg(t, plan.outAt, FADE));
+      const logo = state.still ? 1 : seg(t, plan.logoAt, FADE) * (1 - seg(t, plan.outAt, FADE));
       treeEl.style.opacity = logo.toFixed(3);
-      if (state.reduced) return;
+      if (state.still) return;
 
       g.font = `${nameFontSize(c)}px ${mono}`;
       g.textAlign = "center";
@@ -442,7 +452,7 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     }
 
     function onPointerMove(e: PointerEvent) {
-      if (state.reduced || !heroEl) return;
+      if (state.still || !heroEl) return;
       const r = heroEl.getBoundingClientRect();
       state.pointer = [e.clientX - r.left, e.clientY - r.top];
       state.held =
@@ -469,10 +479,18 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       state.visible = !document.hidden;
       invalidate();
     }
+    // Motion turned on after a still load needs the scrolling crowd and the walking names, so
+    // lay the hero out again. Turned on after being turned off it carries on, turned off it
+    // freezes where it is.
     function onMotion() {
-      state.reduced = motion.matches;
-      showButton();
-      relayout();
+      const next = motionOn();
+      if (next === moving) return;
+      moving = next;
+      if (moving && state.still) relayout();
+      else {
+        markDrift();
+        invalidate();
+      }
     }
     function onTheme() {
       readTheme();
@@ -481,9 +499,9 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       paintedShift = Number.NaN;
       invalidate();
     }
-    // on wide screens the hero fills the window, so a change of window height matters too
+    // side by side the hero fills the window, so a change of window height matters too
     function onWindowResize() {
-      if (window.innerHeight !== lastViewportHeight && heroEl && heroEl.clientWidth >= 1200) {
+      if (window.innerHeight !== lastViewportHeight && geo && !geo.stacked) {
         relayout();
       }
     }
@@ -491,7 +509,7 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     heroEl.addEventListener("pointermove", onPointerMove);
     heroEl.addEventListener("pointerleave", onPointerLeave);
     document.addEventListener("visibilitychange", onVisibility);
-    motion.addEventListener("change", onMotion);
+    const unsubscribe = subscribeMotion(onMotion);
     scheme.addEventListener("change", onTheme);
     window.addEventListener("resize", onWindowResize);
     const themeWatch = new MutationObserver(onTheme);
@@ -522,21 +540,15 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
     });
 
     readTheme();
-    // the pause button: update what the drift is doing at once, then draw
-    wake.current = () => {
-      markDrift();
-      invalidate();
-    };
     relayout();
 
     return () => {
       active = false;
       cancelAnimationFrame(raf);
-      wake.current = () => {};
       heroEl.removeEventListener("pointermove", onPointerMove);
       heroEl.removeEventListener("pointerleave", onPointerLeave);
       document.removeEventListener("visibilitychange", onVisibility);
-      motion.removeEventListener("change", onMotion);
+      unsubscribe();
       scheme.removeEventListener("change", onTheme);
       window.removeEventListener("resize", onWindowResize);
       themeWatch.disconnect();
@@ -559,9 +571,8 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       <button
         ref={play}
         type="button"
-        className={`${styles.play} ${paused ? styles.paused : ""}`}
-        aria-label={paused ? labels.play : labels.pause}
-        onClick={() => setPaused((p) => !p)}
+        className={`${styles.play} ${playing ? "" : styles.paused}`}
+        onClick={() => setMotion(!playing)}
       >
         <svg className={styles.iconPause} viewBox="0 0 14 14" aria-hidden="true" focusable="false">
           <rect x="3" y="2" width="3" height="10" fill="currentColor" />
@@ -570,6 +581,13 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
         <svg className={styles.iconPlay} viewBox="0 0 14 14" aria-hidden="true" focusable="false">
           <path d="M4 2L12 7L4 12Z" fill="currentColor" />
         </svg>
+        {/* The visible words are the name (WCAG 2.5.3) and say what a press does. The other label
+            sits unseen under them, so the button keeps one width when it flips and its place
+            under the square never moves. No aria-pressed: the label itself changes. */}
+        <span className={styles.label}>
+          <span>{playing ? labels.pause : labels.play}</span>
+          <span aria-hidden="true">{playing ? labels.play : labels.pause}</span>
+        </span>
       </button>
     </section>
   );
