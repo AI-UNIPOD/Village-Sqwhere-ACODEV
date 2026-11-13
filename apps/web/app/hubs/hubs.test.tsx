@@ -219,10 +219,26 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
   expect(github.getAttribute("href")).toBe("https://github.com/kwabena-owusu");
 });
 
-// The hub arrives after the page, so the browser's own jump to an address's hash finds nothing.
-test("the phases are a section of their own, and the page scrolls to the part the address names once the hub has loaded", async () => {
+// The hub arrives after the page, so the browser's own jump to an address's hash finds nothing,
+// and its team and brief arrive after the hub, so the page grows after the first scroll.
+test("the phases are a section of their own, and the page scrolls to the part the address names, again as the page grows, until the person takes over", async () => {
   const scroll = vi.fn();
   Element.prototype.scrollIntoView = scroll;
+  let grew = () => {};
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(callback: () => void) {
+        grew = callback;
+      }
+      observe() {
+        grew();
+      }
+      disconnect() {
+        grew = () => {};
+      }
+    },
+  );
   history.replaceState(null, "", "/en/hubs/view?id=hub-1#phases");
   nav.search = "id=hub-1";
   api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
@@ -233,6 +249,14 @@ test("the phases are a section of their own, and the page scrolls to the part th
   await waitFor(() => expect(scroll).toHaveBeenCalledOnce());
   expect(scroll.mock.contexts[0]).toBe(phases);
   expect(scroll).toHaveBeenCalledWith({ block: "center", behavior: "smooth" });
+
+  // the team arrives and the page grows: the phases are brought back to the middle
+  grew();
+  expect(scroll).toHaveBeenCalledTimes(2);
+  // the person scrolls: the page is theirs
+  fireEvent.wheel(window);
+  grew();
+  expect(scroll).toHaveBeenCalledTimes(2);
   history.replaceState(null, "", "/");
 });
 

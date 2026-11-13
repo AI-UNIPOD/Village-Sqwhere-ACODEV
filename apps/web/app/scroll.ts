@@ -7,3 +7,27 @@ export function scrollToId(id: string) {
 }
 
 export const scrollToTop = () => window.scrollTo({ top: 0, behavior: behavior() });
+
+// How long a page is given to finish arriving, and what the person does to say they have taken
+// over the scrolling.
+const SETTLE_MS = 3000;
+const TAKEN_OVER = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+
+/**
+ * Scrolls to the element with this id, and again each time `page` grows (a hub's team and brief
+ * arrive after its card, pushing the rest down), until the person scrolls or presses something,
+ * or the page has had a few seconds. Returns the way to stop.
+ */
+export function scrollToIdWhileSettling(id: string, page: Element) {
+  const follow = new ResizeObserver(() => scrollToId(id));
+  const stop = () => {
+    follow.disconnect();
+    clearTimeout(timer);
+    for (const event of TAKEN_OVER) window.removeEventListener(event, stop);
+  };
+  const timer = setTimeout(stop, SETTLE_MS);
+  for (const event of TAKEN_OVER) window.addEventListener(event, stop, { passive: true });
+  // an observer reports the page's size as soon as it starts, which is the first scroll
+  follow.observe(page);
+  return stop;
+}

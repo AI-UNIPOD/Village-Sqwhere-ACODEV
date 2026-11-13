@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { IdeaError } from "../ideas/ideas-api";
@@ -11,7 +11,7 @@ import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { ArrowLeft, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
-import { scrollToId } from "../scroll";
+import { scrollToIdWhileSettling } from "../scroll";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
@@ -46,9 +46,11 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
 
   // The card arrives after the page, so the browser's own jump to #phases finds nothing: scroll
   // to the part the address names once the card is there (the guided tour's last stop).
+  const card = useRef<HTMLElement>(null);
   const shown = !!hub;
   useEffect(() => {
-    if (shown && window.location.hash) scrollToId(window.location.hash.slice(1));
+    const id = window.location.hash.slice(1);
+    if (shown && id && card.current) return scrollToIdWhileSettling(id, card.current);
   }, [shown]);
 
   if (failure) throw failure;
@@ -61,7 +63,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
   const ownership = hub.terms.ownership_model && t.ownership[hub.terms.ownership_model];
 
   return (
-    <main className={`${onboarding.column} ${ideas.main}`}>
+    <main ref={card} className={`${onboarding.column} ${ideas.main}`}>
       <Link className={`${onboarding.back} ${ideas.backLink}`} href={`/${lang}/hubs`}>
         <ArrowLeft />
         {t.yourHubs}
