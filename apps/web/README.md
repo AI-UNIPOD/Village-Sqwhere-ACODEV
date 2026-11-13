@@ -92,6 +92,12 @@ An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's ow
 the agreement block and the signature checks with the create-hub page (`agreement-block.tsx`),
 and sends the id and hash of the text that was shown.
 
+The Developer Exchange is `app/feed/`. The feed is a place in the navigation, at `/en/feed`,
+with three tabs: For you (`GET /v1/feed`), Saved (`GET /v1/me/saved-posts`) and Yours
+(`GET /v1/posts?author=`). A post's body is shown as plain text, never as markup. Like and Save
+change the screen at once and send the request after; a failure puts the button back and says
+so (`feed-api.ts`, `post-card.tsx`).
+
 The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
