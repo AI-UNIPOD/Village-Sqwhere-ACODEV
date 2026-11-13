@@ -11,6 +11,7 @@ its number:
 ## 2026-11-13
 
 - feat(web): add the peer review queue and case screens (#75)
+- fix(web): give chips a 44px tap area (#84)
 - feat(web): add the verification interview (#74)
 - feat(web): add the role verification page (#73)
 - test(api): accept every serial order in the hub invitation race test (#80)
