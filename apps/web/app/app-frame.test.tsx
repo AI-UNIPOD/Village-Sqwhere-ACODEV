@@ -37,7 +37,7 @@ afterEach(() => {
 test("a signed-in developer can reach every place, and sees which one they are in", () => {
   signIn();
   render(<AppFrame lang="fr" path="ideas/compose?id=1">screen</AppFrame>);
-  expect(names()).toEqual(["Village", "Idées", "Espaces", "Profil"]);
+  expect(names()).toEqual(["Village", "Fil", "Idées", "Espaces", "Profil"]);
   expect(places().getByRole("link", { name: "Idées" }).getAttribute("href")).toBe("/fr/ideas");
   expect(places().getByRole("link", { name: "Idées" }).getAttribute("aria-current")).toBe("page");
   expect(places().getByRole("link", { name: "Village" }).getAttribute("aria-current")).toBeNull();
@@ -49,7 +49,7 @@ test("peer reviews appear once the developer holds a Green Tick", async () => {
   render(<AppFrame lang="en" path="village">screen</AppFrame>);
   expect(names()).not.toContain("Reviews");
   await loadMe();
-  await waitFor(() => expect(names()).toEqual(["Village", "Ideas", "Hubs", "Reviews", "Profile"]));
+  await waitFor(() => expect(names()).toEqual(["Village", "Feed", "Ideas", "Hubs", "Reviews", "Profile"]));
 });
 
 test("Hubs is marked while an invitation waits, and the mark goes when it is answered", () => {

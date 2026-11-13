@@ -19,8 +19,8 @@ import { loadQueue, repositories, roleName, type Attempt, type Decision } from "
 
 type Page = { items: Attempt[]; next: number | null };
 
-// How long an attempt has waited: minutes and hours count whole, days round ("47 hours" is 2 days).
-function waited(since: string, now: number, lang: Lang): string {
+// How long since a moment (an attempt waiting, a post written): minutes and hours count whole, days round ("47 hours" is 2 days).
+export function waited(since: string, now: number, lang: Lang): string {
   const minutes = Math.max(1, Math.floor((now - Date.parse(since)) / 60_000));
   const [value, unit] =
     minutes < 60 ? [minutes, "minute"] : minutes < 1440 ? [Math.floor(minutes / 60), "hour"] : [Math.round(minutes / 1440), "day"];

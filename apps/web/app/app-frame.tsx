@@ -11,7 +11,7 @@ import landing from "./landing/landing-page.module.css";
 import { ThemeButton } from "./landing/theme-toggle";
 import { LANGUAGE_NAMES, type Lang } from "./locales";
 import { Logo } from "./logo";
-import { Home, Lightbulb, ShieldCheck, User, Users } from "./onboarding/icons";
+import { Home, Lightbulb, Newspaper, ShieldCheck, User, Users } from "./onboarding/icons";
 import { useKeptMe } from "./session/me";
 import { useSession } from "./session/session";
 import { SignOutButton } from "./session/session-ui";
@@ -20,6 +20,7 @@ import { SignOutButton } from "./session/session-ui";
 // first part of its address and its key in the copy.
 const PLACES = [
   { id: "village", icon: Home },
+  { id: "feed", icon: Newspaper },
   { id: "ideas", icon: Lightbulb },
   { id: "hubs", icon: Users },
   { id: "reviews", icon: ShieldCheck },

@@ -1,0 +1,120 @@
+/* The page frame, title, tabs and list come from the ideas screens (ideas.module.css). */
+
+.card {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  padding: var(--pad-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+
+/* who wrote it on the left, when and what kind on the right, wrapping on a phone */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.cardTitle {
+  min-inline-size: 0;
+  font: var(--type-title);
+  overflow-wrap: anywhere;
+}
+
+/* line breaks are kept; a post is never read as markup */
+.body {
+  font: var(--type-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.body[data-clamp] {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+}
+
+.link {
+  font: var(--type-body-s);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- like, save, comments ---------- */
+/* the first button's own padding is pulled back so its icon lines up with the text above */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: calc(var(--space-3) * -1);
+}
+
+.action,
+.comments {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--tap-min);
+  min-inline-size: var(--tap-min);
+  padding-inline: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--text-muted);
+  font: var(--type-label);
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    color var(--dur-press) var(--ease-out);
+}
+
+.action { cursor: pointer; }
+
+.action svg,
+.comments svg {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+/* on: the icon is filled, in the link colour */
+.action[aria-pressed="true"] { color: var(--link); }
+
+.action[aria-pressed="true"] svg { fill: currentColor; }
+
+.count {
+  font: var(--type-mono-label);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the heart gives under a finger: feedback for the person's own press, nothing on load */
+.like svg { transition: transform var(--dur-press) var(--ease-out); }
+
+.like:active svg { transform: scale(0.8); }
+
+@media (hover: hover) and (pointer: fine) {
+  .action:hover {
+    background: var(--surface-sunken);
+    color: var(--text);
+  }
+
+  .action[aria-pressed="true"]:hover { color: var(--link); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .like:active svg { transform: none; }
+}
