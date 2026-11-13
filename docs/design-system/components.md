@@ -98,7 +98,8 @@ vendor's files exactly. Today the only one is the GitHub mark on "Continue with 
 ## Chips and filters
 
 - **Chip** (filters, skills): 36px high, `--radius-full`, 1px `--line-strong`,
-  `--type-body-s` at weight 500. Selected: `--text` fill, `--bg` text. Removable chips
+  `--type-body-s` at weight 500. Its tap area is 44px: it reaches 4px past the chip above and
+  below, so rows of chips need a gap of 8px or more. Selected: `--text` fill, `--bg` text. Removable chips
   have a 28px x button.
 - **Segmented filter** (All, Accepted, Pending): a `--surface-sunken` track with 2px
   padding, buttons that share the row and wrap onto a new line when there is no room.
