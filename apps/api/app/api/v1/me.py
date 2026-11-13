@@ -5,14 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession, role_to_detail, user_to_profile
-from app.models.lookups import Role, Technology
-from app.models.users import User, UserFeedTopic, UserRole, UserTechnology
-from app.schemas.lookups import TechnologyRef
+from app.models.lookups import Role, Sector, Technology
+from app.models.users import User, UserFeedTopic, UserRole, UserSector, UserTechnology
+from app.schemas.lookups import SectorRef, TechnologyRef
 from app.schemas.users import (
     ClaimRoleRequest,
     MeResponse,
     ReplaceFeedTopicsRequest,
+    ReplaceSectorsRequest,
     ReplaceTechnologiesRequest,
+    SectorsResponse,
     TechnologiesResponse,
     UpdateRoleRequest,
     UserProfileUpdate,
@@ -298,3 +300,39 @@ async def replace_feed_topics(
     return TechnologiesResponse(
         data=[TechnologyRef(slug=tech_map[s].slug, name=tech_map[s].name) for s in slugs]
     )
+
+
+@router.put("/me/sectors", response_model=SectorsResponse)
+async def replace_sectors(
+    payload: ReplaceSectorsRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> SectorsResponse:
+    slugs = payload.sectors
+    if len(slugs) != len(set(slugs)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"code": "VALIDATION_FAILED", "message": "Duplicate sectors are not allowed."},
+        )
+    sectors = {
+        sector.slug: sector
+        for sector in await db.scalars(
+            select(Sector).where(Sector.slug.in_(slugs), Sector.is_active.is_(True))
+        )
+    }
+    missing = [slug for slug in slugs if slug not in sectors]
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "UNKNOWN_SLUG",
+                "message": f"Unknown sector slugs: {', '.join(missing)}",
+            },
+        )
+
+    await lock_own_lists(db, current_user)
+    await db.execute(delete(UserSector).where(UserSector.user_id == current_user.id))
+    db.add_all(UserSector(user_id=current_user.id, sector_id=sectors[slug].id) for slug in slugs)
+    await db.commit()
+
+    return SectorsResponse(data=[SectorRef.model_validate(sectors[slug]) for slug in slugs])

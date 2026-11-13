@@ -26,7 +26,7 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 `docs/backend.md`.
 
 - **System**: `GET /v1/health`. `GET /health` also exists at the root.
-- **Lookups** (public): `GET /v1/roles` and `GET /v1/technologies`.
+- **Lookups** (public): `GET /v1/roles`, `GET /v1/sectors` and `GET /v1/technologies`.
 - **Sign-in** with GitHub, OAuth with PKCE: `POST /v1/auth/oauth/{provider}/start`,
   `GET /v1/auth/oauth/{provider}/callback`, `POST /v1/auth/token` (a login code or a
   refresh token) and `POST /v1/auth/logout`. The API signs access and refresh tokens with
@@ -34,10 +34,11 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   verified email from GitHub when there is one (`apps/api/app/services/provider_emails.py`).
   A missing, clashing or unreadable email never blocks sign-in.
 - **Profile** (Bearer token): `GET /v1/me` and `PATCH /v1/me`.
-- **Roles, technologies and feed topics** (Bearer token): `POST /v1/me/roles`,
+- **Roles, technologies, feed topics and sectors** (Bearer token): `POST /v1/me/roles`,
   `PATCH /v1/me/roles/{role_slug}` (make it the primary role), `DELETE /v1/me/roles/{role_slug}`
   (refused with `409` once the role has verification attempts), `PUT /v1/me/technologies`
-  and `PUT /v1/me/feed-topics` (each replaces the whole list, by technology slug).
+  and `PUT /v1/me/feed-topics` (each replaces the whole list, by technology slug), and
+  `PUT /v1/me/sectors` (replaces the whole set, by sector slug).
 - **Verification of a claimed role** (Bearer token), up to three attempts per role:
   `POST /v1/me/verifications/{role_slug}` (start, with GitHub repositories as evidence),
   `GET /v1/me/verifications`, `GET /v1/me/verifications/{session_id}` (poll one attempt)
