@@ -145,7 +145,7 @@ test("the demo note sits under the demo button, not under the first action", () 
     return this.textContent?.startsWith("Try the demo") ? 320 : 0;
   });
   const { container } = render(<LandingPage lang="en" />);
-  expect(container.querySelector<HTMLElement>("#demo-note")!.style.left).toBe("320px");
+  expect(container.querySelector<HTMLElement>("#demo-note")!.style.marginLeft).toBe("320px");
 });
 
 test.each([
