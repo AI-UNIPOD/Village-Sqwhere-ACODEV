@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { AppFrame } from "../app-frame";
 import landing from "../landing/landing-page.module.css";
@@ -69,7 +69,8 @@ export function RoleChips({ lang, idea, empty }: { lang: Lang; idea: PublicIdea;
   );
 }
 
-function OpenIdeaCard({ lang, idea, me }: { lang: Lang; idea: PublicIdea; me: Me }) {
+// `why` replaces the line about the developer's fit, for a list that already says why each idea is there.
+export function OpenIdeaCard({ lang, idea, me, why }: { lang: Lang; idea: PublicIdea; me: Me; why?: ReactNode }) {
   const t = copy[lang];
   const yours = idea.author.username === me.username;
   return (
@@ -86,7 +87,7 @@ function OpenIdeaCard({ lang, idea, me }: { lang: Lang; idea: PublicIdea; me: Me
         )}
       </div>
       <p className={styles.summary}>{idea.summary}</p>
-      {!yours && <FitLine lang={lang} idea={idea} me={me} />}
+      {why ?? (!yours && <FitLine lang={lang} idea={idea} me={me} />)}
       <RoleChips lang={lang} idea={idea} empty={t.noRoles} />
       <p className={styles.meta}>
         {t.stage[idea.stage]}

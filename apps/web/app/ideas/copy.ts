@@ -65,6 +65,7 @@ type Copy = {
     lead: string;
     tabs: string;
     tabOpen: string;
+    tabForYou: string;
     tabMine: string;
     by: string;
     verified: string;
@@ -76,6 +77,22 @@ type Copy = {
     moreFailed: string;
     emptyTitle: string;
     emptyText: string;
+  };
+  forYou: {
+    pageTitle: string;
+    title: string;
+    lead: string;
+    whyOne: string;
+    whyMany: string;
+    emptyTitle: string;
+    emptyText: string;
+    emptyAction: string;
+    unverifiedTitle: string;
+    unverifiedText: string;
+    verify: string;
+    noProfileTitle: string;
+    noProfileText: string;
+    setUp: string;
   };
   open: {
     pageTitle: string;
@@ -184,6 +201,7 @@ const en: Copy = {
     lead: "Ideas looking for co-builders. You see the public summary; the full brief stays with the team.",
     tabs: "Ideas",
     tabOpen: "Open ideas",
+    tabForYou: "For you",
     tabMine: "Your ideas",
     by: "by {name}",
     verified: "Verified",
@@ -195,6 +213,25 @@ const en: Copy = {
     moreFailed: "We couldn't load more ideas. The ones above are still here, so try again.",
     emptyTitle: "No open ideas yet",
     emptyText: "Be the first: share what you want to build.",
+  },
+  forYou: {
+    pageTitle: "Ideas that need you | Village Sqwhere",
+    title: "Ideas that need you",
+    lead: "Open ideas that need a role you are verified in. Each one says which role.",
+    whyOne: "Needs your verified role: {roles}",
+    whyMany: "Needs your verified roles: {roles}",
+    emptyTitle: "No open idea needs your role yet",
+    emptyText:
+      "New ideas show up here when their owners say they need a role you are verified in. Until then, you can read every open idea.",
+    emptyAction: "See all open ideas",
+    unverifiedTitle: "Verify a role to see the ideas that need you",
+    unverifiedText:
+      "Ideas are matched to verified roles, not to roles you only claim. Verify yours and the ideas that need it show up here.",
+    verify: "Verify my role",
+    noProfileTitle: "Set up your profile first",
+    noProfileText:
+      "Ideas are matched to verified roles. Choose your main role, then verify it, and the ideas that need it show up here.",
+    setUp: "Set up my profile",
   },
   open: {
     pageTitle: "An open idea | Village Sqwhere",
@@ -316,6 +353,7 @@ const fr: Copy = {
     lead: "Des idées qui cherchent des partenaires. Vous voyez le résumé public\u202f; le dossier complet reste dans l'équipe.",
     tabs: "Idées",
     tabOpen: "Idées ouvertes",
+    tabForYou: "Pour vous",
     tabMine: "Vos idées",
     by: "par {name}",
     verified: "Vérifié",
@@ -327,6 +365,25 @@ const fr: Copy = {
     moreFailed: "Nous n'avons pas pu charger plus d'idées. Celles du dessus sont toujours là, vous pouvez réessayer.",
     emptyTitle: "Pas encore d'idée ouverte",
     emptyText: "Lancez-vous en premier\u202f: partagez ce que vous voulez construire.",
+  },
+  forYou: {
+    pageTitle: "Idées qui ont besoin de vous | Village Sqwhere",
+    title: "Idées qui ont besoin de vous",
+    lead: "Des idées ouvertes qui recherchent un rôle dans lequel vous êtes vérifié. Chacune dit lequel.",
+    whyOne: "Recherche votre rôle vérifié\u202f: {roles}",
+    whyMany: "Recherche vos rôles vérifiés\u202f: {roles}",
+    emptyTitle: "Aucune idée ouverte ne recherche encore votre rôle",
+    emptyText:
+      "Les nouvelles idées apparaissent ici quand leurs porteurs disent chercher un rôle dans lequel vous êtes vérifié. En attendant, vous pouvez lire toutes les idées ouvertes.",
+    emptyAction: "Voir toutes les idées ouvertes",
+    unverifiedTitle: "Faites vérifier un rôle pour voir les idées qui ont besoin de vous",
+    unverifiedText:
+      "Les idées sont associées aux rôles vérifiés, pas aux rôles simplement déclarés. Faites vérifier le vôtre et les idées qui le recherchent apparaîtront ici.",
+    verify: "Faire vérifier mon rôle",
+    noProfileTitle: "Configurez d'abord votre profil",
+    noProfileText:
+      "Les idées sont associées aux rôles vérifiés. Choisissez votre rôle principal, puis faites-le vérifier\u202f: les idées qui le recherchent apparaîtront ici.",
+    setUp: "Configurer mon profil",
   },
   open: {
     pageTitle: "Une idée ouverte | Village Sqwhere",
