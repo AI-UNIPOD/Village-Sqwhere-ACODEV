@@ -13,25 +13,39 @@ import { SignOutButton } from "./session/session-ui";
 
 // The header and the page around every screen for a signed-in developer, so their loading and
 // error screens keep the way home and the language switch too. `path` is the screen's address
-// after the language: the switch opens the same screen in the other language.
-export function AppFrame({ lang, path, children }: { lang: Lang; path: string; children: ReactNode }) {
+// after the language: the switch opens the same screen in the other language. `locked` is for a
+// screen where leaving ends something for good (a live interview): the header then offers no way
+// out, so nobody leaves by a stray tap. The screen itself holds the one way to leave.
+export function AppFrame(props: { lang: Lang; path: string; locked?: boolean; children: ReactNode }) {
+  const { lang, path, locked, children } = props;
   const other: Lang = lang === "en" ? "fr" : "en";
   const signedIn = !!useSession();
+  const brand = (
+    <>
+      <Logo size={32} className={landing.navLogo} />
+      <span className={`${landing.navWordmark} ${styles.wordmark}`} translate="no">Village Sqwhere</span>
+    </>
+  );
   return (
     <div className={styles.page}>
       <header className={styles.header} data-site-header="">
-        {/* home is the village once signed in, the landing page until then */}
-        <Link className={`${landing.brand} ${styles.brand}`} href={signedIn ? `/${lang}/village` : `/${lang}`}>
-          <Logo size={32} className={landing.navLogo} />
-          <span className={`${landing.navWordmark} ${styles.wordmark}`} translate="no">Village Sqwhere</span>
-        </Link>
-        <div className={styles.headerLinks}>
-          {/* A plain link on purpose: a full page load, as on the landing page. */}
-          <a className={landing.navLink} href={`/${other}/${path}`} hrefLang={other} lang={other} translate="no">
-            {LANGUAGE_NAMES[other]}
-          </a>
-          {signedIn && <SignOutButton lang={lang} label={shared[lang].signOut} className={landing.navLink} />}
-        </div>
+        {locked ? (
+          <span className={`${landing.brand} ${styles.brand}`}>{brand}</span>
+        ) : (
+          // home is the village once signed in, the landing page until then
+          <Link className={`${landing.brand} ${styles.brand}`} href={signedIn ? `/${lang}/village` : `/${lang}`}>
+            {brand}
+          </Link>
+        )}
+        {!locked && (
+          <div className={styles.headerLinks}>
+            {/* A plain link on purpose: a full page load, as on the landing page. */}
+            <a className={landing.navLink} href={`/${other}/${path}`} hrefLang={other} lang={other} translate="no">
+              {LANGUAGE_NAMES[other]}
+            </a>
+            {signedIn && <SignOutButton lang={lang} label={shared[lang].signOut} className={landing.navLink} />}
+          </div>
+        )}
       </header>
       {children}
     </div>

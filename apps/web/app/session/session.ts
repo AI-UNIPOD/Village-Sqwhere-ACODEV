@@ -139,13 +139,23 @@ function refresh(session: Session): Promise<Session> {
   return pending.result;
 }
 
-// Calls the API as the signed-in person. An access token about to expire (they last 15
-// minutes) is refreshed first, and a 401 gets one refresh and one retry. Throws
+// The stored session, with an access token about to expire (they last 15 minutes) refreshed
+// first. Throws SignedOutError when there is none or it cannot be renewed.
+async function currentSession(): Promise<Session> {
+  const session = parseSession(readRaw());
+  if (!session) throw new SignedOutError();
+  return Date.parse(session.expires_at) - 30_000 < Date.now() ? refresh(session) : session;
+}
+
+// For the one call that cannot go through apiFetch: a WebSocket address carries the token.
+export async function accessToken(): Promise<string> {
+  return (await currentSession()).access_token;
+}
+
+// Calls the API as the signed-in person. A 401 gets one refresh and one retry. Throws
 // SignedOutError when the session cannot be saved, and lets network errors through.
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  let session = parseSession(readRaw());
-  if (!session) throw new SignedOutError();
-  if (Date.parse(session.expires_at) - 30_000 < Date.now()) session = await refresh(session);
+  const session = await currentSession();
   const send = (s: Session) =>
     fetch(`${API_URL}${path}`, { ...init, headers: { ...init.headers, Authorization: `Bearer ${s.access_token}` } });
   const response = await send(session);
