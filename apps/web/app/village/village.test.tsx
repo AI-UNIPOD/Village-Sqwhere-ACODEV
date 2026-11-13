@@ -89,6 +89,10 @@ test("with a role chosen, the profile step is done and verifying the role is nex
   const verify = step("Obtenir votre Green Tick");
   expect(within(verify).getByText("À faire")).toBeTruthy();
   expect(within(verify).getByRole("link", { name: "Commencer la vérification" }).getAttribute("href")).toBe("/fr/verification");
+  // sharing an idea does not wait for the Green Tick
+  const idea = step("Partager une idée, ou en rejoindre une");
+  expect(within(idea).getByText("Ouverte")).toBeTruthy();
+  expect(within(idea).getByRole("link", { name: "Partager une idée" }).getAttribute("href")).toBe("/fr/ideas/mine");
 });
 
 test("with an attempt under way, the step leads back to where it stands", async () => {
@@ -106,6 +110,8 @@ test("a verified role shows as verified, and its step is done", async () => {
   expect(within(step("Earn your Green Tick")).getByText("Done")).toBeTruthy();
   expect(screen.queryByRole("link", { name: "Start verification" })).toBeNull();
   expect(screen.getByRole("link", { name: "Review attempts in your role" }).getAttribute("href")).toBe("/en/reviews");
+  // with the Green Tick earned, sharing an idea is the step to do now
+  expect(within(step("Share an idea, or join one")).getByText("Next")).toBeTruthy();
 });
 
 test("a role the web app does not know keeps the API's name", async () => {

@@ -104,7 +104,10 @@
 
 .pill[data-state="done"] { --pill-colour: var(--success); }
 
-.pill[data-state="next"] { --pill-colour: var(--text); }
+.pill[data-state="next"],
+.pill[data-state="open"] {
+  --pill-colour: var(--text);
+}
 
 .pill svg {
   inline-size: var(--space-3);
@@ -173,7 +176,8 @@
   block-size: var(--space-4);
 }
 
-.step[data-state="next"] .num {
+.step[data-state="next"] .num,
+.step[data-state="open"] .num {
   border-color: var(--text);
   color: var(--text);
 }
