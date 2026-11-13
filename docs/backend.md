@@ -722,7 +722,7 @@ The Developer Exchange allows developers to share knowledge, questions, releases
 | `POST_NOT_FOUND` | 404 | Post does not exist, is soft-deleted, or belongs to a hub |
 | `NOT_POST_AUTHOR` | 403 | Attempt to edit or delete another user's post |
 | `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Attempt to create a post with `type = "hub_milestone"` |
-| `UNKNOWN_TOPIC` | 422 | A topic slug does not exist in active technologies |
+| `UNKNOWN_TOPIC` | 422 | A topic slug does not exist in the technologies table |
 | `EMPTY_UPDATE` | 422 | PATCH body contains no fields |
 | `TOO_MANY_TOPICS` | 422 | More than 5 topics submitted |
 | `DUPLICATE_TOPICS` | 422 | Duplicate topic slugs submitted |
@@ -735,7 +735,7 @@ The Developer Exchange allows developers to share knowledge, questions, releases
 Create a new feed post.
 
 * **Authentication:** Required (Bearer token)
-* **Topic rules:** Maximum 5 topics. No duplicate slugs. Each slug must match an active technology.
+* **Topic rules:** Maximum 5 topics. No duplicate slugs. Each slug must match a technology in the technologies table.
 * **Hub milestone:** `type = "hub_milestone"` is currently deferred and returns HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`.
 * **Request Body:**
   ```json
@@ -744,7 +744,7 @@ Create a new feed post.
     "title": "Offline SQLite Sync in Android",
     "body": "Here is how we handle intermittent connections in rural areas.",
     "link_url": "https://github.com/example/offline-sync",
-    "topics": ["android", "sqlite"]
+    "topics": ["python", "postgresql"]
   }
   ```
 * **Success Response (201 Created):**
@@ -764,8 +764,8 @@ Create a new feed post.
         "is_verified": true
       },
       "topics": [
-        { "slug": "android", "name": "Android" },
-        { "slug": "sqlite", "name": "SQLite" }
+        { "slug": "postgresql", "name": "PostgreSQL" },
+        { "slug": "python", "name": "Python" }
       ],
       "like_count": 0,
       "comment_count": 0,

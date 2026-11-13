@@ -134,6 +134,22 @@ def test_create_post_fails_with_too_many_topics(client: TestClient, sign_in) -> 
     }
 
 
+def test_create_post_with_five_topics_succeeds(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.post(
+        "/v1/posts",
+        headers=auth,
+        json={
+            "body": "Post with 5 topics",
+            "topics": ["python", "react", "vue", "go", "rust"],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    topics = resp.json()["data"]["topics"]
+    assert len(topics) == 5
+    assert [t["slug"] for t in topics] == ["go", "python", "react", "rust", "vue"]
+
+
 def test_create_post_fails_with_duplicate_topics(client: TestClient, sign_in) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
     resp = client.post(

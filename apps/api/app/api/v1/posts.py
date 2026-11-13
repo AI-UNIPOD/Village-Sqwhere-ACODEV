@@ -4,11 +4,10 @@ Integrity and revisions are maintained by PostgreSQL triggers. Author details ar
 in a single targeted query to prevent N+1 cascades.
 """
 
-from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbSession
@@ -68,7 +67,7 @@ async def _topics_for(post_id: UUID, db: AsyncSession) -> list[TechnologyRef]:
         select(Technology.slug, Technology.name)
         .join(PostTopic, PostTopic.technology_id == Technology.id)
         .where(PostTopic.post_id == post_id)
-        .order_by(Technology.name)
+        .order_by(Technology.slug)
     )
     rows = await db.execute(query)
     return [TechnologyRef(slug=slug, name=name) for slug, name in rows]
@@ -110,7 +109,7 @@ async def create_post(
 ) -> PostItemResponse:
     if payload.type == PostType.HUB_MILESTONE:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "HUB_MILESTONE_NOT_SUPPORTED",
                 "message": "Hub milestone posts are not supported yet",
@@ -119,26 +118,24 @@ async def create_post(
 
     if len(payload.topics) > 5:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "TOO_MANY_TOPICS", "message": "A post may have at most 5 topics"},
         )
     if len(set(payload.topics)) != len(payload.topics):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "DUPLICATE_TOPICS", "message": "Topics must not contain duplicates"},
         )
 
     tech_map: dict[str, Technology] = {}
     if payload.topics:
-        tech_query = select(Technology).where(
-            Technology.slug.in_(payload.topics), Technology.is_active.is_(True)
-        )
+        tech_query = select(Technology).where(Technology.slug.in_(payload.topics))
         tech_rows = (await db.execute(tech_query)).scalars().all()
         tech_map = {t.slug: t for t in tech_rows}
         missing = [slug for slug in payload.topics if slug not in tech_map]
         if missing:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"code": "UNKNOWN_TOPIC", "message": f"Unknown topic slug: {missing[0]}"},
             )
 
@@ -158,7 +155,10 @@ async def create_post(
 
     await db.commit()
 
-    topics_ref = [TechnologyRef(slug=slug, name=tech_map[slug].name) for slug in payload.topics]
+    topics_ref = sorted(
+        [TechnologyRef(slug=slug, name=tech_map[slug].name) for slug in payload.topics],
+        key=lambda t: t.slug,
+    )
     author_ref = _author_ref(current_user)
     return PostItemResponse(
         data=_post_response(post, author_ref, topics_ref, liked_by_me=False, saved_by_me=False)
@@ -229,13 +229,13 @@ async def update_post(
     dump = payload.model_dump(exclude_unset=True)
     if not dump:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "EMPTY_UPDATE", "message": "At least one field must be provided"},
         )
 
     if post.type == PostType.RFC and "title" in dump and dump["title"] is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "RFC_TITLE_REQUIRED", "message": "RFC posts must have a title"},
         )
 
@@ -294,7 +294,7 @@ async def delete_post(
             },
         )
 
-    post.deleted_at = datetime.now(UTC)
+    post.deleted_at = func.now()
     post.deleted_by = current_user.id
     post.deletion_reason = reason
     await db.commit()

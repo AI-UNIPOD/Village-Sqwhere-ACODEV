@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.security import decode_access_token
 from app.database import get_db
-from app.models.users import PlatformRole, User, UserFeedTopic, UserRole, UserTechnology
+from app.models.users import User, UserFeedTopic, UserRole, UserTechnology
 from app.schemas.lookups import TechnologyRef
 from app.schemas.users import (
     UserIdentityRef,
@@ -151,12 +151,3 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
-
-
-def require_moderator(current_user: CurrentUser) -> User:
-    if current_user.platform_role not in (PlatformRole.MODERATOR, PlatformRole.ADMIN):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "Moderator or admin platform role required"},
-        )
-    return current_user
