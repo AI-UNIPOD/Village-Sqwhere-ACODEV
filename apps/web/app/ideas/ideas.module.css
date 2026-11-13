@@ -239,7 +239,7 @@
 .tab {
   display: inline-flex;
   align-items: center;
-  min-block-size: calc(var(--tap-min) - 4px);
+  min-block-size: var(--tap-min);
   padding-inline: var(--space-4);
   border-radius: calc(var(--radius-s) - 2px);
   color: var(--text-muted);
