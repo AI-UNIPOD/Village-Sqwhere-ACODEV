@@ -63,6 +63,13 @@ developer is verified in (`GET /v1/me/matches`), each with the roles that matche
 by verified roles, so a developer without one is sent to verify, and the page does not call the
 API for them.
 
+The owner's side is `/en/ideas/matches?id=`: developers verified in a role the idea needs
+(`GET /v1/me/ideas/{id}/matches`), each with the roles that matched and the technologies shared
+with the owner. With a hub, "Invite to the hub" sends the invitation from the row
+(`inviteMember`, the same call and refusal sentences as the hub's invite form); without one the
+page says a hub comes first. "See who matches" on Your ideas and a link under the hub's invite
+form lead here.
+
 Hubs are `app/hubs/`: create one from an open idea at `/en/hubs/new?idea=` (name, terms, the
 agreement as the server sends it, a typed legal name, then a confirm dialog), one hub at
 `/en/hubs/view?id=`, and your hubs at `/en/hubs`. The request carries the agreement's id and hash

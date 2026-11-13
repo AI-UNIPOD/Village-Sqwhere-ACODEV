@@ -111,3 +111,20 @@ export type IdeaMatch = { idea: PublicIdea; matched_roles: { slug: string; name:
 
 export const loadIdeasForMe = (offset = 0) =>
   call<{ data: IdeaMatch[]; next_offset: number | null }>(`/v1/me/matches?offset=${offset}&limit=20`);
+
+// A developer verified in a role an idea needs, with why: `shared_technology_count` is how many
+// technologies they share with the idea's owner.
+export type Developer = {
+  id: string;
+  username: string;
+  display_name: string;
+  is_verified: boolean;
+  matched_roles: { slug: string; name: string }[];
+  technologies: { slug: string; name: string }[];
+  shared_technology_count: number;
+};
+
+export const loadDevelopersForIdea = (id: string, offset = 0) =>
+  call<{ data: Developer[]; next_offset: number | null }>(
+    `/v1/me/ideas/${encodeURIComponent(id)}/matches?offset=${offset}&limit=20`,
+  );

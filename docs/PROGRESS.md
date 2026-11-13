@@ -26,14 +26,19 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 
 ## What's next
 
-1. Fix GitHub Actions billing limit, turn CI back on, then revisit the merge agent.
+1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
 2. Posts feeds, topic filtering, likes and saves (PR 2).
-3. Leaving and removing members, archiving a hub, and the four hub phases.
-4. Add peer-review report display, production deploy config and CI deploy job.
-5. Save onboarding country, topics and completion flag once API gaps close.
-6. Replace TEST agreement with real text (v2 script) before launch.
-7. Move session out of localStorage and sign-in state out of API memory before launch.
-8. Turn on GitHub branch protection for `main`.
+3. Leaving and removing members, editing and archiving a hub, and the four hub phases (decisions
+   and next steps need a new schema script); later, semantic similarity for matching.
+4. Add peer-review report display, production deployment configuration and, once the team has
+   Systalink platform access, a deploy job in CI.
+5. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
+6. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
+7. Web next: a server-rendered 404 and a French-speaking teammate's check of the copy.
+8. Before launch, move the session out of localStorage and sign-in state out of API memory
+   (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
+9. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
+   until then the merge agent enforces green checks (`docs/decisions/2026-11-13-merge-agent.md`).
 
 ## Open questions
 
