@@ -10,8 +10,8 @@ its number:
 
 ## 2026-11-13
 
-- feat(api): add comment lists with reply previews
-- feat(api): add comments and replies on posts
+- feat(api): add comment lists with reply previews (#99)
+- feat(api): add comments and replies on posts (#97)
 - feat(web): rebuild the not-found page and send it as html (#96)
 - fix(web): tidy the loose ends left by the screen pull requests (#95)
 - test(web): wait five seconds before a screen check gives up (#94)
