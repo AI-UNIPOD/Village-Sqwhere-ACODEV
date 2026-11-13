@@ -1,6 +1,6 @@
 import type { Lang } from "../locales";
 
-export const QUESTIONS = ["role", "stack", "country", "topics"] as const;
+export const QUESTIONS = ["role", "stack", "country", "topics", "feed"] as const;
 export type Question = (typeof QUESTIONS)[number];
 export type StepId = "welcome" | Question | "done";
 export const STEP_IDS: readonly StepId[] = ["welcome", ...QUESTIONS, "done"];
@@ -10,9 +10,11 @@ export type Answers = {
   stack: string[];
   country: string | null;
   topics: string[];
+  /** The technologies the developer wants posts about. None means every post. */
+  feed: string[];
 };
 
-export const NO_ANSWERS: Answers = { role: null, stack: [], country: null, topics: [] };
+export const NO_ANSWERS: Answers = { role: null, stack: [], country: null, topics: [], feed: [] };
 
 export function parseStep(value: string | null): StepId {
   return STEP_IDS.find((id) => id === value) ?? "welcome";
@@ -22,7 +24,8 @@ export function isQuestion(step: StepId): step is Question {
   return (QUESTIONS as readonly string[]).includes(step);
 }
 
-// Only the role and the stack must be answered. The country and topics can be skipped.
+// Only the role and the stack must be answered. The country, the sectors and the feed's
+// technologies can be skipped.
 export const REQUIRED: readonly Question[] = ["role", "stack"];
 
 export function isAnswered(step: Question, answers: Answers) {

@@ -34,6 +34,7 @@ export function parseAnswers(raw: string | null): Answers {
     stack: many(saved.stack, knownTechnologies),
     country: one(saved.country, knownCountries),
     topics: many(saved.topics, knownTopics),
+    feed: many(saved.feed, knownTechnologies),
   };
 }
 

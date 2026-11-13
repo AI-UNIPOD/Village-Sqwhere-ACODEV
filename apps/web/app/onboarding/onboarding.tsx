@@ -15,7 +15,7 @@ import { ArrowLeft } from "./icons";
 import styles from "./onboarding.module.css";
 import { OnboardingSkeleton } from "./onboarding-skeleton";
 import { firstName, toProfile, type Profile } from "./options";
-import { CountryStep, RoleStep, StackStep, TopicsStep } from "./question-steps";
+import { CountryStep, FeedStep, RoleStep, StackStep, TopicsStep } from "./question-steps";
 import { useSavedAnswers } from "./saved-answers";
 import {
   QUESTIONS,
@@ -115,6 +115,7 @@ export function Onboarding({ lang, profile }: { lang: Lang; profile: Profile }) 
         {step === "stack" && <StackStep {...props} />}
         {step === "country" && <CountryStep {...props} />}
         {step === "topics" && <TopicsStep {...props} />}
+        {step === "feed" && <FeedStep {...props} />}
         <div className={`${styles.actions} ${styles.questionActions}`}>
           <button type="button" className={landing.btn} onClick={advance}>
             {t.next}
