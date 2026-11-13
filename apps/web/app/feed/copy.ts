@@ -42,6 +42,20 @@ type Copy = {
   commentMany: string;
   write: string;
   done: { published: string; saved: string };
+  topics: {
+    everyone: string;
+    choose: string;
+    change: string;
+    about: string;
+    and: string;
+    more: string;
+    own: string;
+    label: string;
+    help: string;
+    save: string;
+    cancel: string;
+    failed: string;
+  };
   compose: {
     pageTitle: string;
     newTitle: string;
@@ -78,11 +92,52 @@ type Copy = {
     };
     notYours: { title: string; text: string; action: string };
   };
+  comments: {
+    loading: string;
+    loadFailed: string;
+    none: string;
+    noneText: string;
+    write: string;
+    help: string;
+    post: string;
+    count: string;
+    reply: string;
+    replyTo: string;
+    edit: string;
+    editLabel: string;
+    save: string;
+    cancel: string;
+    delete: string;
+    edited: string;
+    verified: string;
+    deleted: string;
+    inReply: string;
+    showAll: string;
+    showSome: string;
+    showOne: string;
+    showMore: string;
+    more: string;
+    moreFailed: string;
+    repliesFailed: string;
+    said: { posted: string; replied: string; saved: string; deleted: string };
+    deleteConfirm: { title: string; text: string; withReplies: string; confirm: string; cancel: string };
+    errors: {
+      empty: string;
+      long: string;
+      refused: string;
+      gone: string;
+      depth: string;
+      notAuthor: string;
+      comment: string;
+      reply: string;
+      edit: string;
+      delete: string;
+    };
+  };
   post: {
     pageTitle: string;
     back: string;
     edited: string;
-    commentsSoon: string;
     edit: string;
     delete: string;
     deleteConfirm: { title: string; text: string; confirm: string; cancel: string };
@@ -155,6 +210,20 @@ export const copy: Record<Lang, Copy> = {
     commentMany: "{n} comments",
     write: "Write a post",
     done: { published: "Post published", saved: "Changes saved" },
+    topics: {
+      everyone: "Showing every post",
+      choose: "Choose topics",
+      change: "Change topics",
+      about: "Showing posts about {topics}",
+      and: "{list} and {last}",
+      more: "{list} and {n} more",
+      own: "Your own posts always show too.",
+      label: "Topics for your feed",
+      help: "Choose the topics you want to see. Save with none chosen to see every post.",
+      save: "Save",
+      cancel: "Cancel",
+      failed: "We couldn't save your topics. Nothing was changed, so try again.",
+    },
     compose: {
       pageTitle: "Write a post | Village Sqwhere",
       newTitle: "Write a post",
@@ -210,11 +279,58 @@ export const copy: Record<Lang, Copy> = {
       },
       notYours: { title: "This is not your post", text: "Only its author can edit it.", action: "Back to the post" },
     },
+    comments: {
+      loading: "Getting the comments",
+      loadFailed: "We couldn't load the comments. The post is still here, so try again.",
+      none: "No comments yet",
+      noneText: "Be the first to answer: share what you know, or ask what you would like to know.",
+      write: "Write a comment",
+      help: "Plain text. Line breaks are kept.",
+      post: "Comment",
+      count: "{n} of {max}",
+      reply: "Reply",
+      replyTo: "Reply to {name}",
+      edit: "Edit",
+      editLabel: "Edit your comment",
+      save: "Save",
+      cancel: "Cancel",
+      delete: "Delete",
+      edited: "Edited",
+      verified: "Verified",
+      deleted: "This comment was deleted",
+      inReply: "In reply to {name}",
+      showAll: "Show all {n} replies",
+      showSome: "Show {n} replies",
+      showOne: "Show 1 reply",
+      showMore: "Show more replies",
+      more: "Show more comments",
+      moreFailed: "We couldn't load more comments. The ones above are still here, so try again.",
+      repliesFailed: "We couldn't load the replies. Try again.",
+      said: { posted: "Comment posted", replied: "Reply posted", saved: "Comment saved", deleted: "Comment deleted" },
+      deleteConfirm: {
+        title: "Delete this comment?",
+        text: "It will be removed for everyone, and you cannot bring it back.",
+        withReplies: "Its replies stay, under a note that this comment was deleted.",
+        confirm: "Delete comment",
+        cancel: "Keep comment",
+      },
+      errors: {
+        empty: "Write something first. An empty comment cannot be sent.",
+        long: "Shorten the text to {max} characters or fewer.",
+        refused: "This could not be accepted. Look for an unusual character and try again.",
+        gone: "That comment was deleted. We loaded the comments again.",
+        depth: "This thread is too deep to answer here. Reply to a comment higher up instead.",
+        notAuthor: "Only the author can change this comment.",
+        comment: "We couldn't post your comment. Nothing was lost, so try again.",
+        reply: "We couldn't post your reply. Nothing was lost, so try again.",
+        edit: "We couldn't save your changes. Nothing was lost, so try again.",
+        delete: "We couldn't delete the comment. Nothing was changed, so try again.",
+      },
+    },
     post: {
       pageTitle: "A post | Village Sqwhere",
       back: "Feed",
       edited: "Edited {time}",
-      commentsSoon: "Comments are coming soon. Until then, you can only see how many there are.",
       edit: "Edit post",
       delete: "Delete post",
       deleteConfirm: {
@@ -291,6 +407,20 @@ export const copy: Record<Lang, Copy> = {
     commentMany: "{n} commentaires",
     write: "Écrire une publication",
     done: { published: "Publication mise en ligne", saved: "Modifications enregistrées" },
+    topics: {
+      everyone: "Toutes les publications sont affichées",
+      choose: "Choisir des sujets",
+      change: "Changer les sujets",
+      about: "Publications affichées sur {topics}",
+      and: "{list} et {last}",
+      more: "{list} et {n} autres",
+      own: "Vos propres publications s'affichent toujours.",
+      label: "Sujets de votre fil",
+      help: "Choisissez les sujets que vous voulez voir. Enregistrez sans rien choisir pour tout voir.",
+      save: "Enregistrer",
+      cancel: "Annuler",
+      failed: "Nous n'avons pas pu enregistrer vos sujets. Rien n'a été modifié, réessayez.",
+    },
     compose: {
       pageTitle: "Écrire une publication | Village Sqwhere",
       newTitle: "Écrire une publication",
@@ -346,11 +476,58 @@ export const copy: Record<Lang, Copy> = {
       },
       notYours: { title: "Ce n'est pas votre publication", text: "Seul son auteur peut la modifier.", action: "Retour à la publication" },
     },
+    comments: {
+      loading: "Chargement des commentaires",
+      loadFailed: "Nous n'avons pas pu charger les commentaires. La publication est toujours là, réessayez.",
+      none: "Aucun commentaire pour le moment",
+      noneText: "Soyez le premier à répondre\u202f: partagez ce que vous savez, ou demandez ce que vous voulez savoir.",
+      write: "Écrire un commentaire",
+      help: "Texte brut. Les retours à la ligne sont conservés.",
+      post: "Commenter",
+      count: "{n} sur {max}",
+      reply: "Répondre",
+      replyTo: "Répondre à {name}",
+      edit: "Modifier",
+      editLabel: "Modifier votre commentaire",
+      save: "Enregistrer",
+      cancel: "Annuler",
+      delete: "Supprimer",
+      edited: "Modifié",
+      verified: "Vérifié",
+      deleted: "Ce commentaire a été supprimé",
+      inReply: "En réponse à {name}",
+      showAll: "Afficher les {n} réponses",
+      showSome: "Afficher {n} réponses",
+      showOne: "Afficher 1 réponse",
+      showMore: "Afficher plus de réponses",
+      more: "Afficher plus de commentaires",
+      moreFailed: "Nous n'avons pas pu charger d'autres commentaires. Ceux du dessus sont toujours là, réessayez.",
+      repliesFailed: "Nous n'avons pas pu charger les réponses. Réessayez.",
+      said: { posted: "Commentaire publié", replied: "Réponse publiée", saved: "Commentaire enregistré", deleted: "Commentaire supprimé" },
+      deleteConfirm: {
+        title: "Supprimer ce commentaire\u202f?",
+        text: "Il sera retiré pour tout le monde, et vous ne pourrez pas le récupérer.",
+        withReplies: "Ses réponses restent, sous une note indiquant que ce commentaire a été supprimé.",
+        confirm: "Supprimer le commentaire",
+        cancel: "Garder le commentaire",
+      },
+      errors: {
+        empty: "Écrivez d'abord quelque chose. Un commentaire vide ne peut pas être envoyé.",
+        long: "Raccourcissez le texte à {max} caractères au plus.",
+        refused: "Ceci n'a pas pu être accepté. Cherchez un caractère inhabituel et réessayez.",
+        gone: "Ce commentaire a été supprimé. Nous avons rechargé les commentaires.",
+        depth: "Cette discussion est trop profonde pour y répondre ici. Répondez plutôt à un commentaire plus haut.",
+        notAuthor: "Seul l'auteur peut modifier ce commentaire.",
+        comment: "Nous n'avons pas pu publier votre commentaire. Rien n'est perdu, réessayez.",
+        reply: "Nous n'avons pas pu publier votre réponse. Rien n'est perdu, réessayez.",
+        edit: "Nous n'avons pas pu enregistrer vos modifications. Rien n'est perdu, réessayez.",
+        delete: "Nous n'avons pas pu supprimer le commentaire. Rien n'a été modifié, réessayez.",
+      },
+    },
     post: {
       pageTitle: "Une publication | Village Sqwhere",
       back: "Fil",
       edited: "Modifiée {time}",
-      commentsSoon: "Les commentaires arrivent bientôt. D'ici là, vous pouvez seulement voir leur nombre.",
       edit: "Modifier la publication",
       delete: "Supprimer la publication",
       deleteConfirm: {

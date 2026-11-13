@@ -36,7 +36,7 @@ const post = (over: Record<string, unknown> = {}) => ({
 });
 const page = (data: unknown[], next_offset: number | null = null) => ({ data, next_offset });
 
-const me = { username: "kwabena-owusu", display_name: "Kwabena Owusu", bio: null, roles: [], technologies: [] };
+const me = { username: "kwabena-owusu", display_name: "Kwabena Owusu", bio: null, roles: [], technologies: [], feed_topics: [] };
 
 // Answers each "METHOD /path" by its longest matching start; anything else is a mistake. Every
 // tab asks for the profile.
@@ -147,11 +147,11 @@ test("a plain post with no title, link or topics shows only its text, and no typ
   await screen.findByText("Cache the dependency layer first.");
   const shown = screen.getByText("Cache the dependency layer first.").closest("li")!;
   expect(within(shown).queryByRole("heading")).toBeNull();
-  // the author, then the post itself twice (its first line and its comments): no link of its own
+  // the author, then the post itself twice (its first line, and its comments, which lead to the section): no link of its own
   expect(within(shown).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
     "https://github.com/wanjiru-kamau",
     "/en/posts/view?id=post-1",
-    "/en/posts/view?id=post-1",
+    "/en/posts/view?id=post-1#comments",
   ]);
   expect(shown.querySelector("ul")).toBeNull();
   expect(shown.querySelectorAll("[data-state]").length).toBe(0);
@@ -362,7 +362,7 @@ test("a card's title and comment count lead to the post page", async () => {
   render(<Feed lang="fr" tab="for-you" />);
   const title = await screen.findByRole("link", { name: "Pooling with asyncpg" });
   expect(title.getAttribute("href")).toBe("/fr/posts/view?id=post-1");
-  expect(within(card("Pooling with asyncpg")).getByRole("link", { name: "4 commentaires" }).getAttribute("href")).toBe("/fr/posts/view?id=post-1");
+  expect(within(card("Pooling with asyncpg")).getByRole("link", { name: "4 commentaires" }).getAttribute("href")).toBe("/fr/posts/view?id=post-1#comments");
 });
 
 test("a post with no title opens from its first line, and the rest of the text stays plain", async () => {

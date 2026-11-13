@@ -51,10 +51,8 @@ The web frontend's owner chose, on 13 November 2026:
 
 ## What is left out, and why
 
-- **Comments.** Only creating one and reading one by id exist in the API; listing a post's
-  comments does not yet. The card shows the number of comments and nothing more, and the post
-  page says in one line that comments are coming. That line is replaced when the comments
-  section is built.
+- **Comments** were left out of the first version, because the API had no list of a post's
+  comments then. They are built now: see "Comments" below.
 
 ## Options we considered
 
@@ -113,3 +111,84 @@ edit).
   Yours empty state leads to the same place with a quieter "Write your first post"), and Edit
   beside Delete for the author on the post page. Publishing and saving go to the post with
   `?done=published` or `?done=saved`, read from the address.
+
+## Choosing the topics of your feed
+
+- **The choice opens in place on For you, not on a page of its own and not in a dialog.** It is
+  a small, repeatable preference that changes what the list under it shows, so it stays next to
+  that list: one quiet line says what the feed shows ("Showing posts about Go and Python"), and
+  its button opens the same chips used on the profile and in the composers. A dialog would hide
+  the list it changes, and a page would be a trip for one setting. The button has
+  `aria-expanded` and `aria-controls`, focus moves into the choice when it opens and back to the
+  button when it closes (Save, Cancel or Escape), and the choice is not reachable while closed.
+- **It moves like a menu:** `--dur-menu` in and `--dur-menu-out` out, opacity and a small
+  upward translate, no translate with reduced motion. The panel is hidden with the `hidden`
+  attribute and `display` is part of the transition, so the fade is seen on the way out too.
+- **Saving replaces the whole list and loads the feed again from the top.** The request is
+  `PUT /v1/me/feed-topics` with the key `technologies` (not `topics`). The API's answer is kept
+  in the kept profile (`keepMe`, with `feed_topics` added to `Me`), so the line is right on every
+  screen. Saving with nothing chosen means "show everything", which is the API's meaning of an
+  empty list. A failed save keeps the choice open and says nothing was changed. Own posts always
+  show on the feed whatever the topics (the API's rule), and the line says so once.
+- **The line names up to three topics, then two and a count** ("Go, Python and 2 more"), in
+  the order of the technologies list, so it reads the same after a reload.
+- **Onboarding's topics are left alone.** Its topics step asks about ten sectors (fintech,
+  agritech, health, education, climate and energy, mobility and logistics, commerce, civic tech,
+  media and culture, developer tools; `TOPICS` in `app/onboarding/options.ts`, marked there as a
+  draft list). The API's feed topics are technology slugs, and `GET /v1/technologies` returns
+  the 19 technologies that `TECHNOLOGIES` already holds (react, go, python and so on). None of
+  the ten sector slugs is among them, so saving them would be refused as `UNKNOWN_SLUG`, and
+  mapping a sector to technologies would be inventing a meaning. Onboarding still throws its
+  topics away, as before. The fix is a decision about the taxonomy (sectors need their own
+  table in the API, or the step asks about technologies), not a web change.
+
+## Comments
+
+Added once the API listed a post's comments (`GET /v1/posts/{id}/comments` and
+`GET /v1/comments/{id}/replies`). The section sits on the post page and replaces the line that
+said comments were coming.
+
+- **Threads open one level at a time.** The API gives a post's comments with their first two
+  replies, and `GET /v1/comments/{id}/replies` gives the direct replies of one comment. It has no
+  call for a whole thread (the thread route is not on `main` yet). So a comment shows what the list
+  gave it, and a button ("Show all 3 replies", "Show 1 reply") loads one more level, a page of 20 at
+  a time, with "Show more replies" when there are more. A reply can be answered, and its answers
+  open the same way, to any depth. Whether a button is shown comes from what the API says it has not
+  sent (`next_offset`), not from `reply_count`: that count includes deleted replies that no list
+  returns, so it can be higher than the replies a person can ever open.
+- **The indent stops after the third level.** Each level after the first moves in by 25px
+  (two token spaces and a 1px line down its left), so a thread costs 50px of a 360px screen at
+  most and any depth still fits. Deeper
+  replies stay at the third level's indent, and each one says who it answers ("In reply to Ama
+  Mensah"), taken from the comment above it, so the thread can still be followed. The API allows a
+  depth of 1000, and the web does not limit it. If a reply is refused with `MAX_DEPTH_EXCEEDED` the
+  form says to reply to a comment higher up.
+- **A comment is liked like a post.** The first version had no button, because the route was not
+  on `main`; it landed with #103, and the button changes the screen at once and sends the
+  request after, as a post's does.
+- **A deleted comment that still has replies stays as a quiet note.** The API lists it with
+  `deleted: true` and no author or text, so its replies stay reachable, and the screen draws
+  "This comment was deleted" with no buttons and the replies under it. When the person deletes
+  their own comment the screen does the same thing the API will do on the next load: a comment with
+  replies (`reply_count` above zero) becomes the note, a comment with none is removed. Either way
+  the post's count goes down by one (it counts comments that are not deleted).
+- **Delete is offered to the author only.** The API lets a moderator or an admin delete anyone's
+  comment (reason `moderator`). The web app has no moderation screens, as with posts, so Edit and
+  Delete are both for the author. The API lets nobody else edit.
+- **A new comment goes where the API's order puts it.** The list is oldest first, so a comment
+  just written goes after the others, and the screen scrolls to it and fades it in (only for the
+  person's own action). If more pages are waiting, it sits after the pages loaded so far and stays
+  last when they arrive: pages are merged by id and sorted by time, as the API sorts.
+- **One box open at a time.** A reply or an edit opens in place under its comment, and opening
+  another closes the first, so only the open one holds a draft. Closing puts focus back on the
+  button that opened it. An edit that changes nothing sends nothing, because the API would mark the
+  comment as edited.
+- **The section is separate from the post.** It loads after the post, keyed by the post's id, and if
+  it cannot load, the post stays and the section offers "Try again". A comment, reply, edit or delete
+  that finds the comment gone (`COMMENT_NOT_FOUND`, `PARENT_NOT_FOUND`) says so and loads the list
+  again. A post that is gone (`POST_NOT_FOUND`) shows the page's "This post is gone" screen.
+- **A link from a card lands on the section.** The comment count on a card links to
+  `/posts/view?id=...#comments`. The page is only tall enough to reach the section once the
+  comments are in, so the scroll happens when the section appears and again when the comments load.
+- **Edit and Delete post move above the comments.** The post's own actions stay near the post, not
+  under a long thread.

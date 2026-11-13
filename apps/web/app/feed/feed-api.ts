@@ -97,3 +97,54 @@ export async function updatePost(fields: PostFields, saved: Post): Promise<Post>
   if (Object.keys(changed).length === 0) return saved;
   return (await call<{ data: Post }>(`/v1/posts/${encodeURIComponent(saved.id)}`, "PATCH", changed)).data;
 }
+
+// Replaces the topics of the feed. The request key is `technologies`, because the API keeps
+// feed topics in its technologies table. No topics means the feed shows every post.
+export const saveFeedTopics = async (slugs: string[]) =>
+  (await call<{ data: { slug: string; name: string }[] }>("/v1/me/feed-topics", "PUT", { technologies: slugs })).data;
+
+// A comment or a reply. A deleted one that still has replies comes back with `deleted` true and no
+// author, body or `edited_at`, so its replies stay reachable. `reply_count` counts direct replies
+// including deleted ones, so it can be higher than the replies a list holds.
+export type PostComment = {
+  id: string;
+  post_id: string;
+  parent_id: string | null;
+  depth: number;
+  deleted: boolean;
+  author: { username: string; display_name: string; is_verified: boolean } | null;
+  body: string | null;
+  like_count: number;
+  reply_count: number;
+  created_at: string;
+  edited_at: string | null;
+  liked_by_me: boolean;
+};
+
+// The comments on a post come with their first two replies.
+export type TopComment = PostComment & { replies: PostComment[] };
+
+export const COMMENT_MAX = 5000;
+
+// Both lists are oldest first and paged like the posts.
+export const loadComments = (postId: string, offset = 0) =>
+  call<{ data: TopComment[]; next_offset: number | null }>(`/v1/posts/${encodeURIComponent(postId)}/comments?${paging(offset)}`);
+
+export const loadReplies = (commentId: string, offset = 0) =>
+  call<{ data: PostComment[]; next_offset: number | null }>(`/v1/comments/${encodeURIComponent(commentId)}/replies?${paging(offset)}`);
+
+// With a `parentId` it is a reply to that comment.
+export async function createComment(postId: string, body: string, parentId?: string): Promise<PostComment> {
+  const sent = { body, ...(parentId && { parent_id: parentId }) };
+  return (await call<{ data: PostComment }>(`/v1/posts/${encodeURIComponent(postId)}/comments`, "POST", sent)).data;
+}
+
+export const updateComment = async (id: string, body: string) =>
+  (await call<{ data: PostComment }>(`/v1/comments/${encodeURIComponent(id)}`, "PATCH", { body })).data;
+
+// The API lets a moderator delete anyone's comment too; the web app offers it to the author only.
+export const deleteComment = (id: string) => call<null>(`/v1/comments/${encodeURIComponent(id)}`, "DELETE");
+
+// Like a post's like: 204 with no body, and the same request each time.
+export const setCommentLike = (id: string, on: boolean) =>
+  call<null>(`/v1/comments/${encodeURIComponent(id)}/like`, on ? "PUT" : "DELETE");

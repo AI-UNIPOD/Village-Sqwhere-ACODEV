@@ -1,0 +1,183 @@
+/* The comments on the post page. The card's buttons and text come from feed.module.css. */
+
+/* a link from the feed's comment count lands on the heading with some room above it */
+.section {
+  display: grid;
+  gap: var(--space-5);
+  margin-block-start: var(--space-6);
+  padding-block-start: var(--space-6);
+  border-block-start: 1px solid var(--line);
+  scroll-margin-block-start: var(--space-6);
+}
+
+/* the heading takes focus after a delete, with nothing to draw around it */
+.section h2:focus { outline: none; }
+
+.list {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* the threads of the post are told apart by a line, so where one ends is clear */
+.section > .list { gap: 0; }
+
+.section > .list > .item {
+  padding-block: var(--space-5);
+  border-block-end: 1px solid var(--line);
+}
+
+.section > .list > .item:first-child { padding-block-start: 0; }
+
+.section > .list > .item:last-child { border-block-end: 0; }
+
+.item {
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+/* programmatic focus (a reply that was just loaded) needs no ring on the whole row */
+.item:focus { outline: none; }
+
+/* the comment the person just wrote rises into place: feedback for their own action, never on load */
+.item[data-arrived] { animation: arrive var(--dur-reveal) var(--ease-out); }
+
+/* ---------- who wrote it ---------- */
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  /* the line keeps the circle visible on Ink, where the page and the sunken surface match */
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  font: var(--type-caption);
+}
+
+.name {
+  min-inline-size: 0;
+  font: var(--type-label);
+  overflow-wrap: anywhere;
+}
+
+.verified {
+  display: inline-flex;
+  margin-inline-start: var(--space-1);
+  color: var(--success);
+  vertical-align: bottom;
+}
+
+.verified svg {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+
+.when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.answering {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  overflow-wrap: anywhere;
+}
+
+/* a deleted comment that still has replies: quiet, with no buttons */
+.gone {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* ---------- replies ---------- */
+/* each level moves in, with a line down its left; after the third level the replies stay where
+   they are, so a deep thread still fits a phone */
+.replies {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  min-inline-size: 0;
+  margin-block-start: var(--space-2);
+  margin-inline-start: var(--space-3);
+  padding-inline-start: var(--space-3);
+  border-inline-start: 1px solid var(--line);
+}
+
+.replies[data-flat] {
+  margin-inline-start: 0;
+  padding-inline-start: 0;
+  border-inline-start: 0;
+}
+
+.replies > .list { inline-size: 100%; }
+
+.show { justify-self: start; }
+
+/* ---------- the boxes ---------- */
+.form {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  /* the bar of places sits over the bottom of a phone: a box that opens is kept clear of it, by the
+     same distance as the post composer's fields */
+  scroll-margin-block-end: calc(var(--tap-min) + var(--space-6) + var(--space-3));
+}
+
+/* the field's own gap is above it, and the grid already spaces the rows */
+.form > :first-child { margin-block-start: 0; }
+
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* A reply or an edit opens in place with the menu timing. A browser that cannot start from the
+   rule below simply shows it. */
+.form[data-opens] {
+  transition:
+    opacity var(--dur-menu) var(--ease-out),
+    transform var(--dur-menu) var(--ease-out);
+}
+
+@starting-style {
+  .form[data-opens] {
+    opacity: 0;
+    transform: translateY(calc(var(--space-2) * -1));
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+}
+
+/* Reduced motion: the fade stays, the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  .item[data-arrived] { animation-name: fade; }
+
+  @starting-style {
+    .form[data-opens] { transform: none; }
+  }
+}
