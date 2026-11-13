@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import raiseload
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, same_world
 from app.api.v1.hubs import client_ip, hub_error
 from app.models import (
     AgreementSignature,
@@ -39,7 +39,7 @@ from app.schemas.hubs import (
     HubResponse,
     InviteRequest,
 )
-from app.services.hubs import hub_card, load_hub
+from app.services.hubs import hub_card, in_viewers_world, load_hub
 
 router = APIRouter()
 
@@ -56,12 +56,12 @@ OWNER_ONLY_STATUSES = (
 MAX_ACTIVE_MEMBERS = 5
 
 
-async def find_hub(db: AsyncSession, hub_id: UUID, *, lock: bool = False) -> Hub:
+async def find_hub(db: AsyncSession, hub_id: UUID, viewer: User, *, lock: bool = False) -> Hub:
     query = select(Hub).where(Hub.id == hub_id).execution_options(populate_existing=True)
     if lock:
         query = query.with_for_update()
     hub = (await db.execute(query)).scalar_one_or_none()
-    if hub is None:
+    if hub is None or not in_viewers_world(hub, viewer):
         raise hub_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Hub not found.")
     return hub
 
@@ -75,10 +75,10 @@ async def find_membership(db: AsyncSession, hub_id: UUID, user_id: UUID) -> HubM
     return result.scalar_one_or_none()
 
 
-async def require_active_member(db: AsyncSession, hub_id: UUID, user_id: UUID) -> Hub:
+async def require_active_member(db: AsyncSession, hub_id: UUID, user: User) -> Hub:
     """The hub, if this person signed its agreement and is an active member."""
-    hub = await find_hub(db, hub_id)
-    membership = await find_membership(db, hub_id, user_id)
+    hub = await find_hub(db, hub_id, user)
+    membership = await find_membership(db, hub_id, user.id)
     if membership is None or membership.status != HubMemberStatus.ACTIVE:
         raise hub_error(
             status.HTTP_403_FORBIDDEN,
@@ -144,7 +144,7 @@ def invitation_not_found() -> HTTPException:
 async def get_hub_agreement(
     hub_id: UUID, current_user: CurrentUser, db: DbSession
 ) -> AgreementResponse:
-    hub = await find_hub(db, hub_id)
+    hub = await find_hub(db, hub_id, current_user)
     template = hub.agreement_template
     if template.published_at is None:
         # the database only lets a hub use a published template
@@ -166,7 +166,7 @@ async def get_hub_agreement(
 async def get_hub_idea(
     hub_id: UUID, current_user: CurrentUser, db: DbSession
 ) -> HubIdeaBriefResponse:
-    hub = await require_active_member(db, hub_id, current_user.id)
+    hub = await require_active_member(db, hub_id, current_user)
     if hub.idea.deleted_at is not None:
         raise hub_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Idea not found.")
     return HubIdeaBriefResponse(data=HubIdeaBrief.model_validate(hub.idea))
@@ -176,7 +176,7 @@ async def get_hub_idea(
 async def list_hub_members(
     hub_id: UUID, current_user: CurrentUser, db: DbSession
 ) -> HubMembersResponse:
-    hub = await require_active_member(db, hub_id, current_user.id)
+    hub = await require_active_member(db, hub_id, current_user)
     visible = [HubMemberStatus.ACTIVE]
     if hub.owner_id == current_user.id:
         visible.extend(OWNER_ONLY_STATUSES)
@@ -205,7 +205,7 @@ async def list_hub_members(
 async def invite_to_hub(
     hub_id: UUID, payload: InviteRequest, current_user: CurrentUser, db: DbSession
 ) -> HubMemberResponse:
-    hub = await find_hub(db, hub_id, lock=True)
+    hub = await find_hub(db, hub_id, current_user, lock=True)
     require_owner(hub, current_user.id)
     require_active_hub(hub)
     invitee = (
@@ -215,6 +215,7 @@ async def invite_to_hub(
             .where(
                 func.lower(User.username) == payload.username.lower(),
                 User.deleted_at.is_(None),
+                same_world(User.id, current_user),
             )
         )
     ).scalar_one_or_none()
@@ -262,7 +263,7 @@ async def invite_to_hub(
 async def withdraw_invitation(
     hub_id: UUID, user_id: UUID, current_user: CurrentUser, db: DbSession
 ) -> Response:
-    hub = await find_hub(db, hub_id, lock=True)
+    hub = await find_hub(db, hub_id, current_user, lock=True)
     require_owner(hub, current_user.id)
     member = await find_membership(db, hub.id, user_id)
     if member is None or member.status != HubMemberStatus.INVITED:
@@ -293,7 +294,7 @@ async def accept_invitation(
     current_user: CurrentUser,
     db: DbSession,
 ) -> HubResponse:
-    hub = await find_hub(db, hub_id, lock=True)
+    hub = await find_hub(db, hub_id, current_user, lock=True)
     member = await pending_invitation(db, hub, current_user.id)
     require_active_hub(hub)
     await require_room(db, hub)
@@ -341,7 +342,7 @@ async def accept_invitation(
 
 @router.post("/hubs/{hub_id}/invitation/decline", response_model=HubResponse)
 async def decline_invitation(hub_id: UUID, current_user: CurrentUser, db: DbSession) -> HubResponse:
-    hub = await find_hub(db, hub_id, lock=True)
+    hub = await find_hub(db, hub_id, current_user, lock=True)
     member = await pending_invitation(db, hub, current_user.id)
     member.status = HubMemberStatus.DECLINED
     await db.commit()
@@ -358,7 +359,7 @@ async def decline_invitation(hub_id: UUID, current_user: CurrentUser, db: DbSess
     "/hubs/{hub_id}/join-requests", response_model=HubResponse, status_code=status.HTTP_201_CREATED
 )
 async def request_to_join(hub_id: UUID, current_user: CurrentUser, db: DbSession) -> HubResponse:
-    hub = await find_hub(db, hub_id, lock=True)
+    hub = await find_hub(db, hub_id, current_user, lock=True)
     require_active_hub(hub)
     if hub.idea.status != IdeaStatus.OPEN or hub.idea.deleted_at is not None:
         raise hub_error(
@@ -424,7 +425,7 @@ async def pending_request(db: AsyncSession, hub: Hub, user_id: UUID) -> tuple[Hu
 async def approve_request(
     hub_id: UUID, user_id: UUID, current_user: CurrentUser, db: DbSession
 ) -> HubMemberResponse:
-    hub = await find_hub(db, hub_id, lock=True)
+    hub = await find_hub(db, hub_id, current_user, lock=True)
     require_owner(hub, current_user.id)
     require_active_hub(hub)
     member, requester = await pending_request(db, hub, user_id)
@@ -442,7 +443,7 @@ async def approve_request(
 async def decline_request(
     hub_id: UUID, user_id: UUID, current_user: CurrentUser, db: DbSession
 ) -> HubMemberResponse:
-    hub = await find_hub(db, hub_id, lock=True)
+    hub = await find_hub(db, hub_id, current_user, lock=True)
     require_owner(hub, current_user.id)
     member, requester = await pending_request(db, hub, user_id)
     member.status = HubMemberStatus.DECLINED

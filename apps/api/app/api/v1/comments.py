@@ -40,11 +40,13 @@ def _comment_error(code: int, error: str, message: str) -> HTTPException:
     return HTTPException(status_code=code, detail={"code": error, "message": message})
 
 
-async def _get_live_comment(comment_id: UUID, db: AsyncSession, *, lock: bool = False) -> Comment:
+async def _get_live_comment(
+    comment_id: UUID, db: AsyncSession, viewer: User, *, lock: bool = False
+) -> Comment:
     query = select(Comment).where(
         Comment.id == comment_id,
         Comment.deleted_at.is_(None),
-        Comment.post_id.in_(visible_posts().with_only_columns(Post.id)),
+        Comment.post_id.in_(visible_posts(viewer).with_only_columns(Post.id)),
     )
     if lock:
         query = query.with_for_update(of=Comment)
@@ -112,7 +114,7 @@ async def create_comment(
     current_user: CurrentUser,
     db: DbSession,
 ) -> CommentItemResponse:
-    await get_visible_post(post_id, db, lock=True)
+    await get_visible_post(post_id, db, current_user, lock=True)
     comment = Comment(id=uuid4(), post_id=post_id, author_id=current_user.id, body=payload.body)
     if payload.parent_id is None:
         comment.root_id = comment.id
@@ -152,7 +154,7 @@ async def list_comments(
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> TopLevelCommentListResponse:
-    await get_visible_post(post_id, db)
+    await get_visible_post(post_id, db, current_user)
     top, next_offset = await _page(
         select(Comment)
         .where(Comment.post_id == post_id, Comment.parent_id.is_(None), LISTED)
@@ -205,7 +207,7 @@ async def list_replies(
         select(Comment.id).where(
             Comment.id == comment_id,
             LISTED,
-            Comment.post_id.in_(visible_posts().with_only_columns(Post.id)),
+            Comment.post_id.in_(visible_posts(current_user).with_only_columns(Post.id)),
         )
     )
     if listed is None:
@@ -233,7 +235,7 @@ async def get_thread(
         select(Comment).where(
             Comment.id == comment_id,
             LISTED,
-            Comment.post_id.in_(visible_posts().with_only_columns(Post.id)),
+            Comment.post_id.in_(visible_posts(current_user).with_only_columns(Post.id)),
         )
     )
     if top is None:
@@ -262,7 +264,9 @@ async def get_thread(
 async def get_comment(
     comment_id: UUID, current_user: CurrentUser, db: DbSession
 ) -> CommentItemResponse:
-    return await _comment_item(await _get_live_comment(comment_id, db), current_user.id, db)
+    return await _comment_item(
+        await _get_live_comment(comment_id, db, current_user), current_user.id, db
+    )
 
 
 @router.patch("/comments/{comment_id}", response_model=CommentItemResponse)
@@ -272,7 +276,7 @@ async def update_comment(
     current_user: CurrentUser,
     db: DbSession,
 ) -> CommentItemResponse:
-    comment = await _get_live_comment(comment_id, db, lock=True)
+    comment = await _get_live_comment(comment_id, db, current_user, lock=True)
     if comment.author_id != current_user.id:
         raise _comment_error(403, "NOT_COMMENT_AUTHOR", "Only the author may edit this comment")
     comment.body = payload.body
@@ -285,9 +289,9 @@ async def update_comment(
 async def delete_comment(comment_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
     # The delete's count trigger updates the post, so lock the post before the comment, the
     # same order as a reply, or the two can deadlock.
-    post_id = (await _get_live_comment(comment_id, db)).post_id
+    post_id = (await _get_live_comment(comment_id, db, current_user)).post_id
     await db.execute(select(Post.id).where(Post.id == post_id).with_for_update())
-    comment = await _get_live_comment(comment_id, db, lock=True)
+    comment = await _get_live_comment(comment_id, db, current_user, lock=True)
     if comment.author_id == current_user.id:
         reason = DeletionReason.AUTHOR
     elif current_user.platform_role in (PlatformRole.MODERATOR, PlatformRole.ADMIN):
@@ -303,18 +307,18 @@ async def delete_comment(comment_id: UUID, current_user: CurrentUser, db: DbSess
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-async def _set_like(comment_id: UUID, user_id: UUID, db: AsyncSession, *, on: bool) -> Response:
+async def _set_like(comment_id: UUID, user: User, db: AsyncSession, *, on: bool) -> Response:
     # The lock makes a like that races a delete of the comment answer 404, not a trigger error.
-    await _get_live_comment(comment_id, db, lock=True)
+    await _get_live_comment(comment_id, db, user, lock=True)
     if on:
         statement = (
             pg_insert(CommentLike)
-            .values(comment_id=comment_id, user_id=user_id)
+            .values(comment_id=comment_id, user_id=user.id)
             .on_conflict_do_nothing()
         )
     else:
         statement = delete(CommentLike).where(
-            CommentLike.comment_id == comment_id, CommentLike.user_id == user_id
+            CommentLike.comment_id == comment_id, CommentLike.user_id == user.id
         )
     await db.execute(statement)
     await db.commit()
@@ -323,9 +327,9 @@ async def _set_like(comment_id: UUID, user_id: UUID, db: AsyncSession, *, on: bo
 
 @router.put("/comments/{comment_id}/like", status_code=status.HTTP_204_NO_CONTENT)
 async def like_comment(comment_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_like(comment_id, current_user.id, db, on=True)
+    return await _set_like(comment_id, current_user, db, on=True)
 
 
 @router.delete("/comments/{comment_id}/like", status_code=status.HTTP_204_NO_CONTENT)
 async def unlike_comment(comment_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_like(comment_id, current_user.id, db, on=False)
+    return await _set_like(comment_id, current_user, db, on=False)

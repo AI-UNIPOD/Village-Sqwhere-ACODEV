@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, same_world
 from app.api.v1.verifications import session_options, session_to_response
 from app.models.users import UserRole, VerificationSession, VerificationStatus
 from app.schemas.verification import (
@@ -39,6 +39,7 @@ async def get_review_case(
             VerificationSession.status == VerificationStatus.AWAITING_REVIEW,
             VerificationSession.role_id.in_(role_ids),
             VerificationSession.user_id != current_user.id,
+            same_world(VerificationSession.user_id, current_user),
         )
     )
     if lock:
@@ -68,6 +69,7 @@ async def list_review_queue(
             VerificationSession.status == VerificationStatus.AWAITING_REVIEW,
             VerificationSession.role_id.in_(role_ids),
             VerificationSession.user_id != current_user.id,
+            same_world(VerificationSession.user_id, current_user),
         )
         .order_by(VerificationSession.created_at.asc())
         .offset(offset)

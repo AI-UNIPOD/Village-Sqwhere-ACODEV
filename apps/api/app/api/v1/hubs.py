@@ -25,7 +25,7 @@ from app.schemas.hubs import (
     HubResponse,
     MyHubsStatus,
 )
-from app.services.hubs import current_agreement_template, hub_card, load_hub
+from app.services.hubs import current_agreement_template, hub_card, in_viewers_world, load_hub
 
 router = APIRouter()
 
@@ -184,6 +184,6 @@ async def list_my_hubs(
 async def get_hub(hub_id: UUID, current_user: CurrentUser, db: DbSession) -> HubResponse:
     # Any signed-in user sees the card, so they can ask to join. Archived hubs stay readable.
     hub = await load_hub(db, hub_id)
-    if hub is None:
+    if hub is None or not in_viewers_world(hub, current_user):
         raise hub_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Hub not found.")
     return HubResponse(data=await hub_card(db, hub, current_user.id))

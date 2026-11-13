@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -156,6 +156,17 @@ async def get_current_user(
     if user.is_demo:
         refuse_demo(request.method)
     return user
+
+
+def same_world(user_id: ColumnElement[UUID], viewer: User) -> ColumnElement[bool]:
+    """Demo content is for demo accounts only, and demo accounts see only demo content.
+
+    Anyone can sign in to the demo, so this keeps real developers' work out of it and the
+    made-up developers out of everyone else's lists. Apply it to the user behind every shared
+    row a list or read returns. docs/decisions/2026-11-13-read-only-demo.md
+    """
+    demo_ids = select(User.id).where(User.is_demo)
+    return user_id.in_(demo_ids) if viewer.is_demo else user_id.not_in(demo_ids)
 
 
 def demo_switched_off() -> HTTPException:
