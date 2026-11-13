@@ -50,8 +50,12 @@ def _visible_posts() -> Select[tuple[Post]]:
     return select(Post).where(Post.deleted_at.is_(None), Post.hub_id.is_(None))
 
 
-async def _get_visible_post(post_id: UUID, db: AsyncSession) -> Post:
-    post = (await db.execute(_visible_posts().where(Post.id == post_id))).scalar_one_or_none()
+async def _get_visible_post(post_id: UUID, db: AsyncSession, *, lock: bool = False) -> Post:
+    query = _visible_posts().where(Post.id == post_id)
+    if lock:
+        # A write that waits on a concurrent delete then sees the post gone and answers 404.
+        query = query.with_for_update()
+    post = (await db.execute(query)).scalar_one_or_none()
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -205,7 +209,7 @@ async def update_post(
     current_user: CurrentUser,
     db: DbSession,
 ) -> PostItemResponse:
-    post = await _get_visible_post(post_id, db)
+    post = await _get_visible_post(post_id, db, lock=True)
     if post.author_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -243,7 +247,7 @@ async def delete_post(
     current_user: CurrentUser,
     db: DbSession,
 ) -> Response:
-    post = await _get_visible_post(post_id, db)
+    post = await _get_visible_post(post_id, db, lock=True)
 
     if post.author_id == current_user.id:
         reason = DeletionReason.AUTHOR
