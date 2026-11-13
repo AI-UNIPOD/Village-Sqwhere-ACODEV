@@ -1223,7 +1223,7 @@ The Developer Exchange allows developers to share knowledge, questions, releases
 | :--- | :--- | :--- |
 | `POST_NOT_FOUND` | 404 | Post does not exist, is soft-deleted, or belongs to a hub |
 | `NOT_POST_AUTHOR` | 403 | Attempt to edit or delete another user's post |
-| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Attempt to create a post with `type = "hub_milestone"` |
+| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Creating a post with `type = "hub_milestone"`, or asking the post list for that type |
 | `UNKNOWN_TOPIC` | 422 | A topic slug does not exist in the technologies table |
 | `EMPTY_UPDATE` | 422 | PATCH body contains no fields |
 | `TOO_MANY_TOPICS` | 422 | More than 5 topics submitted |
@@ -1342,7 +1342,8 @@ List visible posts, newest first. Deleted posts and hub posts never appear.
 
 * **Authentication:** Required (Bearer token)
 * **Query parameters (all optional, combine freely):**
-  * `type`: one post type, for example `question`. An unknown type returns 422.
+  * `type`: one post type, for example `question`. An unknown type returns 422, and
+    `type=hub_milestone` returns 422 `HUB_MILESTONE_NOT_SUPPORTED`, the same as creating one.
   * `topic`: a technology slug, for example `python`. Repeat it to match any of several:
     `?topic=python&topic=react`. A post appears once if it has any of them, and a request
     may give at most 10 topics.

@@ -566,7 +566,16 @@ def test_list_posts_pages_newest_first_and_hides_deleted_and_hub_posts(
     last = client.get("/v1/posts", headers=auth, params={"limit": 2, "offset": 2})
     assert _bodies(last) == ["Lagos"]
     assert last.json()["next_offset"] is None
-    assert _bodies(client.get("/v1/posts", headers=auth, params={"type": "hub_milestone"})) == []
+
+
+def test_list_posts_refuses_the_hub_milestone_type(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    resp = client.get("/v1/posts", headers=auth, params={"type": "hub_milestone"})
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == {
+        "code": "HUB_MILESTONE_NOT_SUPPORTED",
+        "message": "Hub milestone posts are not supported yet",
+    }
 
 
 def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in) -> None:

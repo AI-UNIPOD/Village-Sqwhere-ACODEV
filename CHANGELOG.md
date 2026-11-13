@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- fix(api): refuse a hub milestone filter on the post list (#128)
 - feat(api): filter posts by several topics (#127)
 - feat(web): show the wait after a decline as the page opens (#132)
 - feat(api): show on the hub card when a developer may ask again (#130)
