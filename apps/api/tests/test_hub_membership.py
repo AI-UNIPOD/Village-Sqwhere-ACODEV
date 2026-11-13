@@ -249,16 +249,23 @@ def test_two_answers_at_once_leave_one_consistent_result() -> None:
 
     reinvite, accepted, withdrawn = asyncio.run(at_once())
 
-    assert reinvite.status_code == 409
+    # The three wait on the hub's lock in whatever order they arrive, so check what holds in
+    # every order: each answer is a real one, and the stored state agrees with the answers.
+    assert reinvite.status_code in (201, 409)
+    assert accepted.status_code in (200, 404)
+    assert withdrawn.status_code in (204, 404)
+    if reinvite.status_code == 201:
+        assert withdrawn.status_code == 204  # only a withdrawn invitation can be sent again
     stored = membership(hub, invitee)
     if accepted.status_code == 200:
-        assert withdrawn.status_code == 404
         assert stored.status == HubMemberStatus.ACTIVE
         assert len(signatures(hub, invitee)) == 1
     else:
-        assert (accepted.status_code, withdrawn.status_code) == (404, 204)
-        assert stored is None
         assert signatures(hub, invitee) == []
+        if reinvite.status_code == 201:
+            assert stored.status == HubMemberStatus.INVITED
+        else:
+            assert stored is None
 
 
 @pytest.mark.parametrize(
