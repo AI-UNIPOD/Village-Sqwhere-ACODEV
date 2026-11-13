@@ -18,6 +18,7 @@ import village from "../village/village.module.css";
 import { BriefSection } from "./brief";
 import { copy } from "./copy";
 import { loadHub, type Hub } from "./hubs-api";
+import { WithdrawRequest, WithdrawnLine, type WithdrawOutcome } from "./withdraw-request";
 import styles from "./hubs.module.css";
 import { HubsSkeleton, MissingHub } from "./my-hubs";
 import { InvitationCard, Person, Team } from "./team";
@@ -27,12 +28,19 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
   // undefined while loading, null when there is no such hub (or the address has no id)
   const [hub, setHub] = useState<Hub | null | undefined>(id ? undefined : null);
   const [failure, setFailure] = useState<Error | null>(null);
+  // the developer took their request back on this page, or tried to after the owner answered
+  const [withdrawal, setWithdrawal] = useState<WithdrawOutcome | null>(null);
 
   useEffect(() => {
     if (!id) return;
     let live = true;
     loadHub(id).then(
-      (found) => live && setHub(found),
+      (found) => {
+        if (!live) return;
+        setHub(found);
+        // the page was left and shown again: what happened on the last visit is no longer news
+        setWithdrawal(null);
+      },
       (error: unknown) => {
         if (!live || error instanceof SignedOutError) return;
         if (error instanceof IdeaError && (error.status === 404 || error.status === 422)) setHub(null);
@@ -89,8 +97,22 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
         </p>
       )}
       {status === "invited" && <InvitationCard lang={lang} hub={hub} onChange={setHub} />}
-      {status === "requested" && <p className={ideas.lead}>{t.ask.asked}</p>}
-      {status === "declined" && <p className={ideas.lead}>{t.declinedNote}</p>}
+      {withdrawal && <WithdrawnLine lang={lang} outcome={withdrawal} />}
+      {status === "requested" && (
+        <>
+          <p className={ideas.lead}>{t.ask.asked}</p>
+          <WithdrawRequest
+            lang={lang}
+            hubId={hub.id}
+            onDone={(card, outcome) => {
+              setHub(card);
+              setWithdrawal(outcome);
+            }}
+          />
+        </>
+      )}
+      {/* after a withdrawal the line above has said it: nobody declined */}
+      {status === "declined" && withdrawal !== "withdrawn" && <p className={ideas.lead}>{t.declinedNote}</p>}
       {!isMember && status !== "invited" && status !== "requested" && status !== "declined" && <p className={ideas.lead}>{t.notMember}</p>}
       {hub.description && <p className={styles.text}>{hub.description}</p>}
 

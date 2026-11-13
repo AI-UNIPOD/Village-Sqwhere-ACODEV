@@ -92,6 +92,10 @@ export const loadRequests = async () => (await call<{ data: Hub[] }>("/v1/me/hub
 // Answers with the hub card, whose `viewer.membership_status` is now "requested".
 export const askToJoin = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/join-requests`, "POST")).data;
 
+// The developer takes back a request the owner has not answered. Answers with the hub card,
+// whose `viewer.membership_status` is then "declined", with no wait before asking again.
+export const withdrawRequest = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/join-request/withdraw`, "POST")).data;
+
 // The owner answers a request. Approving makes it an invitation (the member card says "invited"),
 // which the developer then signs; declining makes it "declined".
 export const approveRequest = async (id: string, userId: string) =>

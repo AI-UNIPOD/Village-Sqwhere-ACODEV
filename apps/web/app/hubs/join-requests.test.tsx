@@ -401,3 +401,92 @@ test("a hub opened by someone who asked says so, and shows nothing private", asy
   expect(screen.queryByText("You are not a member of this hub.")).toBeNull();
   expect(asked().filter((call) => /\/(idea|members)$/.test(call))).toEqual([]);
 });
+
+// ---------- taking a request back ----------
+
+const withdraw = "POST /v1/hubs/hub-1/join-request/withdraw";
+const withdrawn = { data: hub({ viewer: { membership_status: "declined", member_role: "member", can_ask_again_at: null } }) };
+const takeBack = () => screen.findByRole("button", { name: "Withdraw my request" });
+
+test("a developer who asked can take the request back, with no question, and may ask again at once", async () => {
+  await view(placed("requested"), { [withdraw]: withdrawn });
+  fireEvent.click(await takeBack());
+  const line = await screen.findByText("You withdrew your request. You can ask again whenever you like.");
+  expect(line.getAttribute("role")).toBe("status");
+  // the button that was pressed is gone, so the place moves to the sentence
+  await waitFor(() => expect(document.activeElement).toBe(line));
+  expect(posted()).toEqual([["/v1/hubs/hub-1/join-request/withdraw", null]]);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("You asked to join. The owner will answer.")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Withdraw my request" })).toBeNull();
+  // nobody declined, so there is no wait
+  expect(await ask()).toBeTruthy();
+});
+
+test("asking again after taking a request back drops the line about it", async () => {
+  await view(placed("requested"), { [withdraw]: withdrawn, "POST /v1/hubs/hub-1/join-requests": reply(201, { data: hub(placed("requested")) }) });
+  fireEvent.click(await takeBack());
+  fireEvent.click(await ask());
+  expect(await screen.findByText("You asked to join. The owner will answer.")).toBeTruthy();
+  expect(screen.queryByText(/You withdrew your request/)).toBeNull();
+  expect(await takeBack()).toBeTruthy();
+});
+
+test("a second press while the withdrawal is on its way sends nothing more", async () => {
+  await view(placed("requested"), { [withdraw]: withdrawn });
+  const button = await takeBack();
+  fireEvent.click(button);
+  fireEvent.click(button);
+  expect(button.getAttribute("aria-busy")).toBe("true");
+  await screen.findByText(/You withdrew your request/);
+  expect(posted()).toHaveLength(1);
+});
+
+test("when the owner answered first, the page reads the hub again and shows where the developer stands", async () => {
+  await view(null, {
+    "GET /v1/hubs/hub-1": [{ data: hub(placed("requested")) }, { data: hub(placed("invited")) }],
+    [withdraw]: refusal(404, "REQUEST_NOT_FOUND"),
+  });
+  fireEvent.click(await takeBack());
+  expect(await screen.findByText("The owner had already answered. This is where you stand now.")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Read and sign" }).getAttribute("href")).toBe("/en/hubs/join?id=hub-1");
+  expect(screen.queryByRole("button", { name: "Withdraw my request" })).toBeNull();
+});
+
+test("a withdrawal that fails says so and leaves the request and the button", async () => {
+  await view(placed("requested"), { [withdraw]: refusal(500, "BOOM") });
+  fireEvent.click(await takeBack());
+  expect((await screen.findByRole("alert")).textContent).toContain("That did not go through. Nothing was changed, so try again.");
+  expect(screen.getByText("You asked to join. The owner will answer.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Withdraw my request" }).getAttribute("aria-busy")).toBeNull();
+});
+
+test("taking a request back is in French", async () => {
+  await view(placed("requested"), { [withdraw]: withdrawn }, {}, "fr");
+  fireEvent.click(await screen.findByRole("button", { name: "Retirer ma demande" }));
+  expect(await screen.findByText("Vous avez retiré votre demande. Vous pouvez redemander quand vous voulez.")).toBeTruthy();
+});
+
+test("the hub's page offers it too, and after it says the request was withdrawn, not that someone declined", async () => {
+  nav.search = "id=hub-1";
+  api({ "GET /v1/hubs/hub-1": { data: hub(placed("requested")) }, [withdraw]: withdrawn });
+  render(<HubPage lang="en" />);
+  fireEvent.click(await takeBack());
+  const line = await screen.findByText("You withdrew your request. You can ask again whenever you like.");
+  await waitFor(() => expect(document.activeElement).toBe(line));
+  expect(screen.queryByText("You asked to join. The owner will answer.")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Withdraw my request" })).toBeNull();
+  expect(screen.queryByText(/declined/i)).toBeNull();
+});
+
+test("on the hub's page, an owner who answered first is shown as the answer it was", async () => {
+  nav.search = "id=hub-1";
+  api({
+    "GET /v1/hubs/hub-1": [{ data: hub(placed("requested")) }, { data: hub(placed("declined")) }],
+    [withdraw]: refusal(404, "REQUEST_NOT_FOUND"),
+  });
+  render(<HubPage lang="en" />);
+  fireEvent.click(await takeBack());
+  expect(await screen.findByText("The owner had already answered. This is where you stand now.")).toBeTruthy();
+  expect(screen.getByText(/declined/i)).toBeTruthy();
+});

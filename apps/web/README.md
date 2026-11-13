@@ -64,6 +64,8 @@ has a hub (`hubs/ask-to-join.tsx`, `POST /v1/hubs/{id}/join-requests`). The page
 hub's card to know whether the viewer already asked, is invited or is a member. The owner
 answers in the hub's team list with Approve or Decline; approving makes it an invitation, signed
 on the join page. "Your hubs" lists a developer's own requests under "Waiting for the owner".
+A developer can take a waiting request back on the idea's page or the hub's page
+(`hubs/withdraw-request.tsx`, `POST /v1/hubs/{id}/join-request/withdraw`).
 After a decline the developer waits before asking again: the date the wait ends replaces the
 button, read from the hub's card (`viewer.can_ask_again_at`) or from a press that was too soon
 (409 `REQUEST_COOLING_DOWN`).
