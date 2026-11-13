@@ -9,6 +9,15 @@ from app.models.hubs import (
 )
 from app.models.ideas import Idea, IdeaRoleNeed, IdeaStage, IdeaStatus
 from app.models.lookups import Base, Role, Technology
+from app.models.posts import (
+    DeletionReason,
+    Post,
+    PostLike,
+    PostRevision,
+    PostTopic,
+    PostType,
+    SavedPost,
+)
 from app.models.users import (
     AuthProvider,
     InterviewStatus,
@@ -29,6 +38,7 @@ __all__ = [
     "AgreementTemplate",
     "AuthProvider",
     "Base",
+    "DeletionReason",
     "Hub",
     "HubMember",
     "HubMemberRole",
@@ -40,7 +50,13 @@ __all__ = [
     "IdeaStatus",
     "InterviewStatus",
     "PlatformRole",
+    "Post",
+    "PostLike",
+    "PostRevision",
+    "PostTopic",
+    "PostType",
     "Role",
+    "SavedPost",
     "Technology",
     "User",
     "UserFeedTopic",
