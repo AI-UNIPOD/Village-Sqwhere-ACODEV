@@ -105,3 +105,9 @@ export const loadOpenIdeas = (offset = 0) =>
 
 export const loadOpenIdea = async (id: string) =>
   (await call<{ data: PublicIdea }>(`/v1/ideas/${encodeURIComponent(id)}`)).data;
+
+// An open idea that needs the signed-in developer, with the verified roles of theirs it needs.
+export type IdeaMatch = { idea: PublicIdea; matched_roles: { slug: string; name: string }[] };
+
+export const loadIdeasForMe = (offset = 0) =>
+  call<{ data: IdeaMatch[]; next_offset: number | null }>(`/v1/me/matches?offset=${offset}&limit=20`);

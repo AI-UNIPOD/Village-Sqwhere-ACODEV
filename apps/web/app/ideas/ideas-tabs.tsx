@@ -4,11 +4,12 @@ import type { Lang } from "../locales";
 import { copy } from "./copy";
 import styles from "./ideas.module.css";
 
-// The two idea pages are siblings: everyone's open ideas, and your own.
-export function IdeasTabs({ lang, current }: { lang: Lang; current: "open" | "mine" }) {
+// The idea pages are siblings: everyone's open ideas, the ones that need you, and your own.
+export function IdeasTabs({ lang, current }: { lang: Lang; current: "open" | "for-you" | "mine" }) {
   const t = copy[lang].browse;
   const tabs = [
     { id: "open", href: `/${lang}/ideas`, label: t.tabOpen },
+    { id: "for-you", href: `/${lang}/ideas/for-you`, label: t.tabForYou },
     { id: "mine", href: `/${lang}/ideas/mine`, label: t.tabMine },
   ];
   return (
