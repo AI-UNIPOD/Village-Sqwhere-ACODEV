@@ -6,7 +6,7 @@ change to memberships locks the hub row first, so an invitation cannot be withdr
 is being accepted, and two invitations to one person cannot both be saved.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
@@ -51,9 +51,19 @@ OWNER_ONLY_STATUSES = (
     HubMemberStatus.DECLINED,
 )
 
+# How long a turned-down developer waits before asking the same hub again: a short wait after
+# each decline, a long one after a run of them. docs/decisions/2026-11-13-hub-join-requests.md
+SHORT_WAIT = timedelta(hours=48)
+LONG_WAIT = timedelta(days=30)
+DECLINES_BEFORE_LONG_WAIT = 5
+
 # The most active members a hub has, the owner included. The web app shows the same limit
 # (TEAM_MAX in apps/web/app/hubs/team.tsx). Why five: docs/decisions/2026-11-13-hub-team-cap.md
 MAX_ACTIVE_MEMBERS = 5
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
 
 
 async def find_hub(db: AsyncSession, hub_id: UUID, viewer: User, *, lock: bool = False) -> Hub:
@@ -332,6 +342,7 @@ async def accept_invitation(
     member.signature = signature
     member.status = HubMemberStatus.ACTIVE
     member.joined_at = datetime.now(UTC)
+    member.declines_in_a_row, member.can_ask_again_at = 0, None
     # the database checks the signature belongs to this hub and person, and saves both or neither
     await db.commit()
 
@@ -384,6 +395,17 @@ async def request_to_join(hub_id: UUID, current_user: CurrentUser, db: DbSession
             "ALREADY_REQUESTED",
             "You already asked to join. The owner will answer.",
         )
+    if member is not None and member.can_ask_again_at and member.can_ask_again_at > _now():
+        when = member.can_ask_again_at
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "REQUEST_COOLING_DOWN",
+                "message": f"The owner turned down your last request. You can ask again from "
+                f"{when:%d %B %Y, %H:%M} UTC.",
+                "can_ask_again_at": when.isoformat(),
+            },
+        )
     await require_room(db, hub)
     if member is None:
         db.add(
@@ -434,6 +456,7 @@ async def approve_request(
     # POST /v1/hubs/{hub_id}/invitation/accept, the same as anyone the owner invites.
     member.status = HubMemberStatus.INVITED
     member.invited_by = current_user.id
+    member.declines_in_a_row, member.can_ask_again_at = 0, None
     await db.commit()
     await db.refresh(member)
     return HubMemberResponse(data=member_card(member, requester))
@@ -447,6 +470,12 @@ async def decline_request(
     require_owner(hub, current_user.id)
     member, requester = await pending_request(db, hub, user_id)
     member.status = HubMemberStatus.DECLINED
+    member.declines_in_a_row += 1
+    if member.declines_in_a_row >= DECLINES_BEFORE_LONG_WAIT:
+        # the long wait ends the run, so the next decline after it is a short wait again
+        member.declines_in_a_row, member.can_ask_again_at = 0, _now() + LONG_WAIT
+    else:
+        member.can_ask_again_at = _now() + SHORT_WAIT
     await db.commit()
     await db.refresh(member)
     return HubMemberResponse(data=member_card(member, requester))

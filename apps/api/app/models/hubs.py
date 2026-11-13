@@ -17,6 +17,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
+    SmallInteger,
     Text,
     UniqueConstraint,
     func,
@@ -224,6 +225,13 @@ class HubMember(Base):
     )
     joined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     left_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # the join request cool-down (infra/db/init/012-join-request-cooldown.sql)
+    declines_in_a_row: Mapped[int] = mapped_column(
+        SmallInteger, server_default=text("0"), nullable=False
+    )
+    can_ask_again_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # set by the hub_members_set_updated_at trigger
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
