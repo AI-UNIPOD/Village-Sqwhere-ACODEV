@@ -66,7 +66,7 @@ function api(get: Response, post?: Response | Error) {
 }
 
 const posts = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
-const notes = () => screen.getByRole("textbox", { name: "Your notes for the applicant" }) as HTMLTextAreaElement;
+const notes = () => screen.getByRole("textbox", { name: "Your notes for the developer" }) as HTMLTextAreaElement;
 const dialog = () => document.querySelector("dialog")!;
 
 beforeEach(() => {
@@ -185,14 +185,14 @@ test("a case whose AI result is the wrong shape does not break the page", async 
 test.each(["Pass", "Do not pass"])("%s with empty notes shows the field error and focuses the field", async (button) => {
   await opened();
   fireEvent.click(screen.getByRole("button", { name: button }));
-  expect(screen.getByText("Write a few lines for the applicant first.")).toBeTruthy();
+  expect(screen.getByText("Write a few lines for the developer first.")).toBeTruthy();
   expect(document.activeElement).toBe(notes());
   expect(notes().getAttribute("aria-invalid")).toBe("true");
   expect(dialog().hasAttribute("open")).toBe(false);
   expect(posts()).toHaveLength(0);
 
   fireEvent.change(notes(), { target: { value: "Fine work." } });
-  expect(screen.queryByText("Write a few lines for the applicant first.")).toBeNull();
+  expect(screen.queryByText("Write a few lines for the developer first.")).toBeNull();
 });
 
 test("the counter appears only past 1800 characters", async () => {
