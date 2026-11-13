@@ -129,6 +129,12 @@ The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
 
+"Try the demo" on the landing page (`landing/demo-button.tsx`, `session/demo.ts`) signs in as the
+shared demo account with `POST /v1/auth/demo` and opens the village. The account can change
+nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that
+answer for every screen, and `AppFrame` shows the demo account a line under the header that
+says what the demo is, says so when a change was refused, and offers the way out.
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is

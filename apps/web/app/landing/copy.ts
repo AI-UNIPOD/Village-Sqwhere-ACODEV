@@ -11,7 +11,8 @@ type Copy = {
   signIn: string;
   signOut: string;
   soon: string;
-  demoNote: string;
+  /** Under "Try the demo": what it is, then how opening it is going. */
+  demo: { idle: string; opening: string; unavailable: string; network: string; failed: string };
   tourNote: string;
   switchText: string;
   switchLabel: string;
@@ -50,7 +51,13 @@ const en: Copy = {
   signIn: "Sign in",
   signOut: "Sign out",
   soon: "Coming soon",
-  demoNote: "The demo is coming soon.",
+  demo: {
+    idle: "No sign-up. Look at everything, change nothing.",
+    opening: "Opening the demo",
+    unavailable: "The demo is not available right now. You can still sign in with GitHub.",
+    network: "We couldn't reach Village Sqwhere. Check your connection and try again.",
+    failed: "The demo did not open. Try again.",
+  },
   tourNote: "The guided tour is coming soon.",
   switchText: "FR",
   switchLabel: "Passer en français",
@@ -113,7 +120,13 @@ const fr: Copy = {
   signIn: "Connexion",
   signOut: "Déconnexion",
   soon: "Bientôt disponible",
-  demoNote: "La démo arrive bientôt.",
+  demo: {
+    idle: "Sans inscription. Regardez tout, sans rien modifier.",
+    opening: "Ouverture de la démo",
+    unavailable: "La démo n'est pas disponible pour le moment. Vous pouvez toujours vous connecter avec GitHub.",
+    network: "Nous n'avons pas pu joindre Village Sqwhere. Vérifiez votre connexion et réessayez.",
+    failed: "La démo ne s'est pas ouverte. Réessayez.",
+  },
   tourNote: "La visite guidée arrive bientôt.",
   switchText: "EN",
   switchLabel: "Switch to English",
