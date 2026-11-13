@@ -105,9 +105,11 @@ to sign-in. Only the tokens are stored; pages read the profile from `GET /v1/me`
 `app/globals.css` from [`docs/design-system/`](../../docs/design-system/README.md), and use
 `Logo` from `app/logo.tsx` for the logo and `Tooltip` from `app/tooltip.tsx` for icon buttons. See the root [CONTRIBUTING.md](../../CONTRIBUTING.md) for the team workflow.
 
-An address that matches no page shows a not-found page in the address's language:
-`app/[lang]/[...rest]` calls `notFound()` and `app/[lang]/not-found.tsx` renders it. An unknown
-language, like `/xx/page`, gets the English version: every page under `[lang]` calls `notFound()`
-for a language it does not know, and the root layout falls back to English. `global-not-found.tsx`
-is not used, because `[lang]/[...rest]` matches every address, so no address is left unmatched.
-Both use `app/page-not-found/`.
+An address that matches no page gets `app/global-not-found.tsx`: real HTML with a 404 status
+(`experimental.globalNotFound` in `next.config.ts`). Next builds that document once for every
+address, so it holds the page in each language, and a script that runs before first paint
+reads the language from the address; `globals.css` shows the matching one. An address with no
+known language, like `/xx` or `/ideas`, matches `app/[lang]`, whose pages call `notFound()`:
+`app/[lang]/not-found.tsx` draws the same page in English. Both use `app/page-not-found/`: the
+message, the address asked for, the ways back (`ways-out.tsx`) and the small scene
+(`gathering.tsx`). Why: `docs/decisions/2026-11-13-not-found-page.md`.
