@@ -130,7 +130,8 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
                   {id === "profile" && (
                     <Link
                       className={`${role ? landing.ghost : landing.btn} ${styles.action}`}
-                      href={`/${lang}/onboarding?step=role`}
+                      // the profile page changes a profile; onboarding makes the first one
+                      href={role ? `/${lang}/profile` : `/${lang}/onboarding?step=role`}
                     >
                       {role ? t.change : t.setUp}
                     </Link>

@@ -47,12 +47,10 @@
   animation: arrive var(--dur-reveal) var(--ease-out) both;
 }
 
+/* the pills always sit under the name, so every row reads the same way */
 .rowHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-3);
+  display: grid;
+  gap: var(--space-2);
 }
 
 .roleName {
