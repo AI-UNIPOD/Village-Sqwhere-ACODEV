@@ -42,6 +42,12 @@ Authorization: Bearer <access_token>
 ```
 If the token is missing, invalid, or expired, the API returns HTTP `401 Unauthorized`.
 
+### Validation Errors
+A request that breaks a field rule gets `422` with FastAPI's list in `detail`: each item has
+`type`, `loc`, `msg` and the `input` it refused. This body is escaped to ASCII (`"Santé"`),
+which every JSON parser reads as the same text. That way an input UTF-8 cannot hold, such as a
+lone `\ud800`, still gets its `422` instead of failing with a `500`.
+
 ---
 
 ## 3. Currently Implemented Endpoints
