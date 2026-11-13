@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 
+import { copy as appFrame } from "./app-frame-copy";
 import { copy as authCallback } from "./auth-callback/copy";
 import { copy as hubs } from "./hubs/copy";
 import { copy as ideas } from "./ideas/copy";
@@ -27,6 +28,7 @@ function strings(value: unknown): string[] {
 }
 
 const french = strings([
+  appFrame.fr,
   authCallback.fr,
   hubs.fr,
   ideas.fr,

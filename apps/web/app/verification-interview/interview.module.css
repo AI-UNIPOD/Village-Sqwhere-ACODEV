@@ -162,7 +162,7 @@
 /* ---------- the dock: the composer, or how the interview ended ---------- */
 .dock {
   position: sticky;
-  inset-block-end: 0;
+  inset-block-end: var(--app-bottom, 0px);
   margin-inline: calc(var(--gutter) * -1);
   padding: var(--space-3) var(--gutter);
   border-block-start: 1px solid var(--line);

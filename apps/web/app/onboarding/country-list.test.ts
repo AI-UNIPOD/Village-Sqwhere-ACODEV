@@ -27,7 +27,8 @@ test("the Continue and Skip row sticks to the bottom of the screen on a clean ba
   expect(declarations(onboarding, ".actions")).not.toMatch(/position/);
   const actions = declarations(onboarding, ".questionActions");
   expect(actions).toMatch(/position:\s*sticky/);
-  expect(actions).toMatch(/inset-block-end:\s*0/);
+  // the bottom of the screen, or the top of the places bar where a screen has one
+  expect(actions).toMatch(/inset-block-end:\s*var\(--app-bottom, 0px\)/);
   expect(actions).toMatch(/background:\s*var\(--bg\)/);
   expect(actions).toMatch(/border-block-start:\s*1px solid var\(--line\)/);
   expect(actions).toMatch(/padding:\s*var\(--space-3\) var\(--gutter\)/);

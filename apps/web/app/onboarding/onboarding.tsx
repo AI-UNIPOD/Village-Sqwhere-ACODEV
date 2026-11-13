@@ -130,7 +130,7 @@ export function Onboarding({ lang, profile }: { lang: Lang; profile: Profile }) 
   }
 
   return (
-    <AppFrame lang={lang} path="onboarding">
+    <AppFrame lang={lang} path="onboarding" bare>
       <main className={styles.main}>
         {n > 0 && (
           <div className={`${styles.column} ${styles.top}`}>

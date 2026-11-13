@@ -12,7 +12,7 @@ export function OnboardingSkeleton() {
   const lang = useLang();
   const t = copy[lang];
   return (
-    <AppFrame lang={lang} path="onboarding">
+    <AppFrame lang={lang} path="onboarding" bare>
       <main className={`${styles.column} ${styles.step}`} aria-busy="true">
         <p className={landing.srOnly} role="status">
           {t.loading}
