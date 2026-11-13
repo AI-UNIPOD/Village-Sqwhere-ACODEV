@@ -11,7 +11,7 @@ import hubsStyles from "../hubs/hubs.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { Check, Cross, Lightbulb, Lock } from "../onboarding/icons";
+import { Check, Lightbulb, Lock, X } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { ROLES } from "../onboarding/options";
 import { SignedOutError } from "../session/session";
@@ -20,12 +20,13 @@ import village from "../village/village.module.css";
 import { copy } from "./copy";
 import { loadMyIdeas, type OwnedIdea } from "./ideas-api";
 import styles from "./ideas.module.css";
+import { IdeasTabs } from "./ideas-tabs";
 
 // a draft is private, an open idea is live, a closed one is over
 const STATUS = {
   draft: { icon: Lock, state: "later" },
   open: { icon: Check, state: "done" },
-  closed: { icon: Cross, state: "later" },
+  closed: { icon: X, state: "later" },
 } as const;
 
 // Shown while ideas load: blocks where the cards will be.
@@ -142,6 +143,9 @@ function MyIdeasList({ lang }: { lang: Lang }) {
     <main className={`${onboarding.column} ${styles.main}`}>
       <h1 className={styles.title}>{t.mineTitle}</h1>
       <p className={styles.lead}>{t.mineLead}</p>
+      <div className={styles.toolbar}>
+        <IdeasTabs lang={lang} current="mine" />
+      </div>
       {message && (
         <p className={styles.done} role="status">
           <Check />

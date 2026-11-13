@@ -9,6 +9,7 @@ export type MeRole = {
   name: string;
   is_primary: boolean;
   verified_at: string | null;
+  verification: { attempts_used: number; attempts_remaining: number; latest_status: string | null };
 };
 
 export type Me = {

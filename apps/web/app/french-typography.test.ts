@@ -6,7 +6,10 @@ import { copy as ideas } from "./ideas/copy";
 import { copy as landing } from "./landing/copy";
 import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
+import { copy as reviews } from "./reviews/copy";
 import { copy as signIn } from "./sign-in/copy";
+import { copy as interview } from "./verification-interview/copy";
+import { copy as verification } from "./verification/copy";
 import { copy as village } from "./village/copy";
 
 // The special spaces and hyphen, written as character codes so this file holds no invisible
@@ -29,8 +32,11 @@ const french = strings([
   ideas.fr,
   landing.fr,
   onboarding.fr,
+  reviews.fr,
   signIn.fr,
+  verification.fr,
   village.fr,
+  interview.fr,
   ROLES.map((role) => [role.name.fr, role.hint.fr]),
   TECHNOLOGIES.map((tech) => tech.name.fr),
   TOPICS.map((topic) => topic.name.fr),
