@@ -121,7 +121,8 @@ loaded after the post, at `#comments`. The list gives each top-level comment its
 replies; "Show all N replies" loads the rest, and a reply's own replies open the same way, one
 level at a time (`GET /v1/comments/{id}/replies`). Indent stops at the third level. A deleted
 comment that still has replies is drawn as a placeholder with its replies under it. Comments
-are plain text. There is no like button on a comment yet.
+are plain text. A comment is liked like a post: the screen changes at once and the request
+follows (`PUT` and `DELETE /v1/comments/{id}/like`).
 
 The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack

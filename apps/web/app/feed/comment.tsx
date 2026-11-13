@@ -30,6 +30,7 @@ export type Tools = {
   arrived: string | null;
   reply: (to: PostComment, text: string) => Promise<Problem | null>;
   edit: (target: PostComment, text: string) => Promise<Problem | null>;
+  like: (target: PostComment) => void;
   ask: (target: PostComment) => void;
   showReplies: (from: Thread) => Promise<boolean>;
 };
@@ -106,7 +107,6 @@ export function CommentThread({ item, level, to }: { item: Thread; level: number
   const n = comment.reply_count;
   const showLabel =
     item.offset > 0 ? t.showMore : item.replies.length > 0 ? fill(t.showAll, { n }) : n === 1 ? t.showOne : fill(t.showSome, { n });
-  const likes = comment.like_count === 1 ? t.likeOne : t.likeMany;
 
   return (
     <li id={`comment-${comment.id}`} className={styles.item} tabIndex={-1} data-arrived={tools.arrived === comment.id || undefined}>
@@ -134,13 +134,16 @@ export function CommentThread({ item, level, to }: { item: Thread; level: number
             <p className={feed.body}>{comment.body}</p>
           )}
           <div className={feed.actions}>
-            {comment.like_count > 0 && (
-              <span className={styles.likes}>
-                <Heart />
-                <span aria-hidden="true">{comment.like_count}</span>
-                <span className={landing.srOnly}>{fill(likes, { n: comment.like_count })}</span>
-              </span>
-            )}
+            <button
+              type="button"
+              className={`${feed.action} ${feed.like}`}
+              aria-pressed={comment.liked_by_me}
+              aria-label={fill(copy[lang].likeCount, { n: comment.like_count })}
+              onClick={() => tools.like(comment)}
+            >
+              <Heart />
+              <span className={feed.count}>{comment.like_count}</span>
+            </button>
             <button
               type="button"
               id={replyButton}
