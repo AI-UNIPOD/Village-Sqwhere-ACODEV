@@ -94,6 +94,18 @@ type Copy = {
   declinedNote: string;
   joined: string;
   invitations: { heading: string; by: string };
+  // joining a hub by signing its agreement
+  join: {
+    pageTitle: string;
+    title: string;
+    lead: string;
+    frozen: string;
+    sign: string;
+    confirm: { title: string; confirm: string; cancel: string };
+    send: string;
+    noInvitation: Screen;
+    archived: Screen;
+  };
   // on an idea's card
   createHub: string;
   openHub: string;
@@ -258,6 +270,20 @@ const en: Copy = {
   declinedNote: "You declined the invitation to this hub.",
   joined: "You are in. The brief and the team are now open to you.",
   invitations: { heading: "Invitations", by: "Invited by {name}" },
+  join: {
+    pageTitle: "Join a hub | Village Sqwhere",
+    title: "Join {name}",
+    lead: "{owner} invited you to build {idea}. Read the terms and the agreement, then sign to join.",
+    frozen: "Every member signs these same terms. They cannot be changed.",
+    sign: "Sign and join",
+    confirm: { title: "Join this hub?", confirm: "Sign and join", cancel: "Go back" },
+    send: "We couldn't complete your signature. Nothing you typed was lost, so check your connection and try again.",
+    noInvitation: {
+      title: "There is no invitation to sign",
+      text: "You can only join a hub you were invited to. Ask the owner to invite you.",
+    },
+    archived: { title: "This hub is archived, so nobody can join.", text: "Nothing was signed." },
+  },
   createHub: "Create the hub",
   openHub: "Open the hub",
   loading: "Getting your hubs",
@@ -435,6 +461,20 @@ const fr: Copy = {
   declinedNote: "Vous avez refusé l'invitation à cet espace.",
   joined: "C'est fait, vous êtes dans l'équipe. Le brief et l'équipe vous sont maintenant ouverts.",
   invitations: { heading: "Invitations", by: "Invitation de {name}" },
+  join: {
+    pageTitle: "Rejoindre un espace | Village Sqwhere",
+    title: "Rejoindre {name}",
+    lead: "{owner} vous invite à construire {idea}. Lisez les conditions et l'accord, puis signez pour rejoindre l'espace.",
+    frozen: "Chaque membre signe ces mêmes conditions. Elles ne peuvent pas être modifiées.",
+    sign: "Signer et rejoindre",
+    confirm: { title: "Rejoindre cet espace\u202f?", confirm: "Signer et rejoindre", cancel: "Revenir" },
+    send: "Nous n'avons pas pu enregistrer votre signature. Rien de ce que vous avez saisi n'est perdu, vérifiez votre connexion et réessayez.",
+    noInvitation: {
+      title: "Aucune invitation à signer",
+      text: "On ne peut rejoindre qu'un espace où l'on est invité. Demandez au porteur de vous inviter.",
+    },
+    archived: { title: "Cet espace est archivé, personne ne peut donc le rejoindre.", text: "Rien n'a été signé." },
+  },
   createHub: "Créer l'espace",
   openHub: "Ouvrir l'espace",
   loading: "Chargement de vos espaces",

@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { AppFrame } from "../app-frame";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
-import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { ArrowLeft, Check } from "../onboarding/icons";
@@ -19,7 +18,7 @@ import { BriefSection } from "./brief";
 import { copy } from "./copy";
 import { loadHub, type Hub } from "./hubs-api";
 import styles from "./hubs.module.css";
-import { HubsSkeleton } from "./my-hubs";
+import { HubsSkeleton, MissingHub } from "./my-hubs";
 import { InvitationCard, Person, Team } from "./team";
 
 function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null; created: boolean; joined: boolean }) {
@@ -45,19 +44,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
   }, [id]);
 
   if (failure) throw failure;
-  if (hub === null) {
-    return (
-      <main className={`${onboarding.column} ${onboarding.step}`}>
-        <h1 className={onboarding.title}>{t.missingHub.title}</h1>
-        <p className={onboarding.why}>{t.missingHub.text}</p>
-        <div className={onboarding.actions}>
-          <Link className={landing.btn} href={`/${lang}/hubs`}>
-            {t.yourHubs}
-          </Link>
-        </div>
-      </main>
-    );
-  }
+  if (hub === null) return <MissingHub lang={lang} />;
   if (!hub) return <HubsSkeleton lang={lang} />;
 
   const isOwner = hub.viewer.member_role === "owner";
