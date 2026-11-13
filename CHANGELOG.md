@@ -11,6 +11,7 @@ its number:
 ## 2026-11-13
 
 - feat(api): add the feed and post lists (#90)
+- feat(api): cap a hub at five active members (#89)
 - feat(api): add posts crud endpoints (#88)
 - feat(web): add the developers who match your idea (#87)
 - feat(web): add the ideas that need you (#86)
