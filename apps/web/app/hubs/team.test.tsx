@@ -231,6 +231,29 @@ test("with five active members the invite form gives way to the full-team note",
   expect(screen.queryByRole("button", { name: "Send invite" })).toBeNull();
 });
 
+test("the owner is pointed to the developers who match the idea, beside the invite form, and nobody else is", async () => {
+  await open(asOwner, [owner()]);
+  const link = await screen.findByRole("link", { name: "Find developers who match this idea" });
+  expect(link.getAttribute("href")).toBe("/en/ideas/matches?id=idea-1");
+  // the link sits with the form, so it goes when the form does
+  cleanup();
+  const five = [owner(), member("a-one", "A One"), member("b-two", "B Two"), member("c-three", "C Three"), member("d-four", "D Four")];
+  await open(asOwner, five);
+  await screen.findByText("5 of 5 members");
+  expect(screen.queryByRole("link", { name: "Find developers who match this idea" })).toBeNull();
+  cleanup();
+  await open(asMember, [owner(), tendai]);
+  await screen.findByText("Tendai Moyo");
+  expect(screen.queryByRole("link", { name: "Find developers who match this idea" })).toBeNull();
+});
+
+test("the link to the matching developers is in French too", async () => {
+  await open(asOwner, [owner()], {}, "fr");
+  expect((await screen.findByRole("link", { name: "Trouver des développeurs qui correspondent à cette idée" })).getAttribute("href")).toBe(
+    "/fr/ideas/matches?id=idea-1",
+  );
+});
+
 test("the team's French is the same page, with a person's name in the button's name", async () => {
   await open(asOwner, [owner(), wanjiru], {}, "fr");
   expect(await screen.findByRole("button", { name: /^Retirer.\: Wanjiru Kamau$/ })).toBeTruthy();

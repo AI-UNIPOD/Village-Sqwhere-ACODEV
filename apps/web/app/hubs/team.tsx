@@ -26,7 +26,7 @@ import {
 } from "./hubs-api";
 import styles from "./hubs.module.css";
 
-const TEAM_MAX = 5;
+export const TEAM_MAX = 5;
 
 type TeamCopy = (typeof copy)[Lang]["team"];
 type Who = Pick<Member["user"], "username" | "display_name" | "is_verified">;
@@ -70,7 +70,7 @@ export function Person({ lang, user, role }: { lang: Lang; user: Who; role?: str
 }
 
 // What an invitation's refusal means, or null when it is a failure to report.
-function inviteMessage(error: unknown, t: TeamCopy): string | null {
+export function inviteMessage(error: unknown, t: TeamCopy): string | null {
   if (!(error instanceof IdeaError)) return null;
   if (error.status === 422) return t.errors.invalid;
   if (error.code === "USER_NOT_FOUND") return t.errors.notFound;
@@ -295,7 +295,12 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
         (active >= TEAM_MAX ? (
           <p className={styles.full}>{t.team.full}</p>
         ) : (
-          <InviteForm lang={lang} hubId={hub.id} onInvited={put} />
+          <>
+            <InviteForm lang={lang} hubId={hub.id} onInvited={put} />
+            <p className={styles.line}>
+              <Link href={`/${lang}/ideas/matches?id=${encodeURIComponent(hub.idea.id)}`}>{t.team.findMatches}</Link>
+            </p>
+          </>
         ))}
       <ConfirmDialog
         open={!!withdrawing}

@@ -45,8 +45,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    Systalink platform access, a deploy job in CI.
 4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-6. Web screens next: the owner's list of developers who match an idea. Also a server-rendered
-   404 and a French-speaking teammate's check of the copy.
+6. Web next: a server-rendered 404 and a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
 8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);

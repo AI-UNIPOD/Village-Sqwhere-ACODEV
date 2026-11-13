@@ -87,13 +87,20 @@ function IdeaCard({ lang, idea, hubs }: { lang: Lang; idea: OwnedIdea; hubs: Rec
         {fill(t.updated, { date: new Date(idea.updated_at).toLocaleDateString(lang, { dateStyle: "medium" }) })}
       </p>
       {/* an open idea leads to its hub: the one it has, or the form that creates it */}
-      {idea.status === "open" && hubs && (
-        <Link
-          className={hubsStyles.cardLink}
-          href={hubId ? `/${lang}/hubs/view?id=${hubId}` : `/${lang}/hubs/new?idea=${idea.id}`}
-        >
-          {hubId ? hubsCopy[lang].openHub : hubsCopy[lang].createHub}
-        </Link>
+      {idea.status === "open" && (
+        <div className={styles.cardLinks}>
+          {hubs && (
+            <Link
+              className={hubsStyles.cardLink}
+              href={hubId ? `/${lang}/hubs/view?id=${hubId}` : `/${lang}/hubs/new?idea=${idea.id}`}
+            >
+              {hubId ? hubsCopy[lang].openHub : hubsCopy[lang].createHub}
+            </Link>
+          )}
+          <Link className={hubsStyles.cardLink} href={`/${lang}/ideas/matches?id=${idea.id}`}>
+            {t.seeMatches}
+          </Link>
+        </div>
       )}
     </li>
   );
