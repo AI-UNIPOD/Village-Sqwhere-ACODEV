@@ -11,6 +11,7 @@ its number:
 ## 2026-11-13
 
 - feat(web): add the village home page for signed-in developers (#72)
+- feat(web): pin the landing header as a pill while scrolling (#70)
 - feat(web): save the onboarding role and stack to the api (#69)
 - feat(api): add the list my hubs endpoint (#67)
 - feat(api): add idea lifecycle endpoints (#65)

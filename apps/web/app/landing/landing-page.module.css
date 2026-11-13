@@ -31,7 +31,8 @@
 /* ---------- header ---------- */
 /* On wide screens the header lines up with the content column. Its right side always clears
    the floating language button. On phones the section links get a second row of their own,
-   under the logo, so phones can jump to them too. The header never sticks to the top. */
+   under the logo, so phones can jump to them too. Once it has scrolled away, HeaderPin pins this
+   same header as a floating pill (see "pinned header" below). */
 .nav {
   position: relative;
   z-index: 10;
@@ -193,6 +194,111 @@
 .navLink[aria-current="location"]::after {
   border-top-color: var(--text);
   transform: scaleX(1);
+}
+
+/* ---------- pinned header ---------- */
+/* HeaderPin sets data-pinned once the header has scrolled out of view: the same header, now
+   fixed near the top as a translucent pill, until the visitor is back at the top ("leaving"
+   fades it out first). Below 360px a pill does not fit beside the language button, so the
+   header just scrolls away. */
+@media (min-width: 360px) {
+  .nav[data-pinned] {
+    position: fixed;
+    top: var(--pill-top);
+    inline-size: fit-content;
+    block-size: var(--pill-height);
+    min-block-size: 0;
+    padding: 0 var(--space-5) 0 var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+    -webkit-backdrop-filter: blur(var(--blur-bar));
+    backdrop-filter: blur(var(--blur-bar));
+    box-shadow: var(--shadow-float);
+  }
+
+  .nav[data-pinned=""] {
+    animation: pinIn var(--dur-modal) var(--ease-out);
+  }
+
+  .nav[data-pinned="leaving"] {
+    animation: pinOut var(--dur-modal-out) var(--ease-out) forwards;
+  }
+
+  /* where the blur is missing or unwanted, the pill is solid so the text stays readable */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .nav[data-pinned] {
+      background: var(--surface);
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .nav[data-pinned] {
+      background: var(--surface);
+    }
+  }
+
+  /* while pinned, jumps and keyboard focus keep clear of the pill (see .block) */
+  html:has(.nav[data-pinned]) {
+    scroll-padding-top: calc(var(--pill-top) + var(--pill-height) + var(--space-2));
+  }
+}
+
+@keyframes pinIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-2) * -1));
+  }
+}
+
+/* reduced motion: the pill fades in without moving */
+@keyframes pinFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pinOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* wide screens: centred, one row with the logo, clear of the language button on both sides */
+@media (min-width: 768px) {
+  .nav[data-pinned] {
+    inset-inline: 0;
+    margin-inline: auto;
+    max-inline-size: calc(100% - 2 * var(--float-gutter));
+  }
+}
+
+/* phones: beside the language button, the three links only (the logo and name would not fit
+   next to the French links) */
+@media (min-width: 360px) and (max-width: 767px) {
+  /* measured at 360px: the three French links are 245px of text and the pill has 282px inside
+     its border, so the gap and the end padding are --space-2 */
+  .nav[data-pinned] {
+    flex-wrap: nowrap;
+    inset-inline-start: var(--space-3);
+    max-inline-size: calc(100% - var(--space-3) - var(--float-gutter));
+    padding-inline: var(--space-2);
+  }
+
+  .nav[data-pinned] .brand {
+    display: none;
+  }
+
+  .nav[data-pinned] .navLinks {
+    flex: 0 1 auto;
+    gap: var(--space-2);
+    border-top: 0;
+  }
+
+  .nav[data-pinned] .navLink {
+    font: var(--type-body-s);
+    font-weight: 600;
+  }
 }
 
 /* ---------- floating language and theme buttons ---------- */
@@ -394,6 +500,19 @@
   border-top: 1px solid var(--line);
   scroll-margin-top: var(--space-4);
   transition: border-top-color var(--dur-moment) var(--ease-out);
+}
+
+/* A jump from the top lands below where the pill will be, so the section's own margin keeps
+   that room. While the pill is pinned the document's scroll-padding does it, so the margin
+   goes: the two never add up. */
+@media (min-width: 360px) {
+  .block {
+    scroll-margin-top: calc(var(--pill-top) + var(--pill-height) + var(--space-2));
+  }
+
+  html:has(.nav[data-pinned]) .block {
+    scroll-margin-top: 0;
+  }
 }
 
 /* after a jump from a link, the section you landed on is marked by its top line */
@@ -677,6 +796,10 @@
 
   .reveal[data-reveal="waiting"] {
     transform: none;
+  }
+
+  .nav[data-pinned=""] {
+    animation-name: pinFade;
   }
 
   .step::before,
