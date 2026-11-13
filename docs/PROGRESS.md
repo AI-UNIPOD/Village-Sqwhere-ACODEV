@@ -30,7 +30,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   only, greeting them by their name from `GET /v1/me`. The last screen saves the main role and
   the stack; country and topics stay in the tab (`docs/decisions/2026-11-11-onboarding-page.md`).
 - Signed-in web screens share the `AppFrame` header: village home, role verification and its
-  interview, peer review, ideas, hubs. Addresses: `apps/web/README.md`; why: `docs/decisions/`.
+  interview, peer review, ideas, hubs, profile. Addresses: `apps/web/README.md`; why: `docs/decisions/`.
 - Unknown addresses get a 404 in their language; landing and sign-in have an error page. French
   copy puts a narrow no-break space before ? ! : ; (`docs/design-system/voice-and-tone.md`).
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
@@ -45,7 +45,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    deploy job in CI.
 4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-6. Web screens next: navigation, a profile page, matches and invitations. Also a server-rendered
+6. Web screens next: navigation, matches and joining a hub. Also a server-rendered
    404 and a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.

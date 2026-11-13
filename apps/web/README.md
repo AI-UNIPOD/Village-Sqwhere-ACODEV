@@ -59,6 +59,16 @@ that were shown; if the API says the agreement changed, the page shows the new t
 again. The agreement's Markdown is rendered by `agreement-text.tsx` as headings, lists and
 paragraphs only, never as markup.
 
+The hub page shows a member the team (`GET /v1/hubs/{id}/members`) and the private brief
+(`GET /v1/hubs/{id}/idea`). The owner invites by GitHub username, withdraws an invitation and
+invites again after a decline (`team.tsx`); an invited developer sees the invitation, not the
+team's brief. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
+
+The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
+(add, make main, remove; the page loads the profile again after each) and the stack
+(`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
+onboarding first. The village's "Edit my profile" link opens it.
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is
