@@ -2,11 +2,13 @@ import asyncio
 from collections.abc import Generator
 from uuid import UUID, uuid4
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select, text, update
+from sqlalchemy import func, select, text, update
 
-from app.models import PlatformRole, Post, PostRevision, PostType, User
+from app.main import app
+from app.models import DeletionReason, PlatformRole, Post, PostRevision, PostType, User
 from tests.conftest import test_async_session as db_session
 from tests.test_hub_models import create_committed_hub
 
@@ -423,6 +425,100 @@ def test_get_or_delete_missing_post_returns_404(client: TestClient, sign_in) -> 
     del_resp = client.delete(f"/v1/posts/{missing_id}", headers=auth)
     assert del_resp.status_code == 404
     assert del_resp.json()["detail"]["code"] == "POST_NOT_FOUND"
+
+
+def test_link_url_is_capped_at_2048_characters(client: TestClient, sign_in) -> None:
+    ada_auth = _bearer(sign_in("github-code-ada")["access_token"])
+    longest = "https://example.com/" + "a" * (2048 - len("https://example.com/"))
+
+    post_id = _create(client, ada_auth, "A long link", link_url=longest)
+    too_long = client.post(
+        "/v1/posts", headers=ada_auth, json={"body": "Too long", "link_url": longest + "a"}
+    )
+    patched = client.patch(
+        f"/v1/posts/{post_id}", headers=ada_auth, json={"link_url": longest + "a"}
+    )
+
+    assert too_long.status_code == 422
+    assert patched.status_code == 422
+
+
+def _while_a_delete_is_uncommitted(post_id: str, deleter_id: str, request) -> httpx.Response:
+    """Send a request while another transaction has deleted the post but not yet committed,
+    then commit that delete and return the request's answer."""
+
+    async def run() -> httpx.Response:
+        async with db_session() as deleting:
+            await deleting.execute(
+                update(Post)
+                .where(Post.id == UUID(post_id))
+                .values(
+                    deleted_at=func.now(),
+                    deleted_by=UUID(deleter_id),
+                    deletion_reason=DeletionReason.AUTHOR,
+                )
+            )
+            transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+            async with httpx.AsyncClient(transport=transport, base_url="http://test") as http:
+                pending = asyncio.create_task(request(http))
+                async with db_session() as watcher:
+                    for _ in range(200):
+                        waiting = await watcher.scalar(
+                            text(
+                                "SELECT count(*) FROM pg_stat_activity"
+                                " WHERE wait_event_type = 'Lock'"
+                            )
+                        )
+                        if waiting or pending.done():
+                            break
+                        await asyncio.sleep(0.02)
+                await deleting.commit()
+                return await pending
+
+    return asyncio.run(run())
+
+
+def test_an_edit_that_waits_on_a_delete_answers_404(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    ada_auth = _bearer(ada["access_token"])
+    post_id = _create(client, ada_auth, "Ajo savings tracker")
+
+    resp = _while_a_delete_is_uncommitted(
+        post_id,
+        ada["user"]["id"],
+        lambda http: http.patch(f"/v1/posts/{post_id}", headers=ada_auth, json={"body": "Edited"}),
+    )
+
+    assert resp.status_code == 404, resp.text
+    assert resp.json()["detail"]["code"] == "POST_NOT_FOUND"
+
+
+def test_a_second_delete_that_waits_on_the_first_answers_404(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    moussa = sign_in("github-code-moussa")
+    moussa_id = UUID(moussa["user"]["id"])
+    post_id = _create(client, _bearer(ada["access_token"]), "Ajo savings tracker")
+
+    _set_user_role(moussa_id, PlatformRole.MODERATOR)
+    try:
+        resp = _while_a_delete_is_uncommitted(
+            post_id,
+            ada["user"]["id"],
+            lambda http: http.delete(
+                f"/v1/posts/{post_id}", headers=_bearer(moussa["access_token"])
+            ),
+        )
+    finally:
+        _set_user_role(moussa_id, PlatformRole.MEMBER)
+
+    async def reason() -> str | None:
+        async with db_session() as session:
+            return await session.scalar(
+                select(Post.deletion_reason).where(Post.id == UUID(post_id))
+            )
+
+    assert resp.status_code == 404, resp.text
+    assert asyncio.run(reason()) == DeletionReason.AUTHOR
 
 
 # --- Lists and the feed ----------------------------------------------------------------------
