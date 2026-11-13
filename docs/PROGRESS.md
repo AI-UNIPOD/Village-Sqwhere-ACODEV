@@ -20,7 +20,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). `POST /v1/auth/demo`
   signs in as a read-only demo account when `DEMO_ENABLED=true` (content: `app.demo_seed`).
 - Landing page at `/en` and `/fr` matches B3v design with motion and dark theme. Hero leads to
-  sign-in; demo and tour show "Coming soon". GitHub sign-in works end to end with token refresh.
+  sign-in, and "Try the demo" opens the read-only demo account; the tour shows "Coming soon".
+  GitHub sign-in works end to end with token refresh.
 - Below the hero, sections reveal once; the header pins as a pill while scrolling. Onboarding
   saves role and stack. Signed-in web screens share `AppFrame`.
 - Unknown addresses get a 404 sent as HTML; landing and sign-in have an error page. Design system

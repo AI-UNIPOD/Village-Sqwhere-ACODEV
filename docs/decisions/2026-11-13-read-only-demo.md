@@ -64,3 +64,24 @@ the web session, in three pull requests:
 - Part 2 adds an `is_demo` condition to every list and read of shared content. A new list
   must add it too.
 - Tanny sets `DEMO_ENABLED=true` only where the demo should be on.
+
+## On the web
+
+Added when the web side was built, on 13 November 2026:
+
+- **"Try the demo" is a real button on the landing page,** in the hero and the footer. The line
+  under it says what the demo is ("No sign-up. Look at everything, change nothing."), then how
+  opening it is going. A 404 from the route says the demo is not available here.
+- **One line under the header on every signed-in screen** tells the demo account that nothing
+  it changes is saved, with "Leave the demo" (sign out). It is not a banner that can be closed:
+  the fact stays true on every screen.
+- **A refused change is noticed in one place,** `apiFetch`, which every screen calls through.
+  The line then says "That was not saved", and a screen reader hears it each time. No screen
+  has to know about the demo.
+- **The screen that asked still shows its own failure sentence** ("We couldn't save your
+  changes..."), next to the demo line. Teaching each of about fifty handlers the demo's code
+  was not worth it for the first version. Likes are the exception, because they are pressed
+  often: a refused like goes back with no "try again".
+- **Nothing is disabled up front.** Buttons and forms look as they do for a real developer, so
+  the demo shows the real product; the refusal comes when a change is sent.
+- **The tour still says "Coming soon".** It is built on top of the demo, after the seed.
