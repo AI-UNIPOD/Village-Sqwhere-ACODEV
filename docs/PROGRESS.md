@@ -27,8 +27,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   show their share of three minutes, "coming soon" presses are announced, and phones get
   section links (`docs/decisions/2026-11-11-landing-section-interactions.md`).
 - Onboarding after sign-in is at `/en/onboarding` and `/fr/onboarding`, for signed-in people
-  only, greeting them by their name from `GET /v1/me`. Answers stay in sessionStorage for the tab
-  and never reach the API. API gaps: `docs/decisions/2026-11-11-onboarding-page.md`.
+  only, greeting them by their name from `GET /v1/me`. The last screen saves the main role and
+  the stack; country and topics stay in the tab (`docs/decisions/2026-11-11-onboarding-page.md`).
 - Unknown addresses get a 404 in their language; landing and sign-in have an error page. French
   copy puts a narrow no-break space before ? ! : ; (`docs/design-system/voice-and-tone.md`).
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
@@ -42,7 +42,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    is not in this repository yet; ask Tanny for it before starting.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-4. Save onboarding answers via the API once its gaps 1, 2, 3 and 6 close.
+4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
 6. Web follow-ups: one header for the app screens, shared parts out of `app/landing/`, a wider
    hero text column on phones, a server-rendered 404 (production sends an empty shell), watching

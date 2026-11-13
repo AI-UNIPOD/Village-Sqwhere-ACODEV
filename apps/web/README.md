@@ -17,7 +17,8 @@ The site is bilingual by address: pages live in `app/[lang]/` and are served at 
 `proxy.ts` sends the bare `/` to the visitor's language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
 landing page is `app/landing/`, and the onboarding page shown after the first sign-in is
-`app/onboarding/` (at `/en/onboarding`).
+`app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role and the stack
+through `POST /v1/me/roles` and `PUT /v1/me/technologies`; the country and topics stay in the tab.
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
