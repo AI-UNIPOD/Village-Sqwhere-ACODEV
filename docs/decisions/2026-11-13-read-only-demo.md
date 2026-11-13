@@ -16,7 +16,11 @@ everything and change nothing. The session that owns the feed and posts API desi
 the web session, in three pull requests:
 
 1. **Sign-in, switch and read-only rule (this record's first pull request).**
-   - `users.is_demo` marks the account. A unique index allows only one demo account.
+   - `users.is_demo` marks every account in the demo: the shared account people sign in as,
+     and the made-up developers whose content it shows. All of them are read-only, and nobody
+     can sign in as the made-up ones.
+   - The shared account has a fixed id (`DEMO_ACCOUNT_ID` in `auth.py`) that the seed script
+     uses, so the API never has to guess which demo account to sign in as.
    - `POST /v1/auth/demo` signs in as it, with the same answer as `POST /v1/auth/token`.
      Refresh and sign-out work as normal.
    - It is off unless the API runs with `DEMO_ENABLED=true`. Off, or with no demo account in

@@ -303,7 +303,7 @@ Signs in as the shared demo account, for "Try the demo". No GitHub, no body.
   Refreshing with `POST /v1/auth/token` and signing out with `POST /v1/auth/logout` work as for
   any account.
 * **Error Response:** `404 DEMO_UNAVAILABLE` when the API runs without `DEMO_ENABLED=true`, or
-  the database has no demo account.
+  the database has no demo account (the seed script creates it, with a fixed id).
 * **Read-only:** the demo account can call every `GET`, but any other method on a signed-in route
   answers `403 DEMO_READ_ONLY`, and the verification interview socket closes with code `1008`.
   The check sits in the dependency every signed-in route uses, so a new write route is covered

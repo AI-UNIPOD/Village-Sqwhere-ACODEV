@@ -49,6 +49,10 @@ _OAUTH_STATES: dict[str, tuple[AuthProvider, str, str, datetime]] = {}
 # One-time login codes from the callback: code -> (user_id, is_new_user, code_challenge, expiry)
 _LOGIN_CODES: dict[str, tuple[UUID, bool, str, datetime]] = {}
 
+# The shared demo account "Try the demo" signs in as. The demo seed script creates it with this
+# id; the made-up developers it creates are demo accounts too, but nobody signs in as them.
+DEMO_ACCOUNT_ID = UUID("00000000-0000-4000-8000-00000000de30")
+
 # In-memory revocation set for refresh tokens
 _REVOKED_REFRESH_TOKENS: set[str] = set()
 
@@ -402,7 +406,9 @@ async def demo_sign_in(db: DbSession) -> TokenResponse:
     looking around before signing up. Refresh and sign-out work as for any account."""
     demo = None
     if config.DEMO_ENABLED:
-        demo = await db.scalar(select(User).where(User.is_demo, User.deleted_at.is_(None)))
+        demo = await db.scalar(
+            select(User).where(User.id == DEMO_ACCOUNT_ID, User.is_demo, User.deleted_at.is_(None))
+        )
     if demo is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -1,7 +1,7 @@
 import asyncio
 import re
 from collections.abc import Generator
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,6 +9,7 @@ from sqlalchemy import update
 from starlette.websockets import WebSocketDisconnect
 
 from app import config
+from app.api.v1 import auth as auth_api
 from app.api.v1 import interviews as interviews_api
 from app.main import app
 from app.models import User
@@ -42,10 +43,11 @@ def _mark_demo(user_id: str, is_demo: bool) -> None:
 
 @pytest.fixture
 def demo(sign_in, github_account, monkeypatch: pytest.MonkeyPatch) -> Generator[dict]:
-    """A new account marked as the demo, the demo switched on, and its sign-in tokens."""
+    """A new account made the demo account, the demo switched on, and its sign-in tokens."""
     monkeypatch.setattr(config, "DEMO_ENABLED", True)
     user_id = sign_in(github_account())["user"]["id"]
     _mark_demo(user_id, True)
+    monkeypatch.setattr(auth_api, "DEMO_ACCOUNT_ID", UUID(user_id))
     resp = client.post("/v1/auth/demo")
     assert resp.status_code == 200, resp.text
     yield resp.json()["data"]
@@ -58,11 +60,26 @@ def test_the_demo_is_off_unless_switched_on(monkeypatch: pytest.MonkeyPatch) -> 
     assert (resp.status_code, _code(resp)) == (404, "DEMO_UNAVAILABLE")
 
 
-def test_the_demo_needs_its_account(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_the_demo_needs_its_account(
+    sign_in, github_account, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # Switched on, but the seed has not made the demo account on this database.
     monkeypatch.setattr(config, "DEMO_ENABLED", True)
     resp = client.post("/v1/auth/demo")
     assert (resp.status_code, _code(resp)) == (404, "DEMO_UNAVAILABLE")
+
+    # A real account at that id is never the demo, and neither is another demo account.
+    real_id = sign_in(github_account())["user"]["id"]
+    monkeypatch.setattr(auth_api, "DEMO_ACCOUNT_ID", UUID(real_id))
+    resp = client.post("/v1/auth/demo")
+    assert (resp.status_code, _code(resp)) == (404, "DEMO_UNAVAILABLE")
+    made_up_id = sign_in(github_account())["user"]["id"]
+    _mark_demo(made_up_id, True)
+    try:
+        resp = client.post("/v1/auth/demo")
+        assert (resp.status_code, _code(resp)) == (404, "DEMO_UNAVAILABLE")
+    finally:
+        _mark_demo(made_up_id, False)
 
 
 def test_the_demo_signs_in_reads_refreshes_and_signs_out(demo: dict) -> None:
