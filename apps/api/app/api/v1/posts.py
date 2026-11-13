@@ -279,6 +279,14 @@ async def list_posts(
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
+    if post_type == PostType.HUB_MILESTONE:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "HUB_MILESTONE_NOT_SUPPORTED",
+                "message": "Hub milestone posts are not supported yet",
+            },
+        )
     query = visible_posts()
     if post_type is not None:
         query = query.where(Post.type == post_type)
