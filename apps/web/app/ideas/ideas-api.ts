@@ -88,3 +88,20 @@ export const publishIdea = async (id: string) =>
 
 export const closeIdea = async (id: string) =>
   (await call<{ data: OwnedIdea }>(`/v1/me/ideas/${id}/close`, "POST")).data;
+
+// An open idea as every signed-in developer sees it: the public part only, never the brief.
+export type PublicIdea = {
+  id: string;
+  title: string;
+  summary: string;
+  stage: Stage;
+  roles_needed: { slug: string; name: string }[];
+  author: { username: string; display_name: string; is_verified: boolean };
+  published_at: string;
+};
+
+export const loadOpenIdeas = (offset = 0) =>
+  call<{ data: PublicIdea[]; next_offset: number | null }>(`/v1/ideas?offset=${offset}&limit=20`);
+
+export const loadOpenIdea = async (id: string) =>
+  (await call<{ data: PublicIdea }>(`/v1/ideas/${encodeURIComponent(id)}`)).data;

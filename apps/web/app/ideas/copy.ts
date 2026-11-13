@@ -16,8 +16,6 @@ type Copy = {
   rolesNeeded: string;
   noRoles: string;
   updated: string;
-  edit: string;
-  view: string;
   loadMore: string;
   donePublished: string;
   doneClosed: string;
@@ -61,6 +59,42 @@ type Copy = {
   errorTitle: string;
   errorText: string;
   retry: string;
+  browse: {
+    pageTitle: string;
+    title: string;
+    lead: string;
+    tabs: string;
+    tabOpen: string;
+    tabMine: string;
+    by: string;
+    verified: string;
+    published: string;
+    yours: string;
+    fitNeeds: string;
+    fitVerify: string;
+    fitVerifyWhy: string;
+    moreFailed: string;
+    emptyTitle: string;
+    emptyText: string;
+  };
+  open: {
+    pageTitle: string;
+    back: string;
+    noRoles: string;
+    sharedBy: string;
+    githubProfile: string;
+    joinTitle: string;
+    joinSteps: string[];
+    edit: string;
+    fitNote: string;
+    verify: string;
+    verifyWhy: string;
+    setUp: string;
+    setUpWhy: string;
+    otherRoles: string;
+    goneTitle: string;
+    goneText: string;
+  };
 };
 
 const en: Copy = {
@@ -81,8 +115,6 @@ const en: Copy = {
   rolesNeeded: "Roles needed",
   noRoles: "No roles chosen",
   updated: "Updated {date}",
-  edit: "Edit",
-  view: "Open",
   loadMore: "Show more",
   donePublished: "Your idea is open. Signed-in developers can now find it.",
   doneClosed: "Your idea is closed. It no longer shows to other developers.",
@@ -146,6 +178,46 @@ const en: Copy = {
   errorText:
     "Something went wrong on our side. Nothing was changed, so you can safely try again. If it keeps happening, come back in a few minutes.",
   retry: "Try again",
+  browse: {
+    pageTitle: "Open ideas | Village Sqwhere",
+    title: "Open ideas",
+    lead: "Ideas looking for co-builders. You see the public summary; the full brief stays with the team.",
+    tabs: "Ideas",
+    tabOpen: "Open ideas",
+    tabMine: "Your ideas",
+    by: "by {name}",
+    verified: "Verified",
+    published: "Published {date}",
+    yours: "Yours",
+    fitNeeds: "Needs your role: {role}",
+    fitVerify: "Verify it",
+    fitVerifyWhy: "to be suggested to the owner.",
+    moreFailed: "We couldn't load more ideas. The ones above are still here, so try again.",
+    emptyTitle: "No open ideas yet",
+    emptyText: "Be the first: share what you want to build.",
+  },
+  open: {
+    pageTitle: "An open idea | Village Sqwhere",
+    back: "Open ideas",
+    noRoles: "The owner has not said which roles are needed yet.",
+    sharedBy: "Shared by",
+    githubProfile: "GitHub profile, opens in a new tab",
+    joinTitle: "How joining works",
+    joinSteps: [
+      "The owner sees developers whose verified role fills a gap.",
+      "The owner invites the people they want on the team, 2 to 5 in all.",
+      "Invited developers sign the hub agreement, then read the full brief and build together.",
+    ],
+    edit: "Edit your idea",
+    fitNote: "You are verified in a role this idea needs, so the owner can be shown your profile.",
+    verify: "Verify your role",
+    verifyWhy: "Owners are only shown developers whose role is verified.",
+    setUp: "Set up your profile",
+    setUpWhy: "Choose your main role first, so ideas that need it can find you.",
+    otherRoles: "This idea needs other roles than yours.",
+    goneTitle: "This idea is not open",
+    goneText: "It may have been closed by its owner, or the address is wrong.",
+  },
 };
 
 // Needs a native French review before launch.
@@ -168,8 +240,6 @@ const fr: Copy = {
   rolesNeeded: "Rôles recherchés",
   noRoles: "Aucun rôle choisi",
   updated: "Modifiée le {date}",
-  edit: "Modifier",
-  view: "Ouvrir",
   loadMore: "Afficher plus",
   donePublished: "Votre idée est ouverte. Les développeurs connectés peuvent maintenant la trouver.",
   doneClosed: "Votre idée est fermée. Elle n'est plus montrée aux autres développeurs.",
@@ -189,19 +259,19 @@ const fr: Copy = {
     "Le matcher s'en sert pour proposer des développeurs dont le rôle vérifié comble un manque.",
   title: {
     label: "Titre",
-    help: "De 5 à 150 caractères. Dites ce que c'est, par exemple : Registre agricole hors ligne pour coopératives.",
+    help: "De 5 à 150 caractères. Dites ce que c'est, par exemple\u202f: Registre agricole hors ligne pour coopératives.",
   },
   summary: {
     label: "Résumé public",
-    help: "De 20 à 1 000 caractères. Le problème, qui le rencontre, et ce que vous voulez construire.",
+    help: "De 20 à 1\u202f000 caractères. Le problème, qui le rencontre, et ce que vous voulez construire.",
   },
   details: {
     label: "Dossier privé (facultatif)",
-    help: "Votre plan, ce qui existe déjà, ce que vous avez essayé. Jusqu'à 20 000 caractères.",
+    help: "Votre plan, ce qui existe déjà, ce que vous avez essayé. Jusqu'à 20\u202f000 caractères.",
   },
-  stageLabel: "Où en est-elle aujourd'hui ?",
+  stageLabel: "Où en est-elle aujourd'hui\u202f?",
   roles: {
-    label: "Quels rôles lui manquent ?",
+    label: "Quels rôles lui manquent\u202f?",
     help: "Choisissez tous les rôles dont l'équipe a besoin. Vous pourrez changer cela plus tard.",
   },
   count: "{n} sur {max}",
@@ -212,14 +282,14 @@ const fr: Copy = {
   saved: "Enregistré",
   closedNote: "Cette idée est fermée. Elle ne peut plus être modifiée ni rouverte.",
   publishConfirm: {
-    title: "Publier cette idée ?",
+    title: "Publier cette idée\u202f?",
     text: "Son titre, son résumé, son stade et ses rôles deviennent visibles pour les développeurs connectés. Le dossier privé reste privé.",
     noRoles: "Vous n'avez choisi aucun rôle, le matcher ne peut donc proposer personne pour l'instant.",
     confirm: "Publier l'idée",
     cancel: "Pas encore",
   },
   closeConfirm: {
-    title: "Fermer cette idée ?",
+    title: "Fermer cette idée\u202f?",
     text: "Elle n'est plus montrée aux autres développeurs ni au matcher. Une idée fermée ne peut pas être rouverte.",
     confirm: "Fermer l'idée",
     cancel: "La garder ouverte",
@@ -228,8 +298,8 @@ const fr: Copy = {
     titleShort: "Donnez au titre au moins 5 caractères.",
     titleLong: "Raccourcissez le titre à 150 caractères au plus.",
     summaryShort: "Écrivez au moins 20 caractères, pour que les développeurs comprennent l'idée.",
-    summaryLong: "Raccourcissez le résumé à 1 000 caractères au plus.",
-    detailsLong: "Raccourcissez le dossier à 20 000 caractères au plus.",
+    summaryLong: "Raccourcissez le résumé à 1\u202f000 caractères au plus.",
+    detailsLong: "Raccourcissez le dossier à 20\u202f000 caractères au plus.",
     roles: "L'un de ces rôles n'est plus proposé. Décochez-le et enregistrez à nouveau.",
     save: "Nous n'avons pas pu enregistrer votre idée. Votre texte est toujours là, vérifiez votre connexion et réessayez.",
     notFoundTitle: "Nous n'avons pas trouvé cette idée",
@@ -240,6 +310,46 @@ const fr: Copy = {
   errorText:
     "Un problème est survenu de notre côté. Rien n'a été modifié, vous pouvez donc réessayer sans risque. Si cela se reproduit, revenez dans quelques minutes.",
   retry: "Réessayer",
+  browse: {
+    pageTitle: "Idées ouvertes | Village Sqwhere",
+    title: "Idées ouvertes",
+    lead: "Des idées qui cherchent des partenaires. Vous voyez le résumé public\u202f; le dossier complet reste dans l'équipe.",
+    tabs: "Idées",
+    tabOpen: "Idées ouvertes",
+    tabMine: "Vos idées",
+    by: "par {name}",
+    verified: "Vérifié",
+    published: "Publiée le {date}",
+    yours: "La vôtre",
+    fitNeeds: "Recherche votre rôle\u202f: {role}",
+    fitVerify: "Faites-le vérifier",
+    fitVerifyWhy: "pour être proposé au porteur de l'idée.",
+    moreFailed: "Nous n'avons pas pu charger plus d'idées. Celles du dessus sont toujours là, vous pouvez réessayer.",
+    emptyTitle: "Pas encore d'idée ouverte",
+    emptyText: "Lancez-vous en premier\u202f: partagez ce que vous voulez construire.",
+  },
+  open: {
+    pageTitle: "Une idée ouverte | Village Sqwhere",
+    back: "Idées ouvertes",
+    noRoles: "Le porteur de l'idée n'a pas encore indiqué les rôles recherchés.",
+    sharedBy: "Partagée par",
+    githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
+    joinTitle: "Comment rejoindre une équipe",
+    joinSteps: [
+      "Le porteur de l'idée voit les développeurs dont le rôle vérifié comble un manque.",
+      "Il invite les personnes qu'il veut dans l'équipe, de 2 à 5 en tout.",
+      "Les développeurs invités signent l'accord de l'espace, puis lisent le dossier complet et construisent ensemble.",
+    ],
+    edit: "Modifier votre idée",
+    fitNote: "Vous êtes vérifié dans un rôle que cette idée recherche\u202f: votre profil peut être proposé à son porteur.",
+    verify: "Faire vérifier votre rôle",
+    verifyWhy: "Seuls les développeurs au rôle vérifié sont proposés aux porteurs d'idées.",
+    setUp: "Configurer votre profil",
+    setUpWhy: "Choisissez d'abord votre rôle principal, pour que les idées qui le recherchent vous trouvent.",
+    otherRoles: "Cette idée recherche d'autres rôles que le vôtre.",
+    goneTitle: "Cette idée n'est pas ouverte",
+    goneText: "Elle a peut-être été fermée par son porteur, ou l'adresse est incorrecte.",
+  },
 };
 
 export const copy: Record<Lang, Copy> = { en, fr };
