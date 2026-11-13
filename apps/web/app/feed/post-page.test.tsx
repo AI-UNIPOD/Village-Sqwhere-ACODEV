@@ -128,6 +128,45 @@ test("only the author is offered Delete", async () => {
   expect(screen.queryByRole("button", { name: "Delete post" })).toBeNull();
 });
 
+test("the author is offered Edit beside Delete, which opens the composer on this post", async () => {
+  api({ "GET /v1/me": me("wanjiru-kamau"), "GET /v1/posts/post-1": { data: post() } });
+  render(<PostPage lang="en" />);
+  const edit = await screen.findByRole("link", { name: "Edit post" });
+  expect(edit.getAttribute("href")).toBe("/en/posts/compose?id=post-1");
+  expect(screen.getByRole("button", { name: "Delete post" })).toBeTruthy();
+});
+
+test("nobody else is offered Edit", async () => {
+  api({ "GET /v1/me": me("kwabena-owusu"), "GET /v1/posts/post-1": { data: post() } });
+  render(<PostPage lang="en" />);
+  await screen.findByRole("heading", { level: 1 });
+  await waitFor(() => expect(asked()).toContain("GET /v1/me"));
+  expect(screen.queryByRole("link", { name: "Edit post" })).toBeNull();
+});
+
+test.each([
+  ["published", "Post published", "Publication mise en ligne"],
+  ["saved", "Changes saved", "Modifications enregistrées"],
+])("?done=%s shows its message from the address, in both languages", async (done, english, french) => {
+  nav.search = `id=post-1&done=${done}`;
+  api({ "GET /v1/me": me("wanjiru-kamau"), "GET /v1/posts/post-1": { data: post() } });
+  const page = render(<PostPage lang="en" />);
+  await screen.findByRole("heading", { level: 1 });
+  expect(screen.getByRole("status").textContent).toBe(english);
+  page.unmount();
+  render(<PostPage lang="fr" />);
+  await screen.findByRole("heading", { level: 1 });
+  expect(screen.getByRole("status").textContent).toBe(french);
+});
+
+test("with no message in the address, or one that is not known, there is none", async () => {
+  nav.search = "id=post-1&done=whatever";
+  api({ "GET /v1/me": me("wanjiru-kamau"), "GET /v1/posts/post-1": { data: post() } });
+  render(<PostPage lang="en" />);
+  await screen.findByRole("heading", { level: 1 });
+  expect(screen.queryByRole("status")).toBeNull();
+});
+
 test("the author confirms, the post is deleted with no reason, and the person lands on Yours", async () => {
   api({ "GET /v1/me": me("wanjiru-kamau"), "GET /v1/posts/post-1": { data: post() }, "DELETE /v1/posts/post-1": reply(204) });
   render(<PostPage lang="en" />);

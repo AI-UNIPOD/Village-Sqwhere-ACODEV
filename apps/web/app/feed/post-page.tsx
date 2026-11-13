@@ -12,7 +12,7 @@ import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { AlertCircle, ArrowLeft } from "../onboarding/icons";
+import { AlertCircle, ArrowLeft, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
@@ -33,7 +33,7 @@ export function PostLoading({ lang }: { lang: Lang }) {
 }
 
 // A post that is not there: deleted, or an address with no real post in it.
-function Gone({ lang }: { lang: Lang }) {
+export function Gone({ lang }: { lang: Lang }) {
   const t = copy[lang].post;
   return (
     <main className={`${onboarding.column} ${onboarding.step}`}>
@@ -52,6 +52,9 @@ function PostView({ lang, id }: { lang: Lang; id: string | null }) {
   const t = copy[lang];
   const router = useRouter();
   const me = useMe();
+  // set by the composer after posting or editing, and read from the address so it is never stale
+  const done = useSearchParams().get("done");
+  const message = done === "published" ? t.done.published : done === "saved" ? t.done.saved : null;
   // undefined while loading, null when there is no such post (or the address has no id)
   const [post, setPost] = useState<Post | null | undefined>(id ? undefined : null);
   const [now] = useState(() => Date.now());
@@ -108,6 +111,12 @@ function PostView({ lang, id }: { lang: Lang; id: string | null }) {
         {t.post.back}
       </Link>
       <h1 className={ideas.title}>{post.title ?? fill(t.postBy, { name: authorName(post.author) })}</h1>
+      {message && (
+        <p className={ideas.done} role="status">
+          <Check />
+          {message}
+        </p>
+      )}
       <div className={styles.page}>
         <PostHead lang={lang} post={post} now={now} />
         {post.edited_at && <p className={ideas.meta}>{fill(t.post.edited, { time: when(post.edited_at, now, lang) })}</p>}
@@ -118,9 +127,14 @@ function PostView({ lang, id }: { lang: Lang; id: string | null }) {
         <p className={ideas.meta}>{t.post.commentsSoon}</p>
         {me?.username === post.author.username && (
           <div>
-            <button type="button" className={landing.ghost} onClick={() => setConfirming(true)}>
-              {t.post.delete}
-            </button>
+            <div className={styles.owner}>
+              <Link className={landing.ghost} href={`/${lang}/posts/compose?id=${encodeURIComponent(post.id)}`}>
+                {t.post.edit}
+              </Link>
+              <button type="button" className={landing.ghost} onClick={() => setConfirming(true)}>
+                {t.post.delete}
+              </button>
+            </div>
             {problem && (
               <p className={onboarding.error} role="alert">
                 <AlertCircle />
