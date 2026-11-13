@@ -85,7 +85,11 @@ def test_the_owner_sees_their_hub_as_the_same_card_get_hub_returns(client: TestC
     assert len(body["data"]) == 1
     card = body["data"][0]
     assert card == client.get(f"/v1/hubs/{hub.id}", headers=auth(owner)).json()["data"]
-    assert card["viewer"] == {"membership_status": "active", "member_role": "owner"}
+    assert card["viewer"] == {
+        "membership_status": "active",
+        "member_role": "owner",
+        "can_ask_again_at": None,
+    }
     assert card["terms"] == {"ownership_model": "custom", "notes": "Partage égal 🤝"}
     for field in ("created_at", "updated_at"):
         assert is_aware_iso(card[field]), field
@@ -103,6 +107,7 @@ def test_an_active_member_sees_the_hub_by_default(client: TestClient) -> None:
     assert resp.json()["data"][0]["viewer"] == {
         "membership_status": "active",
         "member_role": "member",
+        "can_ask_again_at": None,
     }
 
 
@@ -134,7 +139,11 @@ def test_the_status_filter_lists_only_hubs_with_that_membership(
     assert resp.status_code == 200, resp.text
     assert ids(resp.json()) == [str(expected.id)]
     card = resp.json()["data"][0]
-    assert card["viewer"] == {"membership_status": wanted, "member_role": "member"}
+    assert card["viewer"] == {
+        "membership_status": wanted,
+        "member_role": "member",
+        "can_ask_again_at": None,
+    }
     active = client.get(URL, headers=auth(user)).json()
     assert ids(active) == [str(owned.id)]
 

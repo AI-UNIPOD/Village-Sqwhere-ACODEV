@@ -924,7 +924,8 @@ see the hub before answering. Archived hubs can still be read.
   ```
   Both are `null` when the caller has never been a member. `membership_status` is one of
   `requested`, `invited`, `active`, `declined`, `left` or `removed`, and `member_role` is
-  `owner` or `member`. `member_count` counts active members only. The idea's confidential
+  `owner` or `member`. `viewer.can_ask_again_at` is when a developer the owner turned down
+  may ask to join again (see the join request wait below), and `null` when there is no wait. `member_count` counts active members only. The idea's confidential
   details and the agreement signatures are never part of the card, whoever asks.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
   id), `422` (the id is not a UUID).
