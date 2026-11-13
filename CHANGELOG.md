@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add comment threads and comment likes (#103)
 - feat(api): add comment lists with reply previews (#99)
 - fix(api): refuse a null character in post text instead of failing (#100)
 - fix(web): open an address typed without a language (#98)
