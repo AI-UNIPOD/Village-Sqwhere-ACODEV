@@ -230,16 +230,50 @@ test("a deleted comment that still has replies is a quiet note with no buttons, 
   expect(note.closest("li")!.querySelector(":scope > p")).toBe(note);
 });
 
-test("a like count is only a number, shown above zero, and there is no button to like a comment", async () => {
-  open({ "GET /v1/posts/post-1/comments": page([top("c1", { like_count: 2 }), top("c2", { like_count: 1 }), top("c3")]) });
+test("liking a comment changes it at once, sends the request, and can be undone", async () => {
+  open({
+    "GET /v1/posts/post-1/comments": page([top("c1", { like_count: 2 }), top("c2")]),
+    "PUT /v1/comments/c1/like": reply(204, null),
+    "DELETE /v1/comments/c1/like": reply(204, null),
+  });
   await screen.findByText("Body of c1");
   const row = (id: string) => within(document.getElementById(`comment-${id}`)!);
-  expect(row("c1").getByText("2 likes")).toBeTruthy();
-  expect(row("c2").getByText("1 like")).toBeTruthy();
-  expect(row("c3").queryByText(/like/)).toBeNull();
-  // the post's own Like is the only one; no comment has one
-  expect(screen.getAllByRole("button", { name: /like/i }).length).toBe(1);
-  expect(asked().some((call) => call.includes("/like") && call.includes("/comments/"))).toBe(false);
+  const like = () => row("c1").getByRole("button", { name: /^Like/ });
+  expect(like().getAttribute("aria-pressed")).toBe("false");
+  expect(row("c2").getByRole("button", { name: "Like (0)" })).toBeTruthy();
+
+  fireEvent.click(like());
+  expect(like().getAttribute("aria-pressed")).toBe("true");
+  expect(like().getAttribute("aria-label")).toBe("Like (3)");
+  await waitFor(() => expect(asked()).toContain("PUT /v1/comments/c1/like"));
+
+  await waitFor(() => {
+    fireEvent.click(like());
+    expect(like().getAttribute("aria-pressed")).toBe("false");
+  });
+  expect(like().getAttribute("aria-label")).toBe("Like (2)");
+  await waitFor(() => expect(asked()).toContain("DELETE /v1/comments/c1/like"));
+});
+
+test("a like that fails goes back and says so, and a second press while sending sends nothing", async () => {
+  let fail: (response: Response) => void = () => {};
+  open({
+    "GET /v1/posts/post-1/comments": page([top("c1", { like_count: 2 })]),
+    "PUT /v1/comments/c1/like": new Promise<Response>((resolve) => (fail = resolve)),
+  });
+  await screen.findByText("Body of c1");
+  const like = () => within(document.getElementById("comment-c1")!).getByRole("button", { name: /^Like/ });
+
+  fireEvent.click(like());
+  fireEvent.click(like());
+  expect(like().getAttribute("aria-label")).toBe("Like (3)");
+  await waitFor(() => expect(asked().filter((call) => call === "PUT /v1/comments/c1/like")).toHaveLength(1));
+  expect(asked().some((call) => call.startsWith("DELETE"))).toBe(false);
+
+  fail(refusal(500, "BOOM"));
+  expect((await screen.findByRole("alert")).textContent).toContain("The like did not go through. Try again.");
+  expect(like().getAttribute("aria-pressed")).toBe("false");
+  expect(like().getAttribute("aria-label")).toBe("Like (2)");
 });
 
 // ---------- writing ----------

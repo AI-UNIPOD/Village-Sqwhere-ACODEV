@@ -104,23 +104,6 @@
   font: var(--type-body-s);
 }
 
-/* the like count is only a number: it has no button, so it has no tap area either */
-.likes {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding-inline: var(--space-3);
-  color: var(--text-muted);
-  font: var(--type-mono-label);
-  font-variant-numeric: tabular-nums;
-}
-
-.likes svg {
-  flex: none;
-  inline-size: var(--space-4);
-  block-size: var(--space-4);
-}
-
 /* ---------- replies ---------- */
 /* each level moves in, with a line down its left; after the third level the replies stay where
    they are, so a deep thread still fits a phone */

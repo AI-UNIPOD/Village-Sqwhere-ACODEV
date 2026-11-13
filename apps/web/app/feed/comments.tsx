@@ -17,7 +17,7 @@ import { change, fromList, place, thread, type Thread } from "./comment-tree";
 import { CommentThread, ToolsContext, type Open, type Tools } from "./comment";
 import styles from "./comments.module.css";
 import { copy } from "./copy";
-import { createComment, deleteComment, loadComments, loadReplies, updateComment, type PostComment } from "./feed-api";
+import { createComment, deleteComment, loadComments, loadReplies, setCommentLike, updateComment, type PostComment } from "./feed-api";
 
 type What = "comment" | "reply" | "edit";
 
@@ -163,6 +163,27 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
     }
   }
 
+  // a second press while the first is being sent would send the same thing twice
+  const liking = useRef(new Set<string>());
+
+  function like(target: PostComment) {
+    if (liking.current.has(target.id)) return;
+    liking.current.add(target.id);
+    setNotice(null);
+    const on = !target.liked_by_me;
+    const set = (liked: boolean, count: number) =>
+      setThreads((have) => change(have ?? [], target.id, (found) => ({ ...found, comment: { ...found.comment, liked_by_me: liked, like_count: count } })));
+    set(on, target.like_count + (on ? 1 : -1));
+    setCommentLike(target.id, on)
+      .catch((error: unknown) => {
+        if (error instanceof SignedOutError) return;
+        set(target.liked_by_me, target.like_count);
+        setNotice(t.likeFailed);
+        reveal.current = { element: "comments-notice" };
+      })
+      .finally(() => liking.current.delete(target.id));
+  }
+
   async function remove() {
     if (!asking || deleting) return;
     const target = asking;
@@ -221,7 +242,7 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
     }
   }
 
-  const tools: Tools = { lang, now, username: me?.username, open, setOpen, arrived, reply, edit, ask: setAsking, showReplies };
+  const tools: Tools = { lang, now, username: me?.username, open, setOpen, arrived, reply, edit, like, ask: setAsking, showReplies };
   const heading = count === 0 ? c.none : fill(new Intl.PluralRules(lang).select(count) === "one" ? t.commentOne : t.commentMany, { n: count });
 
   return (
