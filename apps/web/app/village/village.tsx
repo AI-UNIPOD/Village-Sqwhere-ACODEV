@@ -141,9 +141,14 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
                     </Link>
                   )}
                   {id === "idea" && (state === "next" || state === "open") && (
-                    <Link className={button(id)} href={`/${lang}/ideas/mine`}>
-                      {t.ideas}
-                    </Link>
+                    <div className={styles.actions}>
+                      <Link className={button(id)} href={`/${lang}/ideas/mine`}>
+                        {t.ideas}
+                      </Link>
+                      <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/ideas`}>
+                        {t.browse}
+                      </Link>
+                    </div>
                   )}
                   {/* a Green Tick is also the right to decide other developers' attempts */}
                   {id === "verify" && state === "done" && (

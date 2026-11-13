@@ -17,6 +17,7 @@ import village from "../village/village.module.css";
 import { copy } from "./copy";
 import { loadMyIdeas, type OwnedIdea } from "./ideas-api";
 import styles from "./ideas.module.css";
+import { IdeasTabs } from "./ideas-tabs";
 
 // a draft is private, an open idea is live, a closed one is over
 const STATUS = {
@@ -123,6 +124,9 @@ function MyIdeasList({ lang }: { lang: Lang }) {
     <main className={`${onboarding.column} ${styles.main}`}>
       <h1 className={styles.title}>{t.mineTitle}</h1>
       <p className={styles.lead}>{t.mineLead}</p>
+      <div className={styles.toolbar}>
+        <IdeasTabs lang={lang} current="mine" />
+      </div>
       {message && (
         <p className={styles.done} role="status">
           <Check />

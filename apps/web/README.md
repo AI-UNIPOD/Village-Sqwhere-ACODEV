@@ -48,6 +48,9 @@ Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/i
 apart from the private brief, saves only the fields that changed, and asks before publishing or
 closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
+Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=`: the public
+part only, a "Needs your role" line when a role slug matches, and how joining works (the owner
+invites; there is no request to join).
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in

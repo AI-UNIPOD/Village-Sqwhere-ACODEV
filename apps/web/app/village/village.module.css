@@ -216,3 +216,10 @@
 }
 
 .action { margin-block-start: var(--space-4); }
+
+/* two ways on from one step, side by side while there is room */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-3);
+}

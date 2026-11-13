@@ -116,3 +116,10 @@ export const Lightbulb = ({ className }: { className?: string }) => (
     <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4" />
   </Icon>
 );
+
+export const Users = ({ className }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    <circle cx="9" cy="7" r="4" />
+  </Icon>
+);
