@@ -741,9 +741,9 @@ Create a new feed post.
   ```json
   {
     "type": "general",
-    "title": "Offline SQLite Sync in Android",
-    "body": "Here is how we handle intermittent connections in rural areas.",
-    "link_url": "https://github.com/example/offline-sync",
+    "title": "Async Python with PostgreSQL",
+    "body": "Tips and patterns for async connection pooling with asyncpg and PostgreSQL.",
+    "link_url": "https://github.com/example/async-postgres-guide",
     "topics": ["python", "postgresql"]
   }
   ```
@@ -753,9 +753,9 @@ Create a new feed post.
     "data": {
       "id": "1894d039-3fa4-469b-9878-8314f3ff5e0d",
       "type": "general",
-      "title": "Offline SQLite Sync in Android",
-      "body": "Here is how we handle intermittent connections in rural areas.",
-      "link_url": "https://github.com/example/offline-sync",
+      "title": "Async Python with PostgreSQL",
+      "body": "Tips and patterns for async connection pooling with asyncpg and PostgreSQL.",
+      "link_url": "https://github.com/example/async-postgres-guide",
       "author": {
         "id": "908fdc10-d867-4279-bb7d-b6a2f7c00e12",
         "username": "ada-lagos",
