@@ -18,10 +18,11 @@ Chosen on 2026-11-13 by the developer who owns the feed and posts API:
 2. With no feed topics chosen, the feed shows every post, so a new developer never opens an
    empty feed. The web app already knows from `GET /v1/me` whether topics are set, so it can
    invite the developer to pick some.
-3. `GET /v1/posts` lists every visible post and filters by `type`, `topic` (one technology
-   slug) and `author` (username, any case). An unknown topic or author gives an empty list,
-   not an error. The profile page uses `?author=` instead of a separate
-   `GET /v1/users/{username}/posts`.
+3. `GET /v1/posts` lists every visible post and filters by `type`, `topic` (repeatable
+   technology slug) and `author` (username, any case). Multiple topics combine with OR. An
+   unknown topic returns HTTP 422 with `UNKNOWN_TOPIC`. `type=hub_milestone` returns HTTP 422
+   with `HUB_MILESTONE_NOT_SUPPORTED`. An unknown author gives an empty list, not an error.
+   The profile page uses `?author=` instead of a separate `GET /v1/users/{username}/posts`.
 4. Both lists use the offset pagination of `2026-11-11-posts-pagination-and-visibility.md`,
    newest first, and hide deleted and hub posts like every other read path.
 

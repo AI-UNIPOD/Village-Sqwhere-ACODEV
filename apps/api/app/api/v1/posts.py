@@ -4,12 +4,13 @@ Integrity and revisions are maintained by PostgreSQL triggers. Authors, topics a
 viewer's likes and saves are loaded for a whole page in four queries, never one per post.
 """
 
+import re
 from collections import defaultdict
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
-from sqlalchemy import Select, delete, func, or_, select
+from sqlalchemy import Select, delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,8 +31,12 @@ from app.schemas.posts import (
     PostAuthorRef,
     PostCreateRequest,
     PostItemResponse,
+    PostLikeData,
+    PostLikeResponse,
     PostListResponse,
     PostResponse,
+    PostSaveData,
+    PostSaveResponse,
     PostUpdateRequest,
 )
 
@@ -270,22 +275,50 @@ async def list_posts(
     current_user: CurrentUser,
     db: DbSession,
     post_type: Annotated[PostType | None, Query(alias="type")] = None,
-    topic: Annotated[str | None, Query(max_length=64, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")] = None,
+    topic: Annotated[list[str] | None, Query()] = None,
     author: Annotated[str | None, Query(pattern=r"^[A-Za-z0-9_-]{3,39}$")] = None,
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
+    if post_type == PostType.HUB_MILESTONE:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "HUB_MILESTONE_NOT_SUPPORTED",
+                "message": "hub_milestone posts belong to a confidential hub and cannot be listed",
+            },
+        )
+
     query = _visible_posts()
     if post_type is not None:
         query = query.where(Post.type == post_type)
-    if topic is not None:
+
+    if topic:
+        slug_pattern = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+        for t in topic:
+            if len(t) > 64 or not slug_pattern.match(t):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail={"code": "UNKNOWN_TOPIC", "message": f"Unknown topic slug: {t}"},
+                )
+        clean_topics = list(dict.fromkeys(topic))
+        found = set(
+            await db.scalars(select(Technology.slug).where(Technology.slug.in_(clean_topics)))
+        )
+        missing = [t for t in clean_topics if t not in found]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"code": "UNKNOWN_TOPIC", "message": f"Unknown topic slug: {missing[0]}"},
+            )
         query = query.where(
             Post.id.in_(
                 select(PostTopic.post_id)
                 .join(Technology, Technology.id == PostTopic.technology_id)
-                .where(Technology.slug == topic)
+                .where(Technology.slug.in_(clean_topics))
             )
         )
+
     if author is not None:
         query = query.where(
             Post.author_id.in_(
@@ -304,58 +337,64 @@ async def my_feed(
 ) -> PostListResponse:
     query = _visible_posts()
     topic_ids = [feed_topic.technology_id for feed_topic in current_user.feed_topics]
-    # With no topics chosen yet, the feed is every post, so a new developer never sees an
-    # empty page. Your own posts always show, even when they have none of your topics.
+    # With no feed topics chosen yet, the feed shows every post, so a new developer never
+    # opens an empty feed.
+    # When feed topics are set, show only posts matching those topics (including own posts).
     if topic_ids:
         query = query.where(
-            or_(
-                Post.author_id == current_user.id,
-                Post.id.in_(
-                    select(PostTopic.post_id).where(PostTopic.technology_id.in_(topic_ids))
-                ),
-            )
+            Post.id.in_(select(PostTopic.post_id).where(PostTopic.technology_id.in_(topic_ids)))
         )
     return await _post_page(query.order_by(*NEWEST_FIRST), offset, limit, current_user.id, db)
 
 
-async def _set_mark(
-    mark: type[PostLike] | type[SavedPost],
-    post_id: UUID,
-    user_id: UUID,
-    db: AsyncSession,
-    *,
-    on: bool,
-) -> Response:
-    await _get_visible_post(post_id, db)
-    if on:
-        statement = (
-            pg_insert(mark).values(post_id=post_id, user_id=user_id).on_conflict_do_nothing()
-        )
-    else:
-        statement = delete(mark).where(mark.post_id == post_id, mark.user_id == user_id)
+@router.put("/posts/{post_id}/like", response_model=PostLikeResponse)
+async def like_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> PostLikeResponse:
+    post = await _get_visible_post(post_id, db)
+    statement = (
+        pg_insert(PostLike)
+        .values(post_id=post_id, user_id=current_user.id)
+        .on_conflict_do_nothing()
+    )
     await db.execute(statement)
     await db.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.put("/posts/{post_id}/like", status_code=status.HTTP_204_NO_CONTENT)
-async def like_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_mark(PostLike, post_id, current_user.id, db, on=True)
+    await db.refresh(post)
+    return PostLikeResponse(data=PostLikeData(liked=True, like_count=post.like_count))
 
 
 @router.delete("/posts/{post_id}/like", status_code=status.HTTP_204_NO_CONTENT)
 async def unlike_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_mark(PostLike, post_id, current_user.id, db, on=False)
+    post = await _get_visible_post(post_id, db)
+    statement = delete(PostLike).where(
+        PostLike.post_id == post_id, PostLike.user_id == current_user.id
+    )
+    await db.execute(statement)
+    await db.commit()
+    await db.refresh(post)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.put("/posts/{post_id}/save", status_code=status.HTTP_204_NO_CONTENT)
-async def save_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_mark(SavedPost, post_id, current_user.id, db, on=True)
+@router.put("/posts/{post_id}/save", response_model=PostSaveResponse)
+async def save_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> PostSaveResponse:
+    await _get_visible_post(post_id, db)
+    statement = (
+        pg_insert(SavedPost)
+        .values(post_id=post_id, user_id=current_user.id)
+        .on_conflict_do_nothing()
+    )
+    await db.execute(statement)
+    await db.commit()
+    return PostSaveResponse(data=PostSaveData(saved=True))
 
 
 @router.delete("/posts/{post_id}/save", status_code=status.HTTP_204_NO_CONTENT)
 async def unsave_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_mark(SavedPost, post_id, current_user.id, db, on=False)
+    await _get_visible_post(post_id, db)
+    statement = delete(SavedPost).where(
+        SavedPost.post_id == post_id, SavedPost.user_id == current_user.id
+    )
+    await db.execute(statement)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/me/saved-posts", response_model=PostListResponse)

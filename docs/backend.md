@@ -1224,7 +1224,6 @@ Soft-delete a post.
 * **Visibility:** Once deleted, the post returns HTTP 404 `POST_NOT_FOUND` to all future GET and PATCH requests.
 * **Success Response (204 No Content):** Empty body.
 
-
 ---
 
 ### `GET /v1/posts`
@@ -1233,12 +1232,10 @@ List visible posts, newest first. Deleted posts and hub posts never appear.
 
 * **Authentication:** Required (Bearer token)
 * **Query parameters (all optional, combine freely):**
-  * `type`: one post type, for example `question`. An unknown type returns 422.
-  * `topic`: one technology slug, for example `python`.
-  * `author`: a username, in any case. The profile page lists a developer's posts with it.
+  * `type`: one post type, for example `question`. An unknown type returns 422; `type=hub_milestone` returns HTTP 422 with `HUB_MILESTONE_NOT_SUPPORTED`.
+  * `topic`: technology slug, repeatable (e.g. `?topic=python&topic=rust`). Multiple topics match posts containing any of the selected topics (OR). An unknown topic slug returns HTTP 422 with `UNKNOWN_TOPIC`.
+  * `author`: a username, in any case. The profile page lists a developer's posts with it. An unknown author returns 200 with an empty list.
   * `offset` (default 0, at most 100000) and `limit` (default 20, at most 50).
-* An unknown topic or author returns an empty list. A malformed one (not a slug or a
-  username) returns 422.
 * **Success Response (200 OK):**
   ```json
   {
@@ -1265,15 +1262,38 @@ The signed-in developer's feed, newest first, paged like `GET /v1/posts`.
 
 ---
 
-### `PUT` and `DELETE /v1/posts/{post_id}/like`, `PUT` and `DELETE /v1/posts/{post_id}/save`
+### `PUT /v1/posts/{post_id}/like` and `DELETE /v1/posts/{post_id}/like`
 
-Like or unlike a post, save or unsave it.
+Like or unlike a post.
 
 * **Authentication:** Required (Bearer token). Anyone signed in, the author included.
-* `PUT` adds the like or save, `DELETE` removes it. Both are safe to send again: a second
-  like changes nothing and `like_count` counts each developer once.
-* **Success Response (204 No Content):** Empty body. Read `like_count`, `liked_by_me` and
-  `saved_by_me` from the post when you need the new values.
+* `PUT` adds the like; sending again is safe: a second like changes nothing and `like_count` counts each developer once.
+* `DELETE` removes the like; sending again is idempotent.
+* **Success Response for PUT (200 OK):**
+  ```json
+  {
+    "data": { "liked": true, "like_count": 1 }
+  }
+  ```
+* **Success Response for DELETE (204 No Content):** Empty body.
+* A missing, deleted or hub post returns HTTP 404 `POST_NOT_FOUND`.
+
+---
+
+### `PUT /v1/posts/{post_id}/save` and `DELETE /v1/posts/{post_id}/save`
+
+Save (bookmark) or unsave a post.
+
+* **Authentication:** Required (Bearer token). Anyone signed in, the author included.
+* `PUT` saves the post; sending again is idempotent.
+* `DELETE` removes the saved post; sending again is idempotent.
+* **Success Response for PUT (200 OK):**
+  ```json
+  {
+    "data": { "saved": true }
+  }
+  ```
+* **Success Response for DELETE (204 No Content):** Empty body.
 * A missing, deleted or hub post returns HTTP 404 `POST_NOT_FOUND`.
 
 ---
