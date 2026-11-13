@@ -109,6 +109,8 @@ The API now lets a developer ask to join a hub and the owner approve or decline
   confirmation: nothing is lost, and the API starts no wait, so "Ask to join" is back at once.
   One line says the request was withdrawn and takes focus, because the button is gone. The API
   marks a withdrawn request `declined`; the hub's page does not then say that someone declined.
+  Opened again later, the page cannot tell the three cases apart, so its one line names all
+  three: an invitation declined, a request declined, a request withdrawn.
   If the owner answered first (404 `REQUEST_NOT_FOUND`), the page reads the hub's card again and
   shows where the developer stands, with a line saying the owner had already answered.
 

@@ -306,7 +306,7 @@ const en: Copy = {
     },
     failed: "We couldn't decline the invitation. Nothing was changed, so try again.",
   },
-  declinedNote: "You are not in this hub. You declined its invitation, or the owner declined your request.",
+  declinedNote: "You are not in this hub. You declined its invitation, the owner declined your request, or you withdrew it.",
   joined: "You are in. The brief and the team are now open to you.",
   invitations: { heading: "Invitations", by: "Invited by {name}" },
   ask: {
@@ -530,7 +530,7 @@ const fr: Copy = {
     },
     failed: "Nous n'avons pas pu refuser l'invitation. Rien n'a été modifié, réessayez.",
   },
-  declinedNote: "Vous n'êtes pas dans cet espace. Vous avez refusé son invitation, ou le porteur a refusé votre demande.",
+  declinedNote: "Vous n'êtes pas dans cet espace. Vous avez refusé son invitation, le porteur a refusé votre demande, ou vous l'avez retirée.",
   joined: "C'est fait, vous êtes dans l'équipe. Le brief et l'équipe vous sont maintenant ouverts.",
   invitations: { heading: "Invitations", by: "Invitation de {name}" },
   ask: {
