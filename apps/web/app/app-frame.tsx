@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ViewTransition, type ReactNode } from "react";
+import { ViewTransition, useEffect, type ReactNode } from "react";
 
 import { copy } from "./app-frame-copy";
 import styles from "./app-frame.module.css";
@@ -12,7 +12,8 @@ import { ThemeButton } from "./landing/theme-toggle";
 import { LANGUAGE_NAMES, type Lang } from "./locales";
 import { Logo } from "./logo";
 import { Home, Lightbulb, Newspaper, ShieldCheck, User, Users } from "./onboarding/icons";
-import { useKeptMe } from "./session/me";
+import { useDemoRefusals } from "./session/demo";
+import { ensureMe, useKeptMe } from "./session/me";
 import { useSession } from "./session/session";
 import { SignOutButton } from "./session/session-ui";
 
@@ -38,6 +39,22 @@ type AppFrameProps = {
   children: ReactNode;
 };
 
+// Under the header for the shared demo account: what the demo is, and the way out of it. When
+// the API refuses a change, the line says so, and a screen reader hears it each time.
+function DemoLine({ lang }: { lang: Lang }) {
+  const t = copy[lang].demo;
+  const refusals = useDemoRefusals();
+  return (
+    <div className={styles.demo} data-refused={refusals > 0 || undefined}>
+      {/* the key makes each refusal a new line, so it is announced and drawn again */}
+      <p key={refusals} role="status">
+        {refusals > 0 ? t.refused : t.line}
+      </p>
+      <SignOutButton lang={lang} label={t.leave} className={landing.navLink} />
+    </div>
+  );
+}
+
 // The header and the page around every screen for a signed-in developer, so their loading and
 // error screens keep the way around too. On a phone the places sit in a bar at the bottom of
 // the screen, within reach of a thumb; on a wide screen they are links in the header. It is one
@@ -47,6 +64,9 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
   const other: Lang = lang === "en" ? "fr" : "en";
   const signedIn = !!useSession();
   const me = useKeptMe();
+  useEffect(() => {
+    if (signedIn) ensureMe();
+  }, [signedIn]);
   // known once the village or Your hubs has loaded them this visit
   const invited = (useKeptInvitations()?.length ?? 0) > 0;
   const places = signedIn && !locked && !bare;
@@ -108,6 +128,7 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
           </div>
         )}
       </header>
+      {signedIn && !locked && me?.is_demo && <DemoLine lang={lang} />}
       {/* a new screen fades in as the old one fades out (globals.css) */}
       <ViewTransition enter="screen" exit="screen" default="none">
         {children}

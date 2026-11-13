@@ -123,8 +123,8 @@ test("each question step announces itself, shows its progress and takes focus", 
   go("role");
   click("radio", /Frontend Engineer/);
   go("stack");
-  expect(screen.getByText("Step 2 of 4")).toBeTruthy();
-  expect(screen.getByText("Step 2 of 4: What do you build with?").getAttribute("role")).toBe("status");
+  expect(screen.getByText("Step 2 of 5")).toBeTruthy();
+  expect(screen.getByText("Step 2 of 5: What do you build with?").getAttribute("role")).toBe("status");
   expect(document.activeElement).toBe(heading("What do you build with?"));
 });
 
@@ -236,6 +236,33 @@ test("the country list is in the page language, sorted for it, and the step can 
   expect(nav.push).toHaveBeenCalledWith("/fr/onboarding?step=topics", { scroll: false });
 });
 
+test("the feed step asks which technologies to read about, and can take the stack in one press", () => {
+  const go = start();
+  answerRequired(go);
+  click("button", "Docker");
+  go("feed");
+  expect(heading("What do you want to read about?")).toBeTruthy();
+  expect(screen.getByText("Step 5 of 5")).toBeTruthy();
+  // one bar per question, all filled on the last one
+  expect(document.querySelectorAll("[aria-hidden='true'] > span[data-done]")).toHaveLength(5);
+  // nothing is chosen for the person: none means every post
+  expect(screen.queryAllByRole("button", { pressed: true })).toHaveLength(0);
+
+  click("button", "Python");
+  expect(screen.getByRole("button", { name: "Python" }).getAttribute("aria-pressed")).toBe("true");
+
+  click("button", "Use my stack");
+  const pressed = screen.getAllByRole("button", { pressed: true }).map((chip) => chip.textContent);
+  expect(pressed.sort()).toEqual(["Docker", "React"]);
+  // once the stack is the answer, the button has nothing left to do
+  expect(screen.queryByRole("button", { name: "Use my stack" })).toBeNull();
+
+  // it can be skipped, like the country and the sectors
+  nav.push.mockClear();
+  click("button", "Skip");
+  expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=done", { scroll: false });
+});
+
 test("the profile card shows what was chosen", () => {
   const go = start();
   answerRequired(go);
@@ -244,6 +271,8 @@ test("the profile card shows what was chosen", () => {
   click("radio", "Senegal");
   go("topics");
   click("button", "Fintech");
+  go("feed");
+  click("button", "Python");
   go("done");
 
   expect(heading("You're in, Aminata.")).toBeTruthy();
@@ -252,9 +281,9 @@ test("the profile card shows what was chosen", () => {
   expect(screen.getByText("Frontend Engineer")).toBeTruthy();
   expect(screen.getByText("Senegal")).toBeTruthy();
   const tags = screen.getAllByRole("listitem").map((item) => item.textContent);
-  expect(tags).toEqual(expect.arrayContaining(["React", "Docker", "Fintech"]));
+  expect(tags).toEqual(expect.arrayContaining(["React", "Docker", "Fintech", "Python"]));
   expect(tags).not.toContain("Go");
-  expect(screen.getByText("Saving your role and stack")).toBeTruthy();
+  expect(screen.getByText("Saving your answers")).toBeTruthy();
 
   const next = screen.getByRole("heading", { name: "What happens next" }).nextElementSibling as HTMLElement;
   expect(within(next).getAllByRole("listitem")).toHaveLength(3);

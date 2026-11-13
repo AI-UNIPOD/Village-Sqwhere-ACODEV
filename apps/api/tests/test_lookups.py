@@ -24,3 +24,21 @@ def test_search_technologies() -> None:
     assert isinstance(payload["data"], list)
     slugs = [tech["slug"] for tech in payload["data"]]
     assert any("py" in slug for slug in slugs)
+
+
+def test_list_sectors() -> None:
+    response = client.get("/v1/sectors")
+    assert response.status_code == 200
+    assert [sector["slug"] for sector in response.json()["data"]] == [
+        "fintech",
+        "agritech",
+        "health",
+        "education",
+        "climate-energy",
+        "mobility-logistics",
+        "commerce",
+        "civic",
+        "media-culture",
+        "developer-tools",
+    ]
+    assert response.json()["data"][7] == {"slug": "civic", "name": "Civic tech and public services"}

@@ -14,7 +14,7 @@ from sqlalchemy import Select, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, same_world
 from app.models import (
     DeletionReason,
     PlatformRole,
@@ -50,13 +50,17 @@ NEWEST_FIRST = (Post.created_at.desc(), Post.id.desc())
 # --- Route helpers ---------------------------------------------------------------------------
 
 
-def visible_posts() -> Select[tuple[Post]]:
+def visible_posts(viewer: User) -> Select[tuple[Post]]:
     # Hub milestone posts belong to a confidential hub, so no public read path shows them.
-    return select(Post).where(Post.deleted_at.is_(None), Post.hub_id.is_(None))
+    return select(Post).where(
+        Post.deleted_at.is_(None), Post.hub_id.is_(None), same_world(Post.author_id, viewer)
+    )
 
 
-async def get_visible_post(post_id: UUID, db: AsyncSession, *, lock: bool = False) -> Post:
-    query = visible_posts().where(Post.id == post_id)
+async def get_visible_post(
+    post_id: UUID, db: AsyncSession, viewer: User, *, lock: bool = False
+) -> Post:
+    query = visible_posts(viewer).where(Post.id == post_id)
     if lock:
         # A write that waits on a concurrent delete then sees the post gone and answers 404.
         query = query.with_for_update()
@@ -204,7 +208,7 @@ async def get_post(
     current_user: CurrentUser,
     db: DbSession,
 ) -> PostItemResponse:
-    return await _post_item(await get_visible_post(post_id, db), current_user.id, db)
+    return await _post_item(await get_visible_post(post_id, db, current_user), current_user.id, db)
 
 
 @router.patch("/posts/{post_id}", response_model=PostItemResponse)
@@ -214,7 +218,7 @@ async def update_post(
     current_user: CurrentUser,
     db: DbSession,
 ) -> PostItemResponse:
-    post = await get_visible_post(post_id, db, lock=True)
+    post = await get_visible_post(post_id, db, current_user, lock=True)
     if post.author_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -252,7 +256,7 @@ async def delete_post(
     current_user: CurrentUser,
     db: DbSession,
 ) -> Response:
-    post = await get_visible_post(post_id, db, lock=True)
+    post = await get_visible_post(post_id, db, current_user, lock=True)
 
     if post.author_id == current_user.id:
         reason = DeletionReason.AUTHOR
@@ -284,7 +288,7 @@ async def list_posts(
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
-    query = visible_posts()
+    query = visible_posts(current_user)
     if post_type is not None:
         query = query.where(Post.type == post_type)
     if topic:
@@ -311,7 +315,7 @@ async def my_feed(
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
-    query = visible_posts()
+    query = visible_posts(current_user)
     topic_ids = [feed_topic.technology_id for feed_topic in current_user.feed_topics]
     # With no topics chosen yet, the feed is every post, so a new developer never sees an
     # empty page. Your own posts always show, even when they have none of your topics.
@@ -330,18 +334,18 @@ async def my_feed(
 async def _set_mark(
     mark: type[PostLike] | type[SavedPost],
     post_id: UUID,
-    user_id: UUID,
+    user: User,
     db: AsyncSession,
     *,
     on: bool,
 ) -> Response:
-    await get_visible_post(post_id, db)
+    await get_visible_post(post_id, db, user)
     if on:
         statement = (
-            pg_insert(mark).values(post_id=post_id, user_id=user_id).on_conflict_do_nothing()
+            pg_insert(mark).values(post_id=post_id, user_id=user.id).on_conflict_do_nothing()
         )
     else:
-        statement = delete(mark).where(mark.post_id == post_id, mark.user_id == user_id)
+        statement = delete(mark).where(mark.post_id == post_id, mark.user_id == user.id)
     await db.execute(statement)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -349,22 +353,22 @@ async def _set_mark(
 
 @router.put("/posts/{post_id}/like", status_code=status.HTTP_204_NO_CONTENT)
 async def like_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_mark(PostLike, post_id, current_user.id, db, on=True)
+    return await _set_mark(PostLike, post_id, current_user, db, on=True)
 
 
 @router.delete("/posts/{post_id}/like", status_code=status.HTTP_204_NO_CONTENT)
 async def unlike_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_mark(PostLike, post_id, current_user.id, db, on=False)
+    return await _set_mark(PostLike, post_id, current_user, db, on=False)
 
 
 @router.put("/posts/{post_id}/save", status_code=status.HTTP_204_NO_CONTENT)
 async def save_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_mark(SavedPost, post_id, current_user.id, db, on=True)
+    return await _set_mark(SavedPost, post_id, current_user, db, on=True)
 
 
 @router.delete("/posts/{post_id}/save", status_code=status.HTTP_204_NO_CONTENT)
 async def unsave_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
-    return await _set_mark(SavedPost, post_id, current_user.id, db, on=False)
+    return await _set_mark(SavedPost, post_id, current_user, db, on=False)
 
 
 @router.get("/me/saved-posts", response_model=PostListResponse)
@@ -375,7 +379,7 @@ async def my_saved_posts(
     limit: PageLimit = 20,
 ) -> PostListResponse:
     query = (
-        visible_posts()
+        visible_posts(current_user)
         .join(SavedPost, SavedPost.post_id == Post.id)
         .where(SavedPost.user_id == current_user.id)
         .order_by(SavedPost.created_at.desc(), Post.id.desc())

@@ -21,12 +21,14 @@ type Copy = {
   stack: Question & { error: string; filter: string; selected: string };
   country: Question & { filter: string; selected: string };
   topics: Question;
+  feed: Question & { useStack: string };
   empty: Empty;
   doneTitle: string;
   noRole: string;
   finishLater: string;
   stackLabel: string;
   topicsLabel: string;
+  feedLabel: string;
   nextTitle: string;
   nextSteps: string[];
   saving: string;
@@ -47,7 +49,7 @@ const en: Copy = {
   play: "Play animation",
   welcomeTitle: "Welcome to the village, {name}.",
   welcomeSub:
-    "Four quick questions so we can match you with people building ideas like yours. About a minute.",
+    "Five quick questions so we can match you with people building ideas like yours. About a minute.",
   signedIn: "Signed in with GitHub as @{username}",
   start: "Set up my profile",
   skipForNow: "Skip for now",
@@ -78,6 +80,11 @@ const en: Copy = {
     title: "Which ideas do you want to see?",
     why: "Your feed shows ideas from these areas first.",
   },
+  feed: {
+    title: "What do you want to read about?",
+    why: "Your feed shows posts about these technologies. Choose none to see every post. You can change this on the feed.",
+    useStack: "Use my stack",
+  },
   empty: {
     title: "No match",
     stack: 'No technology matches "{query}". Check the spelling or clear the filter.',
@@ -88,16 +95,17 @@ const en: Copy = {
   noRole: "Role not chosen yet",
   finishLater: "Finish your profile any time",
   stackLabel: "Stack",
-  topicsLabel: "Topics",
+  topicsLabel: "Sectors",
+  feedLabel: "In your feed",
   nextTitle: "What happens next",
   nextSteps: [
     "Share an idea, or wait for one that fits your skills.",
     "We suggest teammates when your skills match an idea.",
     "Verify your role to earn your Green Tick.",
   ],
-  saving: "Saving your role and stack",
-  saved: "Your role and stack are saved. Your country and topics are not saved yet.",
-  saveFailed: "We couldn't save your role and stack. Your answers are still here, so try again.",
+  saving: "Saving your answers",
+  saved: "Your role, stack, sectors and what your feed shows are saved. Your country is not saved yet.",
+  saveFailed: "We couldn't save your answers. They are still here, so try again.",
   village: "Go to the village",
   change: "Change my answers",
   githubProfile: "GitHub profile, opens in a new tab",
@@ -115,7 +123,7 @@ const fr: Copy = {
   play: "Lire l'animation",
   welcomeTitle: "Bienvenue au village, {name}.",
   welcomeSub:
-    "Quatre questions rapides pour vous mettre en relation avec des développeurs qui construisent des idées comme la vôtre. Environ une minute.",
+    "Cinq questions rapides pour vous mettre en relation avec des développeurs qui construisent des idées comme la vôtre. Environ une minute.",
   signedIn: "Session GitHub ouverte pour @{username}",
   start: "Configurer mon profil",
   skipForNow: "Passer pour l'instant",
@@ -146,6 +154,11 @@ const fr: Copy = {
     title: "Quelles idées voulez-vous voir\u202f?",
     why: "Votre fil affiche d'abord les idées de ces domaines.",
   },
+  feed: {
+    title: "Sur quoi voulez-vous lire\u202f?",
+    why: "Votre fil affiche les publications sur ces technologies. N'en choisissez aucune pour tout voir. Vous pourrez changer cela dans le fil.",
+    useStack: "Reprendre mes technologies",
+  },
   empty: {
     title: "Aucun résultat",
     stack:
@@ -159,16 +172,17 @@ const fr: Copy = {
   finishLater: "Vous pourrez compléter votre profil quand vous voulez",
   stackLabel: "Technologies",
   topicsLabel: "Domaines",
+  feedLabel: "Dans votre fil",
   nextTitle: "Et ensuite",
   nextSteps: [
     "Partagez une idée, ou attendez qu'une idée corresponde à vos compétences.",
     "Nous vous proposons des coéquipiers quand vos compétences correspondent à une idée.",
     "Faites vérifier votre rôle pour obtenir votre Green Tick.",
   ],
-  saving: "Enregistrement de votre rôle et de vos technologies",
-  saved: "Votre rôle et vos technologies sont enregistrés. Votre pays et vos domaines ne le sont pas encore.",
+  saving: "Enregistrement de vos réponses",
+  saved: "Votre rôle, vos technologies, vos domaines et le contenu de votre fil sont enregistrés. Votre pays ne l'est pas encore.",
   saveFailed:
-    "Nous n'avons pas pu enregistrer votre rôle et vos technologies. Vos réponses sont toujours là, vous pouvez donc réessayer.",
+    "Nous n'avons pas pu enregistrer vos réponses. Elles sont toujours là, vous pouvez donc réessayer.",
   village: "Aller au village",
   change: "Modifier mes réponses",
   githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",

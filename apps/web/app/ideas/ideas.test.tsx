@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { forgetMe, keepMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { IdeaComposer } from "./composer";
 import { copy } from "./copy";
@@ -46,6 +47,8 @@ const press = (name: string) => fireEvent.click(screen.getByRole("button", { nam
 const SUMMARY = "A shared ledger that works offline for co-operatives.";
 
 beforeEach(() => {
+  // the frame already knows who is signed in, as it does after the first screen of a visit
+  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, roles: [], technologies: [], feed_topics: [] });
   nav.search = "";
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem(
@@ -56,6 +59,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  forgetMe();
   vi.clearAllMocks();
   vi.unstubAllGlobals();
   fetchMock.mockReset();

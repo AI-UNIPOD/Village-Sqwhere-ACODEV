@@ -20,6 +20,12 @@ The web frontend's owner chose, on 13 November 2026:
 - **The profile is kept for the visit** (`app/session/me.ts`). The first screen loads it; later
   screens show it at once and refresh it behind. A sign-in or sign-out loads a new page, which
   empties it.
+- **The frame asks for the profile when it has none** (added 13 November 2026). Nine screens
+  never ask for it themselves (Your hubs, a hub, joining a hub, a new hub, Your ideas, the idea
+  composer, an idea's matches, a review case, the interview). Opened by their address or reloaded, they left
+  the frame without it: a verified developer lost the Reviews place, and the demo account lost
+  its line. The frame and the screen inside it share one request, so a page that opens still
+  asks once. If that request fails, the frame only shows less.
 - **Moving between screens is a quick crossfade** (120ms out, 180ms in), with React's
   `<ViewTransition>`: this happens many times a day, so nothing travels. The one thing that
   moves is the mark, which slides to the place just opened. With reduced motion the mark does

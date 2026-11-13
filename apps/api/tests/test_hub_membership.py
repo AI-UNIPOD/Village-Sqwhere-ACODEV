@@ -1,7 +1,7 @@
 """Joining a hub: invitations, the agreement, the member list and the confidential brief."""
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from itertools import permutations
 from typing import Any
 from uuid import uuid4
@@ -554,6 +554,210 @@ def test_the_owner_sees_pending_people_and_members_see_the_team(client: TestClie
     assert_error(client.get(f"/v1/hubs/{uuid4()}/members", headers=auth(owner)), 404, "NOT_FOUND")
 
 
+# --- join requests -------------------------------------------------------------------------
+
+
+def ask(client: TestClient, hub: Hub, user: User) -> Any:
+    return client.post(f"/v1/hubs/{hub.id}/join-requests", headers=auth(user))
+
+
+def answer(client: TestClient, hub: Hub, owner: User, user: User, verdict: str) -> Any:
+    return client.post(f"/v1/hubs/{hub.id}/members/{user.id}/{verdict}", headers=auth(owner))
+
+
+def test_a_developer_asks_to_join_and_the_owner_approves(client: TestClient) -> None:
+    owner, developer = make_user(), make_user()
+    hub = make_hub(owner)
+    idea = client.get(f"/v1/ideas/{hub.idea_id}", headers=auth(developer)).json()["data"]
+    assert idea["hub_id"] == str(hub.id)  # the open idea's card says where to ask
+
+    asked = ask(client, hub, developer)
+
+    assert asked.status_code == 201, asked.text
+    assert asked.json()["data"]["viewer"] == {
+        "membership_status": "requested",
+        "member_role": "member",
+    }
+    stored = membership(hub, developer)
+    assert (stored.status, stored.invited_by) == (HubMemberStatus.REQUESTED, None)
+    mine = client.get("/v1/me/hubs", headers=auth(developer), params={"status": "requested"})
+    assert [card["id"] for card in mine.json()["data"]] == [str(hub.id)]
+    team = client.get(f"/v1/hubs/{hub.id}/members", headers=auth(owner)).json()["data"]
+    assert (team[-1]["user"]["id"], team[-1]["status"]) == (str(developer.id), "requested")
+
+    approved = answer(client, hub, owner, developer, "approve")
+
+    assert approved.status_code == 200, approved.text
+    assert set(approved.json()["data"]) == MEMBER_CARD
+    assert approved.json()["data"]["status"] == "invited"
+    assert membership(hub, developer).invited_by == owner.id
+    # approval is an invitation: the developer joins by signing, like anyone invited
+    joined = accept(client, hub, developer)
+    assert joined.status_code == 200, joined.text
+    assert joined.json()["data"]["member_count"] == 2
+    assert membership(hub, developer).status == HubMemberStatus.ACTIVE
+
+
+def wait_out(hub: Hub, user: User) -> None:
+    """As if the developer's wait after a decline had passed."""
+    set_membership(hub, user, can_ask_again_at=datetime.now(UTC) - timedelta(seconds=1))
+
+
+def cooling_until(response: Any) -> datetime:
+    assert_error(response, 409, "REQUEST_COOLING_DOWN")
+    return datetime.fromisoformat(response.json()["detail"]["can_ask_again_at"])
+
+
+def test_the_owner_declines_and_the_developer_may_ask_again_after_48_hours(
+    client: TestClient,
+) -> None:
+    owner, developer = make_user(), make_user()
+    hub = make_hub(owner)
+    assert ask(client, hub, developer).status_code == 201
+
+    declined = answer(client, hub, owner, developer, "decline")
+
+    assert declined.status_code == 200, declined.text
+    assert declined.json()["data"]["status"] == "declined"
+    viewer = client.get(f"/v1/hubs/{hub.id}", headers=auth(developer)).json()["data"]["viewer"]
+    assert viewer["membership_status"] == "declined"
+    assert_error(accept(client, hub, developer), 404, "INVITATION_NOT_FOUND")
+    until = cooling_until(ask(client, hub, developer))
+    assert abs(until - (datetime.now(UTC) + timedelta(hours=48))) < timedelta(minutes=1)
+    assert membership(hub, developer).status == HubMemberStatus.DECLINED
+
+    wait_out(hub, developer)
+    assert ask(client, hub, developer).status_code == 201
+    assert membership(hub, developer).status == HubMemberStatus.REQUESTED
+
+
+def test_the_fifth_decline_in_a_row_means_30_days_then_the_count_starts_again(
+    client: TestClient,
+) -> None:
+    owner, developer = make_user(), make_user()
+    hub = make_hub(owner)
+    for _ in range(4):
+        assert ask(client, hub, developer).status_code == 201
+        assert answer(client, hub, owner, developer, "decline").status_code == 200
+        until = cooling_until(ask(client, hub, developer))
+        assert until - datetime.now(UTC) < timedelta(hours=49)
+        wait_out(hub, developer)
+
+    assert ask(client, hub, developer).status_code == 201
+    assert answer(client, hub, owner, developer, "decline").status_code == 200
+
+    until = cooling_until(ask(client, hub, developer))
+    assert abs(until - (datetime.now(UTC) + timedelta(days=30))) < timedelta(minutes=1)
+    assert membership(hub, developer).declines_in_a_row == 0
+    wait_out(hub, developer)
+    assert ask(client, hub, developer).status_code == 201
+    assert answer(client, hub, owner, developer, "decline").status_code == 200
+    until = cooling_until(ask(client, hub, developer))
+    assert until - datetime.now(UTC) < timedelta(hours=49)
+
+
+def test_approval_or_joining_clears_the_count(client: TestClient) -> None:
+    owner, developer = make_user(), make_user()
+    hub = make_hub(owner)
+    assert ask(client, hub, developer).status_code == 201
+    assert answer(client, hub, owner, developer, "decline").status_code == 200
+    wait_out(hub, developer)
+    assert ask(client, hub, developer).status_code == 201
+
+    assert answer(client, hub, owner, developer, "approve").status_code == 200
+
+    stored = membership(hub, developer)
+    assert (stored.declines_in_a_row, stored.can_ask_again_at) == (0, None)
+
+    invited = make_user()
+    add_member(hub, invited, HubMemberStatus.INVITED)
+    set_membership(hub, invited, declines_in_a_row=3)
+    assert accept(client, hub, invited).status_code == 200
+    assert membership(hub, invited).declines_in_a_row == 0
+
+
+def test_a_decline_only_holds_back_asking_the_same_hub(client: TestClient) -> None:
+    developer, owner = make_user(), make_user()
+    turned_down, other = make_hub(owner), make_hub(make_user())
+    assert ask(client, turned_down, developer).status_code == 201
+    assert answer(client, turned_down, owner, developer, "decline").status_code == 200
+
+    assert_error(ask(client, turned_down, developer), 409, "REQUEST_COOLING_DOWN")
+    assert ask(client, other, developer).status_code == 201
+
+
+def test_someone_who_left_or_was_removed_may_ask_again(client: TestClient) -> None:
+    owner = make_user()
+    hub = make_hub(owner)
+    for gone in (HubMemberStatus.LEFT, HubMemberStatus.REMOVED):
+        developer = make_user()
+        add_member(hub, developer, gone)
+        assert ask(client, hub, developer).status_code == 201
+        stored = membership(hub, developer)
+        assert (stored.status, stored.left_at) == (HubMemberStatus.REQUESTED, None)
+
+
+def test_asking_to_join_is_refused_when_it_cannot_lead_anywhere(client: TestClient) -> None:
+    owner, member, invited, requested = make_user(), make_user(), make_user(), make_user()
+    hub = make_hub(owner)
+    add_member(hub, member, HubMemberStatus.ACTIVE)
+    add_member(hub, invited, HubMemberStatus.INVITED)
+    add_member(hub, requested, HubMemberStatus.REQUESTED)
+
+    assert_error(ask(client, hub, owner), 409, "ALREADY_MEMBER")
+    assert_error(ask(client, hub, member), 409, "ALREADY_MEMBER")
+    assert_error(ask(client, hub, invited), 409, "ALREADY_INVITED")
+    assert_error(ask(client, hub, requested), 409, "ALREADY_REQUESTED")
+    missing = client.post(f"/v1/hubs/{uuid4()}/join-requests", headers=auth(member))
+    assert_error(missing, 404, "NOT_FOUND")
+
+    archived = make_hub(make_user(), archived=True)
+    assert_error(ask(client, archived, make_user()), 409, "HUB_ARCHIVED")
+    closed = make_hub(make_user())
+    set_idea(closed, status=IdeaStatus.CLOSED)
+    assert_error(ask(client, closed, make_user()), 409, "IDEA_CLOSED")
+    full = make_hub(make_user())
+    fill_team(full, 5)
+    stranger = make_user()
+    assert_error(ask(client, full, stranger), 409, "TEAM_FULL")
+    assert membership(full, stranger) is None
+
+
+def test_only_the_owner_answers_and_only_a_pending_request(client: TestClient) -> None:
+    owner, member, developer = make_user(), make_user(), make_user()
+    hub = make_hub(owner)
+    add_member(hub, member, HubMemberStatus.ACTIVE)
+    assert ask(client, hub, developer).status_code == 201
+
+    for verdict in ("approve", "decline"):
+        assert_error(answer(client, hub, member, developer, verdict), 403, "NOT_HUB_OWNER")
+        for nobody in (member, owner, make_user()):
+            assert_error(answer(client, hub, owner, nobody, verdict), 404, "REQUEST_NOT_FOUND")
+    assert membership(hub, developer).status == HubMemberStatus.REQUESTED
+
+
+def test_approving_into_a_full_team_waits_for_room(client: TestClient) -> None:
+    owner, developer = make_user(), make_user()
+    hub = make_hub(owner)
+    assert ask(client, hub, developer).status_code == 201
+    fill_team(hub, 5)
+
+    assert_error(answer(client, hub, owner, developer, "approve"), 409, "TEAM_FULL")
+    assert membership(hub, developer).status == HubMemberStatus.REQUESTED
+    # declining needs no room
+    assert answer(client, hub, owner, developer, "decline").status_code == 200
+
+
+def test_an_archived_hub_takes_no_approvals_but_can_decline(client: TestClient) -> None:
+    owner, waiting, other = make_user(), make_user(), make_user()
+    hub = make_hub(owner, archived=True)
+    add_member(hub, waiting, HubMemberStatus.REQUESTED)
+    add_member(hub, other, HubMemberStatus.REQUESTED)
+
+    assert_error(answer(client, hub, owner, waiting, "approve"), 409, "HUB_ARCHIVED")
+    assert answer(client, hub, owner, other, "decline").status_code == 200
+
+
 # --- sign-in and malformed ids -------------------------------------------------------------
 
 HUB = "00000000-0000-4000-8000-000000000000"
@@ -565,6 +769,9 @@ ROUTES = [
     ("delete", f"/v1/hubs/{HUB}/invitations/{HUB}"),
     ("post", f"/v1/hubs/{HUB}/invitation/accept"),
     ("post", f"/v1/hubs/{HUB}/invitation/decline"),
+    ("post", f"/v1/hubs/{HUB}/join-requests"),
+    ("post", f"/v1/hubs/{HUB}/members/{HUB}/approve"),
+    ("post", f"/v1/hubs/{HUB}/members/{HUB}/decline"),
 ]
 
 

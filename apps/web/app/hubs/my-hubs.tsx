@@ -14,7 +14,7 @@ import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
 import { copy } from "./copy";
-import { loadMyHubs, type Hub } from "./hubs-api";
+import { loadMyHubs, loadRequests, type Hub } from "./hubs-api";
 import { refreshInvitations } from "./invitations";
 import styles from "./hubs.module.css";
 
@@ -69,6 +69,8 @@ function MyHubsList({ lang }: { lang: Lang }) {
   const [loadingMore, setLoadingMore] = useState(false);
   // null while loading; empty when there are none or the request failed, which only hides the section
   const [invitations, setInvitations] = useState<Hub[] | null>(null);
+  // the hubs the developer asked to join; the same rule as the invitations
+  const [requests, setRequests] = useState<Hub[] | null>(null);
 
   function load(offset: number) {
     return loadMyHubs(offset).then(
@@ -85,10 +87,11 @@ function MyHubsList({ lang }: { lang: Lang }) {
   useEffect(() => {
     load(0);
     refreshInvitations().then(setInvitations, () => setInvitations([]));
+    loadRequests().then(setRequests, () => setRequests([]));
   }, []);
 
   if (failure) throw failure;
-  if (!hubs || !invitations) return <HubsSkeleton lang={lang} />;
+  if (!hubs || !invitations || !requests) return <HubsSkeleton lang={lang} />;
 
   return (
     <main className={`${onboarding.column} ${ideas.main}`}>
@@ -110,7 +113,23 @@ function MyHubsList({ lang }: { lang: Lang }) {
           </ul>
         </section>
       )}
-      {invitations.length > 0 && hubs.length > 0 && <h2 className={`${ideas.heading} ${styles.listHeading}`}>{t.yourHubs}</h2>}
+      {requests.length > 0 && (
+        <section>
+          <h2 className={`${ideas.heading} ${styles.listHeading}`}>{t.waiting.heading}</h2>
+          <ul className={ideas.list}>
+            {requests.map((hub) => (
+              <li key={hub.id} className={ideas.card}>
+                <h3 className={ideas.cardTitle}>
+                  <Link href={`/${lang}/hubs/view?id=${hub.id}`}>{hub.name}</Link>
+                </h3>
+                <p className={ideas.summary}>{hub.idea.title}</p>
+                <p className={ideas.meta}>{fill(t.waiting.owner, { name: hub.owner.display_name })}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {(invitations.length > 0 || requests.length > 0) && hubs.length > 0 && <h2 className={`${ideas.heading} ${styles.listHeading}`}>{t.yourHubs}</h2>}
       {hubs.length === 0 ? (
         <div className={onboarding.empty}>
           <Users className={onboarding.emptyIcon} />

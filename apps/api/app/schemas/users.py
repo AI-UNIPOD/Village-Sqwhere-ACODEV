@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from app.schemas.lookups import TechnologyRef
+from app.schemas.lookups import SectorRef, TechnologyRef
 
 
 class UserRoleVerification(BaseModel):
@@ -46,9 +46,11 @@ class UserProfile(BaseModel):
     is_verified: bool = False
     verified_at: datetime | None = None
     platform_role: str = "member"
+    is_demo: bool = False
     roles: list[UserRoleDetail] = []
     technologies: list[TechnologyRef] = []
     feed_topics: list[TechnologyRef] = []
+    sectors: list[SectorRef] = []
     identities: list[UserIdentityRef] = []
     created_at: datetime
 
@@ -102,3 +104,14 @@ class ReplaceFeedTopicsRequest(BaseModel):
 
 class TechnologiesResponse(BaseModel):
     data: list[TechnologyRef]
+
+
+SectorSlug = Annotated[str, StringConstraints(max_length=64, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")]
+
+
+class ReplaceSectorsRequest(BaseModel):
+    sectors: list[SectorSlug] = Field(..., max_length=20)
+
+
+class SectorsResponse(BaseModel):
+    data: list[SectorRef]

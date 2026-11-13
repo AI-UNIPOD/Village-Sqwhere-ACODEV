@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import InterviewError from "../[lang]/verification/interview/error";
+import { forgetMe, keepMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { copy } from "./copy";
 import { Interview } from "./interview";
@@ -56,6 +57,8 @@ const question = (sequence: number, text = `Question text ${sequence}`) => ({
 });
 
 beforeEach(() => {
+  // the frame already knows who is signed in, as it does after the first screen of a visit
+  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, roles: [], technologies: [], feed_topics: [] });
   route.lang = "en";
   route.search = "id=00000000-0000-4000-9000-000000000007";
   FakeSocket.all = [];
@@ -83,6 +86,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  forgetMe();
   vi.unstubAllGlobals();
   fetchMock.mockReset();
   scrollIntoView.mockReset();

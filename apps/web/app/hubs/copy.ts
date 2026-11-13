@@ -69,11 +69,18 @@ type Copy = {
   missingHub: Screen;
   // the team and the brief on a hub's page
   team: {
+    requested: string;
     invited: string;
     declined: string;
+    approve: string;
+    decline: string;
     withdraw: string;
     inviteAgain: string;
     named: string;
+    approved: string;
+    requestDeclined: string;
+    requestGone: string;
+    declineDialog: { title: string; text: string; confirm: string; cancel: string };
     withdrawDialog: { title: string; text: string; confirm: string; cancel: string };
     loadFailed: string;
     actionFailed: string;
@@ -95,6 +102,20 @@ type Copy = {
   declinedNote: string;
   joined: string;
   invitations: { heading: string; by: string };
+  // for a developer who asked to join: on the idea's page, and while the owner has not answered
+  ask: {
+    heading: string;
+    what: string;
+    button: string;
+    asked: string;
+    noHub: string;
+    member: string;
+    closed: string;
+    wait: string;
+    waitLater: string;
+    loadFailed: string;
+  };
+  waiting: { heading: string; owner: string };
   // joining a hub by signing its agreement
   join: {
     pageTitle: string;
@@ -219,11 +240,23 @@ const en: Copy = {
   notStarted: "Not started",
   missingHub: { title: "We couldn't find this hub", text: "It may have been removed, or the address is wrong." },
   team: {
+    requested: "Asked to join",
     invited: "Invited",
     declined: "Declined",
+    approve: "Approve",
+    decline: "Decline",
     withdraw: "Withdraw",
     inviteAgain: "Invite again",
     named: "{action}: {name}",
+    approved: "{name} is invited. They read the agreement and sign to join.",
+    requestDeclined: "You declined the request from {name}. You can invite them later.",
+    requestGone: "That request is no longer waiting. The list is up to date.",
+    declineDialog: {
+      title: "Decline this request?",
+      text: "They can ask again later, and you can invite them.",
+      confirm: "Decline",
+      cancel: "Go back",
+    },
     withdrawDialog: {
       title: "Withdraw this invitation?",
       text: "They can be invited again later.",
@@ -270,9 +303,22 @@ const en: Copy = {
     },
     failed: "We couldn't decline the invitation. Nothing was changed, so try again.",
   },
-  declinedNote: "You declined the invitation to this hub.",
+  declinedNote: "You are not in this hub. You declined its invitation, or the owner declined your request.",
   joined: "You are in. The brief and the team are now open to you.",
   invitations: { heading: "Invitations", by: "Invited by {name}" },
+  ask: {
+    heading: "Join the team",
+    what: "The owner sees your profile and answers. If they approve, you read the hub's agreement and sign to join.",
+    button: "Ask to join",
+    asked: "You asked to join. The owner will answer.",
+    noHub: "The owner has not opened a hub yet, so there is nothing to join for now. Come back later.",
+    member: "You are already in this team.",
+    closed: "This idea is no longer looking for people, so its hub takes no requests.",
+    wait: "The owner turned down your last request. You can ask again from {date}.",
+    waitLater: "The owner turned down your last request. You can ask again later.",
+    loadFailed: "We couldn't check where you stand with this hub. Nothing was changed, so try again.",
+  },
+  waiting: { heading: "Waiting for the owner", owner: "Owner: {name}" },
   join: {
     pageTitle: "Join a hub | Village Sqwhere",
     title: "Join {name}",
@@ -415,11 +461,23 @@ const fr: Copy = {
     text: "Il a peut-être été supprimé, ou l'adresse est incorrecte.",
   },
   team: {
+    requested: "Veut rejoindre",
     invited: "Invité",
     declined: "Refusé",
+    approve: "Approuver",
+    decline: "Refuser",
     withdraw: "Retirer",
     inviteAgain: "Inviter à nouveau",
     named: "{action}\u202f: {name}",
+    approved: "{name} est invité. Cette personne lit l'accord et le signe pour rejoindre l'espace.",
+    requestDeclined: "Vous avez refusé la demande de {name}. Vous pourrez l'inviter plus tard.",
+    requestGone: "Cette demande n'attend plus de réponse. La liste est à jour.",
+    declineDialog: {
+      title: "Refuser cette demande\u202f?",
+      text: "Cette personne pourra demander à nouveau plus tard, et vous pourrez l'inviter.",
+      confirm: "Refuser",
+      cancel: "Revenir",
+    },
     withdrawDialog: {
       title: "Retirer cette invitation\u202f?",
       text: "Cette personne pourra être invitée à nouveau plus tard.",
@@ -466,9 +524,22 @@ const fr: Copy = {
     },
     failed: "Nous n'avons pas pu refuser l'invitation. Rien n'a été modifié, réessayez.",
   },
-  declinedNote: "Vous avez refusé l'invitation à cet espace.",
+  declinedNote: "Vous n'êtes pas dans cet espace. Vous avez refusé son invitation, ou le porteur a refusé votre demande.",
   joined: "C'est fait, vous êtes dans l'équipe. Le brief et l'équipe vous sont maintenant ouverts.",
   invitations: { heading: "Invitations", by: "Invitation de {name}" },
+  ask: {
+    heading: "Rejoindre l'équipe",
+    what: "Le porteur voit votre profil et vous répond. S'il accepte, vous lisez l'accord de l'espace et le signez pour rejoindre l'équipe.",
+    button: "Demander à rejoindre",
+    asked: "Vous avez demandé à rejoindre l'équipe. Le porteur vous répondra.",
+    noHub: "Le porteur n'a pas encore ouvert d'espace, il n'y a donc rien à rejoindre pour l'instant. Revenez plus tard.",
+    member: "Vous êtes déjà dans cette équipe.",
+    closed: "Cette idée ne recherche plus personne, son espace n'accepte donc plus de demandes.",
+    wait: "Le porteur a refusé votre dernière demande. Vous pourrez redemander à partir du {date}.",
+    waitLater: "Le porteur a refusé votre dernière demande. Vous pourrez redemander plus tard.",
+    loadFailed: "Nous n'avons pas pu vérifier où vous en êtes avec cet espace. Rien n'a été modifié, réessayez.",
+  },
+  waiting: { heading: "En attente du porteur", owner: "Porteur\u202f: {name}" },
   join: {
     pageTitle: "Rejoindre un espace | Village Sqwhere",
     title: "Rejoindre {name}",

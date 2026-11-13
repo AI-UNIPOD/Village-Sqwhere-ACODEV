@@ -184,10 +184,9 @@ test("pressing 'Start the tour' says it is coming soon, and the note under it st
   expect(window.location.hash).toBe("");
 });
 
-test("in French, pressing 'Essayer la démo' says so in French", () => {
+test("in French, pressing 'Commencer la visite' says so in French", () => {
   const { container } = render(<LandingPage lang="fr" />);
-  const hero = within(container.querySelector("section")!);
-  fireEvent.click(hero.getByRole("button", { name: /^Essayer la démo/ }));
-  expect(screen.getByRole("status").textContent).toBe("La démo arrive bientôt.");
-  expect(container.querySelector("#demo-note")!.hasAttribute("data-lit")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: /^Commencer la visite/ }));
+  expect(screen.getByRole("status").textContent).toBe("La visite guidée arrive bientôt.");
+  expect(container.querySelector("#tour-note")!.hasAttribute("data-lit")).toBe(true);
 });

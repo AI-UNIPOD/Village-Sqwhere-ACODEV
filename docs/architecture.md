@@ -26,18 +26,21 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 `docs/backend.md`.
 
 - **System**: `GET /v1/health`. `GET /health` also exists at the root.
-- **Lookups** (public): `GET /v1/roles` and `GET /v1/technologies`.
+- **Lookups** (public): `GET /v1/roles`, `GET /v1/sectors` and `GET /v1/technologies`.
 - **Sign-in** with GitHub, OAuth with PKCE: `POST /v1/auth/oauth/{provider}/start`,
   `GET /v1/auth/oauth/{provider}/callback`, `POST /v1/auth/token` (a login code or a
-  refresh token) and `POST /v1/auth/logout`. The API signs access and refresh tokens with
+  refresh token) and `POST /v1/auth/logout`. `POST /v1/auth/demo` signs in as the shared,
+  read-only demo account when `DEMO_ENABLED` is `true`; demo accounts see only demo content,
+  and nobody else sees it. The API signs access and refresh tokens with
   `JWT_SECRET_KEY`. Bitbucket is not built and returns `503`. A new account also gets a
   verified email from GitHub when there is one (`apps/api/app/services/provider_emails.py`).
   A missing, clashing or unreadable email never blocks sign-in.
 - **Profile** (Bearer token): `GET /v1/me` and `PATCH /v1/me`.
-- **Roles, technologies and feed topics** (Bearer token): `POST /v1/me/roles`,
+- **Roles, technologies, feed topics and sectors** (Bearer token): `POST /v1/me/roles`,
   `PATCH /v1/me/roles/{role_slug}` (make it the primary role), `DELETE /v1/me/roles/{role_slug}`
   (refused with `409` once the role has verification attempts), `PUT /v1/me/technologies`
-  and `PUT /v1/me/feed-topics` (each replaces the whole list, by technology slug).
+  and `PUT /v1/me/feed-topics` (each replaces the whole list, by technology slug), and
+  `PUT /v1/me/sectors` (replaces the whole set, by sector slug).
 - **Verification of a claimed role** (Bearer token), up to three attempts per role:
   `POST /v1/me/verifications/{role_slug}` (start, with GitHub repositories as evidence),
   `GET /v1/me/verifications`, `GET /v1/me/verifications/{session_id}` (poll one attempt)
@@ -57,7 +60,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/invitations` and withdraws with
   `DELETE /v1/hubs/{hub_id}/invitations/{user_id}`; the invitee reads
   `GET /v1/hubs/{hub_id}/agreement`, then signs with `POST /v1/hubs/{hub_id}/invitation/accept`
-  or says no with `POST /v1/hubs/{hub_id}/invitation/decline`. Only active members read
+  or says no with `POST /v1/hubs/{hub_id}/invitation/decline`. A developer can also ask with
+  `POST /v1/hubs/{hub_id}/join-requests`; the owner answers with
+  `POST /v1/hubs/{hub_id}/members/{user_id}/approve` (an invitation, signed the same way) or
+  `POST /v1/hubs/{hub_id}/members/{user_id}/decline`. Only active members read
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,

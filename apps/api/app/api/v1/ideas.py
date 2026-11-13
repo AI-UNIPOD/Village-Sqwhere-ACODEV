@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, same_world
 from app.models import Idea, IdeaRoleNeed, IdeaStatus, Role
 from app.schemas.ideas import (
     CreateIdeaRequest,
@@ -73,6 +73,7 @@ def public_idea(idea: Idea) -> PublicIdea:
         status=idea.status,
         roles_needed=roles_for_response(idea),
         author=IdeaAuthor.model_validate(idea.author),
+        hub_id=idea.hub_id,
         published_at=idea.published_at,
         created_at=idea.created_at,
         updated_at=idea.updated_at,
@@ -215,7 +216,11 @@ async def list_open_ideas(
     result = await db.execute(
         select(Idea)
         .options(*idea_options())
-        .where(Idea.status == IdeaStatus.OPEN, Idea.deleted_at.is_(None))
+        .where(
+            Idea.status == IdeaStatus.OPEN,
+            Idea.deleted_at.is_(None),
+            same_world(Idea.author_id, current_user),
+        )
         .order_by(Idea.published_at.desc(), Idea.id.desc())
         .offset(offset)
         .limit(limit + 1)
@@ -239,6 +244,7 @@ async def get_open_idea(
             Idea.id == idea_id,
             Idea.status == IdeaStatus.OPEN,
             Idea.deleted_at.is_(None),
+            same_world(Idea.author_id, current_user),
         )
     )
     idea = result.scalar_one_or_none()

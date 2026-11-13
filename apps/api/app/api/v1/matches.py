@@ -11,7 +11,7 @@ from fastapi import APIRouter, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import defer, raiseload, selectinload
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, same_world
 from app.api.v1.ideas import get_owned_idea, idea_error, idea_options, public_idea
 from app.models import (
     Hub,
@@ -91,11 +91,13 @@ async def match_developers_to_my_idea(
             selectinload(User.technologies),
             raiseload(User.identities),
             raiseload(User.feed_topics),
+            raiseload(User.sectors),
         )
         .where(
             User.deleted_at.is_(None),
             User.id != idea.author_id,
             User.id.not_in(connected),
+            same_world(User.id, current_user),
         )
         .order_by(
             verified.c.role_count.desc(),
@@ -170,6 +172,7 @@ async def match_ideas_to_me(
             Idea.deleted_at.is_(None),
             Idea.author_id != current_user.id,
             Idea.id.not_in(connected),
+            same_world(Idea.author_id, current_user),
         )
         .order_by(needing_me.c.role_count.desc(), Idea.published_at.desc(), Idea.id.desc())
         .offset(offset)

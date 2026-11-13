@@ -9,17 +9,19 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
 - Team rules are in `AGENTS.md`. GitHub Actions is off (billing limit), so a merge agent on
   Tanny's PC runs the CI checks and merges green pull requests (not in this repository).
-- The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics and
+- The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, sectors and
   verification (GitHub analysis, five-question AI interview, report, peer review), Groq
   and Gemini fallbacks and a separate worker. Guide: `docs/backend.md`.
-- Ideas, matching and hubs are in place (drafts, cards, ranking, agreements, membership).
-  Posts: create, read, edit, delete, like, save, a filtered list (`GET /v1/posts`), the
-  feed and saved posts. Comments and replies: create, read, edit, delete, lists, threads
-  and likes. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
+- Ideas, matching and hubs are in place (drafts, cards, ranking, agreements, invitations,
+  join requests). Posts: create, read, edit, delete, like, save, a filtered list
+  (`GET /v1/posts`), the feed and saved posts. Comments and replies: create, read, edit,
+  delete, lists, threads and likes. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32+ chars) and keeps sign-in state in memory, so run one
-  process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
+  process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). `POST /v1/auth/demo`
+  signs in as a read-only demo account when `DEMO_ENABLED=true` (content: `app.demo_seed`).
 - Landing page at `/en` and `/fr` matches B3v design with motion and dark theme. Hero leads to
-  sign-in; demo and tour show "Coming soon". GitHub sign-in works end to end with token refresh.
+  sign-in, and "Try the demo" opens the read-only demo account; the tour shows "Coming soon".
+  GitHub sign-in works end to end with token refresh.
 - Below the hero, sections reveal once; the header pins as a pill while scrolling. Onboarding
   saves role and stack. Signed-in web screens share `AppFrame`.
 - Unknown addresses get a 404 sent as HTML; landing and sign-in have an error page. Design system
@@ -32,8 +34,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    and next steps need a new schema script); later, semantic similarity for matching.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-4. Save the onboarding country and a completion flag once the API has fields. Onboarding's
-   topics are sectors and the API's feed topics are technologies: decide which the step asks.
+4. Save the onboarding country and a completion flag once the API has fields (the sectors and
+   the feed's technologies are saved).
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
 6. Web next: a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory

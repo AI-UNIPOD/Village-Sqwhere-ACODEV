@@ -18,18 +18,21 @@ The site is bilingual by address: pages live in `app/[lang]/` and are served at 
 language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
 landing page is `app/landing/`, and the onboarding page shown after the first sign-in is
-`app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role and the stack
-through `POST /v1/me/roles` and `PUT /v1/me/technologies`; the country and topics stay in the tab.
+`app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
+technologies the feed should show and the sectors (`POST /v1/me/roles`,
+`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`); the country stays
+in the tab until the API can store it.
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
 team. Onboarding's last screen leads there, and the bare onboarding address sends a developer
 who already has a role there too. Screens for signed-in people share one frame, `AppFrame` in
 `app/app-frame.tsx`: pass it the screen's address so the language link opens the same screen.
-The frame also holds the places (village, ideas, hubs, reviews for a verified developer,
+The frame also holds the places (village, feed, ideas, hubs, reviews for a verified developer,
 profile): a bar at the bottom of a phone, links in the header from 768px. A new place is one
 line in `PLACES` and one word in `app/app-frame-copy.ts`. The profile is kept for the visit, so
 a screen opened later shows at once; a screen that changes it calls `loadMe()` or `keepMe()`.
+The frame asks for the profile itself when no screen has, sharing one request with the screen.
 Screens crossfade with React's `<ViewTransition>` (`globals.css`), and a sticky row at the
 bottom of a screen uses `var(--app-bottom)` to sit above the bar.
 
@@ -56,8 +59,13 @@ apart from the private brief, saves only the fields that changed, and asks befor
 closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
 Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=`: the public
-part only, a "Needs your role" line when a role slug matches, and how joining works (the owner
-invites; there is no request to join).
+part only, a "Needs your role" line when a role slug matches, and "Ask to join" when the idea
+has a hub (`hubs/ask-to-join.tsx`, `POST /v1/hubs/{id}/join-requests`). The page reads the
+hub's card to know whether the viewer already asked, is invited or is a member. The owner
+answers in the hub's team list with Approve or Decline; approving makes it an invitation, signed
+on the join page. "Your hubs" lists a developer's own requests under "Waiting for the owner".
+After a decline the developer waits before asking again: a press too soon (409
+`REQUEST_COOLING_DOWN`) replaces the button with the date the wait ends.
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
 developer is verified in (`GET /v1/me/matches`), each with the roles that matched. Matching goes
@@ -126,6 +134,12 @@ The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
+
+"Try the demo" on the landing page (`landing/demo-button.tsx`, `session/demo.ts`) signs in as the
+shared demo account with `POST /v1/auth/demo` and opens the village. The account can change
+nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that
+answer for every screen, and `AppFrame` shows the demo account a line under the header that
+says what the demo is, says so when a change was refused, and offers the way out.
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in

@@ -17,14 +17,16 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
+    SmallInteger,
     Text,
     UniqueConstraint,
     func,
+    select,
     text,
 )
 from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship, validates
 
 from app.models.ideas import Idea
 from app.models.lookups import Base
@@ -223,6 +225,13 @@ class HubMember(Base):
     )
     joined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     left_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # the join request cool-down (infra/db/init/012-join-request-cooldown.sql)
+    declines_in_a_row: Mapped[int] = mapped_column(
+        SmallInteger, server_default=text("0"), nullable=False
+    )
+    can_ask_again_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # set by the hub_members_set_updated_at trigger
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -249,3 +258,10 @@ class HubMember(Base):
     # relationship SQLAlchemy does not order INSERTs by foreign keys.
     hub: Mapped[Hub] = relationship(lazy="selectin", overlaps="signature")
     signature: Mapped[AgreementSignature | None] = relationship(lazy="selectin", overlaps="hub")
+
+
+# The idea's hub, if it has one, so an open idea's card can say where to ask to join. Set here
+# because Hub is defined after Idea; an idea has at most one hub (hubs_one_per_idea_uq).
+Idea.hub_id = column_property(
+    select(Hub.id).where(Hub.idea_id == Idea.id).correlate_except(Hub).scalar_subquery()
+)

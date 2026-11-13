@@ -42,6 +42,12 @@ Authorization: Bearer <access_token>
 ```
 If the token is missing, invalid, or expired, the API returns HTTP `401 Unauthorized`.
 
+### Validation Errors
+A request that breaks a field rule gets `422` with FastAPI's list in `detail`: each item has
+`type`, `loc`, `msg` and the `input` it refused. This body is escaped to ASCII (`"Santé"`),
+which every JSON parser reads as the same text. That way an input UTF-8 cannot hold, such as a
+lone `\ud800`, still gets its `422` instead of failing with a `500`.
+
 ---
 
 ## 3. Currently Implemented Endpoints
@@ -116,6 +122,20 @@ Fetches all active platform engineering roles (e.g. for registration, role picke
   }
   ```
 * **Frontend Note:** Use `slug` when sending requests to the API, and use `name` when displaying to users.
+
+#### `GET /v1/sectors`
+The sectors a developer can say they want to build for, in the onboarding list's order. Onboarding
+asks for them next to the stack.
+
+* **Authentication:** None
+* **Success Response (200 OK):**
+  ```json
+  { "data": [ { "slug": "fintech", "name": "Fintech" }, { "slug": "agritech", "name": "Agritech" } ] }
+  ```
+  The ten slugs: `fintech`, `agritech`, `health`, `education`, `climate-energy`,
+  `mobility-logistics`, `commerce`, `civic`, `media-culture`, `developer-tools`. Names are English;
+  the web app shows its own French name by slug and falls back to `name` for a slug it does not know.
+* Why: `docs/decisions/2026-11-13-onboarding-sectors.md`.
 
 #### `GET /v1/technologies`
 Search or browse active technologies, frameworks, and tools.
@@ -247,6 +267,7 @@ Exchanges a `login_code` (from the OAuth redirect) OR a `refresh_token` (to rene
         "bio": "Backend engineer",
         "is_verified": false,
         "platform_role": "member",
+        "is_demo": false,
         "roles": [],
         "technologies": [],
         "identities": [
@@ -274,6 +295,33 @@ Revokes the refresh token and signs out the session.
   ```
 * **Success Response (204 No Content):** Empty body.
 
+#### `POST /v1/auth/demo`
+Signs in as the shared demo account, for "Try the demo". No GitHub, no body.
+
+* **Authentication:** None
+* **Success Response (200 OK):** the same body as `POST /v1/auth/token`, with `user.is_demo` true.
+  Refreshing with `POST /v1/auth/token` and signing out with `POST /v1/auth/logout` work as for
+  any account.
+* **Error Response:** `404 DEMO_UNAVAILABLE` when the API runs without `DEMO_ENABLED=true`, or
+  the database has no demo account (the seed script creates it, with a fixed id).
+* **Read-only:** the demo account can call every `GET`, but any other method on a signed-in route
+  answers `403 DEMO_READ_ONLY`, and the verification interview socket closes with code `1008`.
+  The check sits in the dependency every signed-in route uses, so a new write route is covered
+  without a check of its own. `tests/test_demo.py` tries every write route with a demo token.
+* **Switched off:** once `DEMO_ENABLED` is not `true`, tokens the demo already handed out answer
+  `401 DEMO_UNAVAILABLE`, refresh included.
+* **Kept apart:** demo accounts (`users.is_demo`) see only demo content, and nobody else ever
+  sees it. Posts, comments, the feed, saved posts, open ideas, matching, hubs and the review
+  queue all filter by it, and a single read of the other side answers `404`. An owner cannot
+  invite a demo account (`404 USER_NOT_FOUND`), and a real developer cannot ask to join a demo
+  hub. The rule is `same_world` in `apps/api/app/api/deps.py`; a new list of shared content
+  must use it too.
+* **Content:** `uv run --directory apps/api python -m app.demo_seed` fills a database with
+  made-up developers, posts, comments, ideas, hubs and a review case. It also creates the demo
+  account itself, so `POST /v1/auth/demo` answers `404` until it has run. Running it again
+  rewrites the posts and comments with fresh times.
+* Why: `docs/decisions/2026-11-13-read-only-demo.md`.
+
 ---
 
 ### Current User (`/v1/me`)
@@ -298,6 +346,7 @@ Fetches the full profile of the currently signed-in user.
       "is_verified": true,
       "verified_at": "2026-11-06T18:00:00Z",
       "platform_role": "member",
+      "is_demo": false,
       "roles": [
         {
           "slug": "backend-engineer",
@@ -316,6 +365,7 @@ Fetches the full profile of the currently signed-in user.
         { "slug": "postgresql", "name": "PostgreSQL" }
       ],
       "feed_topics": [],
+      "sectors": [{ "slug": "fintech", "name": "Fintech" }],
       "identities": [
         {
           "provider": "github",
@@ -454,6 +504,21 @@ Full replacement of feed preference topics. An empty array `[]` means "show ever
 * **Error Responses:**
   * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown technology slugs: ..."}}` (Returned if any slug is not in the `technologies` lookup table).
   * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "Duplicate topics are not allowed."}}`
+
+#### `PUT /v1/me/sectors`
+Replaces the developer's whole set of sectors. Sending the same set again is safe, and `[]` clears it.
+
+* **Authentication:** Bearer token required
+* **Request Body:** `{"sectors": ["health", "fintech"]}`: 0 to 20 slugs from `GET /v1/sectors`, no
+  duplicates.
+* **Success Response (200 OK):** the saved sectors in the order sent, `{"data": [{"slug": "health",
+  "name": "Health"}, ...]}`. `GET /v1/me` lists them under `sectors` in the sector list's order.
+* **Error Responses:**
+  * `422 UNKNOWN_SLUG`: a slug is not an active sector. The message names it, for example
+    `Unknown sector slugs: space-mining`.
+  * `422 VALIDATION_FAILED`: the same slug twice.
+  * `422` (FastAPI's list): a slug that is not lowercase letters, digits and hyphens, or a body
+    without `sectors`.
   * `422 Unprocessable Content`: `{"detail": [{"loc": ["body", "technologies"], "msg": "Field required"}]}` (Returned if the JSON key was named `"topics"` instead of `"technologies"`).
 
 ### Experience verification
@@ -664,7 +729,8 @@ discovery or matching candidates.
 #### `GET /v1/ideas` and `GET /v1/ideas/{idea_id}`
 
 Returns only open idea cards to signed-in developers. A card contains title, summary, stage,
-roles needed, author and timestamps. It never contains the confidential `details` field.
+roles needed, author, `hub_id` (the idea's hub, or `null` before it has one) and timestamps. It
+never contains the confidential `details` field. A developer asks to join through `hub_id`.
 `GET /v1/ideas` accepts `offset` and `limit`, with `next_offset` when another page exists.
 
 ### Matching
@@ -982,10 +1048,41 @@ The invited person says no. Answers `200` with the hub card, `viewer.membership_
 
 * **Errors:** `404 INVITATION_NOT_FOUND`, `409 ALREADY_MEMBER`.
 
+#### `POST /v1/hubs/{hub_id}/join-requests`
+
+A developer asks to join a hub, usually from an open idea's `hub_id`. No body. Answers `201`
+with the hub card, `viewer.membership_status: "requested"`. The owner answers with approve or
+decline below. The developer finds their pending requests with `GET /v1/me/hubs?status=requested`.
+Someone who declined, left or was removed may ask again. Someone the owner turned down waits
+first: 48 hours after each decline, and 30 days after the fifth decline in a row from the same
+hub, after which the count starts again. Approval or joining clears the count.
+
+* **Errors:** `404 NOT_FOUND` (no such hub), `409 HUB_ARCHIVED`, `409 IDEA_CLOSED` (the idea is
+  not looking for people), `409 TEAM_FULL`, `409 ALREADY_MEMBER`, `409 ALREADY_INVITED` (accept
+  the invitation instead), `409 ALREADY_REQUESTED`, and `409 REQUEST_COOLING_DOWN`, whose
+  `detail` also has `can_ask_again_at` (ISO 8601, UTC) for the screen to show:
+  ```json
+  { "detail": { "code": "REQUEST_COOLING_DOWN", "message": "...",
+                "can_ask_again_at": "2026-11-15T18:30:00+00:00" } }
+  ```
+
+#### `POST /v1/hubs/{hub_id}/members/{user_id}/approve` and `.../decline`
+
+The owner answers a pending request. Both answer `200` with the member card. Approving turns
+the request into an invitation (`status: "invited"`): the developer then reads the agreement
+and joins with `POST /v1/hubs/{hub_id}/invitation/accept`, the same as anyone invited. Declining
+sets `status: "declined"` and starts the developer's wait before asking again (above).
+Inviting a developer who has a pending request approves it too.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 REQUEST_NOT_FOUND` (no pending request from this
+  person), and for approve only `409 HUB_ARCHIVED` and `409 TEAM_FULL` (the request stays
+  pending, so the owner can make room).
+* Why: `docs/decisions/2026-11-13-hub-join-requests.md`.
+
 #### `GET /v1/hubs/{hub_id}/members`
 
 The team, for active members only: the owner first, then members by joining time. The owner
-also sees `invited` and `declined` people, to follow up or withdraw. Nobody sees people who
+also sees `requested`, `invited` and `declined` people, to answer, follow up or withdraw. Nobody sees people who
 left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
 
 * **Errors:** `403 NOT_HUB_MEMBER`.

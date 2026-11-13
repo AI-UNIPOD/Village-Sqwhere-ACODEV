@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { forgetMe, keepMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { ReviewCase } from "./review-case";
 
@@ -70,6 +71,8 @@ const notes = () => screen.getByRole("textbox", { name: "Your notes for the deve
 const dialog = () => document.querySelector("dialog")!;
 
 beforeEach(() => {
+  // the frame already knows who is signed in, as it does after the first screen of a visit
+  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, roles: [], technologies: [], feed_topics: [] });
   vi.stubGlobal("fetch", fetchMock);
   // jsdom has no modal dialog: this stands in for what a browser does
   HTMLDialogElement.prototype.showModal = function () {
@@ -87,6 +90,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  forgetMe();
   vi.unstubAllGlobals();
   fetchMock.mockReset();
   nav.router.push.mockReset();
