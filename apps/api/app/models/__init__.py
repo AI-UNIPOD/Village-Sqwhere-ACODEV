@@ -7,7 +7,7 @@ from app.models.hubs import (
     HubMemberStatus,
     HubStatus,
 )
-from app.models.ideas import Idea, IdeaStage, IdeaStatus
+from app.models.ideas import Idea, IdeaRoleNeed, IdeaStage, IdeaStatus
 from app.models.lookups import Base, Role, Technology
 from app.models.posts import (
     DeletionReason,
@@ -45,6 +45,7 @@ __all__ = [
     "HubMemberStatus",
     "HubStatus",
     "Idea",
+    "IdeaRoleNeed",
     "IdeaStage",
     "IdeaStatus",
     "InterviewStatus",

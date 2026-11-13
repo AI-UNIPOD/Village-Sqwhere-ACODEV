@@ -5,7 +5,6 @@ type Empty = { title: string; stack: string; country: string; clear: string };
 
 type Copy = {
   pageTitle: string;
-  switchText: string;
   pause: string;
   play: string;
   welcomeTitle: string;
@@ -20,7 +19,7 @@ type Copy = {
   skip: string;
   role: Question & { error: string };
   stack: Question & { error: string; filter: string; selected: string };
-  country: Question & { filter: string };
+  country: Question & { filter: string; selected: string };
   topics: Question;
   empty: Empty;
   doneTitle: string;
@@ -30,9 +29,10 @@ type Copy = {
   topicsLabel: string;
   nextTitle: string;
   nextSteps: string[];
-  preview: string;
+  saving: string;
+  saved: string;
+  saveFailed: string;
   village: string;
-  soon: string;
   change: string;
   githubProfile: string;
   loading: string;
@@ -43,7 +43,6 @@ type Copy = {
 
 const en: Copy = {
   pageTitle: "Set up your profile | Village Sqwhere",
-  switchText: "Français",
   pause: "Pause animation",
   play: "Play animation",
   welcomeTitle: "Welcome to the village, {name}.",
@@ -73,6 +72,7 @@ const en: Copy = {
     title: "Where do you build from?",
     why: "Teammates in nearby time zones find it easier to meet.",
     filter: "Filter countries",
+    selected: "Selected: {country}",
   },
   topics: {
     title: "Which ideas do you want to see?",
@@ -95,9 +95,10 @@ const en: Copy = {
     "We suggest teammates when your skills match an idea.",
     "Verify your role to earn your Green Tick.",
   ],
-  preview: "This is a preview. Your answers are not saved yet.",
+  saving: "Saving your role and stack",
+  saved: "Your role and stack are saved. Your country and topics are not saved yet.",
+  saveFailed: "We couldn't save your role and stack. Your answers are still here, so try again.",
   village: "Go to the village",
-  soon: "Coming soon",
   change: "Change my answers",
   githubProfile: "GitHub profile, opens in a new tab",
   loading: "Getting your profile ready",
@@ -110,7 +111,6 @@ const en: Copy = {
 // Needs a native French review before launch.
 const fr: Copy = {
   pageTitle: "Configurer votre profil | Village Sqwhere",
-  switchText: "English",
   pause: "Mettre l'animation en pause",
   play: "Lire l'animation",
   welcomeTitle: "Bienvenue au village, {name}.",
@@ -121,36 +121,37 @@ const fr: Copy = {
   skipForNow: "Passer pour l'instant",
   back: "Retour",
   stepOf: "Étape {n} sur {total}",
-  stepAnnounce: "Étape {n} sur {total}: {title}",
+  stepAnnounce: "Étape {n} sur {total}\u202f: {title}",
   next: "Continuer",
   skip: "Passer",
   role: {
-    title: "Quel est votre rôle principal?",
+    title: "Quel est votre rôle principal\u202f?",
     why: "Votre rôle principal détermine les équipes que nous vous proposons. Vous pourrez ajouter d'autres rôles plus tard.",
     error: "Choisissez le rôle que vous exercez le plus pour continuer.",
   },
   stack: {
-    title: "Avec quoi construisez-vous?",
+    title: "Avec quoi construisez-vous\u202f?",
     why: "Nous réunissons des développeurs aux compétences complémentaires.",
     error: "Choisissez au moins une technologie pour continuer.",
     filter: "Filtrer les technologies",
-    selected: "Sélection: {n}",
+    selected: "Sélection\u202f: {n}",
   },
   country: {
-    title: "Depuis où construisez-vous?",
+    title: "Depuis où construisez-vous\u202f?",
     why: "Des coéquipiers dans des fuseaux horaires proches se retrouvent plus facilement.",
     filter: "Filtrer les pays",
+    selected: "Sélection : {country}",
   },
   topics: {
-    title: "Quelles idées voulez-vous voir?",
+    title: "Quelles idées voulez-vous voir\u202f?",
     why: "Votre fil affiche d'abord les idées de ces domaines.",
   },
   empty: {
     title: "Aucun résultat",
     stack:
-      "Aucune technologie ne correspond à « {query} ». Vérifiez l'orthographe ou effacez le filtre.",
+      "Aucune technologie ne correspond à «\u202f{query}\u202f». Vérifiez l'orthographe ou effacez le filtre.",
     country:
-      "Aucun pays ne correspond à « {query} ». Vérifiez l'orthographe ou effacez le filtre.",
+      "Aucun pays ne correspond à «\u202f{query}\u202f». Vérifiez l'orthographe ou effacez le filtre.",
     clear: "Effacer le filtre",
   },
   doneTitle: "Vous voilà dans le village, {name}.",
@@ -164,9 +165,11 @@ const fr: Copy = {
     "Nous vous proposons des coéquipiers quand vos compétences correspondent à une idée.",
     "Faites vérifier votre rôle pour obtenir votre Green Tick.",
   ],
-  preview: "Ceci est un aperçu. Vos réponses ne sont pas encore enregistrées.",
+  saving: "Enregistrement de votre rôle et de vos technologies",
+  saved: "Votre rôle et vos technologies sont enregistrés. Votre pays et vos domaines ne le sont pas encore.",
+  saveFailed:
+    "Nous n'avons pas pu enregistrer votre rôle et vos technologies. Vos réponses sont toujours là, vous pouvez donc réessayer.",
   village: "Aller au village",
-  soon: "Bientôt disponible",
   change: "Modifier mes réponses",
   githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
   loading: "Préparation de votre profil",

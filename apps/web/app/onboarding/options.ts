@@ -1,12 +1,17 @@
 import { COUNTRIES } from "../landing/gather";
 import type { Lang } from "../locales";
+import type { Me } from "../session/me";
 
 type Text = Record<Lang, string>;
 
-// A made-up developer. GET /v1/me replaces it once the web app calls the API. A GitHub
-// account may have no name, so the real name can be missing and the username stands in.
+// The signed-in developer. A GitHub account may have no name, so the real name can be
+// missing and the username stands in.
 export type Profile = { displayName: string | null; username: string };
-export const DEMO_PROFILE: Profile = { displayName: "Aminata Diallo", username: "aminata-builds" };
+
+// When GitHub has no name, the API stores the username as the name: show it once, not twice.
+export function toProfile(me: Me): Profile {
+  return { displayName: me.display_name !== me.username ? me.display_name : null, username: me.username };
+}
 
 export function firstName({ displayName, username }: Profile) {
   return displayName?.split(" ")[0] ?? username;
@@ -61,26 +66,30 @@ export const ROLES: ReadonlyArray<{ slug: string; name: Text; hint: Text }> = [
   },
 ];
 
-export const TECHNOLOGIES: ReadonlyArray<{ slug: string; name: string }> = [
-  { slug: "react", name: "React" },
-  { slug: "vue", name: "Vue" },
-  { slug: "go", name: "Go" },
-  { slug: "rust", name: "Rust" },
-  { slug: "nodejs", name: "Node.js" },
-  { slug: "python", name: "Python" },
-  { slug: "java", name: "Java" },
-  { slug: "flutter", name: "Flutter" },
-  { slug: "react-native", name: "React Native" },
-  { slug: "pytorch", name: "PyTorch" },
-  { slug: "tensorflow", name: "TensorFlow" },
-  { slug: "llms", name: "LLMs" },
-  { slug: "computer-vision", name: "Computer Vision" },
-  { slug: "postgresql", name: "PostgreSQL" },
-  { slug: "vector-databases", name: "Vector Databases" },
-  { slug: "kubernetes", name: "Kubernetes" },
-  { slug: "docker", name: "Docker" },
-  { slug: "terraform", name: "Terraform" },
-  { slug: "ci-cd", name: "CI/CD" },
+// Product names (React, Docker) are the same in both languages. Only the plain-word
+// technologies are translated.
+const product = (name: string): Text => ({ en: name, fr: name });
+
+export const TECHNOLOGIES: ReadonlyArray<{ slug: string; name: Text }> = [
+  { slug: "react", name: product("React") },
+  { slug: "vue", name: product("Vue") },
+  { slug: "go", name: product("Go") },
+  { slug: "rust", name: product("Rust") },
+  { slug: "nodejs", name: product("Node.js") },
+  { slug: "python", name: product("Python") },
+  { slug: "java", name: product("Java") },
+  { slug: "flutter", name: product("Flutter") },
+  { slug: "react-native", name: product("React Native") },
+  { slug: "pytorch", name: product("PyTorch") },
+  { slug: "tensorflow", name: product("TensorFlow") },
+  { slug: "llms", name: { en: "LLMs", fr: "LLM" } },
+  { slug: "computer-vision", name: { en: "Computer Vision", fr: "Vision par ordinateur" } },
+  { slug: "postgresql", name: product("PostgreSQL") },
+  { slug: "vector-databases", name: { en: "Vector Databases", fr: "Bases de données vectorielles" } },
+  { slug: "kubernetes", name: product("Kubernetes") },
+  { slug: "docker", name: product("Docker") },
+  { slug: "terraform", name: product("Terraform") },
+  { slug: "ci-cd", name: product("CI/CD") },
 ];
 
 // A draft list. The API stores feed topics as technologies today.

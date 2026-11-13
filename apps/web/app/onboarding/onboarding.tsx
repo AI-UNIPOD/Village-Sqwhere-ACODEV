@@ -1,21 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ViewTransition, addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 
+import { AppFrame } from "../app-frame";
 import { GatherHero } from "../landing/gather-hero";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
-import { Logo } from "../logo";
+import { useMe } from "../session/me";
+import { RequireSession } from "../session/session-ui";
 import { copy, fill } from "./copy";
 import { DoneStep } from "./done-step";
 import { ArrowLeft } from "./icons";
 import styles from "./onboarding.module.css";
-import { DEMO_PROFILE, firstName } from "./options";
+import { OnboardingSkeleton } from "./onboarding-skeleton";
+import { firstName, toProfile, type Profile } from "./options";
 import { CountryStep, RoleStep, StackStep, TopicsStep } from "./question-steps";
+import { useSavedAnswers } from "./saved-answers";
 import {
-  NO_ANSWERS,
   QUESTIONS,
   REQUIRED,
   STEP_IDS,
@@ -33,15 +35,16 @@ import {
 const SLIDE = { "step-forward": "step-forward", "step-back": "step-back", default: "none" };
 
 // The whole flow: one question per screen, the screen held in the URL as ?step= so the
-// browser's back button works. Answers live in this component's state only for now.
-export function Onboarding({ lang }: { lang: Lang }) {
+// browser's back button works. Answers live in this component's state and in sessionStorage.
+export function Onboarding({ lang, profile }: { lang: Lang; profile: Profile }) {
   const t = copy[lang];
-  const other: Lang = lang === "en" ? "fr" : "en";
   const router = useRouter();
   const requested = parseStep(useSearchParams().get("step"));
-  const [answers, setAnswers] = useState<Answers>(NO_ANSWERS);
+  const { answers, ready, change } = useSavedAnswers();
   const [missing, setMissing] = useState<StepId | null>(null);
-  const step = reachable(requested, answers);
+  const [roleEntrance, setRoleEntrance] = useState(false);
+  // Until the saved answers are back, a later step must not be sent to the first question.
+  const step = ready ? reachable(requested, answers) : requested;
   const shown = useRef(step);
 
   useEffect(() => {
@@ -55,6 +58,8 @@ export function Onboarding({ lang }: { lang: Lang }) {
   }, [step]);
 
   function go(to: StepId, direction: "forward" | "back") {
+    // Only the way in from the welcome screen plays the role cards' entrance.
+    setRoleEntrance(to === "role" && direction === "forward");
     startTransition(() => {
       addTransitionType(`step-${direction}`);
       router.push(stepHref(lang, to), { scroll: false });
@@ -64,7 +69,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
   const move = (by: 1 | -1) => go(STEP_IDS[STEP_IDS.indexOf(step) + by], by === 1 ? "forward" : "back");
 
   function update(patch: Partial<Answers>) {
-    setAnswers((current) => ({ ...current, ...patch }));
+    change({ ...answers, ...patch });
     setMissing(null);
   }
 
@@ -83,10 +88,10 @@ export function Onboarding({ lang }: { lang: Lang }) {
     body = (
       <GatherHero labelledBy="welcome-title" labels={{ pause: t.pause, play: t.play }}>
         <h1 id="welcome-title" className={styles.title} tabIndex={-1}>
-          {fill(t.welcomeTitle, { name: firstName(DEMO_PROFILE) })}
+          {fill(t.welcomeTitle, { name: firstName(profile) })}
         </h1>
         <p className={landing.sub}>{t.welcomeSub}</p>
-        <p className={styles.signedIn}>{fill(t.signedIn, { username: DEMO_PROFILE.username })}</p>
+        <p className={styles.signedIn}>{fill(t.signedIn, { username: profile.username })}</p>
         <div className={landing.ctas}>
           <button type="button" className={`${landing.btn} ${landing.heroButton}`} onClick={() => move(1)}>
             {t.start}
@@ -102,15 +107,15 @@ export function Onboarding({ lang }: { lang: Lang }) {
       </GatherHero>
     );
   } else if (step === "done") {
-    body = <DoneStep lang={lang} answers={answers} profile={DEMO_PROFILE} onChange={() => go("role", "back")} />;
+    body = <DoneStep lang={lang} answers={answers} profile={profile} onChange={() => go("role", "back")} />;
   } else {
     body = (
       <div className={`${styles.column} ${styles.step}`}>
-        {step === "role" && <RoleStep {...props} />}
+        {step === "role" && <RoleStep {...props} entrance={roleEntrance} />}
         {step === "stack" && <StackStep {...props} />}
         {step === "country" && <CountryStep {...props} />}
         {step === "topics" && <TopicsStep {...props} />}
-        <div className={styles.actions}>
+        <div className={`${styles.actions} ${styles.questionActions}`}>
           <button type="button" className={landing.btn} onClick={advance}>
             {t.next}
           </button>
@@ -125,23 +130,7 @@ export function Onboarding({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header} data-site-header="">
-        <Link className={`${landing.brand} ${styles.brand}`} href={`/${lang}`}>
-          <Logo size={32} className={landing.navLogo} />
-          <span className={landing.navWordmark} translate="no">Village Sqwhere</span>
-        </Link>
-        {/* A plain link on purpose: a full page load, as on the landing page. */}
-        <a
-          className={landing.navLink}
-          href={`/${other}/onboarding`}
-          hrefLang={other}
-          lang={other}
-          translate="no"
-        >
-          {t.switchText}
-        </a>
-      </header>
+    <AppFrame lang={lang} path="onboarding" bare>
       <main className={styles.main}>
         {n > 0 && (
           <div className={`${styles.column} ${styles.top}`}>
@@ -164,6 +153,28 @@ export function Onboarding({ lang }: { lang: Lang }) {
       <p className={landing.srOnly} role="status">
         {announcement}
       </p>
-    </div>
+    </AppFrame>
+  );
+}
+
+// A developer who already has a role is past onboarding: its bare address sends them home.
+// A link to a step ("Change my answers") still opens it.
+function WithProfile({ lang }: { lang: Lang }) {
+  const me = useMe();
+  const router = useRouter();
+  const hasStep = useSearchParams().has("step");
+  const returning = !!me && me.roles.length > 0 && !hasStep;
+  useEffect(() => {
+    if (returning) router.replace(`/${lang}/village`);
+  }, [lang, returning, router]);
+  return me && !returning ? <Onboarding lang={lang} profile={toProfile(me)} /> : <OnboardingSkeleton />;
+}
+
+// The page is only for a signed-in developer, greeted by their own GitHub name.
+export function SignedInOnboarding({ lang }: { lang: Lang }) {
+  return (
+    <RequireSession lang={lang} fallback={<OnboardingSkeleton />}>
+      <WithProfile lang={lang} />
+    </RequireSession>
   );
 }

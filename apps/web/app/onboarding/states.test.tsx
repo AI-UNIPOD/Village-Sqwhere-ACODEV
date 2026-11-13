@@ -30,3 +30,22 @@ test.each([
   fireEvent.click(screen.getByRole("button", { name: retry }));
   expect(onRetry).toHaveBeenCalledOnce();
 });
+
+// The header stays on every screen, so the way home and the language switch are there while
+// the page loads and when it fails. Browser translation must not rename the brand or the link.
+test.each([
+  ["en", "Français", "/fr/onboarding"],
+  ["fr", "English", "/en/onboarding"],
+])("the loading and error screens keep the header in %s", (lang, label, href) => {
+  route.lang = lang;
+  for (const screenUnderTest of [<OnboardingSkeleton key="loading" />, <OnboardingError key="error" retry={vi.fn()} />]) {
+    const { unmount } = render(screenUnderTest);
+    const home = screen.getByRole("link", { name: "Village Sqwhere" });
+    expect(home.getAttribute("href")).toBe(`/${lang}`);
+    expect(screen.getByText("Village Sqwhere").getAttribute("translate")).toBe("no");
+    const switcher = screen.getByRole("link", { name: label });
+    expect(switcher.getAttribute("href")).toBe(href);
+    expect(switcher.getAttribute("translate")).toBe("no");
+    unmount();
+  }
+});

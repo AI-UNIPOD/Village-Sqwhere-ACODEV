@@ -4,10 +4,12 @@ import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { PKCE_VERIFIER_KEY, SignInPage } from "./sign-in-page";
+import { SESSION_KEY } from "../session/session";
+import { PKCE_VERIFIER_KEY, SIGN_IN_LANG_KEY, SignInPage } from "./sign-in-page";
 
 const AUTHORIZE_URL = "https://github.com/login/oauth/authorize?client_id=demo&state=abc";
 const assign = vi.fn();
+const replace = vi.fn();
 const fetchMock = vi.fn();
 let search = "";
 
@@ -16,6 +18,14 @@ function reply(status: number, body: unknown) {
 }
 
 const started = () => reply(200, { data: { authorize_url: AUTHORIZE_URL, expires_at: "2026-11-06T18:30:00Z" } });
+
+const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
+
+// the declarations of the first rule written exactly for `selector`
+const rule = (selector: string) => {
+  const start = css.indexOf(`\n${selector} {`);
+  return start < 0 ? "" : css.slice(css.indexOf("{", start) + 1, css.indexOf("}", start));
+};
 
 // the two steps, with the state word each one speaks
 const steps = () => screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
@@ -37,11 +47,13 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   vi.stubGlobal("location", {
     assign,
+    replace,
     get search() {
       return search;
     },
   });
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -50,6 +62,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   fetchMock.mockReset();
   assign.mockReset();
+  replace.mockReset();
   search = "";
 });
 
@@ -62,8 +75,27 @@ test.each([
   expect(screen.getAllByRole("button", { name: button })).toHaveLength(1);
 });
 
-test("the stylesheet changes layout only at the design system breakpoints", () => {
+// Reveals never hide headings or lead text (docs/design-system/components.md, Motion). The hero
+// keeps its own motion, but the words and the button are there the moment it places them.
+test("the text block carries no entrance of its own", () => {
+  render(<SignInPage lang="en" />);
+  const heading = screen.getByRole("heading", { level: 1 });
+  const items = [
+    heading,
+    heading.nextElementSibling,
+    screen.getByRole("button", { name: "Continue with GitHub" }).parentElement,
+    screen.getByRole("list", { name: "How signing in works" }),
+    screen.getByRole("link", { name: "No GitHub account? Create one on GitHub" }).parentElement?.parentElement,
+  ];
+  for (const item of items) {
+    expect(item?.className).not.toMatch(/rise/);
+    expect(item?.getAttribute("style") ?? "").not.toMatch(/--i/);
+  }
   const css = readFileSync(join(__dirname, "sign-in-page.module.css"), "utf8");
+  expect(css).not.toMatch(/\.rise\b|@keyframes rise/);
+});
+
+test("the stylesheet changes layout only at the design system breakpoints", () => {
   const widths = [...css.matchAll(/(?:min|max)-width:\s*(\d+)px/g)].map((m) => Number(m[1]));
   expect(widths.length).toBeGreaterThan(0);
   for (const width of widths) expect([768, 1100]).toContain(width);
@@ -75,7 +107,7 @@ test("the button carries the GitHub mark and is named by its label alone", () =>
   const mark = button.querySelector("svg");
   expect(mark).not.toBeNull();
   expect(mark?.getAttribute("aria-hidden")).toBe("true");
-  expect(mark?.nextSibling?.textContent).toBe("Continue with GitHub");
+  expect(mark?.parentElement?.nextSibling?.textContent).toBe("Continue with GitHub");
 });
 
 test.each([
@@ -142,6 +174,28 @@ test("starts sign-in with a PKCE challenge, says so, then goes to GitHub", async
   expect(sessionStorage.getItem(PKCE_VERIFIER_KEY)).toMatch(/^[A-Za-z0-9_-]{43,}$/);
 });
 
+test("remembers the language sign-in started in, so the return comes back to it", async () => {
+  fetchMock.mockImplementation(started);
+  render(<SignInPage lang="fr" />);
+  fireEvent.click(screen.getByRole("button", { name: "Continuer avec GitHub" }));
+  await waitFor(() => expect(assign).toHaveBeenCalled());
+  expect(sessionStorage.getItem(SIGN_IN_LANG_KEY)).toBe("fr");
+});
+
+test("someone already signed in goes straight on to onboarding", () => {
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: "2099-01-01T00:00:00Z", refresh_expires_at: "2099-01-01T00:00:00Z" }),
+  );
+  render(<SignInPage lang="fr" />);
+  expect(replace).toHaveBeenCalledExactlyOnceWith("/fr/onboarding");
+});
+
+test("a visitor stays on the sign-in page", () => {
+  render(<SignInPage lang="en" />);
+  expect(replace).not.toHaveBeenCalled();
+});
+
 test.each([
   ["en", "Continue with GitHub", "in progress", "done"],
   ["fr", "Continuer avec GitHub", "en cours", "terminé"],
@@ -174,6 +228,40 @@ test("while it works the button keeps its label and a second click sends nothing
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
+// From 768px the button is auto width, so a spinner placed on its own over the button's edge landed
+// on the GitHub mark. Both live in the one slot before the label, stacked in one grid cell.
+test("while sign-in starts the spinner shares the GitHub mark's slot before the label", async () => {
+  fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
+  render(<SignInPage lang="en" />);
+  const button = screen.getByRole("button", { name: "Continue with GitHub" });
+  const mark = button.querySelector("svg");
+
+  fireEvent.click(button);
+  await waitFor(() => expect(button.getAttribute("aria-busy")).toBe("true"));
+
+  const slot = mark?.parentElement;
+  expect(slot).not.toBe(button);
+  expect(slot?.children).toHaveLength(2);
+  expect(slot?.nextSibling?.textContent).toBe("Continue with GitHub");
+  expect(button.children).toHaveLength(1);
+});
+
+test("the spinner is not placed on its own over the button", () => {
+  expect(rule(".spinner")).not.toMatch(/position:\s*absolute/);
+  expect(rule(".slot")).toMatch(/display:\s*grid/);
+});
+
+// A third-party mark carries no motion (components.md), so after --delay-spinner the mark is
+// hidden at once while the spinner fades in; a fast start never flashes either.
+test("the GitHub mark is hidden without motion when the spinner shows", () => {
+  const out = rule('.slot[data-loading="true"] .mark');
+  expect(out).toMatch(/visibility:\s*hidden/);
+  expect(out).toMatch(/var\(--delay-spinner\)/);
+  expect(out).not.toMatch(/animation/);
+  expect(rule(".spinner")).toMatch(/var\(--delay-spinner\)/);
+  expect(css).not.toMatch(/blur\(/);
+});
+
 // A native button turns Enter and Space into a click, so focus and click cover the keyboard.
 test("the button is a native button that keyboard focus reaches", () => {
   render(<SignInPage lang="en" />);
@@ -183,16 +271,16 @@ test("the button is a native button that keyboard focus reaches", () => {
   expect(document.activeElement).toBe(button);
 });
 
-test("a network failure shows an alert with try again, focuses it, and fails the first step", async () => {
+test("a network failure shows a message with try again, focuses it, and fails the first step", async () => {
   fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
   render(<SignInPage lang="en" />);
   const button = screen.getByRole("button", { name: "Continue with GitHub" });
 
   fireEvent.click(button);
 
-  const alert = await screen.findByRole("alert");
-  expect(alert.textContent).toContain("We couldn't reach Village Sqwhere");
-  await waitFor(() => expect(document.activeElement).toBe(alert));
+  const message = await screen.findByRole("group");
+  expect(message.textContent).toContain("We couldn't reach Village Sqwhere");
+  await waitFor(() => expect(document.activeElement).toBe(message));
   expect(button.getAttribute("aria-disabled")).toBe("false");
   expect(steps()[0]).toMatch(", failed");
   expect(assign).not.toHaveBeenCalled();
@@ -200,16 +288,44 @@ test("a network failure shows an alert with try again, focuses it, and fails the
   expect(screen.queryByRole("link", { name: "No GitHub account? Create one on GitHub" })).toBeNull();
 });
 
-test("try again starts sign-in and clears the alert", async () => {
+// Focus moving to the message reads it out. An alert role on the same element would read it twice.
+test("a failure is announced once: focus lands on the message, named by its title", async () => {
+  fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  render(<SignInPage lang="en" />);
+  fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
+
+  const message = await screen.findByRole("group", { name: "We couldn't reach Village Sqwhere" });
+  await waitFor(() => expect(document.activeElement).toBe(message));
+  expect(screen.queryByRole("alert")).toBeNull();
+  const description = document.getElementById(message.getAttribute("aria-describedby") ?? "");
+  expect(description?.textContent).toBe(
+    "The connection dropped before sign-in could start. Check your network, then try again.",
+  );
+});
+
+// The message takes focus only so Try again comes next; it is not a control, so no ring.
+test("the focused message draws no focus ring", () => {
+  expect(rule(".message:focus")).toMatch(/outline:\s*none/);
+});
+
+// Leaving faster than the message arrives, so the cell is never blank.
+test("the trust lines fade out over the exit time before they hide", () => {
+  const hidden = rule('.trust[data-hidden="true"]');
+  expect(hidden).toMatch(/opacity:\s*0/);
+  expect(hidden).toMatch(/opacity var\(--dur-modal-out\)/);
+  expect(hidden).toMatch(/visibility 0s linear var\(--dur-modal-out\)/);
+});
+
+test("try again starts sign-in and clears the message", async () => {
   fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockImplementation(started);
   render(<SignInPage lang="en" />);
   fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
-  await screen.findByRole("alert");
+  await screen.findByRole("group");
 
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
   await waitFor(() => expect(assign).toHaveBeenCalledWith(AUTHORIZE_URL));
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("group")).toBeNull();
 });
 
 test("a server without GitHub set up gets its own message", async () => {
@@ -219,9 +335,9 @@ test("a server without GitHub set up gets its own message", async () => {
   render(<SignInPage lang="fr" />);
   fireEvent.click(screen.getByRole("button", { name: "Continuer avec GitHub" }));
 
-  const alert = await screen.findByRole("alert");
-  expect(alert.textContent).toContain("La connexion avec GitHub n'est pas encore prête");
-  await waitFor(() => expect(document.activeElement).toBe(alert));
+  const message = await screen.findByRole("group");
+  expect(message.textContent).toContain("La connexion avec GitHub n'est pas encore prête");
+  await waitFor(() => expect(document.activeElement).toBe(message));
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeTruthy();
 });
 
@@ -230,7 +346,7 @@ test("any other failure says sign-in did not start", async () => {
   render(<SignInPage lang="en" />);
   fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
 
-  expect((await screen.findByRole("alert")).textContent).toContain("Sign-in didn't start");
+  expect((await screen.findByRole("group")).textContent).toContain("Sign-in didn't start");
   expect(assign).not.toHaveBeenCalled();
 });
 
@@ -240,13 +356,13 @@ test("a browser that cannot hash says sign-in did not start and sends nothing", 
   render(<SignInPage lang="en" />);
   fireEvent.click(screen.getByRole("button", { name: "Continue with GitHub" }));
 
-  expect((await screen.findByRole("alert")).textContent).toContain("Sign-in didn't start");
+  expect((await screen.findByRole("group")).textContent).toContain("Sign-in didn't start");
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
-test("with no error in the address, no alert shows", () => {
+test("with no error in the address, no message shows", () => {
   render(<SignInPage lang="en" />);
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("group")).toBeNull();
 });
 
 test.each([
@@ -259,10 +375,10 @@ test.each([
   search = `?error=${code}`;
   render(<SignInPage lang={lang} />);
 
-  const alert = await screen.findByRole("alert");
-  expect(alert.textContent).toContain(title);
-  expect(alert.textContent).toContain(text);
-  await waitFor(() => expect(document.activeElement).toBe(alert));
+  const message = await screen.findByRole("group");
+  expect(message.textContent).toContain(title);
+  expect(message.textContent).toContain(text);
+  await waitFor(() => expect(document.activeElement).toBe(message));
   expect(steps()[0]).toMatch(lang === "en" ? ", failed" : ", échec");
   expect(fetchMock).not.toHaveBeenCalled();
 });
@@ -275,5 +391,13 @@ test("after a failure from GitHub, try again starts a new sign-in", async () => 
   fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
 
   await waitFor(() => expect(assign).toHaveBeenCalledWith(AUTHORIZE_URL));
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("group")).toBeNull();
+});
+
+test.each([
+  ["en", "Passer en français"],
+  ["fr", "Switch to English"],
+] as const)("the %s page's language button has a tooltip saying what it does", (lang, label) => {
+  render(<SignInPage lang={lang} />);
+  expect(screen.getByRole("link", { name: label }).querySelector("[data-tooltip]")?.textContent).toBe(label);
 });

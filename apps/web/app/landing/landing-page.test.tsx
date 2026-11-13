@@ -92,9 +92,16 @@ test("offers a dark mode toggle in each language", () => {
   expect(screen.getByRole("button", { name: "Passer en mode sombre" })).toBeTruthy();
 });
 
-test("marks the header so the hero can place itself under it", () => {
+// the slot, not the header, is measured: a pinned header is shorter than the one in the page
+test("marks the header's slot so the hero can place itself under it", () => {
   const { container } = render(<LandingPage lang="en" />);
-  expect(container.querySelector("header[data-site-header]")).not.toBeNull();
+  expect(container.querySelector("[data-site-header][data-header-slot] > header")).not.toBeNull();
+});
+
+test("has one banner and one main navigation, whether or not the header is pinned", () => {
+  render(<LandingPage lang="en" />);
+  expect(screen.getAllByRole("banner")).toHaveLength(1);
+  expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
 });
 
 // jsdom has no layout, so this reads the stylesheet. At 360px the French links need 311px but
@@ -117,6 +124,35 @@ test("the demo and the tour say they are coming soon and do nothing", () => {
   }
   expect(container.querySelector("#demo-note")?.textContent).toBe("The demo is coming soon.");
   expect(container.querySelector("#tour-note")?.textContent).toBe("The guided tour is coming soon.");
+});
+
+// the hero's actions, in order: everything you can press under the headline
+function heroActions(headline: string) {
+  const copy = screen.getByRole("heading", { level: 1, name: headline }).parentElement!;
+  return Array.from(copy.querySelectorAll<HTMLElement>("a, button"));
+}
+
+test.each([
+  ["en", "Builders across Africa, one square.", "Join the village", "Take the tour", "Try the demo, Coming soon"],
+  ["fr", "Toute l'Afrique, une seule place.", "Rejoindre le village", "Faire la visite", "Essayer la démo, Bientôt disponible"],
+] as const)("the %s hero leads to sign-in first, then the tour, then the demo", (lang, headline, join, tour, demo) => {
+  render(<LandingPage lang={lang} />);
+  const actions = heroActions(headline);
+  expect(actions.map((action) => action.textContent)).toEqual([join, tour, demo]);
+
+  const [first, , last] = actions;
+  expect(first).toBe(screen.getByRole("link", { name: join }));
+  expect(first.getAttribute("href")).toBe(`/${lang}/sign-in`);
+  expect(last.tagName).toBe("BUTTON");
+  expect(last.getAttribute("aria-disabled")).toBe("true");
+});
+
+test("the demo note sits under the demo button, not under the first action", () => {
+  vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (this: HTMLElement) {
+    return this.textContent?.startsWith("Try the demo") ? 320 : 0;
+  });
+  const { container } = render(<LandingPage lang="en" />);
+  expect(container.querySelector<HTMLElement>("#demo-note")!.style.marginLeft).toBe("320px");
 });
 
 test.each([
@@ -150,4 +186,22 @@ test("draws the logo from the Logo component, hidden from screen readers", () =>
   const logos = container.querySelectorAll('svg[fill="var(--logo)"]');
   expect(logos.length).toBeGreaterThanOrEqual(3); // header, hero square, footer
   for (const logo of logos) expect(logo.getAttribute("aria-hidden")).toBe("true");
+});
+
+// The round buttons have no words on them, so each says what it does in a tooltip, in the page's
+// language. The hero's motion button shows its words, so it needs no tooltip.
+test.each([
+  ["en", "Passer en français", "Switch to dark mode", "Pause animation"],
+  ["fr", "Switch to English", "Passer en mode sombre", "Mettre l'animation en pause"],
+] as const)("the %s page gives its language and theme buttons a tooltip in its own words", (lang, language, theme, motion) => {
+  render(<LandingPage lang={lang} />);
+  const tooltipOf = (host: Element) => host.querySelector("[data-tooltip]")?.textContent;
+  expect(tooltipOf(screen.getByRole("link", { name: language }))).toBe(language);
+  expect(tooltipOf(screen.getByRole("button", { name: theme }))).toBe(theme);
+  // the motion button is hidden until the hero script has placed it, so look past that
+  const motionButton = screen
+    .getAllByRole("button", { hidden: true })
+    .find((b) => b.textContent?.includes(motion));
+  expect(motionButton).toBeDefined();
+  expect(motionButton!.querySelector("[data-tooltip]")).toBeNull();
 });

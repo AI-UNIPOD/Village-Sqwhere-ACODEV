@@ -29,8 +29,10 @@
   --type-code: 400 0.875rem/1.25rem var(--mono);
 
   /* landing page type: the hero headline, header and section headings */
-  --type-hero: 800 clamp(2.25rem, 1.2rem + 2.6vw, 4rem)/1.1 var(--display);
-  --type-hero-sub: 400 clamp(1rem, 0.85rem + 0.35vw, 1.25rem)/1.55 var(--ui);
+  /* the longest headline line in ems; the hero layout reads it too, to size the square to the text */
+  --hero-measure: 12.1;
+  --type-hero: 800 min(clamp(2.25rem, 1.2rem + 2.6vw, 5rem), calc(100cqi / var(--hero-measure)))/1.1 var(--display);
+  --type-hero-sub: 400 clamp(1rem, 0.85rem + 0.35vw, 1.5rem)/1.55 var(--ui);
   --type-wordmark: 700 15px/1 var(--display);
   --type-wordmark-nav: 700 15px/1 var(--display);
   --type-nav-link: 600 clamp(0.9375rem, 0.8rem + 0.2vw, 1.0625rem)/1.25rem var(--ui);
@@ -67,6 +69,11 @@
   --grid-gap: var(--space-5);
   --section: var(--space-12);
   --content-max: 1180px;
+  /* the landing hero (and the header above it) break out of --content-max on big screens:
+     the frame is clamp(--content-max, --hero-frame-share, --hero-frame-max) wide. The numbers are
+     mirrored in apps/web/app/landing/hero-layout.ts (FRAME_SHARE, FRAME_MAX): change both */
+  --hero-frame-max: 1760px;
+  --hero-frame-share: 72%;
   --tap-min: 44px;
 
   /* landing page layout: round floating buttons, header, section space */
@@ -77,6 +84,9 @@
   --nav-height: 56px;
   --nav-gap: var(--space-3);
   --nav-logo-size: 24px;
+  --pill-height: 48px;
+  --pill-top: var(--space-2);
+  --blur-bar: 12px;
   --brand-gap: 10px;
   --underline-offset: 5px;
   --icon-toggle: 18px;
@@ -114,7 +124,10 @@
 
 /* below 600px the hero headline follows the width of its column (a container-type parent) */
 @media (max-width: 599px) {
-  :root { --type-hero: 800 min(2.25rem, calc(100cqi / 8.9))/1.12 var(--display); }
+  :root {
+    --hero-measure: 8.9;
+    --type-hero: 800 min(2.25rem, calc(100cqi / var(--hero-measure)))/1.12 var(--display);
+  }
 }
 
 @media (min-width: 768px) {
@@ -124,6 +137,7 @@
     --type-wordmark-nav: 700 clamp(16px, 1.3vw, 20px)/1 var(--display);
     --float-top: 18px; --float-gutter: 68px; --section-block: var(--space-20); --nav-height: 72px;
     --nav-gap: clamp(20px, 2vw, 32px); --nav-logo-size: clamp(28px, 2.4vw, 36px);
+    --pill-height: 56px; --pill-top: var(--space-3);
   }
 }
 

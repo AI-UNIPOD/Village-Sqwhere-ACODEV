@@ -1,10 +1,28 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { SESSION_KEY } from "../session/session";
 import { DoneStep } from "./done-step";
 import { NO_ANSWERS } from "./steps";
 
-afterEach(cleanup);
+const fetchMock = vi.fn();
+const reply = (status: number) => new Response("{}", { status });
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockResolvedValue(reply(200));
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: "2099-01-01T00:00:00Z", refresh_expires_at: "2099-01-01T00:00:00Z" }),
+  );
+});
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+  localStorage.clear();
+});
 
 const answers = { ...NO_ANSWERS, role: "frontend-engineer", stack: ["react"] };
 
@@ -34,4 +52,74 @@ test("the link says it opens a new tab in French", () => {
   expect(
     screen.getByRole("link", { name: "@kofi-ships (profil GitHub, s'ouvre dans un nouvel onglet)" }),
   ).toBeTruthy();
+});
+
+test("the French card shows technologies in French", () => {
+  const stack = ["react", "computer-vision", "llms", "vector-databases"];
+  render(
+    <DoneStep
+      lang="fr"
+      answers={{ ...answers, stack }}
+      profile={{ displayName: "Kofi Mensah", username: "kofi-ships" }}
+      onChange={() => {}}
+    />,
+  );
+  const tags = screen.getAllByRole("listitem").slice(0, stack.length);
+  expect(tags.map((tag) => tag.textContent)).toEqual([
+    "React",
+    "LLM",
+    "Vision par ordinateur",
+    "Bases de données vectorielles",
+  ]);
+});
+
+test("the card says the role and stack are saved, and that the country and topics are not", async () => {
+  card("en", { displayName: "Kofi Mensah", username: "kofi-ships" });
+  expect(screen.getByText("Saving your role and stack")).toBeTruthy();
+  expect(
+    await screen.findByText("Your role and stack are saved. Your country and topics are not saved yet."),
+  ).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("the saved message is in French too", async () => {
+  card("fr", { displayName: "Kofi Mensah", username: "kofi-ships" });
+  expect(
+    await screen.findByText(
+      "Votre rôle et vos technologies sont enregistrés. Votre pays et vos domaines ne le sont pas encore.",
+    ),
+  ).toBeTruthy();
+});
+
+test("a failed save shows an alert and Try again sends it all again", async () => {
+  fetchMock.mockResolvedValueOnce(reply(500));
+  card("en", { displayName: "Kofi Mensah", username: "kofi-ships" });
+  const alert = await screen.findByRole("alert");
+  expect(alert.textContent).toBe("We couldn't save your role and stack. Your answers are still here, so try again.");
+
+  fetchMock.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(await screen.findByText(/^Your role and stack are saved/)).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("with no role chosen nothing is saved and no save message shows", () => {
+  render(
+    <DoneStep lang="en" answers={NO_ANSWERS} profile={{ displayName: "Kofi Mensah", username: "kofi-ships" }} onChange={() => {}} />,
+  );
+  expect(screen.queryByText(/Saving your role/)).toBeNull();
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test("the way to the village opens once the role is saved", async () => {
+  card("fr", { displayName: "Kofi Mensah", username: "kofi-ships" });
+  expect(screen.getByRole("button", { name: "Aller au village" }).getAttribute("aria-disabled")).toBe("true");
+  const link = await screen.findByRole("link", { name: "Aller au village" });
+  expect(link.getAttribute("href")).toBe("/fr/village");
+});
+
+test("someone who skipped can go straight to the village", () => {
+  render(<DoneStep lang="en" answers={NO_ANSWERS} profile={{ displayName: null, username: "kofi-ships" }} onChange={() => {}} />);
+  expect(screen.getByRole("link", { name: "Go to the village" }).getAttribute("href")).toBe("/en/village");
 });
