@@ -238,6 +238,9 @@ test("while sign-in starts the spinner shares the GitHub mark's slot before the 
 
   fireEvent.click(button);
   await waitFor(() => expect(button.getAttribute("aria-busy")).toBe("true"));
+  // The request is sent a moment after the click, once the PKCE hash is ready. Wait for it here:
+  // a test that ends first leaves it to arrive in a later test, where it takes that test's answer.
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
 
   const slot = mark?.parentElement;
   expect(slot).not.toBe(button);

@@ -11,6 +11,7 @@ its number:
 ## 2026-11-13
 
 - feat(web): add the post page (#102)
+- test(web): wait for the sign-in request before a test ends (#104)
 - feat(web): add the feed with likes and saves (#101)
 - feat(api): add comment lists with reply previews (#99)
 - fix(api): refuse a null character in post text instead of failing (#100)
