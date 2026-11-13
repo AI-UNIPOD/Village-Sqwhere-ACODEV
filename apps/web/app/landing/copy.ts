@@ -9,6 +9,7 @@ type Copy = {
   navHow: string;
   navTour: string;
   signIn: string;
+  signOut: string;
   soon: string;
   demoNote: string;
   tourNote: string;
@@ -20,6 +21,7 @@ type Copy = {
   play: string;
   headline: string;
   sub: string;
+  ctaJoin: string;
   ctaDemo: string;
   ctaTour: string;
   howTitle: string;
@@ -46,6 +48,7 @@ const en: Copy = {
   navHow: "How it works",
   navTour: "Tour",
   signIn: "Sign in",
+  signOut: "Sign out",
   soon: "Coming soon",
   demoNote: "The demo is coming soon.",
   tourNote: "The guided tour is coming soon.",
@@ -57,6 +60,7 @@ const en: Copy = {
   play: "Play animation",
   headline: "Builders across Africa, one square.",
   sub: "Share an idea. Get matched with co-⁠builders. Build it together.",
+  ctaJoin: "Join the village",
   ctaDemo: "Try the demo",
   ctaTour: "Take the tour",
   howTitle: "From an idea to a team, in four steps.",
@@ -107,6 +111,7 @@ const fr: Copy = {
   navHow: "Comment ça marche",
   navTour: "Visite",
   signIn: "Connexion",
+  signOut: "Déconnexion",
   soon: "Bientôt disponible",
   demoNote: "La démo arrive bientôt.",
   tourNote: "La visite guidée arrive bientôt.",
@@ -118,6 +123,7 @@ const fr: Copy = {
   play: "Lire l'animation",
   headline: "Toute l'Afrique, une seule place.",
   sub: "Partagez une idée. Trouvez vos partenaires. Construisez ensemble.",
+  ctaJoin: "Rejoindre le village",
   ctaDemo: "Essayer la démo",
   ctaTour: "Faire la visite",
   howTitle: "D'une idée à une équipe, en quatre étapes.",

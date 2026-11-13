@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
+import { Tooltip } from "../tooltip";
 import styles from "./landing-page.module.css";
 import { THEME_KEY } from "./theme";
 
@@ -38,18 +39,10 @@ function toggle() {
 
 type ThemeToggleProps = { toDark: string; toLight: string };
 
-// A round button that shows a moon on Paper (go dark) and a sun on Ink (go light). Its label
-// says what a tap does.
-export function ThemeToggle({ toDark, toLight }: ThemeToggleProps) {
-  const theme = useSyncExternalStore(subscribe, currentTheme, () => "light" as Theme);
-  const dark = theme === "dark";
+// A moon on Paper (go dark) and a sun on Ink (go light), turning into each other.
+function ThemeIcons() {
   return (
-    <button
-      type="button"
-      className={`${styles.fab} ${styles.fabBottom} ${styles.mode} ${dark ? styles.dark : ""}`}
-      aria-label={dark ? toLight : toDark}
-      onClick={toggle}
-    >
+    <>
       <svg className={styles.moon} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="currentColor" />
       </svg>
@@ -66,6 +59,40 @@ export function ThemeToggle({ toDark, toLight }: ThemeToggleProps) {
         <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
         <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" />
       </svg>
+    </>
+  );
+}
+
+// A round floating button for the landing page. Its label says what a tap does.
+export function ThemeToggle({ toDark, toLight }: ThemeToggleProps) {
+  const theme = useSyncExternalStore(subscribe, currentTheme, () => "light" as Theme);
+  const dark = theme === "dark";
+  return (
+    <button
+      type="button"
+      className={`${styles.fab} ${styles.fabBottom} ${styles.mode} ${dark ? styles.dark : ""}`}
+      aria-label={dark ? toLight : toDark}
+      onClick={toggle}
+    >
+      <ThemeIcons />
+      <Tooltip label={dark ? toLight : toDark} side="left" />
+    </button>
+  );
+}
+
+// The same switch as an icon button in a header: the caller's class places and sizes it.
+export function ThemeButton({ toDark, toLight, className }: ThemeToggleProps & { className: string }) {
+  const theme = useSyncExternalStore(subscribe, currentTheme, () => "light" as Theme);
+  const dark = theme === "dark";
+  return (
+    <button
+      type="button"
+      className={`${className} ${styles.mode} ${dark ? styles.dark : ""}`}
+      aria-label={dark ? toLight : toDark}
+      onClick={toggle}
+    >
+      <ThemeIcons />
+      <Tooltip label={dark ? toLight : toDark} side="left" />
     </button>
   );
 }

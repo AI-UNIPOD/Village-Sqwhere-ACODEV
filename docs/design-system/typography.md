@@ -46,8 +46,8 @@ scale above.
 
 | Token | Size | Family, weight | Use |
 | --- | --- | --- | --- |
-| `--type-hero` | 36/40 on phones, then fluid up to 64/70. Below 600px it follows the width of its column (needs a parent with `container-type: inline-size`) | Unbounded 800, -0.02em | The hero headline, in place of `--type-display-xl` |
-| `--type-hero-sub` | 16 up to 20, line height 1.55 | Onest 400 | The sentence under the hero headline |
+| `--type-hero` | 36/40 on phones, then fluid up to 80/88 (about 49px at 1280, 59px at 1920, 78px at 2560). It never exceeds the width of its column over `--hero-measure` (the longest line in ems: 12.1, so the headline takes two lines from 600px up, in English and French; 8.9 below 600px, three lines). The hero layout reads `--hero-measure` too, to size the logo square to the text. It needs a parent with `container-type: inline-size`; the column is that parent's content box, padding excluded | Unbounded 800, -0.02em | The hero headline, in place of `--type-display-xl` |
+| `--type-hero-sub` | 16 up to 24, line height 1.55 | Onest 400 | The sentence under the hero headline |
 | `--type-wordmark` | 15, 17 from 768px | Unbounded 700 | "Village Sqwhere" next to the logo |
 | `--type-wordmark-nav` | 15, then 16 to 20 from 768px | Unbounded 700 | The wordmark in the header |
 | `--type-nav-link` | 15 up to 17/20 | Onest 600 | Header links |

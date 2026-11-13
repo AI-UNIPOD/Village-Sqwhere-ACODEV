@@ -102,3 +102,22 @@ test("the early script does nothing when storage is blocked", () => {
   };
   expect(runInitScript(blocked)).toEqual({});
 });
+
+// ---------- the tooltip ----------
+
+const tooltipOf = (host: HTMLElement) => host.querySelector("[data-tooltip]")?.textContent;
+
+test("names what a tap does in a tooltip that follows the label", () => {
+  stubSystemTheme(false);
+  render(<ThemeToggle {...labels} />);
+  const button = screen.getByRole("button");
+  expect(tooltipOf(button)).toBe("Switch to dark mode");
+  fireEvent.click(button);
+  expect(tooltipOf(button)).toBe("Switch to light mode");
+});
+
+test("says it in French on the French page", () => {
+  stubSystemTheme(false);
+  render(<ThemeToggle toDark="Passer en mode sombre" toLight="Passer en mode clair" />);
+  expect(tooltipOf(screen.getByRole("button"))).toBe("Passer en mode sombre");
+});

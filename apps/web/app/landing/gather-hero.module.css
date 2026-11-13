@@ -20,6 +20,11 @@
   top: var(--space-8);
   inline-size: calc(100% - var(--space-4) - var(--space-4) - var(--float-size) - var(--space-2));
   max-inline-size: 35rem;
+  /* room on all four sides, so the text never hugs the edge of its box; the headline's size
+     follows the content width (the box minus this padding) through the container query unit */
+  --copy-pad: clamp(var(--space-5), 3vw, var(--space-8));
+  box-sizing: border-box;
+  padding: var(--copy-pad);
   container-type: inline-size;
 }
 
@@ -30,7 +35,8 @@
   text-wrap: balance;
 }
 
-/* On phones the text is centred. The sentence and the buttons read these two values. */
+/* Stacked above the square (below the width where the two fit side by side) the text is
+   centred. The sentence and the buttons read these two values. */
 .center {
   --copy-inline: auto;
   --copy-justify: center;
@@ -64,23 +70,42 @@
   pointer-events: none;
 }
 
-/* Pause and play for the loop. Shown by the script only when something moves. */
+/* The motion button: the icon and the words, a pill under the square. It is the only control
+   for the hero's movement (WCAG 2.2.2), so it is plainly visible and named by what it shows. The
+   script shows it once the hero is placed and sets where it sits. */
 .play {
   position: absolute;
   z-index: 5;
   display: none;
-  place-items: center;
-  inline-size: var(--float-size);
+  align-items: center;
+  gap: var(--space-2);
   block-size: var(--float-size);
-  padding: 0;
+  padding-block: 0;
+  padding-inline: var(--space-3) var(--space-4);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-full);
   background: var(--bg);
   color: var(--text);
+  font: var(--type-label);
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color var(--dur-press) var(--ease-out),
     transform var(--dur-press) var(--ease-out);
+}
+
+/* both labels share one cell, the one not shown is unseen: the button keeps one width */
+.label {
+  display: grid;
+  text-align: center;
+}
+
+.label > * {
+  grid-area: 1 / 1;
+}
+
+.label > [aria-hidden] {
+  visibility: hidden;
 }
 
 /* a ring that widens the tap area to 44px */
@@ -103,6 +128,7 @@
 }
 
 .play svg {
+  flex: none;
   inline-size: var(--icon-play);
   block-size: var(--icon-play);
 }
@@ -116,9 +142,10 @@
   display: block;
 }
 
+/* Reduced motion: the press shows in the colour change, not a scale. */
 @media (prefers-reduced-motion: reduce) {
-  .play {
-    transition-duration: 0.01ms;
+  .play:active {
+    transform: none;
   }
 }
 

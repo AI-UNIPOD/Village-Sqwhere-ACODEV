@@ -3,8 +3,11 @@ import type { CSSProperties, ReactNode } from "react";
 
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
+import { AccountNavLink } from "../session/session-ui";
+import { Tooltip } from "../tooltip";
 import { copy } from "./copy";
 import { GatherHero } from "./gather-hero";
+import { HeaderPin } from "./header-pin";
 import styles from "./landing-page.module.css";
 import { SectionMotion } from "./section-motion";
 import { stopShares } from "./stops";
@@ -63,20 +66,22 @@ export function LandingPage({ lang }: { lang: Lang }) {
 
   return (
     <div>
-      <header className={styles.nav} data-site-header="">
-        <Brand lang={lang} logoClass={styles.navLogo} wordmarkClass={styles.navWordmark} />
-        <nav className={styles.navLinks} aria-label={t.navLabel}>
-          <a className={styles.navLink} href="#how">
-            {t.navHow}
-          </a>
-          <a className={styles.navLink} href="#tour">
-            {t.navTour}
-          </a>
-          <Link className={styles.navLink} href={`/${lang}/sign-in`}>
-            {t.signIn}
-          </Link>
-        </nav>
-      </header>
+      {/* The slot keeps the header's place while HeaderPin turns it into a pill, and is what the
+          hero measures: a pinned header is shorter than the one in the flow. */}
+      <div data-site-header="" data-header-slot="">
+        <header className={styles.nav}>
+          <Brand lang={lang} logoClass={styles.navLogo} wordmarkClass={styles.navWordmark} />
+          <nav className={styles.navLinks} aria-label={t.navLabel}>
+            <a className={styles.navLink} href="#how">
+              {t.navHow}
+            </a>
+            <a className={styles.navLink} href="#tour">
+              {t.navTour}
+            </a>
+            <AccountNavLink lang={lang} signIn={t.signIn} signOut={t.signOut} className={styles.navLink} />
+          </nav>
+        </header>
+      </div>
 
       {/* A plain link on purpose: a full page load. A client navigation keeps the old language
           hidden in the page and makes React drop the theme set on <html>. translate="no" stops
@@ -90,6 +95,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
         aria-label={t.switchLabel}
       >
         {t.switchText}
+        <Tooltip label={t.switchLabel} side="left" />
       </a>
       <ThemeToggle toDark={t.toDark} toLight={t.toLight} />
 
@@ -98,17 +104,20 @@ export function LandingPage({ lang }: { lang: Lang }) {
           <h1 id="hero-title">{t.headline}</h1>
           <p className={styles.sub}>{t.sub}</p>
           <div className={styles.ctas}>
+            <Link className={`${styles.btn} ${styles.heroButton}`} href={`/${lang}/sign-in`}>
+              {t.ctaJoin}
+            </Link>
+            <a className={`${styles.ghost} ${styles.heroButton}`} href="#tour">
+              {t.ctaTour}
+            </a>
             <SoonButton
-              className={`${styles.btn} ${styles.heroButton}`}
+              className={`${styles.ghost} ${styles.heroButton}`}
               soon={t.soon}
               announce={t.demoNote}
               note="demo-note"
             >
               {t.ctaDemo}
             </SoonButton>
-            <a className={`${styles.ghost} ${styles.heroButton}`} href="#tour">
-              {t.ctaTour}
-            </a>
           </div>
           <p className={styles.note} id="demo-note" aria-hidden="true" data-hero-note="">
             {t.demoNote}
@@ -229,6 +238,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
       {/* where a "coming soon" press is announced */}
       <p className={styles.srOnly} role="status" data-soon-status="" />
       <SectionMotion />
+      <HeaderPin />
     </div>
   );
 }

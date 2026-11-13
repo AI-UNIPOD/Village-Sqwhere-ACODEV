@@ -71,10 +71,10 @@ const fr: Copy = {
   pageTitle: "Connexion | Village Sqwhere",
   heading: "Connectez-vous au village",
   intro:
-    "Trouvez des développeurs qui veulent construire ce que vous voulez construire. Nouveau ici ? Le même bouton crée votre compte.",
+    "Trouvez des développeurs qui veulent construire ce que vous voulez construire. Nouveau ici\u202f? Le même bouton crée votre compte.",
   button: "Continuer avec GitHub",
-  scope: "Nous lisons uniquement votre profil GitHub et votre adresse e-mail.",
-  join: "Pas de compte GitHub ? Créez-en un sur GitHub",
+  scope: "Nous lisons uniquement votre profil GitHub et votre adresse e\u2011mail.",
+  join: "Pas de compte GitHub\u202f? Créez-en un sur GitHub",
   working: "Redirection vers GitHub…",
   retry: "Réessayer",
   stepsLabel: "Comment fonctionne la connexion",

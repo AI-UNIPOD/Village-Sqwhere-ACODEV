@@ -1,0 +1,274 @@
+.main {
+  /* 96px, the design system's smallest text area */
+  --answer-min: calc(var(--space-16) + var(--space-8));
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding-block-start: var(--space-8);
+}
+
+@media (min-width: 768px) {
+  .main { padding-block-start: var(--space-12); }
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.expect {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-6);
+  padding-inline-start: var(--space-6);
+  font: var(--type-body);
+}
+
+.leave {
+  min-block-size: var(--tap-min);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--text-muted);
+  font: var(--type-label);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.leave:active { transform: scale(0.97); }
+
+/* ---------- messages: an icon tile, a title and a sentence on a soft tint ---------- */
+.message {
+  --kind: var(--text-muted);
+  --tint: 7%;
+  display: grid;
+  grid-template-columns: var(--space-8) minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--pad-card);
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--kind) var(--tint), var(--surface));
+}
+
+.message[data-kind="warning"] { --kind: var(--warning); }
+
+.message[data-kind="success"] { --kind: var(--success); }
+
+.message[data-kind="error"] { --kind: var(--error); }
+
+.message[data-kind="info"] { --kind: var(--info); }
+
+:global([data-theme="dark"]) .message { --tint: 11%; }
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .message { --tint: 11%; }
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--kind) 16%, transparent);
+  color: var(--kind);
+}
+
+.tile svg {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+.messageTitle { font: var(--type-label); }
+
+.messageText {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* ---------- the transcript ---------- */
+.log {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: var(--space-4);
+  margin-block: var(--space-6);
+}
+
+.turn {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+/* The interviewer has a left edge in the AI colour; the developer's words sit on a sunken card
+   set in from the left. The labels carry the difference, so colour is never alone. */
+.turn[data-from="ai"] {
+  padding-inline-start: var(--space-4);
+  border-inline-start: 2px solid var(--ai);
+}
+
+.turn[data-from="you"] {
+  margin-inline-start: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
+  background: var(--surface-sunken);
+}
+
+.who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  font: var(--type-label);
+}
+
+.turn[data-from="ai"] .who { color: var(--ai); }
+
+.number {
+  color: var(--text-muted);
+  font: var(--type-mono-label);
+}
+
+.said {
+  font: var(--type-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pending {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ai);
+  font: var(--type-body-s);
+}
+
+/* the shared spinner, turned to the AI colour; it still shows only after --delay-spinner */
+.pending .ring {
+  flex: none;
+  border-block-start-color: var(--ai);
+}
+
+/* The composer is one answer field high plus its label, button row and padding. The newest
+   message scrolls to this far from the bottom, so the sticky composer never covers it. */
+.end { scroll-margin-block-end: calc(var(--answer-min) + var(--tap-min) + var(--space-16)); }
+
+/* ---------- the dock: the composer, or how the interview ended ---------- */
+.dock {
+  position: sticky;
+  inset-block-end: var(--app-bottom, 0px);
+  margin-inline: calc(var(--gutter) * -1);
+  padding: var(--space-3) var(--gutter);
+  border-block-start: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.dockActions {
+  display: flex;
+  margin-block-start: var(--space-3);
+}
+
+.label {
+  display: block;
+  margin-block-end: var(--space-2);
+  font: var(--type-label);
+}
+
+.dock .answer {
+  display: block;
+  inline-size: 100%;
+  min-block-size: var(--answer-min);
+  max-block-size: 40dvh;
+  padding: var(--space-3);
+  field-sizing: content;
+  resize: vertical;
+}
+
+.dock .answer[aria-invalid="true"] { border-color: var(--error); }
+
+.dock .answer:disabled {
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+}
+
+.dock .problem { margin-block-start: var(--space-2); }
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-block-start: var(--space-3);
+}
+
+.hint,
+.count {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.count { margin-inline-start: auto; }
+
+.count[data-over] { color: var(--error); }
+
+/* ---------- the leave dialog ---------- */
+.dialog {
+  inline-size: min(30rem, calc(100% - var(--gutter) * 2));
+  margin: auto;
+  padding: var(--pad-card);
+  border: 0;
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: var(--shadow-3);
+}
+
+.dialog::backdrop { background: var(--scrim); }
+
+.dialog[open] { animation: arrive var(--dur-modal) var(--ease-out); }
+
+.dialogTitle { font: var(--type-title); }
+
+.dialog .messageText { margin-block-start: var(--space-2); }
+
+.dialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-6);
+}
+
+.dialog .danger {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2)) scale(0.96);
+  }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .leave:hover {
+    background: var(--surface-sunken);
+    color: var(--text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog[open] { animation-name: fade; }
+
+  .leave:active { transform: none; }
+}

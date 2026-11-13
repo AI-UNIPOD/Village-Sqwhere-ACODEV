@@ -1,4 +1,6 @@
 import asyncio
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from uuid import UUID
 
 import jwt
@@ -435,3 +437,29 @@ def test_profile_skills_unauthorized() -> None:
     assert client.delete("/v1/me/roles/backend-engineer").status_code == 401
     assert client.put("/v1/me/technologies", json={"technologies": ["python"]}).status_code == 401
     assert client.put("/v1/me/feed-topics", json={"technologies": ["react"]}).status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("path", "field"),
+    [("/v1/me/technologies", "technologies"), ("/v1/me/feed-topics", "feed_topics")],
+)
+def test_replacing_a_list_from_two_tabs_at_once_never_fails(sign_in, path: str, field: str) -> None:
+    # Two tabs, or a double click, can send the same replacement at the same moment. Each one
+    # used to delete the old rows and insert the new ones, so one failed with a 500.
+    data = sign_in("github-code-ada")
+    cleanup_user(UUID(data["user"]["id"]))
+    lists = [["python", "postgresql"], ["react", "flutter"], ["python"], ["postgresql", "react"]]
+    lists = lists * 2
+    start = threading.Barrier(len(lists))
+
+    def replace(slugs: list[str]) -> int:
+        each = TestClient(app)  # its own event loop, so the requests really overlap
+        start.wait()
+        return each.put(path, headers=bearer(data), json={"technologies": slugs}).status_code
+
+    with ThreadPoolExecutor(len(lists)) as pool:
+        codes = list(pool.map(replace, lists))
+
+    assert codes == [200] * len(lists)
+    saved = [t["slug"] for t in client.get("/v1/me", headers=bearer(data)).json()["data"][field]]
+    assert saved in lists  # one whole replacement won, never a mix of two
