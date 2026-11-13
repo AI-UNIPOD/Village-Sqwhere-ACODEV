@@ -310,6 +310,12 @@ Signs in as the shared demo account, for "Try the demo". No GitHub, no body.
   without a check of its own. `tests/test_demo.py` tries every write route with a demo token.
 * **Switched off:** once `DEMO_ENABLED` is not `true`, tokens the demo already handed out answer
   `401 DEMO_UNAVAILABLE`, refresh included.
+* **Kept apart:** demo accounts (`users.is_demo`) see only demo content, and nobody else ever
+  sees it. Posts, comments, the feed, saved posts, open ideas, matching, hubs and the review
+  queue all filter by it, and a single read of the other side answers `404`. An owner cannot
+  invite a demo account (`404 USER_NOT_FOUND`), and a real developer cannot ask to join a demo
+  hub. The rule is `same_world` in `apps/api/app/api/deps.py`; a new list of shared content
+  must use it too.
 * Why: `docs/decisions/2026-11-13-read-only-demo.md`.
 
 ---
