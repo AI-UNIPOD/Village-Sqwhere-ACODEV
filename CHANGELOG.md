@@ -12,6 +12,7 @@ its number:
 
 - feat(web): add the role verification page (#73)
 - feat(web): add the village home page for signed-in developers (#72)
+- feat(api): add hub invitations and membership (#68)
 - fix(api): stop a 500 when a list is replaced twice at once (#71)
 - feat(web): pin the landing header as a pill while scrolling (#70)
 - feat(web): save the onboarding role and stack to the api (#69)
