@@ -7,8 +7,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 
 - Monorepo: `apps/web` (Next.js 16, landing page in English and French), `apps/api` (FastAPI
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
-- Team rules are in `AGENTS.md`. The `ci` workflow is switched off since an account billing
-  limit blocked GitHub Actions, so everything after #33 (up to #59) landed on local checks.
+- Team rules are in `AGENTS.md`. GitHub Actions is off (billing limit), so a merge agent on
+  Tanny's PC runs the CI checks and merges green pull requests (not in this repository).
 - The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics and
   verification (GitHub analysis, a five-question AI interview over a WebSocket, a report) with
   peer review by developers verified in that role, Groq and Gemini fallbacks and a separate
@@ -36,7 +36,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 
 ## What's next
 
-1. Fix the GitHub Actions billing limit, turn the `ci` workflow back on and re-run CI on `main`.
+1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
 2. Build the remaining hub endpoints on the new models, then the rest of the core flow from PRD v2.2:
    share an idea, AI matching, the owner approving the team and the four hub phases. The PRD
    is not in this repository yet; ask Tanny for it before starting.
@@ -50,7 +50,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
 8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
-   until then rules hold by agreement (`docs/decisions/2026-11-04-team-workflow-and-ci.md`).
+   until then the merge agent enforces green checks (`docs/decisions/2026-11-13-merge-agent.md`).
 
 ## Open questions
 
