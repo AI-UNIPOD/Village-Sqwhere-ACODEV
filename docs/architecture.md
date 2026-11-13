@@ -65,6 +65,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   manage the owner's private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
   open idea cards to signed-in developers. A card has the summary and roles needed, never the
   confidential brief. Guide: `docs/backend.md`.
+- **Matching** (Bearer token): `GET /v1/me/ideas/{idea_id}/matches` ranks developers verified
+  in the roles one of my open ideas needs, and `GET /v1/me/matches` ranks open ideas that need
+  my verified roles. No AI model and no idea details are involved.
 - OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
   API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
 

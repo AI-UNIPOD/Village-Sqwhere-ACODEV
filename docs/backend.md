@@ -667,6 +667,57 @@ Returns only open idea cards to signed-in developers. A card contains title, sum
 roles needed, author and timestamps. It never contains the confidential `details` field.
 `GET /v1/ideas` accepts `offset` and `limit`, with `next_offset` when another page exists.
 
+### Matching
+
+Matching pairs open ideas with developers through the roles an idea needs and the roles a
+developer has passed verification in. Self-claimed and inactive roles never match. It is
+deterministic: no AI model is called and an idea's `details` are never read. Both routes take
+`offset` (0 or more) and `limit` (1 to 50, default 20) and return `next_offset` when another
+page exists. Why: `docs/decisions/2026-11-13-role-based-idea-matching.md`.
+
+People with any membership row in an idea's hub (active, invited, declined and so on) are not
+suggested for that idea, and that idea is left out of their own matches.
+
+#### `GET /v1/me/ideas/{idea_id}/matches`
+
+Developers who fit one of the caller's open ideas. The order is: more of the idea's needed
+roles covered, then more technologies shared with the author, then earliest verification.
+The author and deleted accounts never appear. An idea with no roles needed returns an empty
+list, so the page should prompt the owner to add roles.
+
+* **Authentication:** Bearer token required. Only the idea's author.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": [
+      {
+        "id": "8d1c5d3e-1b7a-4f55-9a8e-2f9e0c6b7a11",
+        "username": "kwame-dev",
+        "display_name": "Kwame Mensah",
+        "avatar_url": null,
+        "is_verified": true,
+        "matched_roles": [{ "slug": "backend-engineer", "name": "Backend & Systems Engineer" }],
+        "technologies": [{ "slug": "python", "name": "Python" }],
+        "shared_technology_count": 1
+      }
+    ],
+    "next_offset": null
+  }
+  ```
+  A card never has an email, first or last name, or bio.
+* **Errors:** `404 NOT_FOUND` when the idea is not the caller's, does not exist or is deleted.
+  `409 IDEA_NOT_OPEN` for a draft or closed idea: publish it first.
+
+#### `GET /v1/me/matches`
+
+Open ideas, by other authors, that need a role the caller is verified in. The order is: more
+of the caller's roles needed, then newest publication. A caller with no verified role gets an
+empty list, so the page should point them to role verification.
+
+* **Authentication:** Bearer token required.
+* **Success Response (200 OK):** `{"data": [{"idea": <public idea card>, "matched_roles":
+  [<role>]}], "next_offset": null}`. The idea card is the same as `GET /v1/ideas/{idea_id}`.
+
 ### Hubs
 
 A hub is the space where a team builds an idea together. Every member signs the same
