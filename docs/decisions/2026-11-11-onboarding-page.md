@@ -33,7 +33,8 @@ Tanny chose, on 11 November 2026, to build the full design now, with static data
 - **Welcome step.** It reuses `GatherHero` unchanged.
 - **Since 13 November 2026 onboarding asks for both.** Tanny decided: the sectors step stays,
   and a fifth step asks which technologies the feed should show, saved with
-  `PUT /v1/me/feed-topics`. Sectors stay on screen only until the API can store them.
+  `PUT /v1/me/feed-topics`. The sectors are saved with
+  `PUT /v1/me/sectors` since the API got that route (#114).
 - **Feed topics are idea domains, not technologies.** This is the owner's choice. The list is
   still a draft.
 - **Motion with no new dependency.** Steps change with React's `<ViewTransition>`, timed with

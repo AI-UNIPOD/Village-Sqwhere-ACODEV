@@ -18,10 +18,10 @@ The site is bilingual by address: pages live in `app/[lang]/` and are served at 
 language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
 landing page is `app/landing/`, and the onboarding page shown after the first sign-in is
-`app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack and
-the technologies the feed should show (`POST /v1/me/roles`, `PUT /v1/me/technologies`,
-`PUT /v1/me/feed-topics`); the country and the sectors stay in the tab until the API can store
-them.
+`app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
+technologies the feed should show and the sectors (`POST /v1/me/roles`,
+`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`); the country stays
+in the tab until the API can store it.
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
