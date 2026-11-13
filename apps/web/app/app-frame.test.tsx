@@ -5,7 +5,7 @@ import { AppFrame } from "./app-frame";
 import type { Hub } from "./hubs/hubs-api";
 import { forgetInvitation, keepInvitations } from "./hubs/invitations";
 import { noticeDemoRefusal, resetDemo } from "./session/demo";
-import { loadMe, useMe } from "./session/me";
+import { forgetMe, useMe } from "./session/me";
 import { SESSION_KEY } from "./session/session";
 
 const fetchMock = vi.fn();
@@ -18,6 +18,12 @@ function signIn() {
     SESSION_KEY,
     JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: "2099-01-01T00:00:00Z", refresh_expires_at: "2099-01-01T00:00:00Z" }),
   );
+}
+
+// a screen that asks for the profile
+function Name() {
+  const me = useMe();
+  return <p>{me ? me.display_name : "Loading"}</p>;
 }
 
 const places = () => within(screen.getByRole("navigation", { name: /^(Main|Principale)$/ }));
@@ -34,6 +40,7 @@ afterEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute("data-theme");
   resetDemo();
+  forgetMe();
 });
 
 test("a signed-in developer can reach every place, and sees which one they are in", () => {
@@ -45,13 +52,41 @@ test("a signed-in developer can reach every place, and sees which one they are i
   expect(places().getByRole("link", { name: "Village" }).getAttribute("aria-current")).toBeNull();
 });
 
-test("peer reviews appear once the developer holds a Green Tick", async () => {
+test("peer reviews appear once the developer holds a Green Tick, on a screen that never asks who they are", async () => {
   signIn();
   fetchMock.mockResolvedValue(answer([verified]));
-  render(<AppFrame lang="en" path="village">screen</AppFrame>);
+  render(<AppFrame lang="en" path="hubs">screen</AppFrame>);
   expect(names()).not.toContain("Reviews");
-  await loadMe();
+  // the frame asks for the profile itself
   await waitFor(() => expect(names()).toEqual(["Village", "Feed", "Ideas", "Hubs", "Reviews", "Profile"]));
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/v1\/me$/);
+});
+
+test("the frame and the screen inside it share one request for the profile", async () => {
+  signIn();
+  fetchMock.mockImplementation(async () => answer());
+  render(
+    <AppFrame lang="en" path="village">
+      <Name />
+    </AppFrame>,
+  );
+  expect(await screen.findByText("Aminata Ndiaye")).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+test("a visitor who is not signed in is not asked about", () => {
+  render(<AppFrame lang="en" path="village">screen</AppFrame>);
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test("when the profile cannot be loaded, the frame only shows less", async () => {
+  signIn();
+  fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+  render(<AppFrame lang="en" path="hubs">screen</AppFrame>);
+  await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  expect(names()).toEqual(["Village", "Feed", "Ideas", "Hubs", "Profile"]);
+  expect(screen.getByText("screen")).toBeTruthy();
 });
 
 test("Hubs is marked while an invitation waits, and the mark goes when it is answered", () => {
@@ -135,9 +170,10 @@ const refused = () => new Response(JSON.stringify({ detail: { code: "DEMO_READ_O
 test("the demo account sees, on every screen, that nothing is saved and the way out", async () => {
   signIn();
   fetchMock.mockResolvedValue(demoAnswer());
-  render(<AppFrame lang="en" path="village">screen</AppFrame>);
+  render(<AppFrame lang="en" path="hubs">screen</AppFrame>);
   expect(screen.queryByText(/You are in the demo/)).toBeNull();
-  await act(() => loadMe());
+  // Your hubs never asks for the profile: the frame does
+  await screen.findByText(/You are in the demo/);
   expect(screen.getByRole("status").textContent).toBe("You are in the demo. Look at everything: nothing you change is saved.");
   expect(screen.getByRole("button", { name: "Leave the demo" })).toBeTruthy();
 });
@@ -146,8 +182,7 @@ test("when the API refuses a change, the demo line says it was not saved, each t
   signIn();
   fetchMock.mockResolvedValue(demoAnswer());
   render(<AppFrame lang="fr" path="feed">screen</AppFrame>);
-  await act(() => loadMe());
-  const first = screen.getByRole("status");
+  const first = await screen.findByRole("status");
   expect(first.textContent).toMatch(/^Vous êtes dans la démo/);
 
   await act(() => noticeDemoRefusal(refused()));
@@ -163,18 +198,14 @@ test("other refusals, and other accounts, get no demo line", async () => {
   signIn();
   fetchMock.mockResolvedValue(answer());
   render(<AppFrame lang="en" path="village">screen</AppFrame>);
-  await act(() => loadMe());
+  await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  await act(async () => {});
   await act(() => noticeDemoRefusal(new Response(JSON.stringify({ detail: { code: "NOT_POST_AUTHOR" } }), { status: 403 })));
   await act(() => noticeDemoRefusal(refused()));
   expect(screen.queryByText(/demo/i)).toBeNull();
 });
 
 // ---------- the profile, kept between screens ----------
-
-function Name() {
-  const me = useMe();
-  return <p>{me ? me.display_name : "Loading"}</p>;
-}
 
 test("the second screen of a visit shows the profile at once, then the fresh one", async () => {
   signIn();
