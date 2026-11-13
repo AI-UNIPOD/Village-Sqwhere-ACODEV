@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(web): rebuild the not-found page and send it as html (#96)
 - fix(web): say when a hub's team is full (#92)
 - feat(api): add liking and saving posts (#91)
 - feat(api): add the feed and post lists (#90)
