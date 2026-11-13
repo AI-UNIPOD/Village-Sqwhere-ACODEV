@@ -1,6 +1,6 @@
 """Made-up content for the read-only demo ("Try the demo").
 
-Run it where the demo should be on, against that server's DATABASE_URL:
+Run it where the demo should be on (DEMO_ENABLED=true), against that server's DATABASE_URL:
 
     uv run --directory apps/api python -m app.demo_seed
 
@@ -12,11 +12,13 @@ docs/decisions/2026-11-13-read-only-demo.md
 """
 
 import asyncio
+import sys
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import config
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.models import (
     AgreementSignature,
@@ -355,7 +357,15 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
     db.add(CommentLike(comment_id=top.id, user_id=you.id))
 
 
-async def main() -> None:
+async def main() -> int:
+    # Made-up developers on a server without the demo would be content nobody can reach, and
+    # usually means DATABASE_URL points at the wrong server.
+    if not config.DEMO_ENABLED:
+        print(
+            "The demo is off here (DEMO_ENABLED is not true), so nothing was written.",
+            file=sys.stderr,
+        )
+        return 1
     from app.database import async_session, engine
 
     engine.echo = False  # the API logs every statement; here that would bury the one result line
@@ -366,7 +376,8 @@ async def main() -> None:
         if made
         else "Demo posts and comments rewritten with fresh times; the rest was already there."
     )
+    return 0
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    raise SystemExit(asyncio.run(main()))

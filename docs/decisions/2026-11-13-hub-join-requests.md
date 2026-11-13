@@ -31,6 +31,19 @@ and posts API chose the following:
    refuses a request and an approval with `TEAM_FULL`, and an approval refused this way stays
    pending. An archived hub takes no requests or approvals but can still decline.
 
+### Update, 13 November 2026: a wait after a decline
+
+An owner could be asked again straight after saying no, as often as the developer liked. Tanny
+decided the developer waits first, counted per developer and hub:
+
+- After each decline, 48 hours. After the fifth decline in a row, 30 days, and the count starts
+  again, so the next decline after that wait is 48 hours again. Five in a row is any five, with
+  no time window.
+- Approval or joining clears the count.
+- Asking too soon answers `409 REQUEST_COOLING_DOWN` with `can_ask_again_at`, so the screen can
+  show the date. The owner can still invite the developer at any time.
+- The two numbers live on the membership row (`infra/db/init/012-join-request-cooldown.sql`).
+
 ## Options we considered
 
 - **Sign the agreement when asking, and join on approval:** rejected. The owner might approve
@@ -41,6 +54,8 @@ and posts API chose the following:
   idea without a hub has nobody to approve yet.
 - **Let a developer withdraw their own request:** not built yet. Nobody asked for it; the owner
   can decline.
+- **Count declines across all hubs, or within a time window:** rejected by Tanny. The wait is
+  between one developer and one owner, and any five in a row count.
 
 ## Consequences
 
