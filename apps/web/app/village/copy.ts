@@ -18,6 +18,8 @@ type Copy = {
   steps: { profile: Step; verify: Step; idea: Step; hub: Step };
   setUp: string;
   change: string;
+  verifyStart: string;
+  verifyContinue: string;
   loading: string;
   errorTitle: string;
   errorText: string;
@@ -57,6 +59,8 @@ const en: Copy = {
   },
   setUp: "Set up my profile",
   change: "Change my answers",
+  verifyStart: "Start verification",
+  verifyContinue: "See where it stands",
   loading: "Opening your village",
   errorTitle: "We couldn't open your village",
   errorText:
@@ -98,6 +102,8 @@ const fr: Copy = {
   },
   setUp: "Configurer mon profil",
   change: "Modifier mes réponses",
+  verifyStart: "Commencer la vérification",
+  verifyContinue: "Voir où en est la vérification",
   loading: "Ouverture de votre village",
   errorTitle: "Nous n'avons pas pu ouvrir votre village",
   errorText:

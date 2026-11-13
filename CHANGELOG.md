@@ -11,6 +11,9 @@ its number:
 ## 2026-11-13
 
 - feat(api): add role-based idea matching (#66)
+- fix(web): give chips a 44px tap area (#84)
+- feat(web): add the verification interview (#74)
+- feat(web): add the role verification page (#73)
 - test(api): accept every serial order in the hub invitation race test (#80)
 - feat(web): add the village home page for signed-in developers (#72)
 - feat(api): add hub invitations and membership (#68)
