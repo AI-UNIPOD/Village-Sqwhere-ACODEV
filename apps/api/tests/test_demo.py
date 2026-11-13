@@ -63,8 +63,10 @@ def test_the_demo_is_off_unless_switched_on(monkeypatch: pytest.MonkeyPatch) -> 
 def test_the_demo_needs_its_account(
     sign_in, github_account, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # Switched on, but the seed has not made the demo account on this database.
+    # Switched on, but no demo account at the fixed id (the seed test may have made one at the
+    # real id, so point it somewhere empty).
     monkeypatch.setattr(config, "DEMO_ENABLED", True)
+    monkeypatch.setattr(auth_api, "DEMO_ACCOUNT_ID", uuid4())
     resp = client.post("/v1/auth/demo")
     assert (resp.status_code, _code(resp)) == (404, "DEMO_UNAVAILABLE")
 
