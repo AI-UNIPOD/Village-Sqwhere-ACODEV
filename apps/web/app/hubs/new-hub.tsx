@@ -200,7 +200,9 @@ function NewHubForm({ lang, ideaId }: { lang: Lang; ideaId: string | null }) {
         }}
       >
         <fieldset className={ideas.section}>
-          <legend className={ideas.heading}>{t.hubHeading}</legend>
+          <legend className={ideas.legend}>
+            <h2 className={ideas.heading}>{t.hubHeading}</h2>
+          </legend>
           <div className={ideas.field}>
             <label htmlFor="hub-name" className={ideas.label}>
               {t.name.label}
@@ -240,7 +242,9 @@ function NewHubForm({ lang, ideaId }: { lang: Lang; ideaId: string | null }) {
         </fieldset>
 
         <fieldset className={ideas.section}>
-          <legend className={ideas.heading}>{t.termsHeading}</legend>
+          <legend className={ideas.legend}>
+            <h2 className={ideas.heading}>{t.termsHeading}</h2>
+          </legend>
           <Warning title={t.termsWarning.title}>{t.termsWarning.text}</Warning>
           <div className={ideas.field} role="radiogroup" aria-labelledby="hub-ownership-label">
             <p id="hub-ownership-label" className={ideas.label}>

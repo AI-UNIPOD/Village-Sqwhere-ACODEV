@@ -18,6 +18,7 @@ import { RequireSession } from "../session/session-ui";
 import { AgreementBlock, signatureErrors } from "./agreement-block";
 import { copy } from "./copy";
 import { acceptInvitation, loadHub, loadHubAgreement, type Agreement, type Hub } from "./hubs-api";
+import { forgetInvitation } from "./invitations";
 import styles from "./hubs.module.css";
 import { HubsSkeleton, MissingHub } from "./my-hubs";
 
@@ -108,6 +109,7 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
         template_sha256: agreement.body_sha256,
         signed_legal_name: fields.legalName.trim(),
       });
+      forgetInvitation(id);
       // this page stays in memory after the move: leave nothing here that could be signed again
       setHub(null);
       setAgreement(null);

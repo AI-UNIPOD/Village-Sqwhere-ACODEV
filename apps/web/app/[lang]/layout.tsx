@@ -1,26 +1,11 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Onest, Unbounded } from "next/font/google";
 import Script from "next/script";
 
+import { FONT_CLASSES } from "../fonts";
 import { copy } from "../landing/copy";
 import { THEME_INIT_SCRIPT } from "../landing/theme";
 import { LOCALES, hasLocale } from "../locales";
 import "../globals.css";
-
-const unbounded = Unbounded({
-  variable: "--font-unbounded",
-  subsets: ["latin", "latin-ext"],
-});
-
-const onest = Onest({
-  variable: "--font-onest",
-  subsets: ["latin", "latin-ext"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin", "latin-ext"],
-});
 
 export function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
@@ -41,7 +26,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
     // the early theme script sets data-theme on <html> before React hydrates
     <html
       lang={hasLocale(lang) ? lang : "en"}
-      className={`${unbounded.variable} ${onest.variable} ${jetbrainsMono.variable}`}
+      className={FONT_CLASSES}
       suppressHydrationWarning
     >
       <body>

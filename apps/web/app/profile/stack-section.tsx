@@ -60,7 +60,7 @@ export function StackSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
           <button
             key={tech.slug}
             type="button"
-            className={`${onboarding.chip} ${styles.chip}`}
+            className={onboarding.chip}
             aria-pressed={picked.includes(tech.slug)}
             onClick={() => toggle(tech.slug)}
           >

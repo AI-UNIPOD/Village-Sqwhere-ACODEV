@@ -50,7 +50,7 @@ The web frontend's owner chose, on 13 November 2026:
   once its title no longer contains "TEST".
 - The page needs the idea's owner and an open idea. Every refusal the API can give has its own
   screen and a way on.
-- The ideas page reads only the first 20 hubs to find an idea's hub. Page through them if a
-  developer ever owns more.
+- The ideas page first read only the first 20 hubs to find an idea's hub. It now reads every
+  page of them (`loadHubsByIdea`), since the API cannot look a hub up by its idea.
 - Invitations, the member list, the confidential brief for members and the phases arrive with
   the hub membership routes.

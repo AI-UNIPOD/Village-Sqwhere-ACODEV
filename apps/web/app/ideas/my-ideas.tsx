@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { copy as hubsCopy } from "../hubs/copy";
-import { loadMyHubs } from "../hubs/hubs-api";
+import { loadHubsByIdea } from "../hubs/hubs-api";
 import hubsStyles from "../hubs/hubs.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
@@ -131,9 +131,8 @@ function MyIdeasList({ lang }: { lang: Lang }) {
 
   useEffect(() => {
     load(0);
-    // shortcut: the first 20 hubs only, enough while a developer has a handful; page through them if that grows
-    loadMyHubs()
-      .then((page) => setHubs(Object.fromEntries(page.data.map((hub) => [hub.idea.id, hub.id]))))
+    loadHubsByIdea()
+      .then((byIdea) => setHubs(Object.fromEntries(Object.entries(byIdea).map(([idea, hub]) => [idea, hub.id]))))
       .catch(() => setHubs(null));
   }, []);
 

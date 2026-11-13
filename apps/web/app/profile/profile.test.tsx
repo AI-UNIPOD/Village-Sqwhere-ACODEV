@@ -201,6 +201,17 @@ test("a failed add says so under the chips and leaves the list alone", async () 
   expect(screen.queryByRole("heading", { name: "Mobile Engineer" })).toBeNull();
 });
 
+test("a role already added somewhere else is shown, not reported as a failure", async () => {
+  const added = me({ roles: [backend, devops, role("mobile-engineer", "Mobile Engineer")] });
+  await page(me(), {
+    "POST /v1/me/roles": refusal(409, "ROLE_ALREADY_CLAIMED"),
+    "GET /v1/me": [{ data: me() }, { data: added }],
+  });
+  press("Mobile Engineer", screen.getByRole("group", { name: "Add a role" }));
+  expect(await screen.findByRole("heading", { name: "Mobile Engineer" })).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 test("with all nine roles claimed there is nothing to add", async () => {
   const slugs = ["frontend-engineer", "backend-engineer", "mobile-engineer", "ai-ml-engineer", "mlops-data-engineer", "devops-cloud-engineer", "embedded-iot-engineer", "security-engineer", "ui-ux-engineer"];
   await page(me({ roles: slugs.map((slug, at) => role(slug, slug, { is_primary: at === 0 })) }));
@@ -278,6 +289,8 @@ test("a developer with no role sees the set-up button and no list", async () => 
   expect(screen.getByText("You have not chosen a role yet.")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Set up my profile" }).getAttribute("href")).toBe("/en/onboarding?step=role");
   expect(screen.queryByRole("list")).toBeNull();
+  // Save stays the page's one main button
+  expect(screen.getByRole("link", { name: "Set up my profile" }).className).not.toBe(screen.getByRole("button", { name: "Save" }).className);
   expect(screen.queryByText("Add a role")).toBeNull();
 });
 

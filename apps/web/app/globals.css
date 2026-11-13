@@ -126,3 +126,13 @@ a {
     --step-offset: 0;
   }
 }
+
+/* The page for an address that matches no route is one document for every language
+   (global-not-found.tsx). It holds each language's page and shows the one its early script
+   set on <html>; "contents" keeps the page's own header and main as the body's children. */
+[data-not-found] { display: none; }
+
+html[lang="en"] [data-not-found="en"],
+html[lang="fr"] [data-not-found="fr"] {
+  display: contents;
+}

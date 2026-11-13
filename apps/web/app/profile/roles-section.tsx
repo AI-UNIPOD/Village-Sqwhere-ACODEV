@@ -57,8 +57,10 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
       if (key.startsWith("add:")) setArrived(slug);
     } catch (error) {
       if (error instanceof SignedOutError) return;
-      const history = error instanceof IdeaError && error.code === "ROLE_HAS_VERIFICATION_HISTORY";
-      setProblem({ slug, text: history ? t.errors.history : failure });
+      const code = error instanceof IdeaError ? error.code : null;
+      // added from another tab a moment ago: the role is there, so show it instead of a failure
+      if (code === "ROLE_ALREADY_CLAIMED" && (await loadMe().then(onMe, () => false)) !== false) return;
+      setProblem({ slug, text: code === "ROLE_HAS_VERIFICATION_HISTORY" ? t.errors.history : failure });
     } finally {
       setBusy(null);
       setAsking(null);
@@ -73,7 +75,7 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
         </h2>
         <div className={styles.none}>
           <p>{t.none}</p>
-          <Link className={landing.btn} href={`/${lang}/onboarding?step=role`}>
+          <Link className={landing.ghost} href={`/${lang}/onboarding?step=role`}>
             {t.setUp}
           </Link>
         </div>
@@ -170,7 +172,7 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
               <button
                 key={role.slug}
                 type="button"
-                className={`${onboarding.chip} ${styles.chip}`}
+                className={onboarding.chip}
                 aria-busy={busy === `add:${role.slug}` || undefined}
                 onClick={() =>
                   change(`add:${role.slug}`, role.slug, () => addRole(role.slug), t.errors.add, `profile-role-${role.slug}`)

@@ -14,7 +14,8 @@ import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
 import { copy } from "./copy";
-import { loadInvitations, loadMyHubs, type Hub } from "./hubs-api";
+import { loadMyHubs, type Hub } from "./hubs-api";
+import { refreshInvitations } from "./invitations";
 import styles from "./hubs.module.css";
 
 // Shown while hubs load: blocks where the cards will be.
@@ -83,7 +84,7 @@ function MyHubsList({ lang }: { lang: Lang }) {
 
   useEffect(() => {
     load(0);
-    loadInvitations().then(setInvitations, () => setInvitations([]));
+    refreshInvitations().then(setInvitations, () => setInvitations([]));
   }, []);
 
   if (failure) throw failure;

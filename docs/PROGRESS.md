@@ -22,7 +22,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   sign-in; demo and tour show "Coming soon". GitHub sign-in works end to end with token refresh.
 - Below the hero, sections reveal once; the header pins as a pill while scrolling. Onboarding
   saves role and stack. Signed-in web screens share `AppFrame`.
-- Unknown addresses get a localized 404; landing and sign-in have an error page. Design system
+- Unknown addresses get a 404 sent as HTML; landing and sign-in have an error page. Design system
   is in `docs/design-system/`: tokens, palaver tree logo, fonts, accessible contrast.
 
 ## What's next
@@ -35,7 +35,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    Systalink platform access, a deploy job in CI.
 5. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
 6. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-7. Web next: a server-rendered 404 and a French-speaking teammate's check of the copy.
+7. Web next: a French-speaking teammate's check of the copy.
 8. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
 9. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);

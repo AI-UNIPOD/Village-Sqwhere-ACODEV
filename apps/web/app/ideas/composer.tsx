@@ -233,7 +233,9 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
         }}
       >
         <fieldset className={styles.section} disabled={closed}>
-          <legend className={styles.heading}>{t.publicHeading}</legend>
+          <legend className={styles.legend}>
+            <h2 className={styles.heading}>{t.publicHeading}</h2>
+          </legend>
           <p className={styles.lead}>{t.publicLead}</p>
           <Field
             id="idea-title"
@@ -272,9 +274,11 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
         </fieldset>
 
         <fieldset className={styles.section} disabled={closed}>
-          <legend className={styles.heading}>
-            <Lock />
-            {t.privateHeading}
+          <legend className={styles.legend}>
+            <h2 className={styles.heading}>
+              <Lock />
+              {t.privateHeading}
+            </h2>
           </legend>
           <p className={styles.lead}>{t.privateLead}</p>
           <Field
@@ -297,7 +301,9 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
         </fieldset>
 
         <fieldset className={styles.section} disabled={closed}>
-          <legend className={styles.heading}>{t.needsHeading}</legend>
+          <legend className={styles.legend}>
+            <h2 className={styles.heading}>{t.needsHeading}</h2>
+          </legend>
           <p className={styles.lead}>{t.needsLead}</p>
           <div className={styles.field} role="radiogroup" aria-labelledby="idea-stage-label">
             <p id="idea-stage-label" className={styles.label}>
