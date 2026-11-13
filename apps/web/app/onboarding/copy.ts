@@ -5,7 +5,6 @@ type Empty = { title: string; stack: string; country: string; clear: string };
 
 type Copy = {
   pageTitle: string;
-  switchText: string;
   pause: string;
   play: string;
   welcomeTitle: string;
@@ -32,7 +31,6 @@ type Copy = {
   nextSteps: string[];
   preview: string;
   village: string;
-  soon: string;
   change: string;
   githubProfile: string;
   loading: string;
@@ -43,7 +41,6 @@ type Copy = {
 
 const en: Copy = {
   pageTitle: "Set up your profile | Village Sqwhere",
-  switchText: "Français",
   pause: "Pause animation",
   play: "Play animation",
   welcomeTitle: "Welcome to the village, {name}.",
@@ -98,7 +95,6 @@ const en: Copy = {
   ],
   preview: "This is a preview. Your answers are not saved yet.",
   village: "Go to the village",
-  soon: "Coming soon",
   change: "Change my answers",
   githubProfile: "GitHub profile, opens in a new tab",
   loading: "Getting your profile ready",
@@ -111,7 +107,6 @@ const en: Copy = {
 // Needs a native French review before launch.
 const fr: Copy = {
   pageTitle: "Configurer votre profil | Village Sqwhere",
-  switchText: "English",
   pause: "Mettre l'animation en pause",
   play: "Lire l'animation",
   welcomeTitle: "Bienvenue au village, {name}.",
@@ -168,7 +163,6 @@ const fr: Copy = {
   ],
   preview: "Ceci est un aperçu. Vos réponses ne sont pas encore enregistrées.",
   village: "Aller au village",
-  soon: "Bientôt disponible",
   change: "Modifier mes réponses",
   githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
   loading: "Préparation de votre profil",

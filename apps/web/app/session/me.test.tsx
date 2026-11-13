@@ -2,8 +2,9 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { Component, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { SESSION_KEY } from "../session/session";
-import { loadProfile, useProfile } from "./profile";
+import { toProfile } from "../onboarding/options";
+import { loadMe, useMe } from "./me";
+import { SESSION_KEY } from "./session";
 
 const fetchMock = vi.fn();
 const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
@@ -26,18 +27,18 @@ afterEach(() => {
 
 test("the profile is the developer's name and username from GET /v1/me", async () => {
   fetchMock.mockResolvedValue(me("Kofi Mensah"));
-  expect(await loadProfile()).toEqual({ displayName: "Kofi Mensah", username: "kofi-mensah" });
+  expect(toProfile(await loadMe())).toEqual({ displayName: "Kofi Mensah", username: "kofi-mensah" });
   expect(fetchMock.mock.calls[0][0]).toBe("http://localhost:8000/v1/me");
 });
 
 test("with no name on GitHub, the API's copy of the username is not taken for a name", async () => {
   fetchMock.mockResolvedValue(me("kofi-mensah"));
-  expect(await loadProfile()).toEqual({ displayName: null, username: "kofi-mensah" });
+  expect(toProfile(await loadMe())).toEqual({ displayName: null, username: "kofi-mensah" });
 });
 
 test("a failed answer is an error, not a made-up profile", async () => {
   fetchMock.mockResolvedValue(reply(500, { detail: "boom" }));
-  await expect(loadProfile()).rejects.toThrow("GET /v1/me answered 500");
+  await expect(loadMe()).rejects.toThrow("GET /v1/me answered 500");
 });
 
 class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -51,8 +52,8 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
 }
 
 function Name() {
-  const profile = useProfile();
-  return <p>{profile ? profile.displayName : "Loading"}</p>;
+  const me = useMe();
+  return <p>{me ? me.display_name : "Loading"}</p>;
 }
 
 test("the hook shows loading, then the profile", async () => {

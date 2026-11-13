@@ -1,8 +1,8 @@
 "use client";
 
+import { AppFrame } from "../../app-frame";
 import landing from "../../landing/landing-page.module.css";
 import { copy } from "../../onboarding/copy";
-import { OnboardingFrame } from "../../onboarding/onboarding-frame";
 import styles from "../../onboarding/onboarding.module.css";
 import { useLang } from "../../onboarding/use-lang";
 
@@ -10,7 +10,7 @@ export default function OnboardingError({ retry }: { retry: () => void }) {
   const lang = useLang();
   const t = copy[lang];
   return (
-    <OnboardingFrame lang={lang}>
+    <AppFrame lang={lang} path="onboarding">
       <main className={`${styles.column} ${styles.step}`}>
         <h1 className={styles.title}>{t.errorTitle}</h1>
         <p className={styles.why}>{t.errorText}</p>
@@ -20,6 +20,6 @@ export default function OnboardingError({ retry }: { retry: () => void }) {
           </button>
         </div>
       </main>
-    </OnboardingFrame>
+    </AppFrame>
   );
 }

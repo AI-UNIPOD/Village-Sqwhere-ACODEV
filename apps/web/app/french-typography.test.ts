@@ -5,6 +5,7 @@ import { copy as landing } from "./landing/copy";
 import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
 import { copy as signIn } from "./sign-in/copy";
+import { copy as village } from "./village/copy";
 
 // The special spaces and hyphen, written as character codes so this file holds no invisible
 // character itself.
@@ -25,6 +26,7 @@ const french = strings([
   landing.fr,
   onboarding.fr,
   signIn.fr,
+  village.fr,
   ROLES.map((role) => [role.name.fr, role.hint.fr]),
   TECHNOLOGIES.map((tech) => tech.name.fr),
   TOPICS.map((topic) => topic.name.fr),
