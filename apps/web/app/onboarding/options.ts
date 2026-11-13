@@ -1,11 +1,17 @@
 import { COUNTRIES } from "../landing/gather";
 import type { Lang } from "../locales";
+import type { Me } from "../session/me";
 
 type Text = Record<Lang, string>;
 
 // The signed-in developer. A GitHub account may have no name, so the real name can be
 // missing and the username stands in.
 export type Profile = { displayName: string | null; username: string };
+
+// When GitHub has no name, the API stores the username as the name: show it once, not twice.
+export function toProfile(me: Me): Profile {
+  return { displayName: me.display_name !== me.username ? me.display_name : null, username: me.username };
+}
 
 export function firstName({ displayName, username }: Profile) {
   return displayName?.split(" ")[0] ?? username;

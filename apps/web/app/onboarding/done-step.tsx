@@ -1,10 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import type { CSSProperties } from "react";
 
-import { SoonButton } from "../landing/landing-page";
 import landing from "../landing/landing-page.module.css";
-import { SectionMotion } from "../landing/section-motion";
 import type { Lang } from "../locales";
 import { copy, fill } from "./copy";
 import { AlertCircle } from "./icons";
@@ -109,16 +108,20 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
         </>
       )}
       <div className={styles.actions}>
-        <SoonButton className={landing.btn} soon={t.soon} announce={t.soon}>
-          {t.village}
-        </SoonButton>
+        {/* the village reads the role from the API, so the way there waits for the save */}
+        {status === "saving" ? (
+          <button type="button" className={landing.btn} aria-disabled="true">
+            {t.village}
+          </button>
+        ) : (
+          <Link className={landing.btn} href={`/${lang}/village`}>
+            {t.village}
+          </Link>
+        )}
         <button type="button" className={landing.ghost} onClick={onChange}>
           {role ? t.change : t.start}
         </button>
       </div>
-      {/* where a "coming soon" press is announced (SectionMotion fills it) */}
-      <p className={landing.srOnly} role="status" data-soon-status="" />
-      <SectionMotion />
     </div>
   );
 }

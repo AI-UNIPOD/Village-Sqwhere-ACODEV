@@ -1,42 +1,4 @@
-.page {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-}
-
 .main { flex: 1; }
-
-/* Like the landing header, lined up with the content column on wide screens. */
-.header {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--nav-gap);
-  min-block-size: var(--nav-height);
-  padding-inline: var(--gutter);
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
-}
-
-@media (min-width: 768px) {
-  .header {
-    /* the same frame as the hero below it, which widens on large screens (see tokens.css) */
-    padding-inline: max(
-      var(--gutter),
-      calc((100% - clamp(var(--content-max), var(--hero-frame-share), var(--hero-frame-max))) / 2 + var(--gutter))
-    );
-  }
-}
-
-.brand { min-block-size: var(--tap-min); }
-
-.headerLinks {
-  display: flex;
-  align-items: center;
-  gap: var(--nav-gap);
-}
 
 .column {
   max-inline-size: 40rem;

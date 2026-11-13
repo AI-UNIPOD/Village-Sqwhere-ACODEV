@@ -3,18 +3,18 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ViewTransition, addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 
+import { AppFrame } from "../app-frame";
 import { GatherHero } from "../landing/gather-hero";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
+import { useMe } from "../session/me";
 import { RequireSession } from "../session/session-ui";
 import { copy, fill } from "./copy";
 import { DoneStep } from "./done-step";
 import { ArrowLeft } from "./icons";
-import { OnboardingFrame } from "./onboarding-frame";
 import styles from "./onboarding.module.css";
 import { OnboardingSkeleton } from "./onboarding-skeleton";
-import { firstName, type Profile } from "./options";
-import { useProfile } from "./profile";
+import { firstName, toProfile, type Profile } from "./options";
 import { CountryStep, RoleStep, StackStep, TopicsStep } from "./question-steps";
 import { useSavedAnswers } from "./saved-answers";
 import {
@@ -130,7 +130,7 @@ export function Onboarding({ lang, profile }: { lang: Lang; profile: Profile }) 
   }
 
   return (
-    <OnboardingFrame lang={lang}>
+    <AppFrame lang={lang} path="onboarding">
       <main className={styles.main}>
         {n > 0 && (
           <div className={`${styles.column} ${styles.top}`}>
@@ -153,13 +153,21 @@ export function Onboarding({ lang, profile }: { lang: Lang; profile: Profile }) 
       <p className={landing.srOnly} role="status">
         {announcement}
       </p>
-    </OnboardingFrame>
+    </AppFrame>
   );
 }
 
+// A developer who already has a role is past onboarding: its bare address sends them home.
+// A link to a step ("Change my answers") still opens it.
 function WithProfile({ lang }: { lang: Lang }) {
-  const profile = useProfile();
-  return profile ? <Onboarding lang={lang} profile={profile} /> : <OnboardingSkeleton />;
+  const me = useMe();
+  const router = useRouter();
+  const hasStep = useSearchParams().has("step");
+  const returning = !!me && me.roles.length > 0 && !hasStep;
+  useEffect(() => {
+    if (returning) router.replace(`/${lang}/village`);
+  }, [lang, returning, router]);
+  return me && !returning ? <Onboarding lang={lang} profile={toProfile(me)} /> : <OnboardingSkeleton />;
 }
 
 // The page is only for a signed-in developer, greeted by their own GitHub name.

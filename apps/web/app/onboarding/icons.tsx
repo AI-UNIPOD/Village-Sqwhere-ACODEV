@@ -31,6 +31,19 @@ export const ArrowLeft = () => (
   </Icon>
 );
 
+export const ArrowRight = () => (
+  <Icon>
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </Icon>
+);
+
+export const Clock = () => (
+  <Icon>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 6v6l4 2" />
+  </Icon>
+);
+
 export const AlertCircle = () => (
   <Icon>
     <circle cx="12" cy="12" r="10" />
