@@ -78,6 +78,7 @@ type Copy = {
     loadFailed: string;
     actionFailed: string;
     full: string;
+    findMatches: string;
     form: { label: string; help: string; send: string; sent: string };
     errors: { notFound: string; alreadyMember: string; alreadyInvited: string; archived: string; invalid: string; failed: string };
   };
@@ -231,6 +232,7 @@ const en: Copy = {
     loadFailed: "We couldn't load the team. Nothing was changed, so check your connection and try again.",
     actionFailed: "That did not go through. Nothing was changed, so try again.",
     full: "The team is full: five members is the most a hub takes.",
+    findMatches: "Find developers who match this idea",
     form: {
       label: "GitHub username",
       help: "The developer must have signed in to Village Sqwhere once.",
@@ -422,6 +424,7 @@ const fr: Copy = {
     loadFailed: "Nous n'avons pas pu charger l'équipe. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
     actionFailed: "Cela n'a pas abouti. Rien n'a été modifié, réessayez.",
     full: "L'équipe est complète\u202f: cinq membres, c'est le maximum pour un espace.",
+    findMatches: "Trouver des développeurs qui correspondent à cette idée",
     form: {
       label: "Nom d'utilisateur GitHub",
       help: "Le développeur doit s'être connecté une fois à Village Sqwhere.",
