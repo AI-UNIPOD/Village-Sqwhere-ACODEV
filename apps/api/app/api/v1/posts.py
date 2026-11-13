@@ -36,7 +36,7 @@ from app.schemas.posts import (
 
 router = APIRouter()
 
-PageOffset = Annotated[int, Query(ge=0)]
+PageOffset = Annotated[int, Query(ge=0, le=100_000)]
 PageLimit = Annotated[int, Query(ge=1, le=50)]
 NEWEST_FIRST = (Post.created_at.desc(), Post.id.desc())
 
@@ -269,8 +269,8 @@ async def list_posts(
     current_user: CurrentUser,
     db: DbSession,
     post_type: Annotated[PostType | None, Query(alias="type")] = None,
-    topic: str | None = None,
-    author: str | None = None,
+    topic: Annotated[str | None, Query(max_length=64, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")] = None,
+    author: Annotated[str | None, Query(pattern=r"^[A-Za-z0-9_-]{3,39}$")] = None,
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
@@ -287,7 +287,9 @@ async def list_posts(
         )
     if author is not None:
         query = query.where(
-            Post.author_id.in_(select(User.id).where(func.lower(User.username) == author.lower()))
+            Post.author_id.in_(
+                select(User.id).where(func.lower(User.username) == func.lower(author))
+            )
         )
     return await _post_page(query.order_by(*NEWEST_FIRST), offset, limit, current_user.id, db)
 

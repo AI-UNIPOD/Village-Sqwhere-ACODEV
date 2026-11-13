@@ -489,11 +489,19 @@ def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in
     assert bodies(type="question", topic="rust") == ["Moussa asks"]
     assert bodies(topic="no-such-topic") == []
     assert bodies(author="nobody-here") == []
-    assert client.get("/v1/posts", headers=ada_auth, params={"type": "meme"}).status_code == 422
+    for bad in (
+        {"type": "meme"},
+        {"topic": "a" + chr(0)},
+        {"author": "a" + chr(0)},
+        {"offset": 10**20},
+    ):
+        assert client.get("/v1/posts", headers=ada_auth, params=bad).status_code == 422, bad
 
 
 def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> None:
-    ada_auth = _bearer(sign_in("github-code-ada")["access_token"])
+    ada = sign_in("github-code-ada")
+    ada_auth = _bearer(ada["access_token"])
+    _add_hub_milestone(UUID(ada["user"]["id"]))
     moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
     _create(client, moussa_auth, "Moussa on Python", topics=["python"])
     _create(client, moussa_auth, "Moussa on Rust", topics=["rust"])

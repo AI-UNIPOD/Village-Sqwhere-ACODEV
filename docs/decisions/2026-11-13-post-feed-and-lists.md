@@ -11,7 +11,7 @@ can have no topics at all.
 
 ## Decision
 
-Chosen on 2026-11-13 by the owner of the posts API, as Tanny directed:
+Chosen on 2026-11-13 by the developer who owns the feed and posts API:
 
 1. The feed shows posts that share at least one topic with your feed topics, plus every post
    you wrote.

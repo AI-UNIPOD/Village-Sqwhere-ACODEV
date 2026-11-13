@@ -839,8 +839,9 @@ List visible posts, newest first. Deleted posts and hub posts never appear.
   * `type`: one post type, for example `question`. An unknown type returns 422.
   * `topic`: one technology slug, for example `python`.
   * `author`: a username, in any case. The profile page lists a developer's posts with it.
-  * `offset` (default 0) and `limit` (default 20, at most 50).
-* An unknown topic or author returns an empty list, not an error.
+  * `offset` (default 0, at most 100000) and `limit` (default 20, at most 50).
+* An unknown topic or author returns an empty list. A malformed one (not a slug or a
+  username) returns 422.
 * **Success Response (200 OK):**
   ```json
   {
