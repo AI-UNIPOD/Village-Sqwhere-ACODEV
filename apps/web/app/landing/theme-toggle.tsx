@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
+import { Tooltip } from "../tooltip";
 import styles from "./landing-page.module.css";
 import { THEME_KEY } from "./theme";
 
@@ -66,6 +67,7 @@ export function ThemeToggle({ toDark, toLight }: ThemeToggleProps) {
         <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
         <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" />
       </svg>
+      <Tooltip label={dark ? toLight : toDark} side="left" />
     </button>
   );
 }

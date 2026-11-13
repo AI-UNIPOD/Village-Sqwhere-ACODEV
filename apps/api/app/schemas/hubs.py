@@ -192,6 +192,15 @@ class HubResponse(BaseModel):
     data: Hub
 
 
+class MyHubsStatus(StrEnum):
+    """The memberships GET /v1/me/hubs can list. Declined, left and removed ones are history,
+    not hubs the person is in."""
+
+    ACTIVE = "active"
+    REQUESTED = "requested"
+    INVITED = "invited"
+
+
 class HubListResponse(BaseModel):
     data: list[Hub]
     next_offset: int | None = None
