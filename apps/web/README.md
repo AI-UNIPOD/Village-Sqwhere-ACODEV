@@ -37,6 +37,12 @@ the AI interviewer over the attempt's WebSocket. The socket opens only when the 
 live the header shows no links (`AppFrame`'s `locked`), and the token for the socket's address
 comes from `accessToken()` in `app/session/session.ts`.
 
+Peer review is `app/reviews/`: the queue at `/en/reviews` (attempts awaiting review in roles the
+developer is verified in, never their own, with no AI score shown) and one case at
+`/en/reviews/case?id=`. A case shows the evidence first (repositories, the interview, the
+repositories check), then the AI's report marked as a suggestion, then the decision form: notes
+are required, and pass or fail confirms in a dialog. Everything from `ai_result` is plain text.
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is

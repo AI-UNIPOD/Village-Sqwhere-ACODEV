@@ -134,6 +134,12 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
                       {attemptUnderWay ? t.verifyContinue : t.verifyStart}
                     </Link>
                   )}
+                  {/* a Green Tick is also the right to decide other developers' attempts */}
+                  {id === "verify" && state === "done" && (
+                    <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/reviews`}>
+                      {t.review}
+                    </Link>
+                  )}
                 </div>
               </li>
             );

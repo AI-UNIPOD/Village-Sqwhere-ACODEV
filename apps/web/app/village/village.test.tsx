@@ -105,6 +105,7 @@ test("a verified role shows as verified, and its step is done", async () => {
   expect(await screen.findByText("Verified")).toBeTruthy();
   expect(within(step("Earn your Green Tick")).getByText("Done")).toBeTruthy();
   expect(screen.queryByRole("link", { name: "Start verification" })).toBeNull();
+  expect(screen.getByRole("link", { name: "Review attempts in your role" }).getAttribute("href")).toBe("/en/reviews");
 });
 
 test("a role the web app does not know keeps the API's name", async () => {

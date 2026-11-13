@@ -20,6 +20,7 @@ type Copy = {
   change: string;
   verifyStart: string;
   verifyContinue: string;
+  review: string;
   loading: string;
   errorTitle: string;
   errorText: string;
@@ -61,6 +62,7 @@ const en: Copy = {
   change: "Change my answers",
   verifyStart: "Start verification",
   verifyContinue: "See where it stands",
+  review: "Review attempts in your role",
   loading: "Opening your village",
   errorTitle: "We couldn't open your village",
   errorText:
@@ -104,6 +106,7 @@ const fr: Copy = {
   change: "Modifier mes réponses",
   verifyStart: "Commencer la vérification",
   verifyContinue: "Voir où en est la vérification",
+  review: "Relire des tentatives dans votre rôle",
   loading: "Ouverture de votre village",
   errorTitle: "Nous n'avons pas pu ouvrir votre village",
   errorText:

@@ -4,6 +4,7 @@ import { copy as authCallback } from "./auth-callback/copy";
 import { copy as landing } from "./landing/copy";
 import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
+import { copy as reviews } from "./reviews/copy";
 import { copy as signIn } from "./sign-in/copy";
 import { copy as interview } from "./verification-interview/copy";
 import { copy as verification } from "./verification/copy";
@@ -27,6 +28,7 @@ const french = strings([
   authCallback.fr,
   landing.fr,
   onboarding.fr,
+  reviews.fr,
   signIn.fr,
   verification.fr,
   village.fr,

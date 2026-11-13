@@ -83,3 +83,23 @@ export const TriangleAlert = () => (
     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01" />
   </Icon>
 );
+
+export const Bot = () => (
+  <Icon>
+    <path d="M12 8V4H8M2 14h2M20 14h2M15 13v2M9 13v2" />
+    <rect width="16" height="12" x="4" y="8" rx="2" />
+  </Icon>
+);
+
+export const ShieldCheck = ({ className }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1zM9 12l2 2 4-4" />
+  </Icon>
+);
+
+export const Inbox = ({ className }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+    <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+  </Icon>
+);
