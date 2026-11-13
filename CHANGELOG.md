@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add comments and replies on posts
 - fix(api): cap post links and answer 404 to writes racing a delete (#93)
 - fix(web): say when a hub's team is full (#92)
 - feat(api): add liking and saving posts (#91)

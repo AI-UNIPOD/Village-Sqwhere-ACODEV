@@ -45,13 +45,13 @@ NEWEST_FIRST = (Post.created_at.desc(), Post.id.desc())
 # --- Route helpers ---------------------------------------------------------------------------
 
 
-def _visible_posts() -> Select[tuple[Post]]:
+def visible_posts() -> Select[tuple[Post]]:
     # Hub milestone posts belong to a confidential hub, so no public read path shows them.
     return select(Post).where(Post.deleted_at.is_(None), Post.hub_id.is_(None))
 
 
-async def _get_visible_post(post_id: UUID, db: AsyncSession, *, lock: bool = False) -> Post:
-    query = _visible_posts().where(Post.id == post_id)
+async def get_visible_post(post_id: UUID, db: AsyncSession, *, lock: bool = False) -> Post:
+    query = visible_posts().where(Post.id == post_id)
     if lock:
         # A write that waits on a concurrent delete then sees the post gone and answers 404.
         query = query.with_for_update()
@@ -199,7 +199,7 @@ async def get_post(
     current_user: CurrentUser,
     db: DbSession,
 ) -> PostItemResponse:
-    return await _post_item(await _get_visible_post(post_id, db), current_user.id, db)
+    return await _post_item(await get_visible_post(post_id, db), current_user.id, db)
 
 
 @router.patch("/posts/{post_id}", response_model=PostItemResponse)
@@ -209,7 +209,7 @@ async def update_post(
     current_user: CurrentUser,
     db: DbSession,
 ) -> PostItemResponse:
-    post = await _get_visible_post(post_id, db, lock=True)
+    post = await get_visible_post(post_id, db, lock=True)
     if post.author_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -247,7 +247,7 @@ async def delete_post(
     current_user: CurrentUser,
     db: DbSession,
 ) -> Response:
-    post = await _get_visible_post(post_id, db, lock=True)
+    post = await get_visible_post(post_id, db, lock=True)
 
     if post.author_id == current_user.id:
         reason = DeletionReason.AUTHOR
@@ -279,7 +279,7 @@ async def list_posts(
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
-    query = _visible_posts()
+    query = visible_posts()
     if post_type is not None:
         query = query.where(Post.type == post_type)
     if topic is not None:
@@ -306,7 +306,7 @@ async def my_feed(
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
-    query = _visible_posts()
+    query = visible_posts()
     topic_ids = [feed_topic.technology_id for feed_topic in current_user.feed_topics]
     # With no topics chosen yet, the feed is every post, so a new developer never sees an
     # empty page. Your own posts always show, even when they have none of your topics.
@@ -330,7 +330,7 @@ async def _set_mark(
     *,
     on: bool,
 ) -> Response:
-    await _get_visible_post(post_id, db)
+    await get_visible_post(post_id, db)
     if on:
         statement = (
             pg_insert(mark).values(post_id=post_id, user_id=user_id).on_conflict_do_nothing()
@@ -370,7 +370,7 @@ async def my_saved_posts(
     limit: PageLimit = 20,
 ) -> PostListResponse:
     query = (
-        _visible_posts()
+        visible_posts()
         .join(SavedPost, SavedPost.post_id == Post.id)
         .where(SavedPost.user_id == current_user.id)
         .order_by(SavedPost.created_at.desc(), Post.id.desc())

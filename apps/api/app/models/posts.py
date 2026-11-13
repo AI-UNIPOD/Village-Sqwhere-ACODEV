@@ -8,8 +8,10 @@ from sqlalchemy import (
     Enum,
     FetchedValue,
     ForeignKey,
+    ForeignKeyConstraint,
     Identity,
     Integer,
+    SmallInteger,
     Text,
     func,
     text,
@@ -159,6 +161,91 @@ class SavedPost(Base):
     )
     post_id: Mapped[UUID] = mapped_column(
         PgUUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class Comment(Base):
+    """A comment on a post, or a reply when parent_id is set. The insert trigger checks that
+    the post and parent are live and recomputes root_id and depth."""
+
+    __tablename__ = "comments"
+    __mapper_args__ = {"eager_defaults": True}
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["post_id", "parent_id"], ["comments.post_id", "comments.id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["post_id", "root_id"], ["comments.post_id", "comments.id"], ondelete="CASCADE"
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+    post_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False
+    )
+    parent_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
+    root_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
+    depth: Mapped[int] = mapped_column(SmallInteger, server_default=text("0"), nullable=False)
+    author_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    like_count: Mapped[int] = mapped_column(Integer, server_default=text("0"), nullable=False)
+    reply_count: Mapped[int] = mapped_column(Integer, server_default=text("0"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        server_onupdate=FetchedValue(),
+        nullable=False,
+    )
+    edited_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_onupdate=FetchedValue(), nullable=True
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_by: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    deletion_reason: Mapped[DeletionReason | None] = mapped_column(
+        _pg_enum(DeletionReason, "deletion_reason"), nullable=True
+    )
+
+
+class CommentRevision(Base):
+    """Previous versions of edited comments. Maintained by PostgreSQL trigger."""
+
+    __tablename__ = "comment_revisions"
+    __mapper_args__ = {"eager_defaults": True}
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    comment_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("comments.id", ondelete="CASCADE"), nullable=False
+    )
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    replaced_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class CommentLike(Base):
+    __tablename__ = "comment_likes"
+    __mapper_args__ = {"eager_defaults": True}
+
+    comment_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("comments.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
