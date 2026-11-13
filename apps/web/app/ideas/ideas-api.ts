@@ -35,7 +35,7 @@ export class IdeaError extends Error {
   }
 }
 
-async function call<T>(path: string, method = "GET", body?: unknown): Promise<T> {
+export async function call<T>(path: string, method = "GET", body?: unknown): Promise<T> {
   const response = await apiFetch(path, {
     method,
     ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),

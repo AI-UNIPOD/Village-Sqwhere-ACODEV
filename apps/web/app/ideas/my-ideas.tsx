@@ -5,6 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
+import { copy as hubsCopy } from "../hubs/copy";
+import { loadMyHubs } from "../hubs/hubs-api";
+import hubsStyles from "../hubs/hubs.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -52,8 +55,10 @@ export function IdeasLoading({ lang }: { lang: Lang }) {
   );
 }
 
-function IdeaCard({ lang, idea }: { lang: Lang; idea: OwnedIdea }) {
+// `hubs` maps an idea's id to its hub's id; null while it loads, and when it could not be loaded.
+function IdeaCard({ lang, idea, hubs }: { lang: Lang; idea: OwnedIdea; hubs: Record<string, string> | null }) {
   const t = copy[lang];
+  const hubId = hubs?.[idea.id];
   const { icon: StatusIcon, state } = STATUS[idea.status];
   return (
     <li className={styles.card}>
@@ -80,6 +85,15 @@ function IdeaCard({ lang, idea }: { lang: Lang; idea: OwnedIdea }) {
         {" · "}
         {fill(t.updated, { date: new Date(idea.updated_at).toLocaleDateString(lang, { dateStyle: "medium" }) })}
       </p>
+      {/* an open idea leads to its hub: the one it has, or the form that creates it */}
+      {idea.status === "open" && hubs && (
+        <Link
+          className={hubsStyles.cardLink}
+          href={hubId ? `/${lang}/hubs/view?id=${hubId}` : `/${lang}/hubs/new?idea=${idea.id}`}
+        >
+          {hubId ? hubsCopy[lang].openHub : hubsCopy[lang].createHub}
+        </Link>
+      )}
     </li>
   );
 }
@@ -93,6 +107,7 @@ function MyIdeasList({ lang }: { lang: Lang }) {
   const [next, setNext] = useState<number | null>(null);
   const [failure, setFailure] = useState<Error | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hubs, setHubs] = useState<Record<string, string> | null>(null);
 
   function load(offset: number) {
     return loadMyIdeas(offset).then(
@@ -108,6 +123,10 @@ function MyIdeasList({ lang }: { lang: Lang }) {
 
   useEffect(() => {
     load(0);
+    // shortcut: the first 20 hubs only, enough while a developer has a handful; page through them if that grows
+    loadMyHubs()
+      .then((page) => setHubs(Object.fromEntries(page.data.map((hub) => [hub.idea.id, hub.id]))))
+      .catch(() => setHubs(null));
   }, []);
 
   if (failure) throw failure;
@@ -141,7 +160,7 @@ function MyIdeasList({ lang }: { lang: Lang }) {
           {share}
           <ul className={styles.list}>
             {ideas.map((idea) => (
-              <IdeaCard key={idea.id} lang={lang} idea={idea} />
+              <IdeaCard key={idea.id} lang={lang} idea={idea} hubs={hubs} />
             ))}
           </ul>
           {next !== null && (

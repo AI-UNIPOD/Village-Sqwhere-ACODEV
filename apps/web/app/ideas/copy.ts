@@ -16,8 +16,6 @@ type Copy = {
   rolesNeeded: string;
   noRoles: string;
   updated: string;
-  edit: string;
-  view: string;
   loadMore: string;
   donePublished: string;
   doneClosed: string;
@@ -81,8 +79,6 @@ const en: Copy = {
   rolesNeeded: "Roles needed",
   noRoles: "No roles chosen",
   updated: "Updated {date}",
-  edit: "Edit",
-  view: "Open",
   loadMore: "Show more",
   donePublished: "Your idea is open. Signed-in developers can now find it.",
   doneClosed: "Your idea is closed. It no longer shows to other developers.",
@@ -168,8 +164,6 @@ const fr: Copy = {
   rolesNeeded: "Rôles recherchés",
   noRoles: "Aucun rôle choisi",
   updated: "Modifiée le {date}",
-  edit: "Modifier",
-  view: "Ouvrir",
   loadMore: "Afficher plus",
   donePublished: "Votre idée est ouverte. Les développeurs connectés peuvent maintenant la trouver.",
   doneClosed: "Votre idée est fermée. Elle n'est plus montrée aux autres développeurs.",
@@ -189,19 +183,19 @@ const fr: Copy = {
     "Le matcher s'en sert pour proposer des développeurs dont le rôle vérifié comble un manque.",
   title: {
     label: "Titre",
-    help: "De 5 à 150 caractères. Dites ce que c'est, par exemple : Registre agricole hors ligne pour coopératives.",
+    help: "De 5 à 150 caractères. Dites ce que c'est, par exemple\u202f: Registre agricole hors ligne pour coopératives.",
   },
   summary: {
     label: "Résumé public",
-    help: "De 20 à 1 000 caractères. Le problème, qui le rencontre, et ce que vous voulez construire.",
+    help: "De 20 à 1\u202f000 caractères. Le problème, qui le rencontre, et ce que vous voulez construire.",
   },
   details: {
     label: "Dossier privé (facultatif)",
-    help: "Votre plan, ce qui existe déjà, ce que vous avez essayé. Jusqu'à 20 000 caractères.",
+    help: "Votre plan, ce qui existe déjà, ce que vous avez essayé. Jusqu'à 20\u202f000 caractères.",
   },
-  stageLabel: "Où en est-elle aujourd'hui ?",
+  stageLabel: "Où en est-elle aujourd'hui\u202f?",
   roles: {
-    label: "Quels rôles lui manquent ?",
+    label: "Quels rôles lui manquent\u202f?",
     help: "Choisissez tous les rôles dont l'équipe a besoin. Vous pourrez changer cela plus tard.",
   },
   count: "{n} sur {max}",
@@ -212,14 +206,14 @@ const fr: Copy = {
   saved: "Enregistré",
   closedNote: "Cette idée est fermée. Elle ne peut plus être modifiée ni rouverte.",
   publishConfirm: {
-    title: "Publier cette idée ?",
+    title: "Publier cette idée\u202f?",
     text: "Son titre, son résumé, son stade et ses rôles deviennent visibles pour les développeurs connectés. Le dossier privé reste privé.",
     noRoles: "Vous n'avez choisi aucun rôle, le matcher ne peut donc proposer personne pour l'instant.",
     confirm: "Publier l'idée",
     cancel: "Pas encore",
   },
   closeConfirm: {
-    title: "Fermer cette idée ?",
+    title: "Fermer cette idée\u202f?",
     text: "Elle n'est plus montrée aux autres développeurs ni au matcher. Une idée fermée ne peut pas être rouverte.",
     confirm: "Fermer l'idée",
     cancel: "La garder ouverte",
@@ -228,8 +222,8 @@ const fr: Copy = {
     titleShort: "Donnez au titre au moins 5 caractères.",
     titleLong: "Raccourcissez le titre à 150 caractères au plus.",
     summaryShort: "Écrivez au moins 20 caractères, pour que les développeurs comprennent l'idée.",
-    summaryLong: "Raccourcissez le résumé à 1 000 caractères au plus.",
-    detailsLong: "Raccourcissez le dossier à 20 000 caractères au plus.",
+    summaryLong: "Raccourcissez le résumé à 1\u202f000 caractères au plus.",
+    detailsLong: "Raccourcissez le dossier à 20\u202f000 caractères au plus.",
     roles: "L'un de ces rôles n'est plus proposé. Décochez-le et enregistrez à nouveau.",
     save: "Nous n'avons pas pu enregistrer votre idée. Votre texte est toujours là, vérifiez votre connexion et réessayez.",
     notFoundTitle: "Nous n'avons pas trouvé cette idée",

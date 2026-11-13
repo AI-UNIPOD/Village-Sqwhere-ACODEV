@@ -94,15 +94,19 @@ test("after publishing, the list says the idea is open", async () => {
 });
 
 test("Show more adds the next page under the first", async () => {
-  fetchMock
-    .mockResolvedValueOnce(reply(200, { data: [idea()], next_offset: 20 }))
-    .mockResolvedValueOnce(reply(200, { data: [idea({ id: "idea-2", title: "Clinic queue" })], next_offset: null }));
+  // answered by address: the page also asks for the developer's hubs
+  fetchMock.mockImplementation((url: string) =>
+    Promise.resolve(
+      String(url).includes("offset=20")
+        ? reply(200, { data: [idea({ id: "idea-2", title: "Clinic queue" })], next_offset: null })
+        : reply(200, { data: [idea()], next_offset: String(url).includes("/v1/me/ideas") ? 20 : null }),
+    ),
+  );
   render(<MyIdeas lang="en" />);
   await screen.findByRole("link", { name: "Offline farm ledger" });
   press("Show more");
   expect(await screen.findByRole("link", { name: "Clinic queue" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Offline farm ledger" })).toBeTruthy();
-  expect(fetchMock.mock.calls[1][0]).toContain("offset=20");
   expect(screen.queryByRole("button", { name: "Show more" })).toBeNull();
 });
 
