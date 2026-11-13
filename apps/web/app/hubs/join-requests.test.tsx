@@ -147,6 +147,34 @@ test.each([
   expect(screen.getByRole("button", { name: "Ask to join" })).toBeTruthy();
 });
 
+// asking too soon after the owner declined: the API says when the wait ends
+const coolingDown = (until: unknown) =>
+  reply(409, { detail: { code: "REQUEST_COOLING_DOWN", message: "English text from the API", can_ask_again_at: until } });
+
+test("asking too soon after a decline says when the developer can ask again, in place of the button", async () => {
+  await view(placed("declined"), { "POST /v1/hubs/hub-1/join-requests": coolingDown("2026-11-15T12:00:00.123456+00:00") });
+  fireEvent.click(await ask());
+  const note = await screen.findByText(/^The owner turned down your last request\. You can ask again from November 15, 2026 at \d{1,2}:\d{2}\s[AP]M\.$/);
+  expect(screen.getByRole("status").contains(note)).toBe(true);
+  // the button that was pressed is gone, so the place moves to the sentence
+  expect(document.activeElement).toBe(note);
+  expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("the wait is said in French, with the date written the French way", async () => {
+  await view(placed("declined"), { "POST /v1/hubs/hub-1/join-requests": coolingDown("2026-11-15T12:00:00+00:00") }, {}, "fr");
+  fireEvent.click(await screen.findByRole("button", { name: "Demander à rejoindre" }));
+  expect(await screen.findByText(/^Le porteur a refusé votre dernière demande\. Vous pourrez redemander à partir du 15 novembre 2026 à \d{2}:\d{2}\.$/)).toBeTruthy();
+});
+
+test("a wait with no readable date still says the developer can ask again later", async () => {
+  await view(placed("declined"), { "POST /v1/hubs/hub-1/join-requests": coolingDown(null) });
+  fireEvent.click(await ask());
+  expect(await screen.findByText("The owner turned down your last request. You can ask again later.")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
+});
+
 test("IDEA_CLOSED says the idea takes no more requests and takes the button away", async () => {
   await view(placed(null), { "POST /v1/hubs/hub-1/join-requests": refusal(409, "IDEA_CLOSED") });
   fireEvent.click(await ask());
