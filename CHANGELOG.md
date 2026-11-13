@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- test(api): compare saved lists without order in the two tabs test (#113)
 - fix(api): answer 422 instead of 500 for a lone surrogate in a request (#112)
 - feat(web): ask in onboarding what the feed should show (#111)
 - feat(web): add liking a comment (#109)
