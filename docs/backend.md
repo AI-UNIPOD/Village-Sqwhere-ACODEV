@@ -827,3 +827,40 @@ Soft-delete a post.
 * **Visibility:** Once deleted, the post returns HTTP 404 `POST_NOT_FOUND` to all future GET and PATCH requests.
 * **Success Response (204 No Content):** Empty body.
 
+
+---
+
+### `GET /v1/posts`
+
+List visible posts, newest first. Deleted posts and hub posts never appear.
+
+* **Authentication:** Required (Bearer token)
+* **Query parameters (all optional, combine freely):**
+  * `type`: one post type, for example `question`. An unknown type returns 422.
+  * `topic`: one technology slug, for example `python`.
+  * `author`: a username, in any case. The profile page lists a developer's posts with it.
+  * `offset` (default 0) and `limit` (default 20, at most 50).
+* An unknown topic or author returns an empty list, not an error.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": [ { "id": "...", "type": "question", "title": null, "body": "...", "author": { "username": "ada-lagos" }, "topics": [], "liked_by_me": false, "saved_by_me": true } ],
+    "next_offset": 20
+  }
+  ```
+  Each item has the same shape as `GET /v1/posts/{post_id}` (shortened here).
+  `next_offset` is `null` on the last page; otherwise send it as `offset` for the next page.
+
+---
+
+### `GET /v1/feed`
+
+The signed-in developer's feed, newest first, paged like `GET /v1/posts`.
+
+* **Authentication:** Required (Bearer token)
+* Shows posts that share a topic with the developer's feed topics (`PUT /v1/me/feed-topics`),
+  plus every post they wrote.
+* With no feed topics chosen, it shows every post. `GET /v1/me` tells the app whether
+  `feed_topics` is empty, so it can invite the developer to pick some.
+* New posts can shift later pages, so skip post ids already on screen.
+* Why: `docs/decisions/2026-11-13-post-feed-and-lists.md`.

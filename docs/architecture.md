@@ -49,7 +49,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   own attempt): `GET /v1/reviews/verifications`, `GET /v1/reviews/verifications/{session_id}`
   and `POST /v1/reviews/verifications/{session_id}/decision` (`passed` or `failed`).
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
-  `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`.
+  `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
+  `GET /v1/posts` (filter by `type`, `topic`, `author`) and `GET /v1/feed` (your feed topics
+  and your own posts).
 - OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
   API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
 

@@ -1,13 +1,15 @@
-"""Core posts CRUD endpoints: create, read, update, and delete.
+"""Developer Exchange posts: create, read, update, delete, the feed and filtered lists.
 
-Integrity and revisions are maintained by PostgreSQL triggers. Author details are projected
-in a single targeted query to prevent N+1 cascades.
+Integrity and revisions are maintained by PostgreSQL triggers. Authors, topics and the
+viewer's likes and saves are loaded for a whole page in four queries, never one per post.
 """
 
+from collections import defaultdict
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, HTTPException, Query, Response, status
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbSession
@@ -27,23 +29,28 @@ from app.schemas.posts import (
     PostAuthorRef,
     PostCreateRequest,
     PostItemResponse,
+    PostListResponse,
     PostResponse,
     PostUpdateRequest,
 )
 
-router = APIRouter(prefix="/posts")
+router = APIRouter()
+
+PageOffset = Annotated[int, Query(ge=0)]
+PageLimit = Annotated[int, Query(ge=1, le=50)]
+NEWEST_FIRST = (Post.created_at.desc(), Post.id.desc())
 
 
 # --- Route helpers ---------------------------------------------------------------------------
 
 
+def _visible_posts() -> Select[tuple[Post]]:
+    # Hub milestone posts belong to a confidential hub, so no public read path shows them.
+    return select(Post).where(Post.deleted_at.is_(None), Post.hub_id.is_(None))
+
+
 async def _get_visible_post(post_id: UUID, db: AsyncSession) -> Post:
-    query = select(Post).where(
-        Post.id == post_id,
-        Post.deleted_at.is_(None),
-        Post.hub_id.is_(None),
-    )
-    post = (await db.execute(query)).scalar_one_or_none()
+    post = (await db.execute(_visible_posts().where(Post.id == post_id))).scalar_one_or_none()
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -52,56 +59,80 @@ async def _get_visible_post(post_id: UUID, db: AsyncSession) -> Post:
     return post
 
 
-def _author_ref(user: User) -> PostAuthorRef:
-    return PostAuthorRef(
-        id=user.id,
-        username=user.username,
-        display_name=user.display_name,
-        avatar_url=user.avatar_url,
-        is_verified=user.is_verified,
+async def _post_responses(
+    posts: list[Post], viewer_id: UUID, db: AsyncSession
+) -> list[PostResponse]:
+    if not posts:
+        return []
+    post_ids = [post.id for post in posts]
+    author_rows = await db.execute(
+        select(User.id, User.username, User.display_name, User.avatar_url, User.is_verified).where(
+            User.id.in_({post.author_id for post in posts})
+        )
     )
-
-
-async def _topics_for(post_id: UUID, db: AsyncSession) -> list[TechnologyRef]:
-    query = (
-        select(Technology.slug, Technology.name)
-        .join(PostTopic, PostTopic.technology_id == Technology.id)
-        .where(PostTopic.post_id == post_id)
+    authors = {row.id: PostAuthorRef.model_validate(row) for row in author_rows}
+    topics: dict[UUID, list[TechnologyRef]] = defaultdict(list)
+    topic_rows = await db.execute(
+        select(PostTopic.post_id, Technology.slug, Technology.name)
+        .join(Technology, Technology.id == PostTopic.technology_id)
+        .where(PostTopic.post_id.in_(post_ids))
         .order_by(Technology.slug)
     )
-    rows = await db.execute(query)
-    return [TechnologyRef(slug=slug, name=name) for slug, name in rows]
+    for post_id, slug, name in topic_rows:
+        topics[post_id].append(TechnologyRef(slug=slug, name=name))
+    liked = set(
+        await db.scalars(
+            select(PostLike.post_id).where(
+                PostLike.user_id == viewer_id, PostLike.post_id.in_(post_ids)
+            )
+        )
+    )
+    saved = set(
+        await db.scalars(
+            select(SavedPost.post_id).where(
+                SavedPost.user_id == viewer_id, SavedPost.post_id.in_(post_ids)
+            )
+        )
+    )
+    return [
+        PostResponse(
+            id=post.id,
+            type=post.type,
+            title=post.title,
+            body=post.body,
+            link_url=post.link_url,
+            author=authors[post.author_id],
+            topics=topics[post.id],
+            like_count=post.like_count,
+            comment_count=post.comment_count,
+            created_at=post.created_at,
+            updated_at=post.updated_at,
+            edited_at=post.edited_at,
+            liked_by_me=post.id in liked,
+            saved_by_me=post.id in saved,
+        )
+        for post in posts
+    ]
 
 
-def _post_response(
-    post: Post,
-    author_ref: PostAuthorRef,
-    topics: list[TechnologyRef],
-    liked_by_me: bool,
-    saved_by_me: bool,
-) -> PostResponse:
-    return PostResponse(
-        id=post.id,
-        type=post.type,
-        title=post.title,
-        body=post.body,
-        link_url=post.link_url,
-        author=author_ref,
-        topics=topics,
-        like_count=post.like_count,
-        comment_count=post.comment_count,
-        created_at=post.created_at,
-        updated_at=post.updated_at,
-        edited_at=post.edited_at,
-        liked_by_me=liked_by_me,
-        saved_by_me=saved_by_me,
+async def _post_item(post: Post, viewer_id: UUID, db: AsyncSession) -> PostItemResponse:
+    return PostItemResponse(data=(await _post_responses([post], viewer_id, db))[0])
+
+
+async def _post_page(
+    ordered: Select[tuple[Post]], offset: int, limit: int, viewer_id: UUID, db: AsyncSession
+) -> PostListResponse:
+    posts = list(await db.scalars(ordered.offset(offset).limit(limit + 1)))
+    return PostListResponse(
+        data=await _post_responses(posts[:limit], viewer_id, db),
+        next_offset=offset + limit if len(posts) > limit else None,
     )
 
 
 # --- Endpoints -------------------------------------------------------------------------------
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=PostItemResponse)
+@router.post("/posts", status_code=status.HTTP_201_CREATED, response_model=PostItemResponse)
 async def create_post(
     payload: PostCreateRequest,
     current_user: CurrentUser,
@@ -154,65 +185,19 @@ async def create_post(
         db.add(post_topic)
 
     await db.commit()
-
-    topics_ref = sorted(
-        [TechnologyRef(slug=slug, name=tech_map[slug].name) for slug in payload.topics],
-        key=lambda t: t.slug,
-    )
-    author_ref = _author_ref(current_user)
-    return PostItemResponse(
-        data=_post_response(post, author_ref, topics_ref, liked_by_me=False, saved_by_me=False)
-    )
+    return await _post_item(post, current_user.id, db)
 
 
-@router.get("/{post_id}", response_model=PostItemResponse)
+@router.get("/posts/{post_id}", response_model=PostItemResponse)
 async def get_post(
     post_id: UUID,
     current_user: CurrentUser,
     db: DbSession,
 ) -> PostItemResponse:
-    post = await _get_visible_post(post_id, db)
-
-    author_query = select(
-        User.id,
-        User.username,
-        User.display_name,
-        User.avatar_url,
-        User.is_verified,
-    ).where(User.id == post.author_id)
-    author_row = (await db.execute(author_query)).one()
-    author_ref = PostAuthorRef(
-        id=author_row.id,
-        username=author_row.username,
-        display_name=author_row.display_name,
-        avatar_url=author_row.avatar_url,
-        is_verified=author_row.is_verified,
-    )
-
-    topics = await _topics_for(post.id, db)
-
-    liked_query = select(
-        select(PostLike.post_id)
-        .where(PostLike.post_id == post.id, PostLike.user_id == current_user.id)
-        .exists()
-    )
-    liked_by_me = bool((await db.execute(liked_query)).scalar())
-
-    saved_query = select(
-        select(SavedPost.post_id)
-        .where(SavedPost.post_id == post.id, SavedPost.user_id == current_user.id)
-        .exists()
-    )
-    saved_by_me = bool((await db.execute(saved_query)).scalar())
-
-    return PostItemResponse(
-        data=_post_response(
-            post, author_ref, topics, liked_by_me=liked_by_me, saved_by_me=saved_by_me
-        )
-    )
+    return await _post_item(await _get_visible_post(post_id, db), current_user.id, db)
 
 
-@router.patch("/{post_id}", response_model=PostItemResponse)
+@router.patch("/posts/{post_id}", response_model=PostItemResponse)
 async def update_post(
     post_id: UUID,
     payload: PostUpdateRequest,
@@ -248,32 +233,10 @@ async def update_post(
 
     await db.commit()
     await db.refresh(post)
-
-    topics = await _topics_for(post.id, db)
-    author_ref = _author_ref(current_user)
-
-    liked_query = select(
-        select(PostLike.post_id)
-        .where(PostLike.post_id == post.id, PostLike.user_id == current_user.id)
-        .exists()
-    )
-    liked_by_me = bool((await db.execute(liked_query)).scalar())
-
-    saved_query = select(
-        select(SavedPost.post_id)
-        .where(SavedPost.post_id == post.id, SavedPost.user_id == current_user.id)
-        .exists()
-    )
-    saved_by_me = bool((await db.execute(saved_query)).scalar())
-
-    return PostItemResponse(
-        data=_post_response(
-            post, author_ref, topics, liked_by_me=liked_by_me, saved_by_me=saved_by_me
-        )
-    )
+    return await _post_item(post, current_user.id, db)
 
 
-@router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(
     post_id: UUID,
     current_user: CurrentUser,
@@ -299,3 +262,54 @@ async def delete_post(
     post.deletion_reason = reason
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/posts", response_model=PostListResponse)
+async def list_posts(
+    current_user: CurrentUser,
+    db: DbSession,
+    post_type: Annotated[PostType | None, Query(alias="type")] = None,
+    topic: str | None = None,
+    author: str | None = None,
+    offset: PageOffset = 0,
+    limit: PageLimit = 20,
+) -> PostListResponse:
+    query = _visible_posts()
+    if post_type is not None:
+        query = query.where(Post.type == post_type)
+    if topic is not None:
+        query = query.where(
+            Post.id.in_(
+                select(PostTopic.post_id)
+                .join(Technology, Technology.id == PostTopic.technology_id)
+                .where(Technology.slug == topic)
+            )
+        )
+    if author is not None:
+        query = query.where(
+            Post.author_id.in_(select(User.id).where(func.lower(User.username) == author.lower()))
+        )
+    return await _post_page(query.order_by(*NEWEST_FIRST), offset, limit, current_user.id, db)
+
+
+@router.get("/feed", response_model=PostListResponse)
+async def my_feed(
+    current_user: CurrentUser,
+    db: DbSession,
+    offset: PageOffset = 0,
+    limit: PageLimit = 20,
+) -> PostListResponse:
+    query = _visible_posts()
+    topic_ids = [feed_topic.technology_id for feed_topic in current_user.feed_topics]
+    # With no topics chosen yet, the feed is every post, so a new developer never sees an
+    # empty page. Your own posts always show, even when they have none of your topics.
+    if topic_ids:
+        query = query.where(
+            or_(
+                Post.author_id == current_user.id,
+                Post.id.in_(
+                    select(PostTopic.post_id).where(PostTopic.technology_id.in_(topic_ids))
+                ),
+            )
+        )
+    return await _post_page(query.order_by(*NEWEST_FIRST), offset, limit, current_user.id, db)
