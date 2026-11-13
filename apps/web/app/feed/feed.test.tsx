@@ -211,6 +211,16 @@ test("pressing a liked post's like takes it back with DELETE", async () => {
   await waitFor(() => expect(asked()).toContain("DELETE /v1/posts/post-1/like"));
 });
 
+test("in the demo a refused like goes back without asking to try again", async () => {
+  api({ "GET /v1/feed": page([post()]), "PUT /v1/posts/post-1/like": reply(403, { detail: { code: "DEMO_READ_ONLY", message: "English" } }) });
+  render(<Feed lang="en" tab="for-you" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Like (2)" }));
+  await waitFor(() => expect(asked()).toContain("PUT /v1/posts/post-1/like"));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Like (2)" }).getAttribute("aria-pressed")).toBe("false"));
+  // the frame's demo line says why
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 test("a like that fails goes back and says so", async () => {
   api({ "GET /v1/feed": page([post()]), "PUT /v1/posts/post-1/like": reply(500, { detail: { code: "UNKNOWN", message: "English" } }) });
   render(<Feed lang="en" tab="for-you" />);

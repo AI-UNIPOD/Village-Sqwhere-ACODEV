@@ -97,6 +97,37 @@
   border-top: 1px solid var(--text);
 }
 
+/* The demo account's line, under the header on every screen. */
+.demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-2) var(--gutter);
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--line);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* a change was refused: the line says so, in the text colour, and arrives again */
+.demo[data-refused] p {
+  color: var(--text);
+  animation: demo-said var(--dur-reveal) var(--ease-out) both;
+}
+
+@keyframes demo-said {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo[data-refused] p { animation: none; }
+}
+
 /* an invitation is waiting in Hubs: a dot beside the name */
 .dot {
   position: absolute;
