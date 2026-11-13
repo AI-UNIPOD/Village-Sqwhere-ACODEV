@@ -8,7 +8,7 @@ import { AppFrame } from "../app-frame";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { Check, Cross, Lightbulb, Lock } from "../onboarding/icons";
+import { Check, Lightbulb, Lock, X } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { ROLES } from "../onboarding/options";
 import { SignedOutError } from "../session/session";
@@ -23,7 +23,7 @@ import { IdeasTabs } from "./ideas-tabs";
 const STATUS = {
   draft: { icon: Lock, state: "later" },
   open: { icon: Check, state: "done" },
-  closed: { icon: Cross, state: "later" },
+  closed: { icon: X, state: "later" },
 } as const;
 
 // Shown while ideas load: blocks where the cards will be.

@@ -86,7 +86,22 @@ test("with a role chosen, the profile step is done and verifying the role is nex
   expect(within(profile).getByRole("link", { name: "Modifier mes réponses" }).getAttribute("href")).toBe(
     "/fr/onboarding?step=role",
   );
-  expect(within(step("Obtenir votre Green Tick")).getByText("À faire")).toBeTruthy();
+  const verify = step("Obtenir votre Green Tick");
+  expect(within(verify).getByText("À faire")).toBeTruthy();
+  expect(within(verify).getByRole("link", { name: "Commencer la vérification" }).getAttribute("href")).toBe("/fr/verification");
+  // sharing an idea does not wait for the Green Tick
+  const idea = step("Partager une idée, ou en rejoindre une");
+  expect(within(idea).getByText("Ouverte")).toBeTruthy();
+  expect(within(idea).getByRole("link", { name: "Partager une idée" }).getAttribute("href")).toBe("/fr/ideas/mine");
+  expect(within(idea).getByRole("link", { name: "Parcourir les idées ouvertes" }).getAttribute("href")).toBe("/fr/ideas");
+});
+
+test("with an attempt under way, the step leads back to where it stands", async () => {
+  const attempt = { attempts_used: 1, attempts_remaining: 2, latest_status: "awaiting_review" };
+  signedInAs({ roles: [{ ...role("backend-engineer", "Backend & Systems Engineer"), verification: attempt }] });
+  render(<Village lang="en" />);
+  await screen.findByRole("heading", { level: 1 });
+  expect(within(step("Earn your Green Tick")).getByRole("link", { name: "See where it stands" }).getAttribute("href")).toBe("/en/verification");
 });
 
 test("a verified role shows as verified, and its step is done", async () => {
@@ -94,6 +109,10 @@ test("a verified role shows as verified, and its step is done", async () => {
   render(<Village lang="en" />);
   expect(await screen.findByText("Verified")).toBeTruthy();
   expect(within(step("Earn your Green Tick")).getByText("Done")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Start verification" })).toBeNull();
+  expect(screen.getByRole("link", { name: "Review attempts in your role" }).getAttribute("href")).toBe("/en/reviews");
+  // with the Green Tick earned, sharing an idea is the step to do now
+  expect(within(step("Share an idea, or join one")).getByText("Next")).toBeTruthy();
 });
 
 test("a role the web app does not know keeps the API's name", async () => {

@@ -62,6 +62,9 @@ The landing page keeps a few values that are not on the 4px scale. Use them only
 | `--float-size` | 36 | 36 | Round floating buttons (language, theme). A 44px tap area surrounds each one |
 | `--float-top` | 10 | 18 | Distance of the language button from the top |
 | `--float-gutter` | 64 | 68 | Right space the header keeps clear of the floating buttons |
+| `--pill-height` | 48 | 56 | Height of the header pinned as a pill |
+| `--pill-top` | 8 | 12 | Distance of the pinned pill from the top |
+| `--blur-bar` | 12 | 12 | Blur behind the pinned pill |
 | `--section-block` | 56 | 80 | Space above and below a landing section |
 | `--hero-min-height` | 600 | 600 | Shortest the hero gets |
 

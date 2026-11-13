@@ -15,9 +15,10 @@ import { copy } from "./copy";
 import styles from "./village.module.css";
 
 const STEPS = ["profile", "verify", "idea", "hub"] as const;
-type StepState = "done" | "next" | "later";
+// "next" is the one step to do now; "open" can be started too, without being the main thing
+type StepState = "done" | "next" | "open" | "later";
 
-const ICONS = { done: Check, next: ArrowRight, later: Clock };
+const ICONS = { done: Check, next: ArrowRight, open: ArrowRight, later: Clock };
 
 // Shown while the profile loads: blocks where the card and the steps will be.
 export function VillageSkeleton({ lang }: { lang: Lang }) {
@@ -45,13 +46,19 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
   const name = profile.displayName ?? profile.username;
   const role = me.roles.find((r) => r.is_primary) ?? me.roles[0];
   const verified = !!role?.verified_at;
-  // Ideas and hubs open here when their screens exist.
+  const attemptUnderWay = ["pending", "in_progress", "awaiting_review"].includes(role?.verification?.latest_status ?? "");
+  // Sharing an idea needs a role but not a Green Tick, so it opens beside verifying. Hubs open
+  // here when their screen exists.
   const states: Record<(typeof STEPS)[number], StepState> = {
     profile: role ? "done" : "next",
     verify: !role ? "later" : verified ? "done" : "next",
-    idea: "later",
+    idea: role ? "next" : "later",
     hub: "later",
   };
+  // one main button on the screen: the first step still to do. The others that can start are "open".
+  const first = STEPS.find((id) => states[id] === "next");
+  for (const id of STEPS) if (states[id] === "next" && id !== first) states[id] = "open";
+  const button = (id: (typeof STEPS)[number]) => `${id === first ? landing.btn : landing.ghost} ${styles.action}`;
   const github = (text: string) => (
     <a href={`https://github.com/${encodeURIComponent(profile.username)}`} target="_blank" rel="noopener noreferrer">
       {text} <span className={landing.srOnly}>({t.githubProfile})</span>
@@ -126,6 +133,27 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
                       href={`/${lang}/onboarding?step=role`}
                     >
                       {role ? t.change : t.setUp}
+                    </Link>
+                  )}
+                  {id === "verify" && state === "next" && (
+                    <Link className={button(id)} href={`/${lang}/verification`}>
+                      {attemptUnderWay ? t.verifyContinue : t.verifyStart}
+                    </Link>
+                  )}
+                  {id === "idea" && (state === "next" || state === "open") && (
+                    <div className={styles.actions}>
+                      <Link className={button(id)} href={`/${lang}/ideas/mine`}>
+                        {t.ideas}
+                      </Link>
+                      <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/ideas`}>
+                        {t.browse}
+                      </Link>
+                    </div>
+                  )}
+                  {/* a Green Tick is also the right to decide other developers' attempts */}
+                  {id === "verify" && state === "done" && (
+                    <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/reviews`}>
+                      {t.review}
                     </Link>
                   )}
                 </div>
