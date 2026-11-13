@@ -59,7 +59,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/invitations` and withdraws with
   `DELETE /v1/hubs/{hub_id}/invitations/{user_id}`; the invitee reads
   `GET /v1/hubs/{hub_id}/agreement`, then signs with `POST /v1/hubs/{hub_id}/invitation/accept`
-  or says no with `POST /v1/hubs/{hub_id}/invitation/decline`. Only active members read
+  or says no with `POST /v1/hubs/{hub_id}/invitation/decline`. A developer can also ask with
+  `POST /v1/hubs/{hub_id}/join-requests`; the owner answers with
+  `POST /v1/hubs/{hub_id}/members/{user_id}/approve` (an invitation, signed the same way) or
+  `POST /v1/hubs/{hub_id}/members/{user_id}/decline`. Only active members read
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,

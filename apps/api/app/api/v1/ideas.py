@@ -73,6 +73,7 @@ def public_idea(idea: Idea) -> PublicIdea:
         status=idea.status,
         roles_needed=roles_for_response(idea),
         author=IdeaAuthor.model_validate(idea.author),
+        hub_id=idea.hub_id,
         published_at=idea.published_at,
         created_at=idea.created_at,
         updated_at=idea.updated_at,

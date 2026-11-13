@@ -182,11 +182,13 @@ def test_publishing_creates_a_safe_discovery_card(client: TestClient) -> None:
         "status",
         "roles_needed",
         "author",
+        "hub_id",
         "published_at",
         "created_at",
         "updated_at",
     }
     assert card["author"]["id"] == str(owner.id)
+    assert card["hub_id"] is None  # no hub yet
     assert "details" not in card
     assert body()["details"] not in detail.text
 
