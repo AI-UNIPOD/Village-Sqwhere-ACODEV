@@ -1067,6 +1067,17 @@ hub, after which the count starts again. Approval or joining clears the count.
                 "can_ask_again_at": "2026-11-15T18:30:00+00:00" } }
   ```
 
+#### `POST /v1/hubs/{hub_id}/join-request/withdraw`
+
+The developer takes back their own pending request. No body. Answers `200` with the hub card,
+`viewer.membership_status: "declined"` (a request that did not go through), and the owner no
+longer sees it as pending. It starts no wait, so the developer may ask again at once, and it
+keeps the count of the owner's earlier declines. A request to an archived hub can still be
+withdrawn.
+
+* **Errors:** `404 NOT_FOUND` (no such hub), `404 REQUEST_NOT_FOUND` (no pending request of
+  yours here).
+
 #### `POST /v1/hubs/{hub_id}/members/{user_id}/approve` and `.../decline`
 
 The owner answers a pending request. Both answer `200` with the member card. Approving turns

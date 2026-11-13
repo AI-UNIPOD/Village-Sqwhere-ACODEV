@@ -443,6 +443,25 @@ async def pending_request(db: AsyncSession, hub: Hub, user_id: UUID) -> tuple[Hu
     return member, requester
 
 
+@router.post("/hubs/{hub_id}/join-request/withdraw", response_model=HubResponse)
+async def withdraw_request(hub_id: UUID, current_user: CurrentUser, db: DbSession) -> HubResponse:
+    hub = await find_hub(db, hub_id, current_user, lock=True)
+    member = await find_membership(db, hub.id, current_user.id)
+    if member is None or member.status != HubMemberStatus.REQUESTED:
+        raise hub_error(
+            status.HTTP_404_NOT_FOUND, "REQUEST_NOT_FOUND", "You have no pending request here."
+        )
+    # Kept as "declined", a request that did not go through, not deleted: the row also holds
+    # the count of the owner's earlier declines, which a withdrawal must not wipe. It starts no
+    # wait, because the owner said nothing.
+    member.status = HubMemberStatus.DECLINED
+    await db.commit()
+
+    withdrawn = await load_hub(db, hub.id)
+    assert withdrawn is not None
+    return HubResponse(data=await hub_card(db, withdrawn, current_user.id))
+
+
 @router.post("/hubs/{hub_id}/members/{user_id}/approve", response_model=HubMemberResponse)
 async def approve_request(
     hub_id: UUID, user_id: UUID, current_user: CurrentUser, db: DbSession

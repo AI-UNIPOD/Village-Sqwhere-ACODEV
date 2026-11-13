@@ -771,6 +771,49 @@ def test_an_archived_hub_takes_no_approvals_but_can_decline(client: TestClient) 
     assert answer(client, hub, owner, other, "decline").status_code == 200
 
 
+def withdraw(client: TestClient, hub: Hub, user: User) -> Any:
+    return client.post(f"/v1/hubs/{hub.id}/join-request/withdraw", headers=auth(user))
+
+
+def test_a_developer_withdraws_their_request(client: TestClient) -> None:
+    owner, developer = make_user(), make_user()
+    hub = make_hub(owner)
+    assert ask(client, hub, developer).status_code == 201
+    set_membership(hub, developer, declines_in_a_row=2)  # turned down twice before
+
+    withdrawn = withdraw(client, hub, developer)
+
+    assert withdrawn.status_code == 200, withdrawn.text
+    viewer = withdrawn.json()["data"]["viewer"]
+    assert (viewer["membership_status"], viewer["can_ask_again_at"]) == ("declined", None)
+    stored = membership(hub, developer)
+    assert (stored.status, stored.declines_in_a_row) == (HubMemberStatus.DECLINED, 2)
+    assert_error(answer(client, hub, owner, developer, "approve"), 404, "REQUEST_NOT_FOUND")
+    # no wait: the owner said nothing
+    assert ask(client, hub, developer).status_code == 201
+
+
+def test_only_a_pending_request_can_be_withdrawn(client: TestClient) -> None:
+    owner, member, invited, stranger = make_user(), make_user(), make_user(), make_user()
+    hub = make_hub(owner)
+    add_member(hub, member, HubMemberStatus.ACTIVE)
+    add_member(hub, invited, HubMemberStatus.INVITED)
+
+    for nobody in (owner, member, invited, stranger):
+        assert_error(withdraw(client, hub, nobody), 404, "REQUEST_NOT_FOUND")
+    assert membership(hub, invited).status == HubMemberStatus.INVITED
+    missing = client.post(f"/v1/hubs/{uuid4()}/join-request/withdraw", headers=auth(member))
+    assert_error(missing, 404, "NOT_FOUND")
+
+
+def test_a_request_to_an_archived_hub_can_still_be_withdrawn(client: TestClient) -> None:
+    developer = make_user()
+    hub = make_hub(make_user(), archived=True)
+    add_member(hub, developer, HubMemberStatus.REQUESTED)
+
+    assert withdraw(client, hub, developer).status_code == 200
+
+
 # --- sign-in and malformed ids -------------------------------------------------------------
 
 HUB = "00000000-0000-4000-8000-000000000000"
@@ -783,6 +826,7 @@ ROUTES = [
     ("post", f"/v1/hubs/{HUB}/invitation/accept"),
     ("post", f"/v1/hubs/{HUB}/invitation/decline"),
     ("post", f"/v1/hubs/{HUB}/join-requests"),
+    ("post", f"/v1/hubs/{HUB}/join-request/withdraw"),
     ("post", f"/v1/hubs/{HUB}/members/{HUB}/approve"),
     ("post", f"/v1/hubs/{HUB}/members/{HUB}/decline"),
 ]
