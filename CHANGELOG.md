@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add role-based idea matching (#66)
 - feat(web): add the peer review queue and case screens (#75)
 - fix(web): give chips a 44px tap area (#84)
 - feat(web): add the verification interview (#74)
