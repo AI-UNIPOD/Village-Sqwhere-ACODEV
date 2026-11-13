@@ -171,7 +171,7 @@ const fr: Copy = {
     "Faites vérifier votre rôle pour obtenir votre Green Tick.",
   ],
   saving: "Enregistrement de votre rôle et de vos technologies",
-  saved: "Votre rôle et vos technologies sont enregistrés. Votre pays et vos sujets ne le sont pas encore.",
+  saved: "Votre rôle et vos technologies sont enregistrés. Votre pays et vos domaines ne le sont pas encore.",
   saveFailed:
     "Nous n'avons pas pu enregistrer votre rôle et vos technologies. Vos réponses sont toujours là, vous pouvez donc réessayer.",
   village: "Aller au village",

@@ -86,7 +86,7 @@ test("the saved message is in French too", async () => {
   card("fr", { displayName: "Kofi Mensah", username: "kofi-ships" });
   expect(
     await screen.findByText(
-      "Votre rôle et vos technologies sont enregistrés. Votre pays et vos sujets ne le sont pas encore.",
+      "Votre rôle et vos technologies sont enregistrés. Votre pays et vos domaines ne le sont pas encore.",
     ),
   ).toBeTruthy();
 });

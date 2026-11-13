@@ -21,6 +21,21 @@ export async function saveAnswers(answers: Answers): Promise<void> {
   if (!stack.ok) throw new Error(`PUT /v1/me/technologies answered ${stack.status}`);
 }
 
+// Saves started together share one run. React mounts twice in development, and two stack
+// replacements sent at the same moment make the API fail one of them.
+let pending: { key: string; result: Promise<void> } | null = null;
+
+function saveOnce(answers: Answers): Promise<void> {
+  const key = JSON.stringify(answers);
+  if (pending?.key !== key) {
+    const result = saveAnswers(answers).finally(() => {
+      if (pending?.result === result) pending = null;
+    });
+    pending = { key, result };
+  }
+  return pending.result;
+}
+
 type Outcome = "saved" | "failed";
 
 // Saves when the done step opens, and again on retry. With no role (the person skipped) there
@@ -32,7 +47,7 @@ export function useSavedProfile(answers: Answers) {
   useEffect(() => {
     if (answers.role === null) return;
     let live = true;
-    saveAnswers(answers).then(
+    saveOnce(answers).then(
       () => live && setOutcome("saved"),
       (error: unknown) => {
         if (live && !(error instanceof SignedOutError)) setOutcome("failed");

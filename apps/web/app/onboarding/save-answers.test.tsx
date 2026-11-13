@@ -90,3 +90,12 @@ test("after a failure, retry saves again and ends saved", async () => {
   await waitFor(() => expect(result.current.status).toBe("saved"));
   expect(requests().map(([method]) => method)).toEqual(["POST", "POST", "PUT"]);
 });
+
+test("two done steps opened together save once", async () => {
+  fetchMock.mockResolvedValueOnce(reply(201)).mockResolvedValueOnce(reply(200));
+  const first = renderHook(() => useSavedProfile(answers));
+  const second = renderHook(() => useSavedProfile(answers));
+  await waitFor(() => expect(first.result.current.status).toBe("saved"));
+  await waitFor(() => expect(second.result.current.status).toBe("saved"));
+  expect(requests().map(([method]) => method)).toEqual(["POST", "PUT"]);
+});
