@@ -27,7 +27,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 ## What's next
 
 1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
-2. Posts feeds, topic filtering, likes and saves (PR 2).
+2. Post comments (tracker rows 67 to 75).
 3. Leaving and removing members, editing and archiving a hub, and the four hub phases (decisions
    and next steps need a new schema script); later, semantic similarity for matching.
 4. Add peer-review report display, production deployment configuration and, once the team has
