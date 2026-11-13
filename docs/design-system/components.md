@@ -52,6 +52,19 @@ still and the button offers "Play animation". The choice is kept in `localStorag
 `vs-motion` ("on" or "off") and wins over the system setting; with no choice the system
 setting decides and is followed when it changes.
 
+## Pinned header
+
+Once the landing header has scrolled out of view, the same header is pinned as a pill near the
+top, until the visitor is back at the top. It is `--pill-height` high, `--pill-top` from the
+top, `--radius-full`, 1px `--line`, `--shadow-float`, and `--surface` at 85% over a
+`--blur-bar` blur (solid `--surface` where the blur is missing or with reduced transparency).
+From 768px it is centred, holds the logo, the name and the links with `--nav-gap` between them,
+and stays clear of the language button on both sides. Below 768px it sits beside the language
+button and holds the links only, in `--type-body-s` at weight 600. Below 360px there is no pill.
+It rises `--space-2` and fades in over `--dur-modal` on `--ease-out`, and fades out over
+`--dur-modal-out`; with reduced motion it only fades. While it is pinned, jumps and keyboard
+focus land below it (`scroll-padding-top`).
+
 ## Icons
 
 Lucide, outline, 24px grid, 1.75px stroke, rounded ends. Sizes: 16px in chips and small
