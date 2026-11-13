@@ -8,7 +8,8 @@ those triggers, so a write racing a delete answers 404 or 422 instead of failing
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, delete, func, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbSession
@@ -29,6 +30,7 @@ router = APIRouter()
 
 MAX_DEPTH = 1000  # comments_depth_range in the schema
 REPLY_PREVIEWS = 2
+THREAD_LEVELS = 5  # levels below the comment that /thread returns
 OLDEST_FIRST = (Comment.created_at, Comment.id)
 # A deleted comment stays in lists only while it has replies, so they stay reachable.
 LISTED = or_(Comment.deleted_at.is_(None), Comment.reply_count > 0)
@@ -219,6 +221,43 @@ async def list_replies(
     )
 
 
+@router.get("/comments/{comment_id}/thread", response_model=CommentListResponse)
+async def get_thread(
+    comment_id: UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+    offset: PageOffset = 0,
+    limit: PageLimit = 20,
+) -> CommentListResponse:
+    top = await db.scalar(
+        select(Comment).where(
+            Comment.id == comment_id,
+            LISTED,
+            Comment.post_id.in_(visible_posts().with_only_columns(Post.id)),
+        )
+    )
+    if top is None:
+        raise _comment_error(404, "COMMENT_NOT_FOUND", "Comment not found or deleted")
+    tree = select(Comment.id).where(Comment.id == comment_id).cte("tree", recursive=True)
+    tree = tree.union_all(
+        select(Comment.id)
+        .join(tree, Comment.parent_id == tree.c.id)
+        .where(Comment.depth <= top.depth + THREAD_LEVELS)
+    )
+    comments, next_offset = await _page(
+        select(Comment)
+        .join(tree, tree.c.id == Comment.id)
+        .where(LISTED)
+        .order_by(Comment.depth, *OLDEST_FIRST),
+        offset,
+        limit,
+        db,
+    )
+    return CommentListResponse(
+        data=await _comment_responses(comments, current_user.id, db), next_offset=next_offset
+    )
+
+
 @router.get("/comments/{comment_id}", response_model=CommentItemResponse)
 async def get_comment(
     comment_id: UUID, current_user: CurrentUser, db: DbSession
@@ -262,3 +301,31 @@ async def delete_comment(comment_id: UUID, current_user: CurrentUser, db: DbSess
     comment.deletion_reason = reason
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+async def _set_like(comment_id: UUID, user_id: UUID, db: AsyncSession, *, on: bool) -> Response:
+    # The lock makes a like that races a delete of the comment answer 404, not a trigger error.
+    await _get_live_comment(comment_id, db, lock=True)
+    if on:
+        statement = (
+            pg_insert(CommentLike)
+            .values(comment_id=comment_id, user_id=user_id)
+            .on_conflict_do_nothing()
+        )
+    else:
+        statement = delete(CommentLike).where(
+            CommentLike.comment_id == comment_id, CommentLike.user_id == user_id
+        )
+    await db.execute(statement)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put("/comments/{comment_id}/like", status_code=status.HTTP_204_NO_CONTENT)
+async def like_comment(comment_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
+    return await _set_like(comment_id, current_user.id, db, on=True)
+
+
+@router.delete("/comments/{comment_id}/like", status_code=status.HTTP_204_NO_CONTENT)
+async def unlike_comment(comment_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
+    return await _set_like(comment_id, current_user.id, db, on=False)
