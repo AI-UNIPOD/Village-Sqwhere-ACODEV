@@ -35,6 +35,22 @@ export function HubsSkeleton({ lang }: { lang: Lang }) {
   );
 }
 
+// A hub that is not there, or an address with no hub in it.
+export function MissingHub({ lang }: { lang: Lang }) {
+  const t = copy[lang];
+  return (
+    <main className={`${onboarding.column} ${onboarding.step}`}>
+      <h1 className={onboarding.title}>{t.missingHub.title}</h1>
+      <p className={onboarding.why}>{t.missingHub.text}</p>
+      <div className={onboarding.actions}>
+        <Link className={landing.btn} href={`/${lang}/hubs`}>
+          {t.yourHubs}
+        </Link>
+      </div>
+    </main>
+  );
+}
+
 // The whole page while it loads, for a route's Suspense boundary.
 export function HubsLoading({ lang }: { lang: Lang }) {
   return (

@@ -15,7 +15,7 @@ import { AlertCircle, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
-import { AgreementText } from "./agreement-text";
+import { AgreementBlock, signatureErrors } from "./agreement-block";
 import { copy } from "./copy";
 import { FieldError, Warning } from "./form-parts";
 import { LIMITS, OWNERSHIP, createHub, loadAgreement, type Agreement, type Ownership } from "./hubs-api";
@@ -36,15 +36,12 @@ function validate(fields: Fields, t: (typeof copy)[Lang]["errors"]): Errors {
   const errors: Errors = {};
   const name = fields.name.trim().length;
   const notes = fields.notes.trim().length;
-  const legalName = fields.legalName.trim().length;
   if (name === 0) errors.name = t.nameRequired;
   else if (name > LIMITS.nameMax) errors.name = t.nameLong;
   if (fields.description.length > LIMITS.descriptionMax) errors.description = t.descriptionLong;
   if (notes === 0 && fields.ownership !== "equal_split") errors.notes = t.notesRequired;
   else if (notes > LIMITS.notesMax) errors.notes = t.notesLong;
-  if (!fields.read) errors.read = t.read;
-  if (legalName < LIMITS.legalNameMin || legalName > LIMITS.legalNameMax) errors.legalName = t.legalName;
-  return errors;
+  return { ...errors, ...signatureErrors(fields.read, fields.legalName, t) };
 }
 
 // What an API refusal means for this page, or null when it is a failure to report. A bad idea
@@ -289,56 +286,16 @@ function NewHubForm({ lang, ideaId }: { lang: Lang; ideaId: string | null }) {
           </div>
         </fieldset>
 
-        <fieldset className={ideas.section}>
-          <legend className={ideas.heading}>{t.agreementHeading}</legend>
-          {/* the agreement's own title and version, exactly as the server sends them */}
-          <p className={styles.agreementName}>
-            {agreement.title}
-            <span className={ideas.meta}>{fill(t.version, { n: agreement.version })}</span>
-          </p>
-          {/test/i.test(agreement.title) && <Warning title={t.placeholder.title}>{t.placeholder.text}</Warning>}
-          {problem === "changed" && (
-            <p className={`${onboarding.error} ${styles.problem}`} role="alert">
-              <AlertCircle />
-              {t.errors.changed}
-            </p>
-          )}
-          <div className={styles.agreement} role="region" aria-label={t.agreementRegion} tabIndex={0}>
-            <AgreementText body={agreement.body} />
-          </div>
-          <div className={ideas.field}>
-            <label className={styles.check}>
-              <input
-                id="hub-read"
-                type="checkbox"
-                checked={fields.read}
-                aria-invalid={!!errors.read || undefined}
-                aria-describedby={errors.read ? "hub-read-error" : undefined}
-                onChange={(event) => change({ read: event.target.checked })}
-              />
-              <span>{t.read}</span>
-            </label>
-            <FieldError id="hub-read">{errors.read}</FieldError>
-          </div>
-          <div className={ideas.field}>
-            <label htmlFor="hub-legalName" className={ideas.label}>
-              {t.legalName.label}
-            </label>
-            <input
-              id="hub-legalName"
-              className={onboarding.input}
-              value={fields.legalName}
-              autoComplete="name"
-              aria-invalid={!!errors.legalName || undefined}
-              aria-describedby={describe("legalName")}
-              onChange={(event) => change({ legalName: event.target.value })}
-            />
-            <p id="hub-legalName-help" className={ideas.help}>
-              {t.legalName.help}
-            </p>
-            <FieldError id="hub-legalName">{errors.legalName}</FieldError>
-          </div>
-        </fieldset>
+        <AgreementBlock
+          lang={lang}
+          agreement={agreement}
+          changed={problem === "changed"}
+          read={fields.read}
+          legalName={fields.legalName}
+          errors={errors}
+          onRead={(read) => change({ read })}
+          onLegalName={(legalName) => change({ legalName })}
+        />
 
         <div className={`${onboarding.actions} ${ideas.bar}`}>
           {problem === "send" && (

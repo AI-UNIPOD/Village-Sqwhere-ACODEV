@@ -26,6 +26,17 @@ The web frontend's owner chose, on 13 November 2026:
 - **The new row and the success messages are the only motion.** A new row rises in after the
   owner's own action. The message after creating a hub or joining one, and the brief after it, arrive
   once with the "moment" timing.
+- **Joining is one page that makes a person read first.** It shows the hub's own terms and its
+  own agreement (`GET /v1/hubs/{id}/agreement`, never the current one, which can be a newer
+  version), then the "I have read" box, the typed legal name and a dialog that says back the hub,
+  the ownership choice and the name. The request carries the template id and hash that were shown.
+  If the API says the agreement changed, the page loads the hub's agreement again, clears the box,
+  keeps the name and asks again. It never signs a text the person did not see.
+- **The agreement block is shared with the create-hub page.** The two pages sign the same way, so
+  the text, the box and the name field live in `agreement-block.tsx`.
+- **Every refusal has its own way on.** No pending invitation and an archived hub each get a short
+  screen with one link to the hub. An active member goes straight to the hub. A hub that does not
+  exist gets the existing "We couldn't find this hub" screen.
 - **Your hubs lists invitations first.** A failure of that request hides the section, because the
   list of hubs matters more than the invitations.
 

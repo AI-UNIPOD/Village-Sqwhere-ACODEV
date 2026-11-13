@@ -4,9 +4,10 @@ export const OWNERSHIP = ["equal_split", "owner_majority", "custom"] as const;
 export type Ownership = (typeof OWNERSHIP)[number];
 
 // The agreement a person reads and signs. `body_sha256` proves which exact text was shown.
-export type Agreement = { template_id: string; version: number; title: string; body: string; body_sha256: string };
-
 export type Terms = { ownership_model?: Ownership; notes?: string };
+
+// `hub_terms` is the terms signed with this text: empty on the current agreement, the hub's own on a hub's.
+export type Agreement = { template_id: string; version: number; title: string; body: string; body_sha256: string; hub_terms: Terms };
 
 // A hub's card, as the API answers it to any signed-in developer: nothing private is in it.
 export type Hub = {
@@ -70,3 +71,9 @@ export const declineInvitation = async (id: string) =>
   (await call<{ data: Hub }>(`${hubPath(id)}/invitation/decline`, "POST")).data;
 
 export const loadInvitations = async () => (await call<{ data: Hub[] }>("/v1/me/hubs?status=invited&limit=50")).data;
+
+// The agreement this hub was created on, which can be older than the current one.
+export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
+
+export const acceptInvitation = async (id: string, signature: { template_id: string; template_sha256: string; signed_legal_name: string }) =>
+  (await call<{ data: Hub }>(`${hubPath(id)}/invitation/accept`, "POST", signature)).data;
