@@ -35,7 +35,7 @@ PostBody = Annotated[
     AfterValidator(_validate_body),
 ]
 
-PostLinkUrl = Annotated[str, StringConstraints(pattern=r"^https?://")]
+PostLinkUrl = Annotated[str, StringConstraints(max_length=2048, pattern=r"^https?://")]
 
 
 # --- Requests --------------------------------------------------------------------------------

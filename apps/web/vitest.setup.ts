@@ -1,3 +1,4 @@
+import { configure } from "@testing-library/react";
 import { afterEach } from "vitest";
 
 import { keepInvitations } from "./app/hubs/invitations";
@@ -15,3 +16,8 @@ afterEach(() => {
   forgetMe();
   keepInvitations(null);
 });
+
+// Waiting for the screen to change gives up after a second by default. That is too short when
+// the tests share a machine with a build: a sign-in test took 1.4 seconds in the merge agent's
+// sandbox and failed. A wait that is going to pass is not slowed by a longer limit.
+configure({ asyncUtilTimeout: 5000 });
