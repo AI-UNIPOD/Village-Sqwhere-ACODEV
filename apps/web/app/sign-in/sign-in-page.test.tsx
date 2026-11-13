@@ -208,6 +208,9 @@ test.each([
   await waitFor(() => expect(steps()[0]).toMatch(`, ${working}`));
   expect(steps()[1]).not.toMatch(`, ${working}`);
 
+  // The step says it is working at the click, before the PKCE hash is ready and the request is
+  // sent. Answering before then answers nothing, and the test waits for a redirect forever.
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
   finish(new Response(JSON.stringify({ data: { authorize_url: AUTHORIZE_URL } }), { status: 200 }));
   await waitFor(() => expect(assign).toHaveBeenCalled());
   expect(steps()[0]).toMatch(`, ${done}`);
