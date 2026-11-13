@@ -326,9 +326,103 @@ def test_a_comment_that_waits_on_a_post_delete_answers_404(client: TestClient, s
     assert _error(resp, 404) == "POST_NOT_FOUND"
 
 
+def _bodies(resp) -> list[str | None]:
+    assert resp.status_code == 200, resp.text
+    return [comment["body"] for comment in resp.json()["data"]]
+
+
+def test_a_post_lists_its_comments_oldest_first_with_reply_previews(
+    client: TestClient, sign_in
+) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create(client, auth, "Best way to cache in Nairobi?")
+    first = _comment_id(client, auth, post_id, "First")
+    for body in ("Reply 1", "Reply 2", "Reply 3"):
+        _comment_id(client, auth, post_id, body, parent_id=first)
+    _comment_id(client, auth, post_id, "Second")
+    _comment_id(client, auth, post_id, "Third")
+
+    page = client.get(f"/v1/posts/{post_id}/comments", headers=auth, params={"limit": 2})
+    assert _bodies(page) == ["First", "Second"]
+    assert page.json()["next_offset"] == 2
+    top = page.json()["data"][0]
+    assert top["reply_count"] == 3
+    assert [reply["body"] for reply in top["replies"]] == ["Reply 1", "Reply 2"]
+    assert page.json()["data"][1]["replies"] == []
+    rest = client.get(
+        f"/v1/posts/{post_id}/comments", headers=auth, params={"offset": 2, "limit": 2}
+    )
+    assert _bodies(rest) == ["Third"]
+    assert rest.json()["next_offset"] is None
+
+
+def test_a_deleted_comment_stays_listed_only_while_it_has_replies(
+    client: TestClient, sign_in
+) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create(client, auth, "Tombstones")
+    with_replies = _comment_id(client, auth, post_id, "Has replies")
+    reply = _comment_id(client, auth, post_id, "Still useful", parent_id=with_replies)
+    removed_reply = _comment_id(client, auth, post_id, "Removed reply", parent_id=with_replies)
+    alone = _comment_id(client, auth, post_id, "No replies")
+    for comment_id in (with_replies, removed_reply, alone):
+        assert client.delete(f"/v1/comments/{comment_id}", headers=auth).status_code == 204
+
+    listed = client.get(f"/v1/posts/{post_id}/comments", headers=auth)
+    assert _bodies(listed) == [None]
+    tombstone = listed.json()["data"][0]
+    assert tombstone["id"] == with_replies
+    assert (tombstone["deleted"], tombstone["author"], tombstone["reply_count"]) == (True, None, 2)
+    assert [r["id"] for r in tombstone["replies"]] == [reply]
+    assert tombstone["replies"][0]["deleted"] is False
+
+    replies = client.get(f"/v1/comments/{with_replies}/replies", headers=auth)
+    assert _bodies(replies) == ["Still useful"]
+    assert _error(client.get(f"/v1/comments/{alone}/replies", headers=auth), 404) == (
+        "COMMENT_NOT_FOUND"
+    )
+
+
+def test_replies_page_oldest_first(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create(client, auth, "Paging replies")
+    parent = _comment_id(client, auth, post_id, "Parent")
+    for n in range(3):
+        _comment_id(client, auth, post_id, f"Reply {n}", parent_id=parent)
+
+    page = client.get(f"/v1/comments/{parent}/replies", headers=auth, params={"limit": 2})
+    assert _bodies(page) == ["Reply 0", "Reply 1"]
+    assert page.json()["next_offset"] == 2
+    assert page.json()["data"][0]["depth"] == 1
+    rest = client.get(
+        f"/v1/comments/{parent}/replies", headers=auth, params={"offset": 2, "limit": 2}
+    )
+    assert _bodies(rest) == ["Reply 2"]
+    assert rest.json()["next_offset"] is None
+
+
+def test_comment_lists_hide_deleted_and_hub_posts(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    auth = _bearer(ada["access_token"])
+    post_id = _create(client, auth, "Soon deleted")
+    comment_id = _comment_id(client, auth, post_id, "On it")
+    assert client.delete(f"/v1/posts/{post_id}", headers=auth).status_code == 204
+    hub_post = _hub_post(ada["user"]["id"])
+    hub_comment = _insert_comment(hub_post, ada["user"]["id"])
+
+    for gone in (post_id, hub_post, str(uuid4())):
+        resp = client.get(f"/v1/posts/{gone}/comments", headers=auth)
+        assert _error(resp, 404) == "POST_NOT_FOUND"
+    for gone in (comment_id, hub_comment, str(uuid4())):
+        resp = client.get(f"/v1/comments/{gone}/replies", headers=auth)
+        assert _error(resp, 404) == "COMMENT_NOT_FOUND"
+
+
 def test_comment_routes_need_sign_in(client: TestClient) -> None:
     some_id = uuid4()
     assert client.post(f"/v1/posts/{some_id}/comments", json={"body": "Hi"}).status_code == 401
     assert client.get(f"/v1/comments/{some_id}").status_code == 401
     assert client.patch(f"/v1/comments/{some_id}", json={"body": "Hi"}).status_code == 401
     assert client.delete(f"/v1/comments/{some_id}").status_code == 401
+    assert client.get(f"/v1/posts/{some_id}/comments").status_code == 401
+    assert client.get(f"/v1/comments/{some_id}/replies").status_code == 401
