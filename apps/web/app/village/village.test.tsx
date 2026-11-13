@@ -83,9 +83,7 @@ test("with a role chosen, the profile step is done and verifying the role is nex
 
   const profile = step("Configurer votre profil");
   expect(within(profile).getByText("Fait")).toBeTruthy();
-  expect(within(profile).getByRole("link", { name: "Modifier mes réponses" }).getAttribute("href")).toBe(
-    "/fr/onboarding?step=role",
-  );
+  expect(within(profile).getByRole("link", { name: "Modifier mon profil" }).getAttribute("href")).toBe("/fr/profile");
   const verify = step("Obtenir votre Green Tick");
   expect(within(verify).getByText("À faire")).toBeTruthy();
   expect(within(verify).getByRole("link", { name: "Commencer la vérification" }).getAttribute("href")).toBe("/fr/verification");
