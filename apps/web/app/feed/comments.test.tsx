@@ -313,13 +313,13 @@ test("a reply is sent with the comment it answers, opens in place with focus, an
   fireEvent.click(opener);
   expect(opener.getAttribute("aria-expanded")).toBe("true");
   const field = box("Reply to Kwabena Owusu");
-  expect(document.activeElement).toBe(field);
+  await waitFor(() => expect(document.activeElement).toBe(field));
   type("Reply to Kwabena Owusu", "Good point");
   press("Reply");
   await screen.findByText("Good point");
   expect(sent("POST")!.body).toEqual({ body: "Good point", parent_id: "c1" });
   expect(screen.queryByRole("textbox", { name: "Reply to Kwabena Owusu" })).toBeNull();
-  expect(document.activeElement).toBe(opener);
+  await waitFor(() => expect(document.activeElement).toBe(opener));
   expect(within(document.getElementById("comment-c1")!).getByText("Good point")).toBeTruthy();
   expect(quiet("Reply posted")).toBe(true);
 });
@@ -337,7 +337,7 @@ test("only one box is open at a time, and a draft is kept only for the one that 
   expect(screen.queryByRole("textbox", { name: "Reply to Ama Mensah" })).toBeNull();
   fireEvent.keyDown(box("Edit your comment"), { key: "Escape" });
   expect(screen.queryByRole("textbox", { name: "Edit your comment" })).toBeNull();
-  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Edit" }));
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Edit" })));
 });
 
 test("an empty box sends nothing and says what to do", async () => {
@@ -346,7 +346,7 @@ test("an empty box sends nothing and says what to do", async () => {
   press("Comment");
   press("Comment");
   expect((await screen.findByRole("alert")).textContent).toBe("Write something first. An empty comment cannot be sent.");
-  expect(document.activeElement).toBe(box());
+  await waitFor(() => expect(document.activeElement).toBe(box()));
   expect(box().getAttribute("aria-invalid")).toBe("true");
   // spaces alone are empty too, and the message goes the moment there is text
   type("Write a comment", "   ");
@@ -450,7 +450,7 @@ test("a text the API turns down is said to be the problem, in the box", async ()
   type("Write a comment", "odd text");
   press("Comment");
   expect((await screen.findByRole("alert")).textContent).toBe("This could not be accepted. Look for an unusual character and try again.");
-  expect(document.activeElement).toBe(box());
+  await waitFor(() => expect(document.activeElement).toBe(box()));
 });
 
 test("a post that is gone, found out by a comment, is the page's own gone screen", async () => {
@@ -479,14 +479,14 @@ test("an edit replaces the text in place, says Edited, and returns focus to Edit
   fireEvent.click(opener);
   const field = box("Edit your comment") as HTMLTextAreaElement;
   expect(field.value).toBe("Body of c1");
-  expect(document.activeElement).toBe(field);
+  await waitFor(() => expect(document.activeElement).toBe(field));
   type("Edit your comment", "Better words");
   save();
   await screen.findByText("Better words");
   expect(sent("PATCH")).toEqual({ url: "/v1/comments/c1", body: { body: "Better words" } });
   expect(screen.getByText("Edited")).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "Edit your comment" })).toBeNull();
-  expect(document.activeElement).toBe(opener);
+  await waitFor(() => expect(document.activeElement).toBe(opener));
   expect(quiet("Comment saved")).toBe(true);
 });
 
@@ -519,7 +519,7 @@ test("deleting asks first, and a comment with replies stays as a note that keeps
   expect(within(document.getElementById("comment-c1")!).queryByRole("button", { name: /^(Edit|Delete)$/ })).toBeNull();
   expect(quiet("Comment deleted")).toBe(true);
   expect(screen.getAllByText("1 comment").length).toBe(2);
-  expect(document.activeElement?.id).toBe("comments-heading");
+  await waitFor(() => expect(document.activeElement?.id).toBe("comments-heading"));
 });
 
 test("a comment with no replies is removed, and backing out of the question deletes nothing", async () => {
