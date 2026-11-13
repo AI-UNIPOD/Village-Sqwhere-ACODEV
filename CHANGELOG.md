@@ -10,6 +10,8 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add the list my hubs endpoint (#67)
+- feat(api): add idea lifecycle endpoints (#65)
 - feat(web): add tooltips to the language and theme buttons (#63)
 - fix(web): scale the hero on wide screens and add a motion toggle (#62)
 - docs: let green pull requests merge without a teammate approval (#61)

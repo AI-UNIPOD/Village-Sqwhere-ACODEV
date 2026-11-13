@@ -2,11 +2,21 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, FetchedValue, ForeignKey, Text, UniqueConstraint, func
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    FetchedValue,
+    ForeignKey,
+    SmallInteger,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.lookups import Base
+from app.models.lookups import Base, Role
+from app.models.users import User
 
 
 class IdeaStage(StrEnum):
@@ -72,3 +82,30 @@ class Idea(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (UniqueConstraint("id", "author_id", name="ideas_id_author_uq"),)
+
+    author: Mapped[User] = relationship(lazy="selectin")
+    roles_needed: Mapped[list["IdeaRoleNeed"]] = relationship(
+        back_populates="idea",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="IdeaRoleNeed.role_id",
+    )
+
+
+class IdeaRoleNeed(Base):
+    """A role an idea owner is looking for in a collaboration team."""
+
+    __tablename__ = "idea_roles_needed"
+
+    idea_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("ideas.id", ondelete="CASCADE"), primary_key=True
+    )
+    role_id: Mapped[int] = mapped_column(
+        SmallInteger, ForeignKey("roles.id", ondelete="RESTRICT"), primary_key=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    idea: Mapped[Idea] = relationship(back_populates="roles_needed")
+    role: Mapped[Role] = relationship(lazy="selectin")
