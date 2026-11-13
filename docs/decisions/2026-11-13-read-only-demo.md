@@ -37,9 +37,11 @@ the web session, in three pull requests:
    join a demo hub. One rule, `same_world` in `apps/api/app/api/deps.py`, decides it from the
    user behind each row: a post's or idea's author, a hub's owner, a reviewed attempt's
    applicant.
-3. **Made-up content** from a seed script outside `infra/db/init/`, run by hand only where the
-   demo is wanted. Production never gets fake rows. Times are relative to when it runs, so the
-   feed reads "2 hours ago", and it can run again to refresh them.
+3. **Made-up content** from `apps/api/app/demo_seed.py` (`python -m app.demo_seed`), run by hand
+   only where the demo is wanted, never from `infra/db/init/`. Production never gets fake rows.
+   Times count back from when it runs, so the feed reads "2 hours ago". Running it again
+   rewrites the posts and comments with fresh times. The people, ideas and hubs stay, because
+   hubs and signatures cannot be deleted or rewritten.
 
 ## Options we considered
 

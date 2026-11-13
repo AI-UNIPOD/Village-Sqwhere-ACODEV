@@ -18,7 +18,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   delete, lists, threads and likes. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32+ chars) and keeps sign-in state in memory, so run one
   process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). `POST /v1/auth/demo`
-  signs in as a read-only demo account when `DEMO_ENABLED=true`.
+  signs in as a read-only demo account when `DEMO_ENABLED=true` (content: `app.demo_seed`).
 - Landing page at `/en` and `/fr` matches B3v design with motion and dark theme. Hero leads to
   sign-in; demo and tour show "Coming soon". GitHub sign-in works end to end with token refresh.
 - Below the hero, sections reveal once; the header pins as a pill while scrolling. Onboarding
@@ -35,13 +35,11 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    Systalink platform access, a deploy job in CI.
 4. Save the onboarding sectors with `PUT /v1/me/sectors`, then the country and a completion
    flag once the API has fields for them.
-5. Demo, from `docs/decisions/2026-11-13-read-only-demo.md`: the seed script with made-up
-   content, outside `infra/db/init/`. Sign-in, read-only and the wall are in.
-6. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-7. Web next: a French-speaking teammate's check of the copy.
-8. Before launch, move the session out of localStorage and sign-in state out of API memory
+5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
+6. Web next: a French-speaking teammate's check of the copy.
+7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
-9. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
+8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
    until then the merge agent enforces green checks (`docs/decisions/2026-11-13-merge-agent.md`).
 
 ## Open questions

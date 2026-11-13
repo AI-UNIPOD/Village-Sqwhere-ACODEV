@@ -316,6 +316,10 @@ Signs in as the shared demo account, for "Try the demo". No GitHub, no body.
   invite a demo account (`404 USER_NOT_FOUND`), and a real developer cannot ask to join a demo
   hub. The rule is `same_world` in `apps/api/app/api/deps.py`; a new list of shared content
   must use it too.
+* **Content:** `uv run --directory apps/api python -m app.demo_seed` fills a database with
+  made-up developers, posts, comments, ideas, hubs and a review case. It also creates the demo
+  account itself, so `POST /v1/auth/demo` answers `404` until it has run. Running it again
+  rewrites the posts and comments with fresh times.
 * Why: `docs/decisions/2026-11-13-read-only-demo.md`.
 
 ---
