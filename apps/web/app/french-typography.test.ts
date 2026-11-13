@@ -5,6 +5,7 @@ import { copy as landing } from "./landing/copy";
 import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
 import { copy as signIn } from "./sign-in/copy";
+import { copy as interview } from "./verification-interview/copy";
 import { copy as verification } from "./verification/copy";
 import { copy as village } from "./village/copy";
 
@@ -29,6 +30,7 @@ const french = strings([
   signIn.fr,
   verification.fr,
   village.fr,
+  interview.fr,
   ROLES.map((role) => [role.name.fr, role.hint.fr]),
   TECHNOLOGIES.map((tech) => tech.name.fr),
   TOPICS.map((topic) => topic.name.fr),

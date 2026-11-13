@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { SESSION_KEY, SignedOutError, apiFetch, parseSession, signOut } from "./session";
+import { SESSION_KEY, SignedOutError, accessToken, apiFetch, parseSession, signOut } from "./session";
 
 const fetchMock = vi.fn();
 const replace = vi.fn();
@@ -87,6 +87,23 @@ test("a refused refresh forgets the session and says the person is signed out", 
   fetchMock.mockResolvedValueOnce(reply(401, { detail: { code: "REFRESH_TOKEN_INVALID" } }));
   await expect(apiFetch("/v1/me")).rejects.toBeInstanceOf(SignedOutError);
   expect(localStorage.getItem(SESSION_KEY)).toBeNull();
+});
+
+test("the access token for a socket is the stored one while it is fresh", async () => {
+  store("2026-11-12T10:10:00Z");
+  expect(await accessToken()).toBe("access-old");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test("the access token for a socket is refreshed first when it is about to expire", async () => {
+  store("2026-11-12T10:00:20Z");
+  fetchMock.mockResolvedValueOnce(tokens("access-new", "rt_new"));
+  expect(await accessToken()).toBe("access-new");
+  expect(stored().refresh_token).toBe("rt_new");
+});
+
+test("with no session there is no access token", async () => {
+  await expect(accessToken()).rejects.toBeInstanceOf(SignedOutError);
 });
 
 test("with no session, nothing is sent", async () => {

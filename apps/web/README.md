@@ -31,6 +31,12 @@ a start form (public GitHub repositories and a consent box), then the attempt's 
 (repositories check, interview, peer review) read from `/v1/me/verifications`. It asks the API
 again every 5 seconds only while the AI is working, and never shows the API's English error text.
 
+The interview is `app/verification-interview/` (at `/en/verification/interview?id=`): a chat with
+the AI interviewer over the attempt's WebSocket. The socket opens only when the developer presses
+"Begin the interview", because the API ends the attempt for good if it closes early. While it is
+live the header shows no links (`AppFrame`'s `locked`), and the token for the socket's address
+comes from `accessToken()` in `app/session/session.ts`.
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is
