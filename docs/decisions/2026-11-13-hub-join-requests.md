@@ -44,6 +44,17 @@ decided the developer waits first, counted per developer and hub:
   show the date. The owner can still invite the developer at any time.
 - The two numbers live on the membership row (`infra/db/init/012-join-request-cooldown.sql`).
 
+### Update, 13 November 2026: withdrawing a request
+
+Tanny asked for developers to be able to take back their own request:
+`POST /v1/hubs/{hub_id}/join-request/withdraw`.
+
+- The row becomes `declined`, a request that did not go through, and is not deleted. The row
+  also holds the count of the owner's earlier declines, so deleting it would let a developer
+  wipe their wait by asking and withdrawing.
+- A withdrawal starts no wait, because the owner said nothing, and the developer may ask again
+  at once.
+
 ## Options we considered
 
 - **Sign the agreement when asking, and join on approval:** rejected. The owner might approve
@@ -52,8 +63,7 @@ decided the developer waits first, counted per developer and hub:
 - **Delete a declined request:** rejected. The developer would see no answer at all.
 - **Requests on the idea instead of the hub:** rejected. Only a hub has a team to join, and an
   idea without a hub has nobody to approve yet.
-- **Let a developer withdraw their own request:** not built yet. Nobody asked for it; the owner
-  can decline.
+- **Let a developer withdraw their own request:** left out at first; added below.
 - **Count declines across all hubs, or within a time window:** rejected by Tanny. The wait is
   between one developer and one owner, and any five in a row count.
 
