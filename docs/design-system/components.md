@@ -39,10 +39,18 @@ right edge. `--float-size` (36px) wide, `--radius-full`, 1px `--line-strong`, `-
 theme button shows a moon on Paper and a sun on Ink, turning into each other over
 `--dur-icon`, and its label says what a tap does ("Switch to dark mode").
 
-The hero's pause button uses the same round shape, under the logo square, with a
-`--icon-play` pause or play symbol. Anything that moves for more than five seconds has one,
-labelled with what it does ("Pause animation"), and it is hidden when the visitor asks for
-reduced motion, because nothing moves then.
+The hero's motion button is a pill, not a round button: `--float-size` (36px) high,
+`--radius-full`, 1px `--line-strong`, `--bg` fill, padding `--space-3` then `--space-4`, the
+`--icon-play` pause or play symbol and its words in `--type-label`, `--space-2` apart. It sits
+`--space-3` under the logo square: at its left edge beside the text, centred when they stack.
+Anything that moves for more than five seconds has one. The visible words are its name and say
+what a press does ("Pause animation", "Play animation"), with no pressed state. Keyboard focus
+uses the focus outline.
+
+It is always there once the page has loaded, also with reduced motion: the hero then starts
+still and the button offers "Play animation". The choice is kept in `localStorage` under
+`vs-motion` ("on" or "off") and wins over the system setting; with no choice the system
+setting decides and is followed when it changes.
 
 ## Icons
 
@@ -137,6 +145,12 @@ tile, no coloured edge. Errors use `role="alert"`, everything else `role="status
 trigger over `--dur-menu` and leave in 120ms. Menu items are 40px high. Arrow keys move,
 Esc closes, and focus returns to the trigger.
 
+A tooltip takes the small corner from Corner radius (`--radius-xs`), not `--radius-m`. It says
+what the button does in the same words as its `aria-label`, so screen readers skip it. A mouse
+gets it after `--delay-spinner`, the keyboard at once, a finger never, and the next one opens
+without waiting while another has just closed. Esc closes it. In code: `Tooltip` in
+`apps/web/app/tooltip.tsx`.
+
 ## Dialogs
 
 Native `<dialog>`, max 480px wide, `--surface-raised`, `--radius-l`, `--shadow-3`, over
@@ -187,8 +201,9 @@ leave content already on screen alone. An item counts as in view once 15% of it 
 above the bottom 8% of the screen. Those two numbers are set in code, not tokens.
 
 The scroll is the only motion that never ends, so it stops while the pointer rests on a
-word, with the hero's pause button, off screen, in a hidden tab and with reduced motion. It
-loops without a seam, and the text, the square and the button stay clear while it passes.
+word, with the hero's motion button, off screen, in a hidden tab and with reduced motion (unless
+the visitor plays it). It loops without a seam, and the text, the square and the button stay
+clear while it passes.
 
 Animate `transform` and `opacity` only. With reduced motion, keep fades and colour
 changes and remove movement. Never remove feedback.

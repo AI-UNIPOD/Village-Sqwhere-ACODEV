@@ -108,7 +108,7 @@ test("switches each country between English and French from one cycle to the nex
   }
 });
 
-const g = heroGeometry({ width: 1440, viewportHeight: 800, navHeight: 72, measureCopy: () => 240 });
+const g = heroGeometry({ width: 1440, viewportHeight: 800, navHeight: 72, copyPad: 32, measureCopy: () => 240 });
 const avoid = heroAvoid(g);
 const field = { runs: RUNS, cell: g.cell, x: g.x, y: g.y, width: 1440, height: g.height, avoid };
 
@@ -130,6 +130,23 @@ test("starts every name in the crowd on an even row, clear of the text, square a
       const key = `${p.sx + i}|${p.sy}`;
       expect(taken.has(key)).toBe(false);
       taken.add(key);
+    }
+  }
+});
+
+test("no name walks across the text block or the motion button on its way in or out", () => {
+  const [copy, , button] = avoid;
+  for (const cycle of [0, 1, 2, 3, 4, 5]) {
+    for (const p of planCycle({ ...field, cycle }).pieces) {
+      for (let k = 0; k <= p.steps; k++) {
+        const [cx, cy] = at(p, k);
+        const x0 = g.x + cx * g.cell;
+        const y0 = g.y + cy * g.cell;
+        for (const [ax0, ay0, ax1, ay1] of [copy, button]) {
+          const clear = x0 + p.len * g.cell <= ax0 || x0 >= ax1 || y0 + g.cell <= ay0 || y0 >= ay1;
+          expect(clear).toBe(true);
+        }
+      }
     }
   }
 });
@@ -179,6 +196,9 @@ test("packs the crowd edge to edge without covering the text, the square or the 
       expect(clear).toBe(true);
     }
   }
+  // the crowd spans the whole width, edge to edge, not only the content column
+  expect(Math.min(...words.map((w) => w.x))).toBeLessThanOrEqual(6 + 6);
+  expect(Math.max(...words.map((w) => w.x + w.w))).toBeGreaterThanOrEqual(1440 - 6 - 6);
 });
 
 // ---------- the scroll ----------

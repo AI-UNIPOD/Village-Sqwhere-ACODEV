@@ -63,7 +63,7 @@ test("the welcome screen greets the developer and offers to set up or skip", () 
   start();
   expect(heading("Welcome to the village, Aminata.")).toBeTruthy();
   expect(screen.getByText("Signed in with GitHub as @aminata-builds")).toBeTruthy();
-  expect(screen.getByLabelText("Pause animation")).toBeTruthy();
+  expect(document.querySelector("section > button")?.textContent).toContain("Pause animation");
   expect(screen.getByRole("link", { name: "Français" }).getAttribute("href")).toBe("/fr/onboarding");
 
   click("button", "Set up my profile");

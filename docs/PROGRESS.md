@@ -7,15 +7,16 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 
 - Monorepo: `apps/web` (Next.js 16, landing page in English and French), `apps/api` (FastAPI
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
-- Team rules are in `AGENTS.md`. The `ci` workflow is switched off since an account billing
-  limit blocked GitHub Actions, so everything after #33 (up to #59) landed on local checks.
+- Team rules are in `AGENTS.md`. GitHub Actions is off (billing limit), so a merge agent on
+  Tanny's PC runs the CI checks and merges green pull requests (not in this repository).
 - The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics and
   verification (GitHub analysis, a five-question AI interview over a WebSocket, a report) with
   peer review by developers verified in that role, Groq and Gemini fallbacks and a separate
   worker. Guide: `docs/backend.md`; routes: `docs/architecture.md`.
-- Hubs so far: `GET /v1/agreements/current` and `POST /v1/hubs`; ideas and posts have models
-  but no routes. Schema: `infra/db/init/` (new scripts need a rebuilt local database, see
-  `infra/README.md`); `004` is a TEST agreement. API tests need `TEST_DATABASE_URL`.
+- Ideas are private drafts with required roles, then published for signed-in developers to
+  discover, then closed; the confidential brief stays owner-only. `POST /v1/hubs` creates a
+  signed hub from an open idea. Posts and other hub routes have no API yet. Schema:
+  `infra/db/init/`; `004` is a TEST agreement. API tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
@@ -36,10 +37,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 
 ## What's next
 
-1. Fix the GitHub Actions billing limit, turn the `ci` workflow back on and re-run CI on `main`.
-2. Build the remaining hub endpoints on the new models, then the rest of the core flow from PRD v2.2:
-   share an idea, AI matching, the owner approving the team and the four hub phases. The PRD
-   is not in this repository yet; ask Tanny for it before starting.
+1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
+2. Build AI matching on published ideas, then the owner's team approval, invitations and the
+   four hub phases. Ask Tanny for the PRD before any product decision it must settle.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
 4. Save onboarding answers via the API once its gaps 1, 2, 3 and 6 close.
@@ -50,7 +50,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
 8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
-   until then rules hold by agreement (`docs/decisions/2026-11-04-team-workflow-and-ci.md`).
+   until then the merge agent enforces green checks (`docs/decisions/2026-11-13-merge-agent.md`).
 
 ## Open questions
 
