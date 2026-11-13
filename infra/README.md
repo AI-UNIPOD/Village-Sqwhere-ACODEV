@@ -32,6 +32,7 @@ They run in file name order, once, on an empty database:
 | `009-verification-interview-conversation.sql` | Adds `welcome_message` and `closing_message` to `verification_interviews` and `acknowledgement` to `verification_interview_turns`, if they are missing. On an empty database it changes nothing, because `007` already creates them. Running it twice is safe. |
 | `010-sectors.sql` | `sectors` (the ten areas onboarding asks about, such as `fintech` and `health`) and `user_sectors` (each developer's chosen set). Running it twice is safe, so a database made before it can run it once by hand. |
 | `011-demo-account.sql` | `users.is_demo`, which marks every account in the read-only demo: the shared account "Try the demo" signs in as, and the made-up developers whose content it shows. Running it twice is safe. |
+| `012-join-request-cooldown.sql` | `hub_members.declines_in_a_row` and `hub_members.can_ask_again_at`: how long a developer the owner turned down waits before asking that hub again (48 hours, or 30 days after five declines in a row). Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:

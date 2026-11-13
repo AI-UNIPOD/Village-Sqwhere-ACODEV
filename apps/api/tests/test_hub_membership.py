@@ -1,7 +1,7 @@
 """Joining a hub: invitations, the agreement, the member list and the confidential brief."""
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from itertools import permutations
 from typing import Any
 from uuid import uuid4
@@ -598,7 +598,19 @@ def test_a_developer_asks_to_join_and_the_owner_approves(client: TestClient) -> 
     assert membership(hub, developer).status == HubMemberStatus.ACTIVE
 
 
-def test_the_owner_declines_and_the_developer_may_ask_again(client: TestClient) -> None:
+def wait_out(hub: Hub, user: User) -> None:
+    """As if the developer's wait after a decline had passed."""
+    set_membership(hub, user, can_ask_again_at=datetime.now(UTC) - timedelta(seconds=1))
+
+
+def cooling_until(response: Any) -> datetime:
+    assert_error(response, 409, "REQUEST_COOLING_DOWN")
+    return datetime.fromisoformat(response.json()["detail"]["can_ask_again_at"])
+
+
+def test_the_owner_declines_and_the_developer_may_ask_again_after_48_hours(
+    client: TestClient,
+) -> None:
     owner, developer = make_user(), make_user()
     hub = make_hub(owner)
     assert ask(client, hub, developer).status_code == 201
@@ -610,8 +622,68 @@ def test_the_owner_declines_and_the_developer_may_ask_again(client: TestClient) 
     viewer = client.get(f"/v1/hubs/{hub.id}", headers=auth(developer)).json()["data"]["viewer"]
     assert viewer["membership_status"] == "declined"
     assert_error(accept(client, hub, developer), 404, "INVITATION_NOT_FOUND")
+    until = cooling_until(ask(client, hub, developer))
+    assert abs(until - (datetime.now(UTC) + timedelta(hours=48))) < timedelta(minutes=1)
+    assert membership(hub, developer).status == HubMemberStatus.DECLINED
+
+    wait_out(hub, developer)
     assert ask(client, hub, developer).status_code == 201
     assert membership(hub, developer).status == HubMemberStatus.REQUESTED
+
+
+def test_the_fifth_decline_in_a_row_means_30_days_then_the_count_starts_again(
+    client: TestClient,
+) -> None:
+    owner, developer = make_user(), make_user()
+    hub = make_hub(owner)
+    for _ in range(4):
+        assert ask(client, hub, developer).status_code == 201
+        assert answer(client, hub, owner, developer, "decline").status_code == 200
+        until = cooling_until(ask(client, hub, developer))
+        assert until - datetime.now(UTC) < timedelta(hours=49)
+        wait_out(hub, developer)
+
+    assert ask(client, hub, developer).status_code == 201
+    assert answer(client, hub, owner, developer, "decline").status_code == 200
+
+    until = cooling_until(ask(client, hub, developer))
+    assert abs(until - (datetime.now(UTC) + timedelta(days=30))) < timedelta(minutes=1)
+    assert membership(hub, developer).declines_in_a_row == 0
+    wait_out(hub, developer)
+    assert ask(client, hub, developer).status_code == 201
+    assert answer(client, hub, owner, developer, "decline").status_code == 200
+    until = cooling_until(ask(client, hub, developer))
+    assert until - datetime.now(UTC) < timedelta(hours=49)
+
+
+def test_approval_or_joining_clears_the_count(client: TestClient) -> None:
+    owner, developer = make_user(), make_user()
+    hub = make_hub(owner)
+    assert ask(client, hub, developer).status_code == 201
+    assert answer(client, hub, owner, developer, "decline").status_code == 200
+    wait_out(hub, developer)
+    assert ask(client, hub, developer).status_code == 201
+
+    assert answer(client, hub, owner, developer, "approve").status_code == 200
+
+    stored = membership(hub, developer)
+    assert (stored.declines_in_a_row, stored.can_ask_again_at) == (0, None)
+
+    invited = make_user()
+    add_member(hub, invited, HubMemberStatus.INVITED)
+    set_membership(hub, invited, declines_in_a_row=3)
+    assert accept(client, hub, invited).status_code == 200
+    assert membership(hub, invited).declines_in_a_row == 0
+
+
+def test_a_decline_only_holds_back_asking_the_same_hub(client: TestClient) -> None:
+    developer, owner = make_user(), make_user()
+    turned_down, other = make_hub(owner), make_hub(make_user())
+    assert ask(client, turned_down, developer).status_code == 201
+    assert answer(client, turned_down, owner, developer, "decline").status_code == 200
+
+    assert_error(ask(client, turned_down, developer), 409, "REQUEST_COOLING_DOWN")
+    assert ask(client, other, developer).status_code == 201
 
 
 def test_someone_who_left_or_was_removed_may_ask_again(client: TestClient) -> None:

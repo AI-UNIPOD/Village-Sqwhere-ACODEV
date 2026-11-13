@@ -1053,18 +1053,26 @@ The invited person says no. Answers `200` with the hub card, `viewer.membership_
 A developer asks to join a hub, usually from an open idea's `hub_id`. No body. Answers `201`
 with the hub card, `viewer.membership_status: "requested"`. The owner answers with approve or
 decline below. The developer finds their pending requests with `GET /v1/me/hubs?status=requested`.
-Someone who declined, left, was removed or was turned down may ask again.
+Someone who declined, left or was removed may ask again. Someone the owner turned down waits
+first: 48 hours after each decline, and 30 days after the fifth decline in a row from the same
+hub, after which the count starts again. Approval or joining clears the count.
 
 * **Errors:** `404 NOT_FOUND` (no such hub), `409 HUB_ARCHIVED`, `409 IDEA_CLOSED` (the idea is
   not looking for people), `409 TEAM_FULL`, `409 ALREADY_MEMBER`, `409 ALREADY_INVITED` (accept
-  the invitation instead), `409 ALREADY_REQUESTED`.
+  the invitation instead), `409 ALREADY_REQUESTED`, and `409 REQUEST_COOLING_DOWN`, whose
+  `detail` also has `can_ask_again_at` (ISO 8601, UTC) for the screen to show:
+  ```json
+  { "detail": { "code": "REQUEST_COOLING_DOWN", "message": "...",
+                "can_ask_again_at": "2026-11-15T18:30:00+00:00" } }
+  ```
 
 #### `POST /v1/hubs/{hub_id}/members/{user_id}/approve` and `.../decline`
 
 The owner answers a pending request. Both answer `200` with the member card. Approving turns
 the request into an invitation (`status: "invited"`): the developer then reads the agreement
 and joins with `POST /v1/hubs/{hub_id}/invitation/accept`, the same as anyone invited. Declining
-sets `status: "declined"`. Inviting a developer who has a pending request approves it too.
+sets `status: "declined"` and starts the developer's wait before asking again (above).
+Inviting a developer who has a pending request approves it too.
 
 * **Errors:** `403 NOT_HUB_OWNER`, `404 REQUEST_NOT_FOUND` (no pending request from this
   person), and for approve only `409 HUB_ARCHIVED` and `409 TEAM_FULL` (the request stays
