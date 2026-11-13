@@ -470,7 +470,10 @@ def test_list_posts_pages_newest_first_and_hides_deleted_and_hub_posts(
     last = client.get("/v1/posts", headers=auth, params={"limit": 2, "offset": 2})
     assert _bodies(last) == ["Lagos"]
     assert last.json()["next_offset"] is None
-    assert _bodies(client.get("/v1/posts", headers=auth, params={"type": "hub_milestone"})) == []
+
+    hub_resp = client.get("/v1/posts", headers=auth, params={"type": "hub_milestone"})
+    assert hub_resp.status_code == 422
+    assert hub_resp.json()["detail"]["code"] == "HUB_MILESTONE_NOT_SUPPORTED"
 
 
 def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in) -> None:
@@ -487,8 +490,23 @@ def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in
     assert bodies(topic="rust") == ["Moussa asks", "Ada shares"]
     assert bodies(author="ADA-lagos") == ["Ada shares", "Ada asks"]
     assert bodies(type="question", topic="rust") == ["Moussa asks"]
-    assert bodies(topic="no-such-topic") == []
+
+    # Multiple topics combine with OR
+    multi_resp = client.get(
+        "/v1/posts",
+        headers=ada_auth,
+        params=[("topic", "python"), ("topic", "rust")],
+    )
+    assert _bodies(multi_resp) == ["Moussa asks", "Ada shares", "Ada asks"]
+
+    # Unknown author returns 200 with empty list
     assert bodies(author="nobody-here") == []
+
+    # Unknown topic returns 422 UNKNOWN_TOPIC
+    unknown_topic = client.get("/v1/posts", headers=ada_auth, params={"topic": "no-such-topic"})
+    assert unknown_topic.status_code == 422
+    assert unknown_topic.json()["detail"]["code"] == "UNKNOWN_TOPIC"
+
     for bad in (
         {"type": "meme"},
         {"topic": "a" + chr(0)},
@@ -506,6 +524,7 @@ def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> N
     _create(client, moussa_auth, "Moussa on Python", topics=["python"])
     _create(client, moussa_auth, "Moussa on Rust", topics=["rust"])
     _create(client, ada_auth, "Ada with no topic")
+    _create(client, ada_auth, "Ada on Python", topics=["python"])
 
     def feed_with(topics: list[str]) -> list[str]:
         resp = client.put("/v1/me/feed-topics", headers=ada_auth, json={"technologies": topics})
@@ -513,8 +532,17 @@ def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> N
         return _bodies(client.get("/v1/feed", headers=ada_auth))
 
     try:
-        assert feed_with([]) == ["Ada with no topic", "Moussa on Rust", "Moussa on Python"]
-        assert feed_with(["python", "docker"]) == ["Ada with no topic", "Moussa on Python"]
+        # Feed with no topics returns global feed
+        assert feed_with([]) == [
+            "Ada on Python",
+            "Ada with no topic",
+            "Moussa on Rust",
+            "Moussa on Python",
+        ]
+        # Feed with topics returns only matching posts (including viewer's own matching posts)
+        assert feed_with(["python", "docker"]) == ["Ada on Python", "Moussa on Python"]
+        # Feed with topics and no matches returns an empty list
+        assert feed_with(["docker"]) == []
     finally:
         feed_with([])
 
