@@ -1125,7 +1125,7 @@ The Developer Exchange allows developers to share knowledge, questions, releases
 | :--- | :--- | :--- |
 | `POST_NOT_FOUND` | 404 | Post does not exist, is soft-deleted, or belongs to a hub |
 | `NOT_POST_AUTHOR` | 403 | Attempt to edit or delete another user's post |
-| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Attempt to create a post with `type = "hub_milestone"` |
+| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Attempt to create a post or filter by `type = "hub_milestone"` |
 | `UNKNOWN_TOPIC` | 422 | A topic slug does not exist in the technologies table |
 | `EMPTY_UPDATE` | 422 | PATCH body contains no fields |
 | `TOO_MANY_TOPICS` | 422 | More than 5 topics submitted |
@@ -1243,12 +1243,11 @@ List visible posts, newest first. Deleted posts and hub posts never appear.
 
 * **Authentication:** Required (Bearer token)
 * **Query parameters (all optional, combine freely):**
-  * `type`: one post type, for example `question`. An unknown type returns 422.
-  * `topic`: one technology slug, for example `python`.
-  * `author`: a username, in any case. The profile page lists a developer's posts with it.
+  * `type`: one post type, for example `question`. `type = "hub_milestone"` returns HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`. An unknown type returns 422.
+  * `topic`: technology slug, repeatable (for example `?topic=python&topic=postgresql`). Multiple topics combine with OR. An unknown topic returns HTTP 422 `UNKNOWN_TOPIC`.
+  * `author`: a username, in any case. The profile page lists a developer's posts with it. An unknown author returns HTTP 200 with an empty list.
   * `offset` (default 0, at most 100000) and `limit` (default 20, at most 50).
-* An unknown topic or author returns an empty list. A malformed one (not a slug or a
-  username) returns 422.
+* A malformed query value (not a slug or username) returns HTTP 422.
 * **Success Response (200 OK):**
   ```json
   {
@@ -1266,8 +1265,7 @@ List visible posts, newest first. Deleted posts and hub posts never appear.
 The signed-in developer's feed, newest first, paged like `GET /v1/posts`.
 
 * **Authentication:** Required (Bearer token)
-* Shows posts that share a topic with the developer's feed topics (`PUT /v1/me/feed-topics`),
-  plus every post they wrote.
+* Shows posts that share a topic with the developer's feed topics (`PUT /v1/me/feed-topics`). The developer's own posts appear only when they match a feed topic.
 * With no feed topics chosen, it shows every post. `GET /v1/me` tells the app whether
   `feed_topics` is empty, so it can invite the developer to pick some.
 * New posts can shift later pages, so skip post ids already on screen.
@@ -1280,11 +1278,26 @@ The signed-in developer's feed, newest first, paged like `GET /v1/posts`.
 Like or unlike a post, save or unsave it.
 
 * **Authentication:** Required (Bearer token). Anyone signed in, the author included.
-* `PUT` adds the like or save, `DELETE` removes it. Both are safe to send again: a second
-  like changes nothing and `like_count` counts each developer once.
-* **Success Response (204 No Content):** Empty body. Read `like_count`, `liked_by_me` and
-  `saved_by_me` from the post when you need the new values.
-* A missing, deleted or hub post returns HTTP 404 `POST_NOT_FOUND`.
+* `PUT` adds the like or save, `DELETE` removes it. Both are safe to send again.
+* **PUT /v1/posts/{post_id}/like Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "liked": true,
+      "like_count": 1
+    }
+  }
+  ```
+* **PUT /v1/posts/{post_id}/save Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "saved": true
+    }
+  }
+  ```
+* **DELETE Success Response (204 No Content):** Empty body for both `DELETE /like` and `DELETE /save`.
+* A missing, deleted or hub post returns HTTP 404 `POST_NOT_FOUND`. A like or save that waits on an uncommitted delete returns 404 once the delete commits.
 
 ---
 

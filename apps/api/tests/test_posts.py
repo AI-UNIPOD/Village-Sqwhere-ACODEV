@@ -521,6 +521,23 @@ def test_a_second_delete_that_waits_on_the_first_answers_404(client: TestClient,
     assert asyncio.run(reason()) == DeletionReason.AUTHOR
 
 
+def test_a_like_that_waits_on_a_delete_answers_404(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    moussa = sign_in("github-code-moussa")
+    ada_auth = _bearer(ada["access_token"])
+    moussa_auth = _bearer(moussa["access_token"])
+    post_id = _create(client, ada_auth, "Ajo savings tracker")
+
+    resp = _while_a_delete_is_uncommitted(
+        post_id,
+        ada["user"]["id"],
+        lambda http: http.put(f"/v1/posts/{post_id}/like", headers=moussa_auth),
+    )
+
+    assert resp.status_code == 404, resp.text
+    assert resp.json()["detail"]["code"] == "POST_NOT_FOUND"
+
+
 # --- Lists and the feed ----------------------------------------------------------------------
 
 
@@ -566,7 +583,9 @@ def test_list_posts_pages_newest_first_and_hides_deleted_and_hub_posts(
     last = client.get("/v1/posts", headers=auth, params={"limit": 2, "offset": 2})
     assert _bodies(last) == ["Lagos"]
     assert last.json()["next_offset"] is None
-    assert _bodies(client.get("/v1/posts", headers=auth, params={"type": "hub_milestone"})) == []
+    hub_type = client.get("/v1/posts", headers=auth, params={"type": "hub_milestone"})
+    assert hub_type.status_code == 422
+    assert hub_type.json()["detail"]["code"] == "HUB_MILESTONE_NOT_SUPPORTED"
 
 
 def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in) -> None:
@@ -574,17 +593,29 @@ def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in
     moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
     _create(client, ada_auth, "Ada asks", type="question", topics=["python"])
     _create(client, ada_auth, "Ada shares", topics=["rust"])
+    _create(client, ada_auth, "Ada on both", topics=["python", "rust"])
     _create(client, moussa_auth, "Moussa asks", type="question", topics=["rust"])
 
-    def bodies(**params: str) -> list[str]:
-        return _bodies(client.get("/v1/posts", headers=ada_auth, params=params))
+    def bodies(*topic_list: str, **params: str) -> list[str]:
+        p = list(params.items())
+        for t in topic_list:
+            p.append(("topic", t))
+        return _bodies(client.get("/v1/posts", headers=ada_auth, params=p))
 
     assert bodies(type="question") == ["Moussa asks", "Ada asks"]
-    assert bodies(topic="rust") == ["Moussa asks", "Ada shares"]
-    assert bodies(author="ADA-lagos") == ["Ada shares", "Ada asks"]
-    assert bodies(type="question", topic="rust") == ["Moussa asks"]
-    assert bodies(topic="no-such-topic") == []
+    assert bodies("rust") == ["Moussa asks", "Ada on both", "Ada shares"]
+    assert bodies("python", "rust") == ["Moussa asks", "Ada on both", "Ada shares", "Ada asks"]
+    assert bodies(author="ADA-lagos") == ["Ada on both", "Ada shares", "Ada asks"]
+    assert bodies("rust", type="question") == ["Moussa asks"]
     assert bodies(author="nobody-here") == []
+
+    unknown_topic = client.get("/v1/posts", headers=ada_auth, params={"topic": "no-such-topic"})
+    assert unknown_topic.status_code == 422
+    assert unknown_topic.json()["detail"] == {
+        "code": "UNKNOWN_TOPIC",
+        "message": "Unknown topic slug: no-such-topic",
+    }
+
     for bad in (
         {"type": "meme"},
         {"topic": "a" + chr(0)},
@@ -602,6 +633,9 @@ def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> N
     _create(client, moussa_auth, "Moussa on Python", topics=["python"])
     _create(client, moussa_auth, "Moussa on Rust", topics=["rust"])
     _create(client, ada_auth, "Ada with no topic")
+    _create(client, ada_auth, "Ada on Python", topics=["python"])
+    gone = _create(client, moussa_auth, "Moussa deleted", topics=["python"])
+    assert client.delete(f"/v1/posts/{gone}", headers=moussa_auth).status_code == 204
 
     def feed_with(topics: list[str]) -> list[str]:
         resp = client.put("/v1/me/feed-topics", headers=ada_auth, json={"technologies": topics})
@@ -609,8 +643,14 @@ def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> N
         return _bodies(client.get("/v1/feed", headers=ada_auth))
 
     try:
-        assert feed_with([]) == ["Ada with no topic", "Moussa on Rust", "Moussa on Python"]
-        assert feed_with(["python", "docker"]) == ["Ada with no topic", "Moussa on Python"]
+        assert feed_with([]) == [
+            "Ada on Python",
+            "Ada with no topic",
+            "Moussa on Rust",
+            "Moussa on Python",
+        ]
+        assert feed_with(["python", "docker"]) == ["Ada on Python", "Moussa on Python"]
+        assert feed_with(["docker"]) == []
     finally:
         feed_with([])
 
@@ -631,7 +671,9 @@ def test_like_is_counted_once_per_developer_and_shown_to_each_viewer(
     post_id = _create(client, moussa_auth, "Offline sync with CRDTs")
 
     for _ in range(2):
-        assert client.put(f"/v1/posts/{post_id}/like", headers=ada_auth).status_code == 204
+        like_resp = client.put(f"/v1/posts/{post_id}/like", headers=ada_auth)
+        assert like_resp.status_code == 200
+        assert like_resp.json()["data"] == {"liked": True, "like_count": 1}
     ada_view = client.get(f"/v1/posts/{post_id}", headers=ada_auth).json()["data"]
     assert (ada_view["like_count"], ada_view["liked_by_me"]) == (1, True)
     moussa_view = client.get("/v1/posts", headers=moussa_auth).json()["data"][0]
@@ -651,7 +693,9 @@ def test_saved_posts_list_newest_save_first_for_me_only(client: TestClient, sign
     gone = _create(client, moussa_auth, "Deleted later")
     unsaved = _create(client, moussa_auth, "Unsaved later")
     for post_id in (newer, older, gone, unsaved, older):
-        assert client.put(f"/v1/posts/{post_id}/save", headers=ada_auth).status_code == 204
+        save_resp = client.put(f"/v1/posts/{post_id}/save", headers=ada_auth)
+        assert save_resp.status_code == 200
+        assert save_resp.json()["data"] == {"saved": True}
     assert client.delete(f"/v1/posts/{unsaved}/save", headers=ada_auth).status_code == 204
     assert client.delete(f"/v1/posts/{gone}", headers=moussa_auth).status_code == 204
 
@@ -659,6 +703,15 @@ def test_saved_posts_list_newest_save_first_for_me_only(client: TestClient, sign
     assert _bodies(saved) == ["Older post", "Newer post"]
     assert all(post["saved_by_me"] for post in saved.json()["data"])
     assert _bodies(client.get("/v1/me/saved-posts", headers=moussa_auth)) == []
+
+    first_page = client.get("/v1/me/saved-posts", headers=ada_auth, params={"limit": 1})
+    assert _bodies(first_page) == ["Older post"]
+    assert first_page.json()["next_offset"] == 1
+    second_page = client.get(
+        "/v1/me/saved-posts", headers=ada_auth, params={"limit": 1, "offset": 1}
+    )
+    assert _bodies(second_page) == ["Newer post"]
+    assert second_page.json()["next_offset"] is None
 
 
 def test_like_and_save_refuse_missing_and_deleted_posts(client: TestClient, sign_in) -> None:

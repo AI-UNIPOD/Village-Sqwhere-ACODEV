@@ -110,3 +110,20 @@ class PostItemResponse(BaseModel):
 class PostListResponse(BaseModel):
     data: list[PostResponse]
     next_offset: int | None = None
+
+
+class PostLikeData(BaseModel):
+    liked: bool
+    like_count: int
+
+
+class PostLikeResponse(BaseModel):
+    data: PostLikeData
+
+
+class PostSaveData(BaseModel):
+    saved: bool
+
+
+class PostSaveResponse(BaseModel):
+    data: PostSaveData

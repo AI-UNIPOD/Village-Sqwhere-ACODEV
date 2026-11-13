@@ -13,14 +13,15 @@ can have no topics at all.
 
 Chosen on 2026-11-13 by the developer who owns the feed and posts API:
 
-1. The feed shows posts that share at least one topic with your feed topics, plus every post
-   you wrote.
+1. The feed shows posts that share at least one topic with your feed topics. Your own
+   posts appear only when they match.
 2. With no feed topics chosen, the feed shows every post, so a new developer never opens an
    empty feed. The web app already knows from `GET /v1/me` whether topics are set, so it can
    invite the developer to pick some.
-3. `GET /v1/posts` lists every visible post and filters by `type`, `topic` (one technology
-   slug) and `author` (username, any case). An unknown topic or author gives an empty list,
-   not an error. The profile page uses `?author=` instead of a separate
+3. `GET /v1/posts` lists every visible post and filters by `type`, `topic` (repeatable technology
+   slug, combined with OR) and `author` (username, any case). An unknown topic answers 422
+   `UNKNOWN_TOPIC`. `type=hub_milestone` answers 422 `HUB_MILESTONE_NOT_SUPPORTED`. An unknown
+   author gives an empty list. The profile page uses `?author=` instead of a separate
    `GET /v1/users/{username}/posts`.
 4. Both lists use the offset pagination of `2026-11-11-posts-pagination-and-visibility.md`,
    newest first, and hide deleted and hub posts like every other read path.
@@ -29,8 +30,8 @@ Chosen on 2026-11-13 by the developer who owns the feed and posts API:
 
 - Only matching posts, empty feed without topics: rejected, a new developer would see
   nothing and think the product is broken.
-- Leaving your own posts out: rejected, a developer who posts without a topic would not find
-  the post in their own feed.
+- Forcing your own posts into the feed regardless of topic: rejected. The feed is
+  strictly a topic feed. Developers find their own posts on their profile.
 - Ranking by likes or comments: not needed with few posts; newest first is easy to explain.
 - A separate `GET /v1/users/{username}/posts`: rejected, it would repeat `?author=`.
 
