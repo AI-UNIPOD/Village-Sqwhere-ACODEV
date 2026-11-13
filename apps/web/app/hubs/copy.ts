@@ -111,6 +111,8 @@ type Copy = {
     noHub: string;
     member: string;
     closed: string;
+    wait: string;
+    waitLater: string;
     loadFailed: string;
   };
   waiting: { heading: string; owner: string };
@@ -312,6 +314,8 @@ const en: Copy = {
     noHub: "The owner has not opened a hub yet, so there is nothing to join for now. Come back later.",
     member: "You are already in this team.",
     closed: "This idea is no longer looking for people, so its hub takes no requests.",
+    wait: "The owner turned down your last request. You can ask again from {date}.",
+    waitLater: "The owner turned down your last request. You can ask again later.",
     loadFailed: "We couldn't check where you stand with this hub. Nothing was changed, so try again.",
   },
   waiting: { heading: "Waiting for the owner", owner: "Owner: {name}" },
@@ -531,6 +535,8 @@ const fr: Copy = {
     noHub: "Le porteur n'a pas encore ouvert d'espace, il n'y a donc rien à rejoindre pour l'instant. Revenez plus tard.",
     member: "Vous êtes déjà dans cette équipe.",
     closed: "Cette idée ne recherche plus personne, son espace n'accepte donc plus de demandes.",
+    wait: "Le porteur a refusé votre dernière demande. Vous pourrez redemander à partir du {date}.",
+    waitLater: "Le porteur a refusé votre dernière demande. Vous pourrez redemander plus tard.",
     loadFailed: "Nous n'avons pas pu vérifier où vous en êtes avec cet espace. Rien n'a été modifié, réessayez.",
   },
   waiting: { heading: "En attente du porteur", owner: "Porteur\u202f: {name}" },

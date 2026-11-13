@@ -924,7 +924,8 @@ see the hub before answering. Archived hubs can still be read.
   ```
   Both are `null` when the caller has never been a member. `membership_status` is one of
   `requested`, `invited`, `active`, `declined`, `left` or `removed`, and `member_role` is
-  `owner` or `member`. `member_count` counts active members only. The idea's confidential
+  `owner` or `member`. `viewer.can_ask_again_at` is when a developer the owner turned down
+  may ask to join again (see the join request wait below), and `null` when there is no wait. `member_count` counts active members only. The idea's confidential
   details and the agreement signatures are never part of the card, whoever asks.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
   id), `422` (the id is not a UUID).
@@ -1222,7 +1223,7 @@ The Developer Exchange allows developers to share knowledge, questions, releases
 | :--- | :--- | :--- |
 | `POST_NOT_FOUND` | 404 | Post does not exist, is soft-deleted, or belongs to a hub |
 | `NOT_POST_AUTHOR` | 403 | Attempt to edit or delete another user's post |
-| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Attempt to create a post with `type = "hub_milestone"` |
+| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Creating a post with `type = "hub_milestone"`, or asking the post list for that type |
 | `UNKNOWN_TOPIC` | 422 | A topic slug does not exist in the technologies table |
 | `EMPTY_UPDATE` | 422 | PATCH body contains no fields |
 | `TOO_MANY_TOPICS` | 422 | More than 5 topics submitted |
@@ -1341,8 +1342,11 @@ List visible posts, newest first. Deleted posts and hub posts never appear.
 
 * **Authentication:** Required (Bearer token)
 * **Query parameters (all optional, combine freely):**
-  * `type`: one post type, for example `question`. An unknown type returns 422.
-  * `topic`: one technology slug, for example `python`.
+  * `type`: one post type, for example `question`. An unknown type returns 422, and
+    `type=hub_milestone` returns 422 `HUB_MILESTONE_NOT_SUPPORTED`, the same as creating one.
+  * `topic`: a technology slug, for example `python`. Repeat it to match any of several:
+    `?topic=python&topic=react`. A post appears once if it has any of them, and a request
+    may give at most 10 topics.
   * `author`: a username, in any case. The profile page lists a developer's posts with it.
   * `offset` (default 0, at most 100000) and `limit` (default 20, at most 50).
 * An unknown topic or author returns an empty list. A malformed one (not a slug or a

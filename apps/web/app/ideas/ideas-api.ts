@@ -24,12 +24,14 @@ export type IdeaFields = { title: string; summary: string; details: string; stag
 export const LIMITS = { titleMin: 5, titleMax: 150, summaryMin: 20, summaryMax: 1000, detailsMax: 20000 };
 
 // The API refused the request. `code` is its own code ("NOT_FOUND", "UNKNOWN_ROLE"...), or
-// "INVALID" for a field it turned down, with the field's name in `field`.
+// "INVALID" for a field it turned down, with the field's name in `field`. `detail` is whatever
+// else the refusal carries, such as the date a wait ends.
 export class IdeaError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
     readonly field?: string,
+    readonly detail?: Record<string, unknown>,
   ) {
     super(`${status} ${code}`);
   }
@@ -45,7 +47,8 @@ export async function call<T>(path: string, method = "GET", body?: unknown): Pro
   const detail = answer?.detail;
   // a field error is a list, each item naming its field last in `loc`
   if (Array.isArray(detail)) throw new IdeaError(response.status, "INVALID", String(detail[0]?.loc?.at(-1) ?? ""));
-  throw new IdeaError(response.status, typeof detail?.code === "string" ? detail.code : "UNKNOWN");
+  if (typeof detail?.code === "string") throw new IdeaError(response.status, detail.code, undefined, detail);
+  throw new IdeaError(response.status, "UNKNOWN");
 }
 
 export const loadMyIdeas = (offset = 0) =>

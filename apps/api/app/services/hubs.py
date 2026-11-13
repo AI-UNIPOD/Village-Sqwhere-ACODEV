@@ -1,5 +1,6 @@
 """Rules the hub endpoints share, kept in one place."""
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -55,6 +56,7 @@ async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
         .execution_options(populate_existing=True)
     )
     viewer = membership.scalar_one_or_none()
+    wait = viewer.can_ask_again_at if viewer else None
     return HubCard(
         id=hub.id,
         name=hub.name,
@@ -73,5 +75,6 @@ async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
         viewer=HubViewer(
             membership_status=viewer.status if viewer else None,
             member_role=viewer.member_role if viewer else None,
+            can_ask_again_at=wait if wait and wait > datetime.now(UTC) else None,
         ),
     )

@@ -21,7 +21,8 @@ export type Hub = {
   member_count: number;
   agreement: { version: number };
   // both null for someone who was never a member
-  viewer: { membership_status: string | null; member_role: "owner" | "member" | null };
+  // `can_ask_again_at` is set only while a wait after a decline is still ahead
+  viewer: { membership_status: string | null; member_role: "owner" | "member" | null; can_ask_again_at?: string | null };
 };
 
 export type NewHub = {

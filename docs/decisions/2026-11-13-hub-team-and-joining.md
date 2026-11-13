@@ -94,6 +94,14 @@ The API now lets a developer ask to join a hub and the owner approve or decline
   `declined`, whether the developer declined an invitation or the owner declined their request, so
   the hub page says the person is not in the hub and names both possibilities. Asking again is
   allowed, so the idea page offers the button again.
+- **After a decline the developer waits, and the page says until when** (added 13 November 2026).
+  The API refuses a request made too soon with 409 `REQUEST_COOLING_DOWN` and the date the wait
+  ends: 48 hours after a decline, 30 days after the fifth in a row. The sentence with that date,
+  written in the page's language, takes the place of the button, because another press would only
+  be refused. If the date cannot be read, the sentence says "later". The hub card carries the
+  same date (`viewer.can_ask_again_at`, set only while the wait is ahead), so a page opened
+  during the wait shows the sentence at once and never offers the button. The refused press
+  stays as the fallback for a card read before the decline.
 
 ### What the API could not tell the web
 

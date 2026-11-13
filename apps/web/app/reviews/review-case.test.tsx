@@ -190,7 +190,7 @@ test.each(["Pass", "Do not pass"])("%s with empty notes shows the field error an
   await opened();
   fireEvent.click(screen.getByRole("button", { name: button }));
   expect(screen.getByText("Write a few lines for the developer first.")).toBeTruthy();
-  expect(document.activeElement).toBe(notes());
+  await waitFor(() => expect(document.activeElement).toBe(notes()));
   expect(notes().getAttribute("aria-invalid")).toBe("true");
   expect(dialog().hasAttribute("open")).toBe(false);
   expect(posts()).toHaveLength(0);
