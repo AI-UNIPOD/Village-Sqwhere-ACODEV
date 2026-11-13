@@ -19,7 +19,7 @@ export function PostCard({ lang, post, now, onChange }: { lang: Lang; post: Post
       <PostBody post={post} clamp href={post.title ? undefined : href} />
       {post.link_url && <PostLink lang={lang} url={post.link_url} />}
       <PostTopics lang={lang} topics={post.topics} />
-      <PostActions lang={lang} post={post} onChange={onChange} commentsHref={href} />
+      <PostActions lang={lang} post={post} onChange={onChange} commentsHref={`${href}#comments`} />
     </li>
   );
 }
