@@ -223,6 +223,35 @@ def test_a_closed_idea_does_not_stop_its_hub_from_inviting(client: TestClient) -
     assert accept(client, hub, invitee).status_code == 200
 
 
+def fill_team(hub: Hub, active: int) -> None:
+    """Brings the hub to this many active members, the owner included."""
+    for _ in range(active - 1):
+        add_member(hub, make_user(), HubMemberStatus.ACTIVE)
+
+
+def test_a_full_team_takes_no_more_invitations(client: TestClient) -> None:
+    owner, invitee = make_user(), make_user()
+    hub = make_hub(owner)
+    fill_team(hub, 5)
+
+    assert_error(invite(client, hub, owner, invitee.username), 409, "TEAM_FULL")
+    assert membership(hub, invitee) is None
+
+
+def test_the_fifth_member_can_join_but_not_a_sixth(client: TestClient) -> None:
+    owner, fifth, sixth = make_user(), make_user(), make_user()
+    hub = make_hub(owner)
+    fill_team(hub, 4)
+    # both are invited while there is still room
+    assert invite(client, hub, owner, fifth.username).status_code == 201
+    assert invite(client, hub, owner, sixth.username).status_code == 201
+
+    assert accept(client, hub, fifth).status_code == 200
+    assert_error(accept(client, hub, sixth), 409, "TEAM_FULL")
+    assert membership(hub, sixth).status == HubMemberStatus.INVITED
+    assert signatures(hub, sixth) == []
+
+
 def test_two_answers_at_once_leave_one_consistent_result() -> None:
     owner, invitee = make_user(), make_user()
     hub = make_hub(owner)
