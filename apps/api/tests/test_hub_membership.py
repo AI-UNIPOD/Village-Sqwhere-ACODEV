@@ -2,6 +2,7 @@
 
 import asyncio
 from datetime import UTC, datetime
+from itertools import permutations
 from typing import Any
 from uuid import uuid4
 
@@ -249,16 +250,42 @@ def test_two_answers_at_once_leave_one_consistent_result() -> None:
 
     reinvite, accepted, withdrawn = asyncio.run(at_once())
 
-    assert reinvite.status_code == 409
+    # The hub lock runs the three one after another, in any order. Whatever the order, the
+    # answers and the saved row must be the ones that order gives, never a mix of two.
+    observed = (reinvite.status_code, accepted.status_code, withdrawn.status_code)
     stored = membership(hub, invitee)
-    if accepted.status_code == 200:
-        assert withdrawn.status_code == 404
-        assert stored.status == HubMemberStatus.ACTIVE
-        assert len(signatures(hub, invitee)) == 1
-    else:
-        assert (accepted.status_code, withdrawn.status_code) == (404, 204)
-        assert stored is None
-        assert signatures(hub, invitee) == []
+    final = stored.status if stored else None
+    assert (observed, final) in serial_outcomes(), (observed, final)
+    assert len(signatures(hub, invitee)) == (1 if final == HubMemberStatus.ACTIVE else 0)
+
+
+def serial_outcomes() -> set[tuple[tuple[int, int, int], HubMemberStatus | None]]:
+    """Every (invite, accept, withdraw) answer and final status that some order produces,
+    starting from a pending invitation."""
+
+    def invite(state: HubMemberStatus | None) -> tuple[int, HubMemberStatus | None]:
+        if state in (HubMemberStatus.INVITED, HubMemberStatus.ACTIVE):
+            return 409, state
+        return 201, HubMemberStatus.INVITED
+
+    def accept(state: HubMemberStatus | None) -> tuple[int, HubMemberStatus | None]:
+        if state == HubMemberStatus.INVITED:
+            return 200, HubMemberStatus.ACTIVE
+        return (409 if state == HubMemberStatus.ACTIVE else 404), state
+
+    def withdraw(state: HubMemberStatus | None) -> tuple[int, HubMemberStatus | None]:
+        if state == HubMemberStatus.INVITED:
+            return 204, None
+        return 404, state
+
+    outcomes = set()
+    for order in permutations((0, 1, 2)):
+        state: HubMemberStatus | None = HubMemberStatus.INVITED
+        codes = [0, 0, 0]
+        for step in order:
+            codes[step], state = (invite, accept, withdraw)[step](state)
+        outcomes.add(((codes[0], codes[1], codes[2]), state))
+    return outcomes
 
 
 @pytest.mark.parametrize(
