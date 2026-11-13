@@ -77,6 +77,8 @@ export function inviteMessage(error: unknown, t: TeamCopy): string | null {
   if (error.code === "ALREADY_MEMBER") return t.errors.alreadyMember;
   if (error.code === "ALREADY_INVITED") return t.errors.alreadyInvited;
   if (error.code === "HUB_ARCHIVED") return t.errors.archived;
+  // the fifth place was taken after this page counted the team
+  if (error.code === "TEAM_FULL") return t.full;
   return null;
 }
 

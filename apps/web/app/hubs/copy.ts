@@ -106,6 +106,7 @@ type Copy = {
     send: string;
     noInvitation: Screen;
     archived: Screen;
+    full: Screen;
   };
   // on an idea's card
   createHub: string;
@@ -285,6 +286,10 @@ const en: Copy = {
       text: "You can only join a hub you were invited to. Ask the owner to invite you.",
     },
     archived: { title: "This hub is archived, so nobody can join.", text: "Nothing was signed." },
+    full: {
+      title: "The team is full, so you did not join.",
+      text: "A hub takes at most five members, and all five places are taken. Nothing was signed.",
+    },
   },
   createHub: "Create the hub",
   openHub: "Open the hub",
@@ -477,6 +482,10 @@ const fr: Copy = {
       text: "On ne peut rejoindre qu'un espace où l'on est invité. Demandez au porteur de vous inviter.",
     },
     archived: { title: "Cet espace est archivé, personne ne peut donc le rejoindre.", text: "Rien n'a été signé." },
+    full: {
+      title: "L'équipe est complète, vous ne l'avez donc pas rejointe.",
+      text: "Un espace compte au plus cinq membres, et les cinq places sont prises. Rien n'a été signé.",
+    },
   },
   createHub: "Créer l'espace",
   openHub: "Ouvrir l'espace",

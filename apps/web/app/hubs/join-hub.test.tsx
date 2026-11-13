@@ -183,6 +183,15 @@ test("an archived hub cannot be joined, whether it is known on arrival or when t
   expect(screen.getByRole("link", { name: "Open the hub" })).toBeTruthy();
 });
 
+test("a team that filled up while the person was reading says so, and nothing is signed", async () => {
+  await join({ "POST /v1/hubs/hub-1/invitation/accept": refusal(409, "TEAM_FULL") });
+  fillAndSign();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign and join" }));
+  expect(await screen.findByRole("heading", { level: 1, name: "The team is full, so you did not join." })).toBeTruthy();
+  expect(screen.getByText(/all five places are taken/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Open the hub" })).toBeTruthy();
+});
+
 test("a hub that does not exist, or no id at all, shows the missing hub screen", async () => {
   api({ "GET /v1/hubs/hub-1": refusal(404, "NOT_FOUND"), "GET /v1/hubs/hub-1/agreement": refusal(404, "NOT_FOUND") });
   render(<JoinHub lang="en" />);
