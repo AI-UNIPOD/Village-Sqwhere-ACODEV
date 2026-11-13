@@ -66,13 +66,13 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
         </span>
       </p>
       {created && isOwner && (
-        <p className={`${ideas.done} ${styles.moment}`} role="status">
+        <p className={ideas.done} role="status">
           <Check />
           {t.created}
         </p>
       )}
       {joined && isMember && (
-        <p className={`${ideas.done} ${styles.moment}`} role="status">
+        <p className={ideas.done} role="status">
           <Check />
           {t.joined}
         </p>
