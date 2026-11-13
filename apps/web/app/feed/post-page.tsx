@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { ConfirmDialog } from "../confirm-dialog";
@@ -17,6 +17,7 @@ import onboarding from "../onboarding/onboarding.module.css";
 import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
+import { Comments } from "./comments";
 import { copy } from "./copy";
 import { deletePost, loadPost, type Post } from "./feed-api";
 import { FeedSkeleton } from "./feed";
@@ -80,6 +81,9 @@ function PostView({ lang, id }: { lang: Lang; id: string | null }) {
     };
   }, [id]);
 
+  const gone = useCallback(() => setPost(null), []);
+  const counted = useCallback((by: number) => setPost((have) => have && { ...have, comment_count: Math.max(0, have.comment_count + by) }), []);
+
   function remove() {
     if (!id || deleting) return;
     setDeleting(true);
@@ -124,7 +128,6 @@ function PostView({ lang, id }: { lang: Lang; id: string | null }) {
         {post.link_url && <PostLink lang={lang} url={post.link_url} />}
         <PostTopics lang={lang} topics={post.topics} />
         <PostActions lang={lang} post={post} onChange={(change) => setPost((have) => have && { ...have, ...change })} />
-        <p className={ideas.meta}>{t.post.commentsSoon}</p>
         {me?.username === post.author.username && (
           <div>
             <div className={styles.owner}>
@@ -143,6 +146,7 @@ function PostView({ lang, id }: { lang: Lang; id: string | null }) {
             )}
           </div>
         )}
+        <Comments key={post.id} lang={lang} postId={post.id} count={post.comment_count} onCount={counted} onGone={gone} />
       </div>
       <ConfirmDialog
         open={confirming}

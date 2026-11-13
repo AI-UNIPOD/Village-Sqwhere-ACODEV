@@ -51,10 +51,8 @@ The web frontend's owner chose, on 13 November 2026:
 
 ## What is left out, and why
 
-- **Comments.** Only creating one and reading one by id exist in the API; listing a post's
-  comments does not yet. The card shows the number of comments and nothing more, and the post
-  page says in one line that comments are coming. That line is replaced when the comments
-  section is built.
+- **Comments** were left out of the first version, because the API had no list of a post's
+  comments then. They are built now: see "Comments" below.
 
 ## Options we considered
 
@@ -143,3 +141,54 @@ edit).
   mapping a sector to technologies would be inventing a meaning. Onboarding still throws its
   topics away, as before. The fix is a decision about the taxonomy (sectors need their own
   table in the API, or the step asks about technologies), not a web change.
+
+## Comments
+
+Added once the API listed a post's comments (`GET /v1/posts/{id}/comments` and
+`GET /v1/comments/{id}/replies`). The section sits on the post page and replaces the line that
+said comments were coming.
+
+- **Threads open one level at a time.** The API gives a post's comments with their first two
+  replies, and `GET /v1/comments/{id}/replies` gives the direct replies of one comment. It has no
+  call for a whole thread (the thread route is not on `main` yet). So a comment shows what the list
+  gave it, and a button ("Show all 3 replies", "Show 1 reply") loads one more level, a page of 20 at
+  a time, with "Show more replies" when there are more. A reply can be answered, and its answers
+  open the same way, to any depth. Whether a button is shown comes from what the API says it has not
+  sent (`next_offset`), not from `reply_count`: that count includes deleted replies that no list
+  returns, so it can be higher than the replies a person can ever open.
+- **The indent stops after the third level.** Each level after the first moves in by 25px
+  (two token spaces and a 1px line down its left), so a thread costs 50px of a 360px screen at
+  most and any depth still fits. Deeper
+  replies stay at the third level's indent, and each one says who it answers ("In reply to Ama
+  Mensah"), taken from the comment above it, so the thread can still be followed. The API allows a
+  depth of 1000, and the web does not limit it. If a reply is refused with `MAX_DEPTH_EXCEEDED` the
+  form says to reply to a comment higher up.
+- **No like button on a comment yet.** The route to like a comment is not on `main`, and a button
+  that does nothing is worse than none. A comment shows its like count as plain text with a heart,
+  only above zero. When the route lands, the count becomes the button, in the same place.
+- **A deleted comment that still has replies stays as a quiet note.** The API lists it with
+  `deleted: true` and no author or text, so its replies stay reachable, and the screen draws
+  "This comment was deleted" with no buttons and the replies under it. When the person deletes
+  their own comment the screen does the same thing the API will do on the next load: a comment with
+  replies (`reply_count` above zero) becomes the note, a comment with none is removed. Either way
+  the post's count goes down by one (it counts comments that are not deleted).
+- **Delete is offered to the author only.** The API lets a moderator or an admin delete anyone's
+  comment (reason `moderator`). The web app has no moderation screens, as with posts, so Edit and
+  Delete are both for the author. The API lets nobody else edit.
+- **A new comment goes where the API's order puts it.** The list is oldest first, so a comment
+  just written goes after the others, and the screen scrolls to it and fades it in (only for the
+  person's own action). If more pages are waiting, it sits after the pages loaded so far and stays
+  last when they arrive: pages are merged by id and sorted by time, as the API sorts.
+- **One box open at a time.** A reply or an edit opens in place under its comment, and opening
+  another closes the first, so only the open one holds a draft. Closing puts focus back on the
+  button that opened it. An edit that changes nothing sends nothing, because the API would mark the
+  comment as edited.
+- **The section is separate from the post.** It loads after the post, keyed by the post's id, and if
+  it cannot load, the post stays and the section offers "Try again". A comment, reply, edit or delete
+  that finds the comment gone (`COMMENT_NOT_FOUND`, `PARENT_NOT_FOUND`) says so and loads the list
+  again. A post that is gone (`POST_NOT_FOUND`) shows the page's "This post is gone" screen.
+- **A link from a card lands on the section.** The comment count on a card links to
+  `/posts/view?id=...#comments`. The page is only tall enough to reach the section once the
+  comments are in, so the scroll happens when the section appears and again when the comments load.
+- **Edit and Delete post move above the comments.** The post's own actions stay near the post, not
+  under a long thread.
