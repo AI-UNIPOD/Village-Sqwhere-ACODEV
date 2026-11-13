@@ -3,6 +3,7 @@ import type { Lang } from "./locales";
 type Copy = {
   navLabel: string;
   village: string;
+  feed: string;
   ideas: string;
   hubs: string;
   reviews: string;
@@ -13,7 +14,7 @@ type Copy = {
 
 // The names of the places a signed-in developer can go, short enough for a phone's bottom bar.
 export const copy: Record<Lang, Copy> = {
-  en: { navLabel: "Main", village: "Village", ideas: "Ideas", hubs: "Hubs", reviews: "Reviews", profile: "Profile", invited: "an invitation is waiting" },
+  en: { navLabel: "Main", village: "Village", feed: "Feed", ideas: "Ideas", hubs: "Hubs", reviews: "Reviews", profile: "Profile", invited: "an invitation is waiting" },
   // Needs a native French review before launch.
-  fr: { navLabel: "Principale", village: "Village", ideas: "Idées", hubs: "Espaces", reviews: "Revues", profile: "Profil", invited: "une invitation vous attend" },
+  fr: { navLabel: "Principale", village: "Village", feed: "Fil", ideas: "Idées", hubs: "Espaces", reviews: "Revues", profile: "Profil", invited: "une invitation vous attend" },
 };
