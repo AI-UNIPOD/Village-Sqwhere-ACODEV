@@ -101,6 +101,10 @@ async def seed(db: AsyncSession) -> bool:
         people = {key: found[username] for key, (username, _, _) in PEOPLE.items()}
         # comments, likes, saves and topics go with their posts
         await db.execute(delete(Post).where(Post.author_id.in_([u.id for u in people.values()])))
+    for user in people.values():
+        # users.is_verified follows verified_at; every person here has a verified role, so the
+        # Green Tick shows on their cards. Set on a rerun too, for worlds seeded before this.
+        user.verified_at = user.verified_at or ago(days=20)
     await _write_feed(db, people)
     await db.commit()
     return created
