@@ -36,14 +36,28 @@ The web frontend's owner chose, on 13 November 2026:
 - **The type is a small label, not a status pill with an icon.** It names a kind of post, and
   seven icons for seven kinds would say less than the words. A plain post shows no label.
 - **A card has no whole-card link.** Its row holds buttons, and a button inside a link cannot
-  be pressed reliably.
+  be pressed reliably. Its title (or, with no title, the first line of its text) and its comment
+  count lead to the post page.
+- **A post has its own page, `/posts/view?id=`,** the way hubs and ideas do: the query string
+  carries the id, and the page is keyed by it. The page marks Feed in the places bar, because a
+  post is read in the feed (`AppFrame` treats the `posts` part of an address as the feed).
+  A post that is deleted, or an id that is not a post's id (the API answers 404 or 422), shows
+  one screen, "This post is gone", with the way back to the feed.
+- **Only the author sees Delete, behind a confirmation,** and nothing else changes the post
+  there. The API takes no reason from an author, so none is asked for. It also lets a platform
+  moderator delete any post; the web app has no moderator screens, so it offers Delete to the
+  author only. After a delete the person goes to Yours, which says "Post deleted" from the
+  address (`?done=deleted`), so a reload or another tab never repeats it from stale state.
 
 ## What is left out, and why
 
 - **Writing and editing a post** are another task's composer (`/posts/compose`). There is no
   Write button here, and nothing links to those addresses.
 - **Comments.** Only creating one and reading one by id exist in the API; listing a post's
-  comments does not yet. The card shows the number of comments and nothing more.
+  comments does not yet. The card shows the number of comments and nothing more, and the post
+  page says in one line that comments are coming. That line is replaced when the comments
+  section is built.
+- **An Edit button.** It comes with the composer.
 
 ## Options we considered
 

@@ -50,8 +50,9 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
   // known once the village or Your hubs has loaded them this visit
   const invited = (useKeptInvitations()?.length ?? 0) > 0;
   const places = signedIn && !locked && !bare;
-  // "ideas/compose?id=1" is in "ideas"
-  const here = path.split(/[/?]/)[0];
+  // "ideas/compose?id=1" is in "ideas", and a post ("posts/view?id=1") is read in the feed
+  const first = path.split(/[/?]/)[0];
+  const here = first === "posts" ? "feed" : first;
   const brand = (
     <>
       <Logo size={32} className={landing.navLogo} />

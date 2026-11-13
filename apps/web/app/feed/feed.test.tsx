@@ -5,9 +5,11 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { SESSION_KEY } from "../session/session";
 import { Feed } from "./feed";
 
+const nav = vi.hoisted(() => ({ search: "" }));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(nav.search),
   useParams: () => ({ lang: "en" }),
 }));
 
@@ -62,6 +64,7 @@ function held() {
 }
 
 beforeEach(() => {
+  nav.search = "";
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem(
     SESSION_KEY,
@@ -144,8 +147,12 @@ test("a plain post with no title, link or topics shows only its text, and no typ
   await screen.findByText("Cache the dependency layer first.");
   const shown = screen.getByText("Cache the dependency layer first.").closest("li")!;
   expect(within(shown).queryByRole("heading")).toBeNull();
-  // the author is the only link
-  expect(within(shown).getAllByRole("link").length).toBe(1);
+  // the author, then the post itself twice (its first line and its comments): no link of its own
+  expect(within(shown).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
+    "https://github.com/wanjiru-kamau",
+    "/en/posts/view?id=post-1",
+    "/en/posts/view?id=post-1",
+  ]);
   expect(shown.querySelector("ul")).toBeNull();
   expect(shown.querySelectorAll("[data-state]").length).toBe(0);
 });
@@ -320,4 +327,37 @@ test("while the posts load there are blocks and a spoken status, then the title 
   expect(screen.getByRole("status").textContent).toBe("Chargement du fil");
   expect(await screen.findByRole("heading", { name: "Fil" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Pour vous" })).toBeTruthy();
+});
+
+// ---------- the way to the post page ----------
+
+test("a card's title and comment count lead to the post page", async () => {
+  api({ "GET /v1/feed": page([post({ comment_count: 4 })]) });
+  render(<Feed lang="fr" tab="for-you" />);
+  const title = await screen.findByRole("link", { name: "Pooling with asyncpg" });
+  expect(title.getAttribute("href")).toBe("/fr/posts/view?id=post-1");
+  expect(within(card("Pooling with asyncpg")).getByRole("link", { name: "4 commentaires" }).getAttribute("href")).toBe("/fr/posts/view?id=post-1");
+});
+
+test("a post with no title opens from its first line, and the rest of the text stays plain", async () => {
+  api({ "GET /v1/feed": page([post({ title: null, body: "Cache the dependency layer first.\nSaved us twenty minutes." })]) });
+  render(<Feed lang="en" tab="for-you" />);
+  const first = await screen.findByRole("link", { name: "Cache the dependency layer first." });
+  expect(first.getAttribute("href")).toBe("/en/posts/view?id=post-1");
+  expect(first.closest("p")!.textContent).toBe("Cache the dependency layer first.\nSaved us twenty minutes.");
+});
+
+// ---------- after a delete ----------
+
+test("Yours says the post was deleted when the address says so, and no other tab does", async () => {
+  nav.search = "done=deleted";
+  api({ "GET /v1/posts": page([]) });
+  const mine = render(<Feed lang="en" tab="mine" />);
+  expect((await screen.findByRole("status")).textContent).toBe("Post deleted");
+  mine.unmount();
+
+  api({ "GET /v1/feed": page([]) });
+  render(<Feed lang="en" tab="for-you" />);
+  await screen.findByRole("heading", { name: "Nobody has posted yet" });
+  expect(screen.queryByText("Post deleted")).toBeNull();
 });

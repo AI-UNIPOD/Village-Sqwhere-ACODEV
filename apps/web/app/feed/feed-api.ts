@@ -38,6 +38,11 @@ export const loadSavedPosts = (offset = 0) => call<PostPage>(`/v1/me/saved-posts
 export const loadPostsBy = (username: string, offset = 0) =>
   call<PostPage>(`/v1/posts?author=${encodeURIComponent(username)}&${paging(offset)}`);
 
+export const loadPost = async (id: string) => (await call<{ data: Post }>(`/v1/posts/${encodeURIComponent(id)}`)).data;
+
+// Only the author can delete a post, and the API takes no reason from the author.
+export const deletePost = (id: string) => call<null>(`/v1/posts/${encodeURIComponent(id)}`, "DELETE");
+
 // Likes and saves answer 204 with no body: turning one on or off is the same request each time.
 export const setMark = (id: string, mark: "like" | "save", on: boolean) =>
   call<null>(`/v1/posts/${encodeURIComponent(id)}/${mark}`, on ? "PUT" : "DELETE");
