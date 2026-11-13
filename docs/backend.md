@@ -1382,6 +1382,14 @@ A comment's direct replies, oldest first, paged the same way, as comment objects
 deleted comment that still has replies. 404 `COMMENT_NOT_FOUND` if the comment is missing,
 deleted without replies, or on a deleted or hub post.
 
+### `GET /v1/comments/{comment_id}/thread`
+
+For "Continue thread": the comment and every reply under it, down to five levels below it,
+ordered by depth and then oldest first. Rebuild the tree with `parent_id`. A reply at the
+fifth level with `reply_count` above 0 has more below it: call this route again on it. Paged
+like the other lists. Works for a deleted comment that still has replies, with the same 404
+rules as the replies route.
+
 ### `GET /v1/comments/{comment_id}`
 
 One comment, for a permalink. 404 `COMMENT_NOT_FOUND` if it or its post is deleted.
@@ -1397,3 +1405,9 @@ person's comment gives 403 `NOT_COMMENT_AUTHOR`.
 Soft-delete a comment. The author deletes with reason `author`; a moderator or admin deletes
 anyone's with reason `moderator`. Replies under it stay in the database. Returns 204, then
 404 `COMMENT_NOT_FOUND` for any later request on that comment.
+
+### `PUT` and `DELETE /v1/comments/{comment_id}/like`
+
+Like or unlike a comment or reply. Both are safe to repeat and return 204; `like_count` and
+`liked_by_me` show the result. A deleted comment, or one on a deleted or hub post, gives 404
+`COMMENT_NOT_FOUND`, also when the delete happens while the like is being saved.
