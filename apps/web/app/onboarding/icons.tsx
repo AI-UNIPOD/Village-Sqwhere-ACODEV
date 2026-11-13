@@ -58,7 +58,27 @@ export const SearchX = ({ className }: { className?: string }) => (
   </Icon>
 );
 
-export const AlertTriangle = () => (
+export const X = () => (
+  <Icon>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </Icon>
+);
+
+export const Ban = () => (
+  <Icon>
+    <circle cx="12" cy="12" r="10" />
+    <path d="m4.9 4.9 14.2 14.2" />
+  </Icon>
+);
+
+export const BadgeCheck = ({ className }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+    <path d="m9 12 2 2 4-4" />
+  </Icon>
+);
+
+export const TriangleAlert = () => (
   <Icon>
     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01" />
   </Icon>

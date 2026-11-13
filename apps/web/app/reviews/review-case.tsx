@@ -8,7 +8,7 @@ import { AppFrame } from "../app-frame";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { AlertTriangle, ArrowLeft, Bot } from "../onboarding/icons";
+import { ArrowLeft, Bot, TriangleAlert } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
@@ -89,7 +89,7 @@ function flagText(lang: Lang, code: string): ReactNode {
 function Flag({ lang, code }: { lang: Lang; code: string }) {
   return (
     <span className={`${village.pill} ${styles.flag}`} data-state="warning">
-      <AlertTriangle />
+      <TriangleAlert />
       {flagText(lang, code)}
     </span>
   );
