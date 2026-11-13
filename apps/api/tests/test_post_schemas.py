@@ -109,6 +109,7 @@ def test_post_update_validations() -> None:
 
     title_cleared_dict = PostUpdateRequest.model_validate({"title": None})
     assert title_cleared_dict.title is None
+    assert title_cleared_dict.model_dump(exclude_unset=True) == {"title": None}
 
     with pytest.raises(ValidationError):
         PostUpdateRequest.model_validate({"type": "rfc"})
