@@ -32,11 +32,10 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    and next steps need a new schema script); later, semantic similarity for matching.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-5. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
-6. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-7. Web next: choosing feed topics, comments on a post, and a French-speaking teammate's check
-   of the copy.
-8. Before launch, move the session out of localStorage and sign-in state out of API memory
+4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
+5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
+6. Web next: comments, and a French-speaking teammate's check of the copy.
+7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
 8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
    until then the merge agent enforces green checks (`docs/decisions/2026-11-13-merge-agent.md`).
