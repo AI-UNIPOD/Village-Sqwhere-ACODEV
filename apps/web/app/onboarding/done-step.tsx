@@ -80,6 +80,11 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
               label={t.topicsLabel}
               items={TOPICS.filter((topic) => answers.topics.includes(topic.slug)).map((topic) => topic.name[lang])}
             />
+            <Tags
+              label={t.feedLabel}
+              mono
+              items={TECHNOLOGIES.filter((tech) => answers.feed.includes(tech.slug)).map((tech) => tech.name[lang])}
+            />
           </>
         ) : (
           <p className={styles.muted}>{t.finishLater}</p>

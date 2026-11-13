@@ -32,8 +32,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    and next steps need a new schema script); later, semantic similarity for matching.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-4. Save the onboarding country and a completion flag once the API has fields. Onboarding's
-   topics are sectors and the API's feed topics are technologies: decide which the step asks.
+4. Save the onboarding country, sectors and a completion flag once the API has fields.
+   Onboarding asks for both sectors (on screen only) and the feed's technologies (saved).
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
 6. Web next: liking a comment, and a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory

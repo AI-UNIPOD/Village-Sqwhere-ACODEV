@@ -245,6 +245,34 @@ export function CountryStep({ lang, answers, update }: StepProps) {
   );
 }
 
+// What the feed should show: the same technologies as the stack question, asked on their own
+// because what a developer builds with and what they want to read about can differ.
+export function FeedStep({ lang, answers, update }: StepProps) {
+  const t = copy[lang].feed;
+  const same = answers.feed.length === answers.stack.length && answers.stack.every((slug) => answers.feed.includes(slug));
+  return (
+    <>
+      <Head id="feed" title={t.title} why={t.why} />
+      <div className={styles.group}>
+        <ChipGroup
+          id="feed"
+          mono
+          options={TECHNOLOGIES.map((tech) => ({ slug: tech.slug, label: tech.name[lang] }))}
+          selected={answers.feed}
+          onToggle={(slug) => update({ feed: toggle(answers.feed, slug) })}
+          describedBy="feed-why"
+        />
+      </div>
+      {/* the likeliest answer in one press; it goes once it is the answer */}
+      {answers.stack.length > 0 && !same && (
+        <button type="button" className={`${landing.ghost} ${styles.useStack}`} onClick={() => update({ feed: answers.stack })}>
+          {t.useStack}
+        </button>
+      )}
+    </>
+  );
+}
+
 export function TopicsStep({ lang, answers, update }: StepProps) {
   const t = copy[lang].topics;
   return (

@@ -6,9 +6,10 @@ import type { Answers } from "./steps";
 const send = (method: string, path: string, body: unknown) =>
   apiFetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-// Saves the main role, then the stack. Both calls are safe to send again, which is what makes
-// "Try again" safe: a role the developer already has is only made the main one. The country
-// and the topics have nowhere to go yet. Throws when any call fails. Only call it with a role.
+// Saves the main role, then the stack, then the technologies the feed should show. Each call is
+// safe to send again, which is what makes "Try again" safe: a role the developer already has is
+// only made the main one. The country and the sectors have nowhere to go yet. Throws when any
+// call fails. Only call it with a role.
 export async function saveAnswers(answers: Answers): Promise<void> {
   const claimed = await send("POST", "/v1/me/roles", { role: answers.role, is_primary: true });
   if (claimed.status === 409 && (await claimed.json().catch(() => null))?.detail?.code === "ROLE_ALREADY_CLAIMED") {
@@ -19,6 +20,9 @@ export async function saveAnswers(answers: Answers): Promise<void> {
   }
   const stack = await send("PUT", "/v1/me/technologies", { technologies: answers.stack });
   if (!stack.ok) throw new Error(`PUT /v1/me/technologies answered ${stack.status}`);
+  // the API calls a feed topic a technology; an empty list means "show every post"
+  const feed = await send("PUT", "/v1/me/feed-topics", { technologies: answers.feed });
+  if (!feed.ok) throw new Error(`PUT /v1/me/feed-topics answered ${feed.status}`);
 }
 
 // Saves started together share one run. React mounts twice in development, and two stack
