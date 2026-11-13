@@ -25,6 +25,8 @@ type Copy = {
   ideas: string;
   browse: string;
   hubs: string;
+  invitation: string;
+  invitations: string;
   loading: string;
   errorTitle: string;
   errorText: string;
@@ -71,6 +73,8 @@ const en: Copy = {
   ideas: "Share an idea",
   browse: "Browse open ideas",
   hubs: "Your hubs",
+  invitation: "See your invitation",
+  invitations: "See your {n} invitations",
   loading: "Opening your village",
   errorTitle: "We couldn't open your village",
   errorText:
@@ -119,6 +123,8 @@ const fr: Copy = {
   ideas: "Partager une idée",
   browse: "Parcourir les idées ouvertes",
   hubs: "Vos espaces",
+  invitation: "Voir votre invitation",
+  invitations: "Voir vos {n} invitations",
   loading: "Ouverture de votre village",
   errorTitle: "Nous n'avons pas pu ouvrir votre village",
   errorText:

@@ -90,9 +90,6 @@
   font: var(--type-body-s);
 }
 
-/* the chip look of the design system is 36px; a tap target here is at least --tap-min */
-.chip { min-block-size: var(--tap-min); }
-
 .none {
   display: grid;
   justify-items: start;

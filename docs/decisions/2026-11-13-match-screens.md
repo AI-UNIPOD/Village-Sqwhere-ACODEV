@@ -36,8 +36,8 @@ Tanny delegated these calls to the product owner on 13 November 2026.
   are shared, because the API gives only the count.
 - **Inviting needs a hub first.** An invitation belongs to a hub (`POST /v1/hubs/{id}/invitations`),
   so an idea with no hub shows the developers with no invite buttons and one notice with
-  "Create the hub". The hub is found from the first 20 of `GET /v1/me/hubs`, the same shortcut
-  as Your ideas.
+  "Create the hub". The hub is found by reading every page of `GET /v1/me/hubs`, as on Your
+  ideas (at first only the first 20 were read).
 - **Invite buttons are ghost buttons.** There are many on the page, so none is the main one. A
   sent invitation turns the button into the "Invited" pill used on the team list, with a status
   line for screen readers, and the card stays until the page is loaded again (the API then

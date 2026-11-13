@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 
 import { AppFrame } from "../app-frame";
+import { refreshInvitations, useKeptInvitations } from "../hubs/invitations";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -47,16 +49,23 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
   const role = me.roles.find((r) => r.is_primary) ?? me.roles[0];
   const verified = !!role?.verified_at;
   const attemptUnderWay = ["pending", "in_progress", "awaiting_review"].includes(role?.verification?.latest_status ?? "");
-  // Sharing an idea needs a role but not a Green Tick, so it opens beside verifying. Hubs open
-  // here when their screen exists.
+  // Invitations to a hub wait on Your hubs, where nobody looks unprompted: say so here. A failed
+  // load only means the step says nothing.
+  const invited = useKeptInvitations()?.length ?? 0;
+  useEffect(() => {
+    refreshInvitations().catch(() => {});
+  }, []);
+  // Sharing an idea needs a role but not a Green Tick, so it opens beside verifying. The hub
+  // step opens when someone has invited the developer.
   const states: Record<(typeof STEPS)[number], StepState> = {
     profile: role ? "done" : "next",
     verify: !role ? "later" : verified ? "done" : "next",
     idea: role ? "next" : "later",
-    hub: "later",
+    hub: invited ? "next" : "later",
   };
-  // one main button on the screen: the first step still to do. The others that can start are "open".
-  const first = STEPS.find((id) => states[id] === "next");
+  // one main button on the screen: an invitation someone is waiting on, else the first step
+  // still to do. The others that can start are "open".
+  const first = invited ? "hub" : STEPS.find((id) => states[id] === "next");
   for (const id of STEPS) if (states[id] === "next" && id !== first) states[id] = "open";
   const button = (id: (typeof STEPS)[number]) => `${id === first ? landing.btn : landing.ghost} ${styles.action}`;
   const github = (text: string) => (
@@ -136,7 +145,7 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
                       {role ? t.change : t.setUp}
                     </Link>
                   )}
-                  {id === "verify" && state === "next" && (
+                  {id === "verify" && (state === "next" || state === "open") && (
                     <Link className={button(id)} href={`/${lang}/verification`}>
                       {attemptUnderWay ? t.verifyContinue : t.verifyStart}
                     </Link>
@@ -152,7 +161,12 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
                     </div>
                   )}
                   {/* a hub is created from an open idea; this leads to the ones you are in */}
-                  {id === "hub" && role && (
+                  {id === "hub" && invited > 0 && (
+                    <Link className={button(id)} href={`/${lang}/hubs`}>
+                      {invited === 1 ? t.invitation : fill(t.invitations, { n: invited })}
+                    </Link>
+                  )}
+                  {id === "hub" && role && invited === 0 && (
                     <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/hubs`}>
                       {t.hubs}
                     </Link>
