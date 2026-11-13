@@ -21,6 +21,7 @@ from pydantic import (
 )
 
 from app.models.hubs import HubMemberRole, HubMemberStatus, HubStatus
+from app.models.ideas import IdeaStage, IdeaStatus
 
 # Our own limit, not the database's: hub terms written as compact JSON may be at most this
 # many characters. The team can change it here.
@@ -31,6 +32,10 @@ HubDescription = Annotated[str, StringConstraints(max_length=2000)]
 LegalName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
 Sha256Hex = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 TermsNotes = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
+# the users_username_format CHECK
+Username = Annotated[
+    str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z0-9_-]{3,39}$")
+]
 
 
 class OwnershipModel(StrEnum):
@@ -83,6 +88,12 @@ class CreateHubRequest(BaseModel):
         default_factory=lambda: HubTerms(ownership_model=OwnershipModel.EQUAL_SPLIT)
     )
     agreement: AgreementAcceptance
+
+
+class InviteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: Username
 
 
 class UpdateHubRequest(BaseModel):
@@ -184,3 +195,40 @@ class HubResponse(BaseModel):
 class HubListResponse(BaseModel):
     data: list[Hub]
     next_offset: int | None = None
+
+
+class HubMemberCard(BaseModel):
+    """One person's place in a hub. `updated_at` is when the status last changed."""
+
+    user: HubOwner
+    member_role: HubMemberRole
+    status: HubMemberStatus
+    joined_at: datetime | None = None
+    updated_at: datetime
+
+
+class HubMemberResponse(BaseModel):
+    data: HubMemberCard
+
+
+class HubMembersResponse(BaseModel):
+    data: list[HubMemberCard]
+
+
+class HubIdeaBrief(BaseModel):
+    """The whole idea, confidential details included. Only for the hub's active members."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    title: str
+    summary: str
+    details: str | None = None
+    stage: IdeaStage
+    status: IdeaStatus
+    published_at: datetime | None = None
+    updated_at: datetime
+
+
+class HubIdeaBriefResponse(BaseModel):
+    data: HubIdeaBrief

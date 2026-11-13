@@ -609,10 +609,17 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | --- | --- | --- |
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
+| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite or withdraw an invitation. |
+| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief or the member list. |
+| `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
+| `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
+| `409` | `ALREADY_MEMBER` | The person is already an active member. |
+| `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances. |
 | `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
 | `409` | `IDEA_NOT_OPEN` | The idea is a draft or closed. Open it first. |
 | `409` | `HUB_ALREADY_EXISTS` | The idea already has a hub (one hub per idea). |
-| `409` | `AGREEMENT_MISMATCH` | The signed `template_id` or `template_sha256` is not the current agreement. Fetch `GET /v1/agreements/current` again and show it before signing. |
+| `409` | `AGREEMENT_MISMATCH` | The signed `template_id` or `template_sha256` is not the agreement being signed: the current one when creating a hub, the hub's own one when accepting. Fetch it again and show it before signing. |
 | `422` | (FastAPI's list) | A field breaks a rule. `detail` is a list, and each item's `loc` names the field. |
 | `503` | `AGREEMENT_NOT_PUBLISHED` | No agreement is published on this server, so no hub can be created. A setup problem, not something the person can fix. |
 
@@ -718,8 +725,8 @@ are saved together, or nothing is saved.
 
 #### `GET /v1/hubs/{hub_id}`
 
-Returns one hub's card. Any signed-in user can read it, member or not, so they can decide to
-ask to join. Archived hubs can still be read.
+Returns one hub's card. Any signed-in user can read it, member or not, so an invited person can
+see the hub before answering. Archived hubs can still be read.
 
 * **Authentication:** Bearer token required (any signed-in user)
 * **Success Response (200 OK):** the same hub card as `POST /v1/hubs` returns, in `data`.
@@ -733,6 +740,103 @@ ask to join. Archived hubs can still be read.
   details and the agreement signatures are never part of the card, whoever asks.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
   id), `422` (the id is not a UUID).
+
+#### Joining a hub
+
+The owner invites developers. An invited person reads the hub's agreement and either signs it
+to join or declines. Only active members, who have signed, see the idea's confidential brief
+and the team. Why these rules: `docs/decisions/2026-11-13-hub-invitations.md`.
+
+```text
+(no row) --invite--> invited --accept + sign--> active
+                        |  \--decline--> declined --invite--> invited
+                        \--withdraw (owner)--> (no row)
+```
+
+Every route needs a Bearer token. A hub id that does not exist answers `404 NOT_FOUND`. An
+invited person finds their invitations through `GET /v1/me/hubs?status=invited` (#67).
+
+#### `GET /v1/hubs/{hub_id}/agreement`
+
+The agreement this hub was created on, which every member signs, with the hub's `hub_terms`.
+It can be an older version than `GET /v1/agreements/current`. Any signed-in user can read it.
+Same shape as `GET /v1/agreements/current`.
+
+#### `POST /v1/hubs/{hub_id}/invitations`
+
+The owner invites one developer. The username is matched without regard to case.
+
+* **Request Body:** `{ "username": "kwame-dev" }`
+* **Success Response (201 Created):**
+  ```json
+  {
+    "data": {
+      "user": {
+        "id": "8d1c5d3e-1b7a-4f55-9a8e-2f9e0c6b7a11",
+        "username": "kwame-dev",
+        "display_name": "Kwame Mensah",
+        "avatar_url": null,
+        "is_verified": true
+      },
+      "member_role": "member",
+      "status": "invited",
+      "joined_at": null,
+      "updated_at": "2026-11-13T10:02:41.120000Z"
+    }
+  }
+  ```
+  Someone who declined, left or was removed can be invited again.
+* **Errors:** `403 NOT_HUB_OWNER`, `404 USER_NOT_FOUND`, `409 ALREADY_MEMBER`,
+  `409 ALREADY_INVITED`, `409 HUB_ARCHIVED`, `422` (a missing or malformed username).
+
+#### `DELETE /v1/hubs/{hub_id}/invitations/{user_id}`
+
+The owner withdraws a pending invitation. Answers `204 No Content`. The invitation is removed
+completely, so the person's hub card shows no membership again.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 INVITATION_NOT_FOUND` (nothing pending for this
+  person, for example an active member).
+
+#### `POST /v1/hubs/{hub_id}/invitation/accept`
+
+The invited person signs the hub's agreement and becomes an active member. Show the text from
+`GET /v1/hubs/{hub_id}/agreement` first, then send what was shown:
+
+* **Request Body:**
+  ```json
+  {
+    "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
+    "template_sha256": "<body_sha256 from the hub's agreement>",
+    "signed_legal_name": "Kwame Mensah"
+  }
+  ```
+* **Success Response (200 OK):** the hub card, with `viewer.membership_status: "active"`.
+  The signature, its IP address and user agent are saved as evidence and never returned. A
+  person invited back after leaving keeps their earlier signature of the same text.
+* **Errors:** `404 INVITATION_NOT_FOUND`, `409 ALREADY_MEMBER`, `409 HUB_ARCHIVED`,
+  `409 AGREEMENT_MISMATCH`, `422`.
+
+#### `POST /v1/hubs/{hub_id}/invitation/decline`
+
+The invited person says no. Answers `200` with the hub card, `viewer.membership_status:
+"declined"`. The owner can invite them again later.
+
+* **Errors:** `404 INVITATION_NOT_FOUND`, `409 ALREADY_MEMBER`.
+
+#### `GET /v1/hubs/{hub_id}/members`
+
+The team, for active members only: the owner first, then members by joining time. The owner
+also sees `invited` and `declined` people, to follow up or withdraw. Nobody sees people who
+left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
+
+* **Errors:** `403 NOT_HUB_MEMBER`.
+
+#### `GET /v1/hubs/{hub_id}/idea`
+
+The idea behind the hub, with its confidential `details`, for active members only. Returns
+`id`, `title`, `summary`, `details`, `stage`, `status`, `published_at` and `updated_at`.
+
+* **Errors:** `403 NOT_HUB_MEMBER`, `404 NOT_FOUND` (also when the idea was deleted).
 
 ---
 
