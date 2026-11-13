@@ -1,24 +1,201 @@
+/* One column on a phone, in reading order: the message and its two buttons, the scene, the
+   other places. From 768px the scene stands beside the text, as the square does on the
+   landing page. */
 .main {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  gap: var(--space-10);
   inline-size: 100%;
   max-inline-size: var(--content-max);
   margin-inline: auto;
-  padding: var(--space-16) var(--gutter);
+  padding: var(--space-10) var(--gutter) var(--space-16);
 }
 
 .title {
-  font: var(--type-display-m);
+  font: var(--type-display-l);
   text-wrap: balance;
 }
 
 .text {
-  margin-block-start: var(--space-2);
+  max-inline-size: 34em;
+  margin-block-start: var(--space-3);
   color: var(--text-muted);
   font: var(--type-body-l);
 }
 
-.home {
-  margin-block-start: var(--space-8);
+/* the address the visitor asked for; it keeps a line's room before the browser fills it in */
+.asked {
+  min-block-size: 1lh;
+  margin-block-start: var(--space-4);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  overflow-wrap: anywhere;
+}
+
+.asked code {
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.actions,
+.placeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.actions { margin-block-start: var(--space-6); }
+
+.actions > *,
+.place {
+  gap: var(--space-2);
+}
+
+.actions svg,
+.place svg {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+
+/* ---------- the scene ---------- */
+.stage {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.scene {
+  inline-size: 100%;
+  max-inline-size: calc(var(--space-16) * 4);
+  block-size: auto;
+  overflow: visible;
+}
+
+/* where the tree should be: nobody is under it */
+.outline {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 0.3;
+  stroke-dasharray: 0.9 0.9;
+  stroke-linecap: round;
+}
+
+/* Each person stands at their own place (--sx, --sy) and walks to their place in the tree
+   (--tx, --ty) when called, one a moment after the other. The values are on the element
+   itself, so calling everyone is one change of an attribute. */
+.person {
+  transform: translate(calc(var(--sx) * 1px), calc(var(--sy) * 1px));
+  transition:
+    transform var(--dur-moment) var(--ease-strong),
+    opacity var(--dur-press) var(--ease-out);
+  transition-delay: calc(var(--i) * var(--delay-stagger) / 4);
+}
+
+.body {
+  fill: var(--text);
+  /* waiting, each drifts a little at its own pace, so the crowd never moves as one */
+  animation: wander calc(var(--dur-drift) * var(--pace)) ease-in-out calc(var(--i) * var(--delay-stagger) * -1) infinite alternate;
+}
+
+/* the whole tree, which takes the place of the people once they stand in its shape */
+.tree {
+  fill: var(--logo);
+  opacity: 0;
+  transform: scale(0.96);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+/* Called back: they walk in, then fade as the tree appears where they stand. This happens
+   only when the visitor asks, so it may take its time. */
+.stage[data-gathered] .person {
+  transform: translate(calc(var(--tx) * 1px), calc(var(--ty) * 1px));
+  opacity: 0;
+  transition:
+    transform var(--dur-moment) var(--ease-strong),
+    opacity var(--dur-reveal) var(--ease-out);
+  transition-delay:
+    calc(var(--i) * var(--delay-stagger) / 4),
+    calc(var(--dur-moment) + var(--delay-stagger) * 7);
+}
+
+.stage[data-gathered] .body { animation-play-state: paused; }
+
+.stage[data-gathered] .outline { opacity: 0; }
+
+.outline { transition: opacity var(--dur-reveal) var(--ease-out); }
+
+.stage[data-gathered] .tree {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--dur-reveal) var(--ease-out) calc(var(--dur-moment) + var(--delay-stagger) * 7),
+    transform var(--dur-moment) var(--ease-strong) calc(var(--dur-moment) + var(--delay-stagger) * 7);
+}
+
+.caption {
+  max-inline-size: 30em;
+  color: var(--text-muted);
+  font: var(--type-mono-row);
+}
+
+@keyframes wander {
+  to { transform: translate(calc(var(--dx) * 1px), calc(var(--dy) * 1px)); }
+}
+
+/* ---------- the other places ---------- */
+.placesHeading {
+  color: var(--text-muted);
+  font: var(--type-label);
+}
+
+.placeList {
+  margin-block-start: var(--space-3);
+  list-style: none;
+}
+
+@media (min-width: 768px) {
+  .main {
+    grid-template-columns: minmax(0, 1fr) calc(var(--space-16) * 6);
+    grid-template-areas:
+      "message stage"
+      "places stage";
+    align-items: start;
+    column-gap: var(--space-16);
+    padding-block-start: var(--space-16);
+  }
+
+  .message { grid-area: message; }
+
+  .stage {
+    grid-area: stage;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .places { grid-area: places; }
+
+  .scene { max-inline-size: none; }
+}
+
+/* Reduced motion: nobody drifts or walks. Called back, the people fade where they stand and
+   the tree fades in. */
+@media (prefers-reduced-motion: reduce) {
+  .body { animation: none; }
+
+  .person,
+  .stage[data-gathered] .person {
+    transform: translate(calc(var(--sx) * 1px), calc(var(--sy) * 1px));
+    transition: opacity var(--dur-reveal) var(--ease-out);
+    transition-delay: 0s;
+  }
+
+  .tree,
+  .stage[data-gathered] .tree {
+    transform: none;
+    transition: opacity var(--dur-reveal) var(--ease-out);
+  }
 }
