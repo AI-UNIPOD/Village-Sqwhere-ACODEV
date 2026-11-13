@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(web): say when a declined developer can ask again (#125)
 - fix(web): load the profile in the frame when no screen has (#124)
 - feat(api): make a turned-down developer wait before asking again (#123)
 - fix(api): refuse to seed the demo where it is switched off (#122)

@@ -7,6 +7,7 @@ import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
+import { fill } from "../onboarding/copy";
 import { AlertCircle, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { SignedOutError } from "../session/session";
@@ -30,6 +31,9 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
   const [closed, setClosed] = useState(false);
   // only a request made on this page arrives with motion, never one found on load
   const [justAsked, setJustAsked] = useState(false);
+  // the owner turned the last request down and the developer must wait: until when, or "later"
+  // when the API's date cannot be read
+  const [wait, setWait] = useState<Date | "later" | null>(null);
   const note = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -48,8 +52,8 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
 
   // the button that was pressed is gone: keep the person's place on what replaced it
   useEffect(() => {
-    if (justAsked) note.current?.focus();
-  }, [justAsked]);
+    if (justAsked || wait) note.current?.focus();
+  }, [justAsked, wait]);
 
   if (!hubId) return <p className={ideas.lead}>{t.ask.noHub}</p>;
   if (failed) {
@@ -87,6 +91,10 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
       if (ALREADY[code]) place(ALREADY[code]);
       else if (code === "IDEA_CLOSED") setClosed(true);
       else if (code === "HUB_ARCHIVED") setHub({ ...hub, status: "archived" });
+      else if (code === "REQUEST_COOLING_DOWN") {
+        const until = new Date(String((error as IdeaError).detail?.can_ask_again_at));
+        setWait(Number.isNaN(until.getTime()) ? "later" : until);
+      }
       else setProblem(code === "TEAM_FULL" ? t.team.full : t.team.actionFailed);
     } finally {
       setBusy(false);
@@ -129,6 +137,16 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
     );
   }
   if (closed) return <p className={ideas.lead}>{t.ask.closed}</p>;
+  if (wait) {
+    // the button would only be refused again, so the date takes its place
+    return (
+      <div role="status">
+        <p ref={note} tabIndex={-1} className={ideas.lead}>
+          {wait === "later" ? t.ask.waitLater : fill(t.ask.wait, { date: wait.toLocaleString(lang, { dateStyle: "long", timeStyle: "short" }) })}
+        </p>
+      </div>
+    );
+  }
   if (hub.status === "archived") return <p className={ideas.lead}>{t.join.archived.title}</p>;
   return (
     <>
