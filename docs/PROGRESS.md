@@ -23,9 +23,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   by tests and measurements. The hero leads to sign-in; the demo and tour start say "Coming soon".
 - GitHub sign-in works end to end (real account, own language); `app/session/` refreshes and
   signs out (`docs/decisions/2026-11-11-web-session-in-local-storage.md`).
-- Below the hero, sections reveal once, the header marks the section being read, tour stops
-  show their share of three minutes, "coming soon" presses are announced, and phones get
-  section links (`docs/decisions/2026-11-11-landing-section-interactions.md`).
+- Below the hero, sections reveal once, the header marks the section being read, "coming soon"
+  presses are announced, phones get section links, and the scrolled-away header is pinned as a
+  pill (`docs/decisions/2026-11-11-landing-section-interactions.md`, `2026-11-13-landing-pill-header.md`).
 - Onboarding after sign-in is at `/en/onboarding` and `/fr/onboarding`, for signed-in people
   only, greeting them by their name from `GET /v1/me`. Answers stay in sessionStorage for the tab
   and never reach the API. API gaps: `docs/decisions/2026-11-11-onboarding-page.md`.
