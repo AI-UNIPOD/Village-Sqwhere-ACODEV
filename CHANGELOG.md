@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): make a turned-down developer wait before asking again (#123)
 - fix(api): refuse to seed the demo where it is switched off (#122)
 - feat(web): add asking to join a hub (#121)
 - feat(api): add made-up content for the demo (#120)
