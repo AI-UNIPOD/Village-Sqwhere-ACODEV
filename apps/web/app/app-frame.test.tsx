@@ -1,7 +1,9 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { AppFrame } from "./app-frame";
+import type { Hub } from "./hubs/hubs-api";
+import { forgetInvitation, keepInvitations } from "./hubs/invitations";
 import { loadMe, useMe } from "./session/me";
 import { SESSION_KEY } from "./session/session";
 
@@ -48,6 +50,19 @@ test("peer reviews appear once the developer holds a Green Tick", async () => {
   expect(names()).not.toContain("Reviews");
   await loadMe();
   await waitFor(() => expect(names()).toEqual(["Village", "Ideas", "Hubs", "Reviews", "Profile"]));
+});
+
+test("Hubs is marked while an invitation waits, and the mark goes when it is answered", () => {
+  signIn();
+  render(<AppFrame lang="en" path="village">screen</AppFrame>);
+  expect(places().getByRole("link", { name: "Hubs" })).toBeTruthy();
+
+  act(() => keepInvitations([{ id: "hub-1" } as Hub]));
+  expect(places().getByRole("link", { name: /^Hubs\s*, an invitation is waiting$/ }).getAttribute("href")).toBe("/en/hubs");
+
+  // signed or declined
+  act(() => forgetInvitation("hub-1"));
+  expect(places().getByRole("link", { name: "Hubs" })).toBeTruthy();
 });
 
 test("a screen that is in none of the places marks none", () => {

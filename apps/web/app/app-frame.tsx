@@ -5,6 +5,7 @@ import { ViewTransition, type ReactNode } from "react";
 
 import { copy } from "./app-frame-copy";
 import styles from "./app-frame.module.css";
+import { useKeptInvitations } from "./hubs/invitations";
 import { copy as shared } from "./landing/copy";
 import landing from "./landing/landing-page.module.css";
 import { ThemeButton } from "./landing/theme-toggle";
@@ -45,6 +46,8 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
   const other: Lang = lang === "en" ? "fr" : "en";
   const signedIn = !!useSession();
   const me = useKeptMe();
+  // known once the village or Your hubs has loaded them this visit
+  const invited = (useKeptInvitations()?.length ?? 0) > 0;
   const places = signedIn && !locked && !bare;
   // "ideas/compose?id=1" is in "ideas"
   const here = path.split(/[/?]/)[0];
@@ -75,6 +78,11 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
                 <Link key={id} className={styles.place} href={`/${lang}/${id}`} aria-current={current ? "page" : undefined}>
                   <PlaceIcon />
                   {t[id]}
+                  {id === "hubs" && invited && (
+                    <span className={styles.dot}>
+                      <span className={landing.srOnly}>, {t.invited}</span>
+                    </span>
+                  )}
                   {/* the mark keeps one name across screens, so it slides to the place just opened */}
                   {current && (
                     <ViewTransition name="place-mark" share="place-mark">

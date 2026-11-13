@@ -97,6 +97,17 @@
   border-top: 1px solid var(--text);
 }
 
+/* an invitation is waiting in Hubs: a dot beside the name */
+.dot {
+  position: absolute;
+  inset-block-start: calc(50% - 0.5lh);
+  inset-inline-end: calc(var(--space-3) * -1);
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--action);
+}
+
 /* Phones: a bar along the bottom of the screen, an icon over each name, within reach of a
    thumb. The page keeps that much room clear below its content. */
 @media (max-width: 767px) {
@@ -134,6 +145,12 @@
     display: block;
     inline-size: var(--space-6);
     block-size: var(--space-6);
+  }
+
+  /* on the bar the dot sits on the icon's shoulder */
+  .dot {
+    inset-block-start: var(--space-2);
+    inset-inline-end: calc(50% - var(--space-5));
   }
 
   /* on the bar the mark is a short line along its top edge */

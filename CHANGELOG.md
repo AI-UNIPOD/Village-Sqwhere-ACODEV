@@ -11,6 +11,9 @@ its number:
 ## 2026-11-13
 
 - feat(web): rebuild the not-found page and send it as html (#96)
+- fix(web): tidy the loose ends left by the screen pull requests (#95)
+- test(web): wait five seconds before a screen check gives up (#94)
+- fix(api): cap post links and answer 404 to writes racing a delete (#93)
 - fix(web): say when a hub's team is full (#92)
 - feat(api): add liking and saving posts (#91)
 - feat(api): add the feed and post lists (#90)

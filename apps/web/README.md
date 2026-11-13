@@ -81,6 +81,10 @@ The hub page shows a member the team (`GET /v1/hubs/{id}/members`) and the priva
 (`GET /v1/hubs/{id}/idea`). The owner invites by GitHub username, withdraws an invitation and
 invites again after a decline (`team.tsx`); an invited developer sees the invitation, not the
 team's brief. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
+The village and Your hubs keep that list for the visit (`app/hubs/invitations.ts`): the village
+makes a waiting invitation its next step, and the places bar marks Hubs with a dot. Signing or
+declining takes the invitation off the list. A page that needs the hub of an idea reads every
+page of the developer's hubs (`loadHubsByIdea`), because the API cannot look one up by idea.
 
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares

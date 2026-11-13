@@ -130,7 +130,7 @@ test("the idea, the hubs and the matches are asked for together", async () => {
   await show();
   await title("Who matches Borehole map for Kaduna");
   expect(asked().sort()).toEqual([
-    "GET /v1/me/hubs?offset=0&limit=20",
+    "GET /v1/me/hubs?offset=0&limit=50",
     "GET /v1/me/ideas/idea-1",
     "GET /v1/me/ideas/idea-1/matches?offset=0&limit=20",
   ]);
@@ -223,6 +223,16 @@ test("a team that is full cannot take another invitation: no buttons, and the no
   await screen.findByText("Wanjiru Kamau");
   expect(screen.getByText("The team is full: five members is the most a hub takes.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: /Invite/ })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Create the hub" })).toBeNull();
+});
+
+test("the idea's hub is found on a later page of the owner's hubs", async () => {
+  await show({
+    "GET /v1/me/hubs?offset=0": { data: [hub({ id: "hub-9", idea: { id: "idea-2", title: "Another", summary: "x" } })], next_offset: 50 },
+    "GET /v1/me/hubs?offset=50": { data: [myHub()], next_offset: null },
+  });
+  await screen.findByText("Wanjiru Kamau");
+  expect(screen.getAllByRole("button", { name: /Invite/ }).length).toBeGreaterThan(0);
   expect(screen.queryByRole("link", { name: "Create the hub" })).toBeNull();
 });
 
