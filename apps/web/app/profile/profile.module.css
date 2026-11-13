@@ -1,0 +1,136 @@
+/* ---------- you ---------- */
+.person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-5);
+}
+
+/* the action row: "Saved" and the error sit beside the button */
+.bar {
+  align-items: center;
+  margin-block-start: var(--space-6);
+}
+
+.failed {
+  flex: 0 0 100%;
+  margin-block-start: 0;
+}
+
+/* The status line is always in the page so a screen reader hears it change; the words arrive
+   with a short fade and stay until the next change. */
+.saved > span {
+  display: flex;
+  gap: var(--space-1);
+  animation: fade var(--dur-press) var(--ease-out) both;
+}
+
+/* ---------- roles ---------- */
+.rows {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-5);
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--pad-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+
+/* a role the person just added rises in; one that was removed simply goes */
+.row[data-arrived] {
+  animation: arrive var(--dur-reveal) var(--ease-out) both;
+}
+
+/* the pills always sit under the name, so every row reads the same way */
+.rowHead {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.roleName {
+  min-inline-size: 0;
+  font: var(--type-title);
+  overflow-wrap: anywhere;
+}
+
+/* focus moves here after a change, so a screen reader says what changed; a heading is not a
+   control, so it gets no ring */
+.roleName:focus,
+.heading:focus {
+  outline: none;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.add {
+  margin-block-start: var(--space-6);
+}
+
+.addHeading { font: var(--type-label); }
+
+.help {
+  margin-block: var(--space-1) var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* the chip look of the design system is 36px; a tap target here is at least --tap-min */
+.chip { min-block-size: var(--tap-min); }
+
+.none {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+}
+
+/* ---------- stack ---------- */
+.stackChips { margin-block-start: var(--space-4); }
+
+/* ---------- account ---------- */
+.languages,
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.account { margin-block-start: var(--space-6); }
+
+/* the language in use is marked as a chosen option is elsewhere: a stronger border */
+.language[aria-current="true"] {
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+}
+
+/* Reduced motion: the role still fades in, without moving. */
+@media (prefers-reduced-motion: reduce) {
+  .row[data-arrived] { animation-name: fade; }
+}

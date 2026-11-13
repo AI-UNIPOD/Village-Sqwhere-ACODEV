@@ -15,6 +15,7 @@ export type MeRole = {
 export type Me = {
   username: string;
   display_name: string;
+  bio: string | null;
   roles: MeRole[];
   technologies: { slug: string; name: string }[];
 };
@@ -35,6 +36,11 @@ function subscribe(onChange: () => void) {
   return () => {
     listeners.delete(onChange);
   };
+}
+
+// Keeps a profile the API answered a change with, so every screen showing it updates.
+export function keepMe(me: Me) {
+  keep(me);
 }
 
 // Forgets the kept profile, for tests and for anything that changes who is signed in.
