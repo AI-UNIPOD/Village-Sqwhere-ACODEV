@@ -1,14 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import type { CSSProperties } from "react";
 
-import { SoonButton } from "../landing/landing-page";
 import landing from "../landing/landing-page.module.css";
-import { SectionMotion } from "../landing/section-motion";
 import type { Lang } from "../locales";
 import { copy, fill } from "./copy";
+import { AlertCircle } from "./icons";
 import styles from "./onboarding.module.css";
 import { ROLES, TECHNOLOGIES, TOPICS, countriesFor, firstName, type Profile } from "./options";
+import { useSavedProfile } from "./save-answers";
 import type { Answers } from "./steps";
 
 // Static tags that arrive one after another once the card has landed (--i is the place).
@@ -36,6 +37,7 @@ type DoneStepProps = { lang: Lang; answers: Answers; profile: Profile; onChange:
 
 export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
   const t = copy[lang];
+  const { status, retry } = useSavedProfile(answers);
   const name = profile.displayName ?? profile.username;
   const initials = name
     .split(" ")
@@ -72,7 +74,7 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
             <Tags
               label={t.stackLabel}
               mono
-              items={TECHNOLOGIES.filter((tech) => answers.stack.includes(tech.slug)).map((tech) => tech.name)}
+              items={TECHNOLOGIES.filter((tech) => answers.stack.includes(tech.slug)).map((tech) => tech.name[lang])}
             />
             <Tags
               label={t.topicsLabel}
@@ -89,18 +91,37 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
           <li key={text}>{text}</li>
         ))}
       </ol>
-      <p className={styles.muted}>{t.preview}</p>
+      {(status === "saving" || status === "saved") && (
+        <p className={styles.muted} role="status">
+          {status === "saving" ? t.saving : t.saved}
+        </p>
+      )}
+      {status === "failed" && (
+        <>
+          <p className={styles.error} role="alert">
+            <AlertCircle />
+            {t.saveFailed}
+          </p>
+          <button type="button" className={`${landing.ghost} ${styles.retry}`} onClick={retry}>
+            {t.retry}
+          </button>
+        </>
+      )}
       <div className={styles.actions}>
-        <SoonButton className={landing.btn} soon={t.soon} announce={t.soon}>
-          {t.village}
-        </SoonButton>
+        {/* the village reads the role from the API, so the way there waits for the save */}
+        {status === "saving" ? (
+          <button type="button" className={landing.btn} aria-disabled="true">
+            {t.village}
+          </button>
+        ) : (
+          <Link className={landing.btn} href={`/${lang}/village`}>
+            {t.village}
+          </Link>
+        )}
         <button type="button" className={landing.ghost} onClick={onChange}>
           {role ? t.change : t.start}
         </button>
       </div>
-      {/* where a "coming soon" press is announced (SectionMotion fills it) */}
-      <p className={landing.srOnly} role="status" data-soon-status="" />
-      <SectionMotion />
     </div>
   );
 }

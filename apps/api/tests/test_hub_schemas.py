@@ -49,7 +49,7 @@ def error_fields(error: pytest.ExceptionInfo[ValidationError]) -> list[tuple]:
 def test_a_valid_create_request_is_accepted_and_trimmed() -> None:
     request = CreateHubRequest.model_validate(valid_create(name="  Farm Ledger Hub  "))
     assert request.name == "Farm Ledger Hub"
-    assert request.terms == {"ownership_model": "equal_split"}
+    assert request.terms.stored() == {"ownership_model": "equal_split"}
     assert request.agreement.signed_legal_name == "Amina Bello"
 
 
@@ -58,7 +58,8 @@ def test_description_and_terms_are_optional() -> None:
     del body["description"], body["terms"]
     request = CreateHubRequest.model_validate(body)
     assert request.description is None
-    assert request.terms == {}
+    # missing terms mean an equal split
+    assert request.terms.stored() == {"ownership_model": "equal_split"}
 
 
 @pytest.mark.parametrize("name", ["", "   ", "x" * 121])
@@ -104,15 +105,26 @@ def test_terms_must_be_a_json_object(terms: object) -> None:
 
 
 def test_terms_over_the_size_limit_are_refused() -> None:
-    # {"note":"..."} is 11 characters around the value
-    at_limit = {"note": "x" * (MAX_HUB_TERMS_JSON_CHARS - 11)}
+    # notes fit in 1000 characters, but each control character is 6 characters as JSON
+    prefix = {"ownership_model": "custom", "notes": ""}
+    room = MAX_HUB_TERMS_JSON_CHARS - len(json.dumps(prefix, separators=(",", ":")))
+    at_limit = {"ownership_model": "custom", "notes": "\u0001" * 650 + "x" * (room - 6 * 650)}
     assert len(json.dumps(at_limit, separators=(",", ":"))) == MAX_HUB_TERMS_JSON_CHARS
-    assert CreateHubRequest.model_validate(valid_create(terms=at_limit)).terms == at_limit
+    request = CreateHubRequest.model_validate(valid_create(terms=at_limit))
+    assert request.terms.stored() == at_limit
 
-    over = {"note": "x" * (MAX_HUB_TERMS_JSON_CHARS - 10)}
+    over = at_limit | {"notes": at_limit["notes"] + "x"}
     with pytest.raises(ValidationError) as error:
         CreateHubRequest.model_validate(valid_create(terms=over))
     assert error_fields(error) == [("terms",)]
+
+
+def test_accents_count_as_one_character_towards_the_size_limit() -> None:
+    notes = "é" * 1000
+    request = CreateHubRequest.model_validate(
+        valid_create(terms={"ownership_model": "custom", "notes": notes})
+    )
+    assert request.terms.notes == notes
 
 
 @pytest.mark.parametrize("field", ["owner_id", "id", "status", "archived_at"])

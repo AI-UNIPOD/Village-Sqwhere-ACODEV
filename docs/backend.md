@@ -498,11 +498,14 @@ Text answers use `{"type":"answer","text":"..."}`. Audio is sent as binary frame
 closed with `{"type":"answer_end"}`. With `GROQ_API_KEY` configured, the server sends the
 audio to `GROQ_STT_MODEL`, checks the transcript with `GROQ_GUARD_MODEL`, and gets the next
 question from `GROQ_INTERVIEW_MODEL`. If Groq is unavailable or returns invalid structured output,
-the conversation falls back to `GEMINI_INTERVIEW_MODEL`. If neither provider is available,
+the conversation falls back to `GEMINI_INTERVIEW_MODEL`. Audio transcription also falls back to
+Gemini multimodal input when Groq Whisper is unavailable. If neither provider is available,
 deterministic conversation keeps text interviews usable. Questions one to three cover architecture
 and ownership, role fundamentals, and testing and reliability. Questions four and five use the
 codebase analysis and prior answers for adaptive depth, trade-offs, and problem solving. Audio
 reports `TRANSCRIPTION_UNAVAILABLE` when transcription is not configured.
+Groq interview requests use a conservative 115,000-token input budget, below the 131,072-token
+GPT-OSS context window. Requests over that budget go directly to the Gemini interview fallback.
 
 An audio answer can name its type with the optional `audio_content_type` query parameter,
 which defaults to `audio/webm`. The value must be one of `audio/webm`, `audio/webm;codecs=opus`,
@@ -591,7 +594,401 @@ Records a peer review decision:
 ```
 
 Only `passed` and `failed` are accepted. A reviewer must be verified in the applicant's role,
-cannot review their own attempt, and cannot decide a case that is no longer awaiting review.
+cannot review their own attempt, and cannot decide a case that is no longer awaiting review. A
+passed decision marks the applicant's role and profile as verified through the database trigger.
+
+### Ideas
+
+An idea starts as an owner-only draft. Its `summary` is the safe public abstract for discovery.
+Its optional `details` field is a confidential brief, so the API never returns it outside the
+owner-only endpoints. Required roles are the platform role slugs a collaborator must have.
+
+**Idea error codes.** Errors use `{"detail": {"code": "...", "message": "..."}}`. Branch
+on `code`, never on `message`.
+
+| Status | Code | When |
+| --- | --- | --- |
+| `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
+| `404` | `NOT_FOUND` | The idea does not exist, is deleted, is not yours on a `/me` route, or is not open on a discovery route. |
+| `409` | `IDEA_NOT_DRAFT` | Trying to publish an idea that is already open or closed. |
+| `409` | `IDEA_NOT_OPEN` | Trying to close a draft or a closed idea. |
+| `422` | `UNKNOWN_ROLE` | A role slug does not exist or is inactive. |
+| `422` | (FastAPI's list) | A field is invalid, duplicate, unknown or missing. `detail` is a list. |
+
+#### `POST /v1/me/ideas`
+
+Creates a private draft. The server takes the author from the access token. It does not accept
+an owner or a status from the client.
+
+* **Authentication:** Bearer token required.
+* **Request Body:**
+  ```json
+  {
+    "title": "Offline farm ledger for co-operatives",
+    "summary": "A shared ledger that works offline for farming co-operatives in Kano.",
+    "details": "Private plan for onboarding the first co-operatives.",
+    "stage": "concept",
+    "roles_needed": ["backend-engineer", "ui-ux-engineer"]
+  }
+  ```
+  `title` is 5 to 150 characters, `summary` is 20 to 1000, and `details` is optional and up
+  to 20,000. `stage` is `concept`, `prototype` or `building`. `roles_needed` has zero to nine
+  distinct active role slugs. Unknown fields are refused.
+* **Success Response (201 Created):** Returns the full owner-only idea, including `details`,
+  with `status: "draft"` and `published_at: null`.
+
+#### `GET /v1/me/ideas` and `GET /v1/me/ideas/{idea_id}`
+
+Lists the signed-in developer's active ideas, or returns one full owner-only idea. List results
+omit `details` to keep a page light. Both accept or return the usual `offset`, `limit` and
+`next_offset` pagination values, where applicable.
+
+#### `PATCH /v1/me/ideas/{idea_id}`
+
+Changes any supplied idea field. Send `details: null` to remove the confidential brief. Send
+`roles_needed: []` to clear the role requirements. Leaving a field out keeps it unchanged.
+Changing title or summary invalidates its vector in the database, so matching can re-embed the
+new public text.
+
+#### `POST /v1/me/ideas/{idea_id}/publish`
+
+Moves a draft to `open` and records the publication time. An open idea can be discovered by
+signed-in developers and can be used to create a hub. A closed idea cannot be published again
+in this first version.
+
+#### `POST /v1/me/ideas/{idea_id}/close`
+
+Moves an open idea to `closed`. The owner retains the full record, but it no longer appears in
+discovery or matching candidates.
+
+#### `GET /v1/ideas` and `GET /v1/ideas/{idea_id}`
+
+Returns only open idea cards to signed-in developers. A card contains title, summary, stage,
+roles needed, author and timestamps. It never contains the confidential `details` field.
+`GET /v1/ideas` accepts `offset` and `limit`, with `next_offset` when another page exists.
+
+### Matching
+
+Matching pairs open ideas with developers through the roles an idea needs and the roles a
+developer has passed verification in. Self-claimed and inactive roles never match. It is
+deterministic: no AI model is called and an idea's `details` are never read. Both routes take
+`offset` (0 or more) and `limit` (1 to 50, default 20) and return `next_offset` when another
+page exists. Why: `docs/decisions/2026-11-13-role-based-idea-matching.md`.
+
+People with any membership row in an idea's hub (active, invited, declined and so on) are not
+suggested for that idea, and that idea is left out of their own matches.
+
+#### `GET /v1/me/ideas/{idea_id}/matches`
+
+Developers who fit one of the caller's open ideas. The order is: more of the idea's needed
+roles covered, then more technologies shared with the author, then earliest verification.
+The author and deleted accounts never appear. An idea with no roles needed returns an empty
+list, so the page should prompt the owner to add roles.
+
+* **Authentication:** Bearer token required. Only the idea's author.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": [
+      {
+        "id": "8d1c5d3e-1b7a-4f55-9a8e-2f9e0c6b7a11",
+        "username": "kwame-dev",
+        "display_name": "Kwame Mensah",
+        "avatar_url": null,
+        "is_verified": true,
+        "matched_roles": [{ "slug": "backend-engineer", "name": "Backend & Systems Engineer" }],
+        "technologies": [{ "slug": "python", "name": "Python" }],
+        "shared_technology_count": 1
+      }
+    ],
+    "next_offset": null
+  }
+  ```
+  A card never has an email, first or last name, or bio.
+* **Errors:** `404 NOT_FOUND` when the idea is not the caller's, does not exist or is deleted.
+  `409 IDEA_NOT_OPEN` for a draft or closed idea: publish it first.
+
+#### `GET /v1/me/matches`
+
+Open ideas, by other authors, that need a role the caller is verified in. The order is: more
+of the caller's roles needed, then newest publication. A caller with no verified role gets an
+empty list, so the page should point them to role verification.
+
+* **Authentication:** Bearer token required.
+* **Success Response (200 OK):** `{"data": [{"idea": <public idea card>, "matched_roles":
+  [<role>]}], "next_offset": null}`. The idea card is the same as `GET /v1/ideas/{idea_id}`.
+
+### Hubs
+
+A hub is the space where a team builds an idea together. Every member signs the same
+standard agreement (an NDA) before they join, including the owner when they create the hub.
+
+**Error codes for hubs.** Errors use the same shape as the rest of the API,
+`{"detail": {"code": "...", "message": "..."}}`. Branch on `code`, never on `message`.
+
+| Status | Code | When |
+| --- | --- | --- |
+| `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
+| `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
+| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite or withdraw an invitation. |
+| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief or the member list. |
+| `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
+| `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
+| `409` | `ALREADY_MEMBER` | The person is already an active member. |
+| `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances. |
+| `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
+| `409` | `IDEA_NOT_OPEN` | The idea is a draft or closed. Open it first. |
+| `409` | `HUB_ALREADY_EXISTS` | The idea already has a hub (one hub per idea). |
+| `409` | `AGREEMENT_MISMATCH` | The signed `template_id` or `template_sha256` is not the agreement being signed: the current one when creating a hub, the hub's own one when accepting. Fetch it again and show it before signing. |
+| `422` | (FastAPI's list) | A field or query parameter breaks a rule. `detail` is a list, and each item's `loc` names it. |
+| `503` | `AGREEMENT_NOT_PUBLISHED` | No agreement is published on this server, so no hub can be created. A setup problem, not something the person can fix. |
+
+#### `GET /v1/agreements/current`
+
+Returns the agreement a person reads and signs before creating a hub: the published
+agreement with the highest version. When the team publishes a new version, it replaces the
+old one here at once. Send its `template_id` and `body_sha256` back when creating the hub.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
+      "version": 1,
+      "title": "TEST AGREEMENT (NOT LEGAL TEXT)",
+      "body": "# TEST AGREEMENT, NOT LEGAL TEXT\n\nThis text is a placeholder...",
+      "body_sha256": "4f0c3a...64 lowercase hex characters",
+      "published_at": "2026-11-11T09:12:44.120000Z",
+      "hub_terms": {}
+    }
+  }
+  ```
+  `body_sha256` is the SHA-256 of `body`, so it proves which exact text was signed.
+  `hub_terms` is always `{}` here: a hub's own terms are set when it is created.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `503 AGREEMENT_NOT_PUBLISHED`.
+
+#### `POST /v1/hubs`
+
+Creates a hub from an idea. Only the idea's author can, and only while the idea is `open`.
+One idea has at most one hub. The author signs the current agreement in the same request and
+becomes the hub's owner and first active member. The hub, the signature and the membership
+are saved together, or nothing is saved.
+
+* **Authentication:** Bearer token required (the idea's author)
+* **Request Body:**
+  ```json
+  {
+    "idea_id": "0193f2d0-3f4b-7e5d-9a43-0000000000d1",
+    "name": "Farm Ledger Hub",
+    "description": "Building the offline ledger MVP.",
+    "terms": {
+      "ownership_model": "custom",
+      "notes": "The owner keeps 40%, the rest is split equally."
+    },
+    "agreement": {
+      "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
+      "template_sha256": "4f0c3a...the body_sha256 from GET /v1/agreements/current",
+      "signed_legal_name": "Amina Bello"
+    }
+  }
+  ```
+  * `name`: 1 to 120 characters after trimming spaces.
+  * `description`: optional, up to 2000 characters, or `null`.
+  * `terms`: optional. Left out, it is `{"ownership_model": "equal_split"}`. `ownership_model`
+    is `equal_split`, `owner_majority` or `custom`. `notes` is optional, 1 to 1000 characters
+    after trimming. No other keys. At most 4096 characters as JSON. **Terms can never change
+    after the hub is created**, and every member who joins signs these same terms.
+  * `agreement`: the `template_id` and `body_sha256` from `GET /v1/agreements/current`, and
+    the person's legal name (2 to 200 characters after trimming).
+  * Any other field, such as `owner_id` or `status`, is refused with `422`.
+* **Success Response (201 Created):**
+  ```json
+  {
+    "data": {
+      "id": "0193f2e0-4a5c-7f6e-9b54-0000000000e1",
+      "name": "Farm Ledger Hub",
+      "description": "Building the offline ledger MVP.",
+      "status": "active",
+      "terms": {
+        "ownership_model": "custom",
+        "notes": "The owner keeps 40%, the rest is split equally."
+      },
+      "idea": {
+        "id": "0193f2d0-3f4b-7e5d-9a43-0000000000d1",
+        "title": "Offline-first farm ledger",
+        "summary": "A ledger app for smallholder farmers that works fully offline."
+      },
+      "owner": {
+        "id": "0193f2a0-0c1e-7b2a-9f10-0000000000a1",
+        "username": "amina-bello",
+        "display_name": "Amina Bello",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1001",
+        "is_verified": false
+      },
+      "member_count": 1,
+      "agreement": { "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1", "version": 1 },
+      "created_at": "2026-11-12T13:20:11.482000Z",
+      "updated_at": "2026-11-12T13:20:11.482000Z",
+      "archived_at": null,
+      "viewer": { "membership_status": "active", "member_role": "owner" }
+    }
+  }
+  ```
+  `member_count` counts active members only. `viewer` is the signed-in person's own
+  membership. The idea's confidential details are never in a hub card. The server keeps the
+  signer's IP address (from the connection, never from a header) and browser user agent as
+  evidence, and never returns them.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `422` (a field breaks a rule),
+  `404 NOT_FOUND`, `403 NOT_IDEA_AUTHOR`, `409 IDEA_NOT_OPEN`, `409 HUB_ALREADY_EXISTS`,
+  `409 AGREEMENT_MISMATCH`, `503 AGREEMENT_NOT_PUBLISHED`.
+
+#### `GET /v1/hubs/{hub_id}`
+
+Returns one hub's card. Any signed-in user can read it, member or not, so an invited person can
+see the hub before answering. Archived hubs can still be read.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Success Response (200 OK):** the same hub card as `POST /v1/hubs` returns, in `data`.
+  `viewer` is the caller's own membership in this hub, in any status:
+  ```json
+  { "membership_status": "invited", "member_role": "member" }
+  ```
+  Both are `null` when the caller has never been a member. `membership_status` is one of
+  `requested`, `invited`, `active`, `declined`, `left` or `removed`, and `member_role` is
+  `owner` or `member`. `member_count` counts active members only. The idea's confidential
+  details and the agreement signatures are never part of the card, whoever asks.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
+  id), `422` (the id is not a UUID).
+
+#### `GET /v1/me/hubs`
+
+Lists the hubs the signed-in person is in, newest hub first. Archived hubs stay in the list.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Query Parameters:**
+  * `status`: the person's own membership, `active` (default), `requested` (they asked to
+    join) or `invited` (the owner invited them). Declined, left and removed memberships are
+    never listed, and asking for them is refused with `422`.
+  * `offset`: how many hubs to skip, 0 or more (default 0).
+  * `limit`: how many hubs to return, 1 to 50 (default 20).
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": [
+      {
+        "id": "0193f2e0-4a5c-7f6e-9b54-0000000000e1",
+        "name": "Farm Ledger Hub",
+        "...": "the same hub card as GET /v1/hubs/{hub_id}",
+        "viewer": { "membership_status": "invited", "member_role": "member" }
+      }
+    ],
+    "next_offset": 20
+  }
+  ```
+  Each item is the same hub card as `GET /v1/hubs/{hub_id}`. `next_offset` is the `offset` for
+  the next page, or `null` on the last page. Hubs made at the same moment are ordered by id,
+  so no hub appears on two pages.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `422` (a bad `status`, `offset` or
+  `limit`).
+
+#### Joining a hub
+
+The owner invites developers. An invited person reads the hub's agreement and either signs it
+to join or declines. Only active members, who have signed, see the idea's confidential brief
+and the team. Why these rules: `docs/decisions/2026-11-13-hub-invitations.md`.
+
+```text
+(no row) --invite--> invited --accept + sign--> active
+                        |  \--decline--> declined --invite--> invited
+                        \--withdraw (owner)--> (no row)
+```
+
+Every route needs a Bearer token. A hub id that does not exist answers `404 NOT_FOUND`. An
+invited person finds their invitations through `GET /v1/me/hubs?status=invited` (#67).
+
+#### `GET /v1/hubs/{hub_id}/agreement`
+
+The agreement this hub was created on, which every member signs, with the hub's `hub_terms`.
+It can be an older version than `GET /v1/agreements/current`. Any signed-in user can read it.
+Same shape as `GET /v1/agreements/current`.
+
+#### `POST /v1/hubs/{hub_id}/invitations`
+
+The owner invites one developer. The username is matched without regard to case.
+
+* **Request Body:** `{ "username": "kwame-dev" }`
+* **Success Response (201 Created):**
+  ```json
+  {
+    "data": {
+      "user": {
+        "id": "8d1c5d3e-1b7a-4f55-9a8e-2f9e0c6b7a11",
+        "username": "kwame-dev",
+        "display_name": "Kwame Mensah",
+        "avatar_url": null,
+        "is_verified": true
+      },
+      "member_role": "member",
+      "status": "invited",
+      "joined_at": null,
+      "updated_at": "2026-11-13T10:02:41.120000Z"
+    }
+  }
+  ```
+  Someone who declined, left or was removed can be invited again.
+* **Errors:** `403 NOT_HUB_OWNER`, `404 USER_NOT_FOUND`, `409 ALREADY_MEMBER`,
+  `409 ALREADY_INVITED`, `409 HUB_ARCHIVED`, `422` (a missing or malformed username).
+
+#### `DELETE /v1/hubs/{hub_id}/invitations/{user_id}`
+
+The owner withdraws a pending invitation. Answers `204 No Content`. The invitation is removed
+completely, so the person's hub card shows no membership again.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 INVITATION_NOT_FOUND` (nothing pending for this
+  person, for example an active member).
+
+#### `POST /v1/hubs/{hub_id}/invitation/accept`
+
+The invited person signs the hub's agreement and becomes an active member. Show the text from
+`GET /v1/hubs/{hub_id}/agreement` first, then send what was shown:
+
+* **Request Body:**
+  ```json
+  {
+    "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
+    "template_sha256": "<body_sha256 from the hub's agreement>",
+    "signed_legal_name": "Kwame Mensah"
+  }
+  ```
+* **Success Response (200 OK):** the hub card, with `viewer.membership_status: "active"`.
+  The signature, its IP address and user agent are saved as evidence and never returned. A
+  person invited back after leaving keeps their earlier signature of the same text.
+* **Errors:** `404 INVITATION_NOT_FOUND`, `409 ALREADY_MEMBER`, `409 HUB_ARCHIVED`,
+  `409 AGREEMENT_MISMATCH`, `422`.
+
+#### `POST /v1/hubs/{hub_id}/invitation/decline`
+
+The invited person says no. Answers `200` with the hub card, `viewer.membership_status:
+"declined"`. The owner can invite them again later.
+
+* **Errors:** `404 INVITATION_NOT_FOUND`, `409 ALREADY_MEMBER`.
+
+#### `GET /v1/hubs/{hub_id}/members`
+
+The team, for active members only: the owner first, then members by joining time. The owner
+also sees `invited` and `declined` people, to follow up or withdraw. Nobody sees people who
+left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
+
+* **Errors:** `403 NOT_HUB_MEMBER`.
+
+#### `GET /v1/hubs/{hub_id}/idea`
+
+The idea behind the hub, with its confidential `details`, for active members only. Returns
+`id`, `title`, `summary`, `details`, `stage`, `status`, `published_at` and `updated_at`.
+
+* **Errors:** `403 NOT_HUB_MEMBER`, `404 NOT_FOUND` (also when the idea was deleted).
 
 ---
 

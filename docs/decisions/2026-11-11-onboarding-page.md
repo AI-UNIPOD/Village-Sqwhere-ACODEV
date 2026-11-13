@@ -20,6 +20,14 @@ Tanny chose, on 11 November 2026, to build the full design now, with static data
 
 - **Made-up demo profile.** The role and stack lists match the API slugs. The topic list is a
   draft of idea domains. Answers stay in the page. Nothing is saved, and the page calls no API.
+  *Update, 12 November 2026:* the answers also stay in `sessionStorage` for the tab, so a reload
+  or a dropped tab does not send the person back to step 1 (WCAG 3.3.7). They are read once on
+  load, written on every change and checked on read: unknown values are dropped. If storage is
+  blocked, the page works as before. They go when the tab closes, and still nothing reaches the API.
+  *Update, 13 November 2026:* the done step now saves the role and the stack
+  (`POST /v1/me/roles`, then `PUT /v1/me/technologies`). Both map to endpoints that exist, with
+  no workaround, the calls can be sent again safely, and role verification needs a claimed role.
+  The country and the topics still wait for the API (gaps 2 and 3) and stay in the tab.
 - **One question per screen.** Role and stack are required. Country and topics are optional.
   The step sits in the address (`?step=`), so the browser back button moves between steps.
 - **Welcome step.** It reuses `GatherHero` unchanged.

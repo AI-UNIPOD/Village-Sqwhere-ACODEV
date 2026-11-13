@@ -24,7 +24,7 @@ from app.models.users import (
     VerificationSession,
     VerificationStatus,
 )
-from app.services.gemini_interview import GeminiInterviewAgent
+from app.services.gemini_interview import GeminiAudioTranscriber, GeminiInterviewAgent
 from app.services.groq_interview import (
     GroqInterviewAgent,
     GroqPromptGuard,
@@ -32,7 +32,9 @@ from app.services.groq_interview import (
 )
 from app.services.interview import (
     AnswerGuard,
+    AudioTranscriber,
     DefaultInterviewAgent,
+    FallbackAudioTranscriber,
     FallbackInterviewAgent,
     InterviewAgent,
     InterviewHistoryItem,
@@ -167,7 +169,17 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
             await db.flush()
 
         agent = interview_agent()
-        transcriber = GroqWhisperTranscriber() if GROQ_API_KEY else UnconfiguredAudioTranscriber()
+        transcriber: AudioTranscriber = UnconfiguredAudioTranscriber()
+        if GEMINI_API_KEY and GEMINI_INTERVIEW_MODEL:
+            transcriber = FallbackAudioTranscriber(
+                transcriber,
+                GeminiAudioTranscriber(),
+            )
+        if GROQ_API_KEY:
+            transcriber = FallbackAudioTranscriber(
+                GroqWhisperTranscriber(),
+                transcriber,
+            )
         guard: AnswerGuard = (
             GroqPromptGuard() if GROQ_API_KEY and GROQ_GUARD_MODEL else UnconfiguredAnswerGuard()
         )

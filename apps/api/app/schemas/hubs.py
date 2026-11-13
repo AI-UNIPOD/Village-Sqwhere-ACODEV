@@ -7,11 +7,11 @@ client cannot send owner_id, status or terms_snapshot.
 
 import json
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated, Any, Self
 from uuid import UUID
 
 from pydantic import (
-    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -21,6 +21,7 @@ from pydantic import (
 )
 
 from app.models.hubs import HubMemberRole, HubMemberStatus, HubStatus
+from app.models.ideas import IdeaStage, IdeaStatus
 
 # Our own limit, not the database's: hub terms written as compact JSON may be at most this
 # many characters. The team can change it here.
@@ -30,19 +31,41 @@ HubName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, 
 HubDescription = Annotated[str, StringConstraints(max_length=2000)]
 LegalName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
 Sha256Hex = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+TermsNotes = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
+# the users_username_format CHECK
+Username = Annotated[
+    str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z0-9_-]{3,39}$")
+]
 
 
-def _terms_fit(terms: dict[str, Any]) -> dict[str, Any]:
-    if len(json.dumps(terms, separators=(",", ":"))) > MAX_HUB_TERMS_JSON_CHARS:
-        raise ValueError(f"terms must be at most {MAX_HUB_TERMS_JSON_CHARS} characters as JSON")
-    return terms
-
-
-# a JSON object (the database refuses anything else), small enough to store and show
-HubTerms = Annotated[dict[str, Any], AfterValidator(_terms_fit)]
+class OwnershipModel(StrEnum):
+    EQUAL_SPLIT = "equal_split"
+    OWNER_MAJORITY = "owner_majority"
+    CUSTOM = "custom"
 
 
 # --- requests ----------------------------------------------------------------------------
+
+
+class HubTerms(BaseModel):
+    """The deal every member signs. Set when the hub is created and never changed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ownership_model: OwnershipModel
+    notes: TermsNotes | None = None
+
+    def stored(self) -> dict[str, Any]:
+        """The terms as saved in hubs.terms, without empty optional keys."""
+        return self.model_dump(mode="json", exclude_none=True)
+
+    @model_validator(mode="after")
+    def fits(self) -> Self:
+        # counted as characters, not escapes, so French accents cost one character each
+        size = len(json.dumps(self.stored(), separators=(",", ":"), ensure_ascii=False))
+        if size > MAX_HUB_TERMS_JSON_CHARS:
+            raise ValueError(f"terms must be at most {MAX_HUB_TERMS_JSON_CHARS} characters as JSON")
+        return self
 
 
 class AgreementAcceptance(BaseModel):
@@ -61,8 +84,16 @@ class CreateHubRequest(BaseModel):
     idea_id: UUID
     name: HubName
     description: HubDescription | None = None
-    terms: HubTerms = Field(default_factory=dict)
+    terms: HubTerms = Field(
+        default_factory=lambda: HubTerms(ownership_model=OwnershipModel.EQUAL_SPLIT)
+    )
     agreement: AgreementAcceptance
+
+
+class InviteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: Username
 
 
 class UpdateHubRequest(BaseModel):
@@ -161,6 +192,52 @@ class HubResponse(BaseModel):
     data: Hub
 
 
+class MyHubsStatus(StrEnum):
+    """The memberships GET /v1/me/hubs can list. Declined, left and removed ones are history,
+    not hubs the person is in."""
+
+    ACTIVE = "active"
+    REQUESTED = "requested"
+    INVITED = "invited"
+
+
 class HubListResponse(BaseModel):
     data: list[Hub]
     next_offset: int | None = None
+
+
+class HubMemberCard(BaseModel):
+    """One person's place in a hub. `updated_at` is when the status last changed."""
+
+    user: HubOwner
+    member_role: HubMemberRole
+    status: HubMemberStatus
+    joined_at: datetime | None = None
+    updated_at: datetime
+
+
+class HubMemberResponse(BaseModel):
+    data: HubMemberCard
+
+
+class HubMembersResponse(BaseModel):
+    data: list[HubMemberCard]
+
+
+class HubIdeaBrief(BaseModel):
+    """The whole idea, confidential details included. Only for the hub's active members."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    title: str
+    summary: str
+    details: str | None = None
+    stage: IdeaStage
+    status: IdeaStatus
+    published_at: datetime | None = None
+    updated_at: datetime
+
+
+class HubIdeaBriefResponse(BaseModel):
+    data: HubIdeaBrief
