@@ -129,6 +129,9 @@ test("the owner also sees who is invited or declined, and can invite from the pa
   expect(rowOf("Wanjiru Kamau").getByText("Invited")).toBeTruthy();
   expect(rowOf("Wanjiru Kamau").getByRole("button", { name: "Withdraw: Wanjiru Kamau" })).toBeTruthy();
   expect(rowOf("Amina Ndiaye").getByText("Declined")).toBeTruthy();
+  // someone who has not joined is not called a member
+  expect(rowOf("Wanjiru Kamau").queryByText("Member")).toBeNull();
+  expect(rowOf("Amina Ndiaye").queryByText("Member")).toBeNull();
   expect(rowOf("Amina Ndiaye").getByRole("button", { name: "Invite again: Amina Ndiaye" })).toBeTruthy();
   // only active people count
   expect(screen.getByText("2 of 5 members")).toBeTruthy();

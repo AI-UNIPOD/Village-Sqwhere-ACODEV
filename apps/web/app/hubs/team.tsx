@@ -31,8 +31,8 @@ const TEAM_MAX = 5;
 type TeamCopy = (typeof copy)[Lang]["team"];
 type Who = Pick<Member["user"], "username" | "display_name" | "is_verified">;
 
-// A person, with their part in the hub.
-export function Person({ lang, user, role }: { lang: Lang; user: Who; role: string }) {
+// A person, with their part in the hub once they have one.
+export function Person({ lang, user, role }: { lang: Lang; user: Who; role?: string }) {
   const t = copy[lang];
   const named = user.display_name !== user.username;
   const github = (text: string) => (
@@ -53,15 +53,17 @@ export function Person({ lang, user, role }: { lang: Lang; user: Who; role: stri
       <div>
         <p className={village.name}>{named ? user.display_name : github(user.username)}</p>
         {named && <p className={village.username}>{github(`@${user.username}`)}</p>}
-        <p className={ideas.meta}>
-          {role}
-          {user.is_verified && (
-            <span className={styles.verified}>
-              <Check />
-              {t.verified}
-            </span>
-          )}
-        </p>
+        {(role || user.is_verified) && (
+          <p className={ideas.meta}>
+            {role}
+            {user.is_verified && (
+              <span className={styles.verified}>
+                <Check />
+                {t.verified}
+              </span>
+            )}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -236,7 +238,12 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
         <ul className={styles.members}>
           {members.map((member) => (
             <li key={member.user.id} className={styles.member} data-arrived={member.user.id === arrived || undefined}>
-              <Person lang={lang} user={member.user} role={member.member_role === "owner" ? t.owner : t.member} />
+              <Person
+                lang={lang}
+                user={member.user}
+                // someone invited or who declined has no part in the hub yet
+                role={member.status !== "active" ? undefined : member.member_role === "owner" ? t.owner : t.member}
+              />
               {member.status !== "active" && (
                 <div className={styles.side}>
                   {member.status === "invited" ? (
