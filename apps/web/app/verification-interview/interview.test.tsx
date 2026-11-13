@@ -152,7 +152,7 @@ test("the welcome and the first question appear, the question with its number", 
   expect(within(log).getByText("Question text 1")).toBeTruthy();
   expect(within(log).getByText("Question 1")).toBeTruthy();
   expect(within(log).getAllByText("Interviewer")).toHaveLength(2);
-  expect(document.activeElement).toBe(field());
+  await waitFor(() => expect(document.activeElement).toBe(field()));
   expect(scrollIntoView).toHaveBeenCalled();
 });
 
@@ -178,7 +178,7 @@ test("the next question enables the field again and moves focus to it", async ()
   expect(screen.getByText("Question 2")).toBeTruthy();
   expect(screen.queryByText("The interviewer is reading your answer")).toBeNull();
   expect(field().disabled).toBe(false);
-  expect(document.activeElement).toBe(field());
+  await waitFor(() => expect(document.activeElement).toBe(field()));
 });
 
 test("Ctrl and Enter sends, and Enter alone does not", async () => {

@@ -74,7 +74,7 @@ test("the idea says what asking means, then Ask to join sends the request and th
   expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
   expect(posted()).toEqual([["/v1/hubs/hub-1/join-requests", null]]);
   // focus stays on the page's new state, not on a button that is gone
-  expect(document.activeElement).toBe(status);
+  await waitFor(() => expect(document.activeElement).toBe(status));
 });
 
 test("a second press while the request is on its way sends nothing more", async () => {
@@ -157,9 +157,25 @@ test("asking too soon after a decline says when the developer can ask again, in 
   const note = await screen.findByText(/^The owner turned down your last request\. You can ask again from November 15, 2026 at \d{1,2}:\d{2}\s[AP]M\.$/);
   expect(screen.getByRole("status").contains(note)).toBe(true);
   // the button that was pressed is gone, so the place moves to the sentence
-  expect(document.activeElement).toBe(note);
+  await waitFor(() => expect(document.activeElement).toBe(note));
   expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("a developer still waiting sees the date as soon as the page opens, with no button to press", async () => {
+  await view({ viewer: { membership_status: "declined", member_role: "member", can_ask_again_at: "2026-11-15T12:00:00.123456+00:00" } });
+  const note = await screen.findByText(/^The owner turned down your last request\. You can ask again from November 15, 2026 at \d{1,2}:\d{2}\s[AP]M\.$/);
+  expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
+  // nothing was pressed, so nothing is announced and the person's place is left alone
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(document.activeElement).not.toBe(note);
+  expect(posted()).toEqual([]);
+});
+
+test("once the wait is over the card carries no date, and the button is back", async () => {
+  await view({ viewer: { membership_status: "declined", member_role: "member", can_ask_again_at: null } });
+  expect(await ask()).toBeTruthy();
+  expect(screen.queryByText(/turned down/)).toBeNull();
 });
 
 test("the wait is said in French, with the date written the French way", async () => {
@@ -210,7 +226,8 @@ test("a hub card that fails to load says so and loads again on Try again", async
 test("asking is the same page in French", async () => {
   await view(placed(null), { "POST /v1/hubs/hub-1/join-requests": reply(201, { data: hub(placed("requested")) }) }, {}, "fr");
   expect(await screen.findByRole("heading", { level: 2, name: "Rejoindre l'équipe" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Demander à rejoindre" }));
+  // the heading is the idea page's own; the button comes once the hub's card has loaded
+  fireEvent.click(await screen.findByRole("button", { name: "Demander à rejoindre" }));
   expect(await screen.findByText("Vous avez demandé à rejoindre l'équipe. Le porteur vous répondra.")).toBeTruthy();
 });
 

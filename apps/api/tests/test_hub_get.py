@@ -89,7 +89,11 @@ def test_the_owner_sees_exactly_the_hub_card(client: TestClient) -> None:
     assert card["member_count"] == 1
     assert card["agreement"]["template_id"] == str(hub.agreement_template_id)
     assert set(card["agreement"]) == {"template_id", "version"}
-    assert card["viewer"] == {"membership_status": "active", "member_role": "owner"}
+    assert card["viewer"] == {
+        "membership_status": "active",
+        "member_role": "owner",
+        "can_ask_again_at": None,
+    }
     assert card["archived_at"] is None
     assert is_aware_iso(card["created_at"]) and is_aware_iso(card["updated_at"])
 
@@ -101,7 +105,11 @@ def test_a_signed_in_stranger_sees_the_card_with_no_membership(client: TestClien
 
     assert resp.status_code == 200, resp.text
     card = resp.json()["data"]
-    assert card["viewer"] == {"membership_status": None, "member_role": None}
+    assert card["viewer"] == {
+        "membership_status": None,
+        "member_role": None,
+        "can_ask_again_at": None,
+    }
     assert card["name"] == "Farm Ledger Hub"
     assert card["member_count"] == 1
 
@@ -120,6 +128,7 @@ def test_the_viewer_shows_the_callers_own_membership_in_every_status(
     assert resp.json()["data"]["viewer"] == {
         "membership_status": status.value,
         "member_role": "member",
+        "can_ask_again_at": None,
     }
 
 

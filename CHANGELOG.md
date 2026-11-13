@@ -11,6 +11,9 @@ its number:
 ## 2026-11-13
 
 - feat(api): filter posts by several topics (#127)
+- feat(web): show the wait after a decline as the page opens (#132)
+- feat(api): show on the hub card when a developer may ask again (#130)
+- fix(api): show the demo people as verified (#126)
 - feat(web): say when a declined developer can ask again (#125)
 - fix(web): load the profile in the frame when no screen has (#124)
 - feat(api): make a turned-down developer wait before asking again (#123)

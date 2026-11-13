@@ -149,7 +149,7 @@ test("the button opens the choice in place, with the topics now held already cho
   expect(screen.getByRole("group", { name: "Topics for your feed" })).toBeTruthy();
   expect(chip("Go").getAttribute("aria-pressed")).toBe("true");
   expect(chip("Python").getAttribute("aria-pressed")).toBe("false");
-  expect(document.activeElement).toBe(within(panel()).getAllByRole("button")[0]);
+  await waitFor(() => expect(document.activeElement).toBe(within(panel()).getAllByRole("button")[0]));
   // the page's one main button is still the way to write
   expect(screen.getByRole("link", { name: "Write a post" }).className).toMatch(/btn/);
   expect(within(panel()).getByRole("button", { name: "Save" }).className).toMatch(/ghost/);
@@ -173,7 +173,7 @@ test("saving sends every chosen slug under the key technologies, keeps the answe
   expect(panel().hidden).toBe(true);
   expect(screen.getByRole("button", { name: "Change topics" }).getAttribute("aria-expanded")).toBe("false");
   // focus comes back to the button that opened it
-  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change topics" }));
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change topics" })));
   // the feed loads again from the top
   await waitFor(() => expect(asked().filter((call) => call === "GET /v1/feed?offset=0&limit=20")).toHaveLength(2));
   await screen.findByRole("heading", { name: "Pooling with asyncpg" });
@@ -201,7 +201,7 @@ test("Cancel closes it, throws the choice away, sends nothing and gives focus ba
   fireEvent.click(within(panel()).getByRole("button", { name: "Cancel" }));
   expect(panel().hidden).toBe(true);
   expect(button.getAttribute("aria-expanded")).toBe("false");
-  expect(document.activeElement).toBe(button);
+  await waitFor(() => expect(document.activeElement).toBe(button));
   expect(asked().some((call) => call.startsWith("PUT"))).toBe(false);
   expect(asked().filter((call) => call.startsWith("GET /v1/feed"))).toHaveLength(1);
   // reopening starts from what is held, not from the abandoned choice
@@ -217,7 +217,7 @@ test("Escape closes it and gives focus back", async () => {
   fireEvent.click(button);
   fireEvent.keyDown(chip("Go"), { key: "Escape" });
   expect(panel().hidden).toBe(true);
-  expect(document.activeElement).toBe(button);
+  await waitFor(() => expect(document.activeElement).toBe(button));
 });
 
 test("the button closes it again", async () => {

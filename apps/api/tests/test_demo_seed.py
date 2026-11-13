@@ -34,10 +34,14 @@ def test_every_demo_screen_has_something_to_show(client: TestClient, visitor: di
 
     me = data("/v1/me")
     assert me["is_demo"] is True
+    assert me["is_verified"] is True
     assert me["roles"][0]["verified_at"] is not None and me["technologies"]
 
     feed = data("/v1/feed", limit=50)
     assert len(feed) >= 10
+    seeded = {username for username, _, _ in PEOPLE.values()}
+    authors = [post["author"] for post in feed if post["author"]["username"] in seeded]
+    assert authors and all(author["is_verified"] for author in authors)  # the Green Tick
     assert {post["type"] for post in feed} >= {"rfc", "question", "oss_release"}
     assert any(post["link_url"] for post in feed)
     assert any("é" in post["body"] for post in feed)  # some French
