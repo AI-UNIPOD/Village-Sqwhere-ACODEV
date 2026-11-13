@@ -64,6 +64,8 @@ has a hub (`hubs/ask-to-join.tsx`, `POST /v1/hubs/{id}/join-requests`). The page
 hub's card to know whether the viewer already asked, is invited or is a member. The owner
 answers in the hub's team list with Approve or Decline; approving makes it an invitation, signed
 on the join page. "Your hubs" lists a developer's own requests under "Waiting for the owner".
+After a decline the developer waits before asking again: a press too soon (409
+`REQUEST_COOLING_DOWN`) replaces the button with the date the wait ends.
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
 developer is verified in (`GET /v1/me/matches`), each with the roles that matched. Matching goes
