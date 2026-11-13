@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): let a developer withdraw their join request (#134)
 - feat(web): add the guided tour of the demo (#133)
 - fix(api): refuse a hub milestone filter on the post list (#128)
 - feat(api): filter posts by several topics (#127)
