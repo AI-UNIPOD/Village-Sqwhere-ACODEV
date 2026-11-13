@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): filter posts by several topics (#127)
 - feat(web): add liking a comment (#109)
 - test(web): answer the sign-in request only after it is sent (#110)
 - feat(web): add comments and replies on a post (#108)
