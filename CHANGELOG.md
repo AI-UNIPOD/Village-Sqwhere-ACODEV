@@ -10,6 +10,8 @@ its number:
 
 ## 2026-11-13
 
+- test(api): stop the hub race test depending on request order (#81)
+
 - feat(web): add the village home page for signed-in developers (#72)
 - feat(api): add hub invitations and membership (#68)
 - fix(api): stop a 500 when a list is replaced twice at once (#71)
