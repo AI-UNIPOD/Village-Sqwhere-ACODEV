@@ -1141,6 +1141,7 @@ Create a new feed post.
 * **Authentication:** Required (Bearer token)
 * **Topic rules:** Maximum 5 topics. No duplicate slugs. Each slug must match a technology in the technologies table.
 * **Hub milestone:** `type = "hub_milestone"` is currently deferred and returns HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`.
+* **Link:** `link_url` must start with `http://` or `https://` and is at most 2048 characters (HTTP 422 otherwise).
 * **Request Body:**
   ```json
   {
@@ -1205,6 +1206,8 @@ Update a post's title, body, or link URL.
   * Passing `title: null` clears the title for standard posts, but returns HTTP 422 for RFC posts.
   * Passing `body: null` is rejected.
   * Topics and post type are immutable and cannot be updated.
+  * `link_url` follows the same rules as on create.
+  * An edit that arrives while the post is being deleted waits for the delete and then gets HTTP 404 `POST_NOT_FOUND`.
   * Each text change creates an audit row in `post_revisions` and updates `edited_at` automatically.
 * **Request Body:**
   ```json
@@ -1228,7 +1231,7 @@ Soft-delete a post.
   * Platform moderators and admins can delete (records deletion reason `moderator`).
   * If the author is also a moderator, the `author` reason takes precedence.
   * Non-authors without moderator rights receive HTTP 403 `NOT_POST_AUTHOR`.
-* **Visibility:** Once deleted, the post returns HTTP 404 `POST_NOT_FOUND` to all future GET and PATCH requests.
+* **Visibility:** Once deleted, the post returns HTTP 404 `POST_NOT_FOUND` to all future GET, PATCH and DELETE requests, including a second delete sent at the same moment, so the first reason is kept.
 * **Success Response (204 No Content):** Empty body.
 
 

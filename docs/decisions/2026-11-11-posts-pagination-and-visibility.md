@@ -16,8 +16,8 @@ The Developer Exchange Feed (`posts`) requires clear visibility, pagination, and
 The team agreed on the following architectural choices:
 
 1. **Defer `hub_milestone` creation**: Keep `HUB_MILESTONE` in the ORM enum so existing rows remain queryable. Reject creation with HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`. Filter `hub_id IS NULL` across every feed and post read path to protect confidential hub data.
-2. **Offset pagination with `limit + 1`**: Use offset pagination (`limit` default 20, max 50; `offset` default 0) to match existing endpoints like verifications. Keyset pagination can be introduced later without breaking the response shape.
-3. **HTTP 404 for deleted posts**: Deleted posts return HTTP 404 `POST_NOT_FOUND` on read, update, and delete. No public tombstone is returned.
+2. **Offset pagination with `limit + 1`**: Use offset pagination (`limit` default 20, max 50; `offset` default 0) to match existing endpoints like verifications. Switching to keyset pagination later would change the contract: clients would send a cursor instead of `offset`.
+3. **HTTP 404 for deleted posts**: Deleted posts return HTTP 404 `POST_NOT_FOUND` on read, update, and delete. No public tombstone is returned. Update and delete lock the post row, so a request that waits on a concurrent delete also gets the 404.
 4. **API enforcement for topics**: Enforce the 5-topic maximum and duplicate topic validation in the route with HTTP 422 `TOO_MANY_TOPICS` and `DUPLICATE_TOPICS`. Topics are immutable after creation.
 5. **Deletion audit reasons**: Post authors delete with reason `author`. Moderators delete with reason `moderator`. When an author is also a moderator, the `author` reason takes precedence.
 
