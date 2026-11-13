@@ -180,3 +180,21 @@ test("draws the logo from the Logo component, hidden from screen readers", () =>
   expect(logos.length).toBeGreaterThanOrEqual(3); // header, hero square, footer
   for (const logo of logos) expect(logo.getAttribute("aria-hidden")).toBe("true");
 });
+
+// The round buttons have no words on them, so each says what it does in a tooltip, in the page's
+// language. The hero's motion button shows its words, so it needs no tooltip.
+test.each([
+  ["en", "Passer en français", "Switch to dark mode", "Pause animation"],
+  ["fr", "Switch to English", "Passer en mode sombre", "Mettre l'animation en pause"],
+] as const)("the %s page gives its language and theme buttons a tooltip in its own words", (lang, language, theme, motion) => {
+  render(<LandingPage lang={lang} />);
+  const tooltipOf = (host: Element) => host.querySelector("[data-tooltip]")?.textContent;
+  expect(tooltipOf(screen.getByRole("link", { name: language }))).toBe(language);
+  expect(tooltipOf(screen.getByRole("button", { name: theme }))).toBe(theme);
+  // the motion button is hidden until the hero script has placed it, so look past that
+  const motionButton = screen
+    .getAllByRole("button", { hidden: true })
+    .find((b) => b.textContent?.includes(motion));
+  expect(motionButton).toBeDefined();
+  expect(motionButton!.querySelector("[data-tooltip]")).toBeNull();
+});

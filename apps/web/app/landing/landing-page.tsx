@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
 import { AccountNavLink } from "../session/session-ui";
+import { Tooltip } from "../tooltip";
 import { copy } from "./copy";
 import { GatherHero } from "./gather-hero";
 import styles from "./landing-page.module.css";
@@ -89,6 +90,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
         aria-label={t.switchLabel}
       >
         {t.switchText}
+        <Tooltip label={t.switchLabel} side="left" />
       </a>
       <ThemeToggle toDark={t.toDark} toLight={t.toLight} />
 

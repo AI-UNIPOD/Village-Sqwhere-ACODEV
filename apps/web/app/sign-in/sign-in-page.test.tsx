@@ -393,3 +393,11 @@ test("after a failure from GitHub, try again starts a new sign-in", async () => 
   await waitFor(() => expect(assign).toHaveBeenCalledWith(AUTHORIZE_URL));
   expect(screen.queryByRole("group")).toBeNull();
 });
+
+test.each([
+  ["en", "Passer en français"],
+  ["fr", "Switch to English"],
+] as const)("the %s page's language button has a tooltip saying what it does", (lang, label) => {
+  render(<SignInPage lang={lang} />);
+  expect(screen.getByRole("link", { name: label }).querySelector("[data-tooltip]")?.textContent).toBe(label);
+});

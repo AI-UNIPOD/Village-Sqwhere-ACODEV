@@ -145,6 +145,12 @@ tile, no coloured edge. Errors use `role="alert"`, everything else `role="status
 trigger over `--dur-menu` and leave in 120ms. Menu items are 40px high. Arrow keys move,
 Esc closes, and focus returns to the trigger.
 
+A tooltip takes the small corner from Corner radius (`--radius-xs`), not `--radius-m`. It says
+what the button does in the same words as its `aria-label`, so screen readers skip it. A mouse
+gets it after `--delay-spinner`, the keyboard at once, a finger never, and the next one opens
+without waiting while another has just closed. Esc closes it. In code: `Tooltip` in
+`apps/web/app/tooltip.tsx`.
+
 ## Dialogs
 
 Native `<dialog>`, max 480px wide, `--surface-raised`, `--radius-l`, `--shadow-3`, over
