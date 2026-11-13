@@ -69,7 +69,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   in the roles one of my open ideas needs, and `GET /v1/me/matches` ranks open ideas that need
   my verified roles. No AI model and no idea details are involved.
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
-  `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`.
+  `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
+  `GET /v1/posts` (filter by `type`, `topic`, `author`) and `GET /v1/feed` (your feed topics
+  and your own posts).
 - OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
   API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
 
