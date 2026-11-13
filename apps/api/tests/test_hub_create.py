@@ -118,7 +118,11 @@ def test_creates_the_hub_and_returns_exactly_the_hub_card(client: TestClient) ->
     }
     assert hub["member_count"] == 1
     assert hub["agreement"] == {"template_id": str(template.id), "version": template.version}
-    assert hub["viewer"] == {"membership_status": "active", "member_role": "owner"}
+    assert hub["viewer"] == {
+        "membership_status": "active",
+        "member_role": "owner",
+        "can_ask_again_at": None,
+    }
     assert hub["archived_at"] is None
     assert is_aware_iso(hub["created_at"]) and is_aware_iso(hub["updated_at"])
     assert "Confidential" not in resp.text

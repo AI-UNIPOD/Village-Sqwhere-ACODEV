@@ -165,6 +165,8 @@ class HubViewer(BaseModel):
 
     membership_status: HubMemberStatus | None = None
     member_role: HubMemberRole | None = None
+    # When an owner turned them down: the time they may ask to join again, while it is ahead.
+    can_ask_again_at: datetime | None = None
 
 
 class HubAgreement(BaseModel):
