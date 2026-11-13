@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from ipaddress import ip_address
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
@@ -16,7 +17,7 @@ from app.models import (
     IdeaStatus,
 )
 from app.schemas.hubs import Agreement, AgreementResponse, CreateHubRequest, HubResponse
-from app.services.hubs import current_agreement_template, hub_card
+from app.services.hubs import current_agreement_template, hub_card, load_hub
 
 router = APIRouter()
 
@@ -138,4 +139,13 @@ async def create_hub(
     await db.commit()
 
     await db.refresh(hub, ["idea", "owner", "agreement_template"])
+    return HubResponse(data=await hub_card(db, hub, current_user.id))
+
+
+@router.get("/hubs/{hub_id}", response_model=HubResponse)
+async def get_hub(hub_id: UUID, current_user: CurrentUser, db: DbSession) -> HubResponse:
+    # Any signed-in user sees the card, so they can ask to join. Archived hubs stay readable.
+    hub = await load_hub(db, hub_id)
+    if hub is None:
+        raise hub_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Hub not found.")
     return HubResponse(data=await hub_card(db, hub, current_user.id))

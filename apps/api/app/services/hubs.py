@@ -25,6 +25,14 @@ async def current_agreement_template(db: AsyncSession) -> AgreementTemplate | No
     return result.scalar_one_or_none()
 
 
+async def load_hub(db: AsyncSession, hub_id: UUID) -> Hub | None:
+    """The hub with its idea, owner and agreement, read fresh from the database."""
+    result = await db.execute(
+        select(Hub).where(Hub.id == hub_id).execution_options(populate_existing=True)
+    )
+    return result.scalar_one_or_none()
+
+
 async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
     """What any signed-in user may see of a hub, plus their own place in it.
 

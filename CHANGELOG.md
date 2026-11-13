@@ -11,6 +11,7 @@ its number:
 ## 2026-11-13
 
 - docs: let green pull requests merge without a teammate approval (#61)
+- feat(api): add the get hub endpoint (#60)
 - feat(web): finish github sign-in with token refresh and sign-out (#59)
 
 ## 2026-11-12

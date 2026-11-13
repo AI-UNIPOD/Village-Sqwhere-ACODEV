@@ -25,6 +25,9 @@ from app.models import (
     AgreementTemplate,
     Hub,
     HubMember,
+    HubMemberRole,
+    HubMemberStatus,
+    HubStatus,
     Idea,
     IdeaStatus,
     User,
@@ -79,6 +82,91 @@ def current_template() -> AgreementTemplate:
         template = await current_agreement_template(session)
         assert template is not None, "the test database has no published agreement"
         return template
+
+    return run(work)
+
+
+def make_hub(owner: User, *, archived: bool = False, terms: dict[str, Any] | None = None) -> Hub:
+    """A hub with its owner's signature and active membership, saved straight to the
+    database the way POST /v1/hubs saves it."""
+    idea = make_idea(owner)
+    template = current_template()
+
+    async def work(session: AsyncSession) -> Hub:
+        now = datetime.now(UTC)
+        hub = Hub(
+            idea_id=idea.id,
+            owner_id=owner.id,
+            name="Farm Ledger Hub",
+            description="Building the offline ledger MVP in Kano.",
+            agreement_template_id=template.id,
+            terms=terms or {"ownership_model": "equal_split"},
+        )
+        signature = AgreementSignature(
+            hub=hub,
+            user_id=owner.id,
+            template_id=template.id,
+            template_sha256=template.body_sha256,
+            signed_legal_name="Amina Bello",
+        )
+        session.add_all(
+            [
+                hub,
+                signature,
+                HubMember(
+                    hub=hub,
+                    user_id=owner.id,
+                    member_role=HubMemberRole.OWNER,
+                    status=HubMemberStatus.ACTIVE,
+                    signature=signature,
+                    joined_at=now,
+                ),
+            ]
+        )
+        await session.commit()
+        if archived:
+            hub.status = HubStatus.ARCHIVED
+            hub.archived_at = now
+            await session.commit()
+        return hub
+
+    return run(work)
+
+
+def add_member(hub: Hub, user: User, status: HubMemberStatus) -> HubMember:
+    """A member of the hub in any status. An active member signs the hub's agreement, an
+    invited one is invited by the owner, and one who left or was removed has left_at."""
+
+    async def work(session: AsyncSession) -> HubMember:
+        now = datetime.now(UTC)
+        template = await session.get(AgreementTemplate, hub.agreement_template_id)
+        assert template is not None
+        signature = None
+        if status == HubMemberStatus.ACTIVE:
+            # the hub is already saved, so its id is set directly
+            signature = AgreementSignature(
+                hub_id=hub.id,
+                user_id=user.id,
+                template_id=template.id,
+                template_sha256=template.body_sha256,
+                signed_legal_name="Kwame Mensah",
+            )
+            session.add(signature)
+        member = HubMember(
+            hub_id=hub.id,
+            user_id=user.id,
+            status=status,
+            invited_by=hub.owner_id if status == HubMemberStatus.INVITED else None,
+            joined_at=now if status == HubMemberStatus.ACTIVE else None,
+            left_at=now if status in {HubMemberStatus.LEFT, HubMemberStatus.REMOVED} else None,
+        )
+        # Only set when there is one: setting it to None makes SQLAlchemy blank every column
+        # of the composite foreign key, hub_id (part of the primary key) included.
+        if signature is not None:
+            member.signature = signature
+        session.add(member)
+        await session.commit()
+        return member
 
     return run(work)
 
