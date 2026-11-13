@@ -413,3 +413,35 @@ button.danger[aria-disabled="true"] {
 
   .spinner { animation-name: fade; }
 }
+
+/* Something the person just did worked (published, signed, decided): the message rises in once
+   and its tick lands a beat later. It happens rarely, so it may take its time. */
+.done { animation: done-in var(--dur-reveal) var(--ease-out) both; }
+
+.done svg { animation: done-tick var(--dur-moment) var(--ease-strong) var(--delay-stagger) both; }
+
+@keyframes done-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+@keyframes done-tick {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* Reduced motion: both still fade in, without moving. */
+@media (prefers-reduced-motion: reduce) {
+  .done,
+  .done svg {
+    animation-name: done-fade;
+  }
+}
+
+@keyframes done-fade {
+  from { opacity: 0; }
+}
