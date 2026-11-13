@@ -10,8 +10,8 @@ its number:
 
 ## 2026-11-13
 
-- feat(api): add liking and saving posts
-- feat(api): add the feed and post lists
+- feat(api): add liking and saving posts (#91)
+- feat(api): add the feed and post lists (#90)
 - feat(api): add posts crud endpoints
 
 ## 2026-11-11
