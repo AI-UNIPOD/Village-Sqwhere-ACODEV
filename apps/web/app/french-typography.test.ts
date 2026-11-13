@@ -11,6 +11,7 @@ import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
 import { copy as profile } from "./profile/copy";
 import { copy as reviews } from "./reviews/copy";
 import { copy as signIn } from "./sign-in/copy";
+import { copy as tour } from "./tour/copy";
 import { copy as interview } from "./verification-interview/copy";
 import { copy as verification } from "./verification/copy";
 import { copy as village } from "./village/copy";
@@ -40,6 +41,7 @@ const french = strings([
   profile.fr,
   reviews.fr,
   signIn.fr,
+  tour.fr,
   verification.fr,
   village.fr,
   interview.fr,

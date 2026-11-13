@@ -84,4 +84,4 @@ Added when the web side was built, on 13 November 2026:
   often: a refused like goes back with no "try again".
 - **Nothing is disabled up front.** Buttons and forms look as they do for a real developer, so
   the demo shows the real product; the refusal comes when a change is sent.
-- **The tour still says "Coming soon".** It is built on top of the demo, after the seed.
+- **The tour is built on top of the demo** (`2026-11-13-guided-tour.md`).

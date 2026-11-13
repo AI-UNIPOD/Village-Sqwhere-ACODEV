@@ -11,7 +11,7 @@ type Copy = {
   /** Read after "Hubs" by a screen reader when an invitation waits. */
   invited: string;
   /** Shown to the shared demo account on every screen, and what it says when a change is refused. */
-  demo: { line: string; refused: string; leave: string };
+  demo: { line: string; refused: string; leave: string; tour: string };
 };
 
 // The names of the places a signed-in developer can go, short enough for a phone's bottom bar.
@@ -21,6 +21,7 @@ export const copy: Record<Lang, Copy> = {
       line: "You are in the demo. Look at everything: nothing you change is saved.",
       refused: "That was not saved. The demo is for looking around: sign in with GitHub to do it for real.",
       leave: "Leave the demo",
+      tour: "Take the tour",
     },
   },
   // Needs a native French review before launch.
@@ -29,6 +30,7 @@ export const copy: Record<Lang, Copy> = {
       line: "Vous êtes dans la démo. Regardez tout, rien de ce que vous modifiez n'est enregistré.",
       refused: "Cela n'a pas été enregistré. La démo sert à regarder\u202f: connectez-vous avec GitHub pour le faire vraiment.",
       leave: "Quitter la démo",
+      tour: "Faire la visite",
     },
   },
 };

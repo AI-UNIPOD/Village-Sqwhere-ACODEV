@@ -142,6 +142,13 @@ nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` noti
 answer for every screen, and `AppFrame` shows the demo account a line under the header that
 says what the demo is, says so when a change was refused, and offers the way out.
 
+"Start the tour" opens the same demo with the guided tour on (`app/tour/`): a start on the
+village, then four stops on the demo account's own open idea and hub (the composer, the matches,
+the hub's team, the hub's phases). `AppFrame` shows the tour's panel under the demo line; it
+sticks to the top of the screen, shrinks to one line on a screen that is not the stop, and keeps
+its step in `sessionStorage` (`tour/tour.ts`). A stop can name a part of a screen with a hash:
+the hub page scrolls to `#team` or `#phases` once the hub has loaded (`app/scroll.ts`).
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is

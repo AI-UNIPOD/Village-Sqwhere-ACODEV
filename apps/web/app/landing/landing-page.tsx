@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
@@ -13,36 +13,6 @@ import styles from "./landing-page.module.css";
 import { SectionMotion } from "./section-motion";
 import { stopShares } from "./stops";
 import { ThemeToggle } from "./theme-toggle";
-
-// The tour is not built yet. The control stays visible, stays focusable
-// and does nothing, and its name says why, so nobody lands on a dead link. Pressing it
-// announces `announce` and makes the visible note with id `note` stand out (SectionMotion).
-export function SoonButton({
-  className,
-  soon,
-  announce,
-  note,
-  children,
-}: {
-  className: string;
-  soon: string;
-  announce: string;
-  note?: string;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={className}
-      aria-disabled="true"
-      data-announce={announce}
-      data-note={note}
-    >
-      {children}
-      <span className={styles.srOnly}>, {soon}</span>
-    </button>
-  );
-}
 
 // custom properties for the stagger: the item's place in its row of 2 or 4, or in its list
 const order = (vars: Record<string, number>) => vars as CSSProperties;
@@ -149,12 +119,13 @@ export function LandingPage({ lang }: { lang: Lang }) {
             <div>
               <h2 id="tour-title">{t.tourTitle}</h2>
               <p className={styles.lead}>{t.tourLead}</p>
-              <div className={`${styles.noteHost} ${styles.tourButton}`}>
-                <SoonButton className={styles.ghost} soon={t.soon} announce={t.tourNote} note="tour-note">
+              <div className={styles.tourButton}>
+                {/* the demo, opened on the tour's first step */}
+                <DemoButton lang={lang} className={styles.ghost} note="tour-note" tour>
                   {t.tourButton}
-                </SoonButton>
-                <p className={styles.note} id="tour-note" aria-hidden="true">
-                  {t.tourNote}
+                </DemoButton>
+                <p className={styles.tourNote} id="tour-note">
+                  <DemoNote lang={lang} quiet />
                 </p>
               </div>
             </div>
@@ -229,8 +200,6 @@ export function LandingPage({ lang }: { lang: Lang }) {
         </div>
       </footer>
 
-      {/* where a "coming soon" press is announced */}
-      <p className={styles.srOnly} role="status" data-soon-status="" />
       <SectionMotion />
       <HeaderPin />
     </div>

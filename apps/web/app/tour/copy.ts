@@ -1,0 +1,92 @@
+import type { Lang } from "../locales";
+
+type Copy = {
+  /** The panel's name for a screen reader. */
+  label: string;
+  /** "Stop {n} of {total}": the start has no count. */
+  count: string;
+  /** The start, then the four stops: the heading and two short sentences each. */
+  stops: { name: string; text: string }[];
+  start: string;
+  next: string;
+  back: string;
+  finish: string;
+  end: string;
+  backToRoute: string;
+  /** After the last stop: the words around the link to sign-in. */
+  ending: { before: string; link: string; after: string };
+  /** Said when the demo's idea and hub could not be found. */
+  failed: { text: string; retry: string };
+};
+
+export const copy: Record<Lang, Copy> = {
+  en: {
+    label: "Tour",
+    count: "Stop {n} of {total}",
+    stops: [
+      {
+        name: "The demo village",
+        text: "This is the village of a demo developer. Four stops, about three minutes, and nothing is saved.",
+      },
+      {
+        name: "Share an idea",
+        text: "An idea has a public part everyone sees and the roles it needs. It also has a private brief only the team reads.",
+      },
+      {
+        name: "See who the matcher suggests",
+        text: "The matcher suggests verified developers whose role the idea needs. It says why each one matched.",
+      },
+      {
+        name: "Approve your team",
+        text: "The owner approves the team: a developer has asked to join this hub. A hub takes 2 to 5 people, and everyone signs the same agreement.",
+      },
+      {
+        name: "Walk the hub's four phases",
+        text: "The hub has four phases: brainstorm, design and architecture, build, and review. The team moves through them one at a time.",
+      },
+    ],
+    start: "Start the route",
+    next: "Next",
+    back: "Back",
+    finish: "Finish",
+    end: "End the tour",
+    backToRoute: "Back to the route",
+    ending: { before: "That is the route. Keep looking around, or ", link: "sign in with GitHub", after: " to start your own." },
+    failed: { text: "We couldn't load the route. Nothing was changed, so try again.", retry: "Try again" },
+  },
+  // Needs a native French review before launch.
+  fr: {
+    label: "Visite guidée",
+    count: "Étape {n} sur {total}",
+    stops: [
+      {
+        name: "Le village de démo",
+        text: "Voici le village d'un développeur de démo. Quatre étapes, environ trois minutes, et rien n'est enregistré.",
+      },
+      {
+        name: "Partager une idée",
+        text: "Une idée a une partie publique que tout le monde voit et les rôles dont elle a besoin. Elle a aussi un brief privé que seule l'équipe lit.",
+      },
+      {
+        name: "Voir qui le matcher propose",
+        text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il dit pourquoi chacun correspond.",
+      },
+      {
+        name: "Valider votre équipe",
+        text: "Le porteur valide l'équipe\u202f: un développeur a demandé à rejoindre cet espace. Un espace réunit de 2 à 5 personnes, et tout le monde signe le même accord.",
+      },
+      {
+        name: "Parcourir les quatre phases de l'espace",
+        text: "L'espace a quatre phases\u202f: brainstorm, conception et architecture, construction, et revue. L'équipe les traverse une à une.",
+      },
+    ],
+    start: "Commencer le parcours",
+    next: "Suivant",
+    back: "Retour",
+    finish: "Terminer",
+    end: "Quitter la visite",
+    backToRoute: "Revenir au parcours",
+    ending: { before: "Voilà le parcours. Continuez à regarder autour de vous, ou ", link: "connectez-vous avec GitHub", after: " pour lancer le vôtre." },
+    failed: { text: "Nous n'avons pas pu charger le parcours. Rien n'a été modifié, réessayez.", retry: "Réessayer" },
+  },
+};

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ViewTransition, useEffect, type ReactNode } from "react";
 
 import { copy } from "./app-frame-copy";
@@ -16,6 +17,8 @@ import { useDemoRefusals } from "./session/demo";
 import { ensureMe, useKeptMe } from "./session/me";
 import { useSession } from "./session/session";
 import { SignOutButton } from "./session/session-ui";
+import { startTour, useTour } from "./tour/tour";
+import { TourPanel } from "./tour/tour-panel";
 
 // The places a signed-in developer can go, in the order of the journey. Each id is also the
 // first part of its address and its key in the copy.
@@ -40,17 +43,34 @@ type AppFrameProps = {
 };
 
 // Under the header for the shared demo account: what the demo is, and the way out of it. When
-// the API refuses a change, the line says so, and a screen reader hears it each time.
+// the API refuses a change, the line says so, and a screen reader hears it each time. Beside
+// the way out it offers the guided tour, until the tour is on.
 function DemoLine({ lang }: { lang: Lang }) {
   const t = copy[lang].demo;
   const refusals = useDemoRefusals();
+  const router = useRouter();
+  const touring = useTour().tour !== null;
   return (
     <div className={styles.demo} data-refused={refusals > 0 || undefined}>
       {/* the key makes each refusal a new line, so it is announced and drawn again */}
       <p key={refusals} role="status">
         {refusals > 0 ? t.refused : t.line}
       </p>
-      <SignOutButton lang={lang} label={t.leave} className={landing.navLink} />
+      <div className={styles.demoActions}>
+        {!touring && (
+          <button
+            type="button"
+            className={landing.navLink}
+            onClick={() => {
+              startTour();
+              router.push(`/${lang}/village`);
+            }}
+          >
+            {t.tour}
+          </button>
+        )}
+        <SignOutButton lang={lang} label={t.leave} className={landing.navLink} />
+      </div>
     </div>
   );
 }
@@ -80,7 +100,7 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
     </>
   );
   return (
-    <div className={styles.page} data-places={places || undefined}>
+    <div className={styles.page} data-frame="" data-places={places || undefined}>
       <header className={styles.header} data-site-header="">
         {locked ? (
           <span className={`${landing.brand} ${styles.brand}`}>{brand}</span>
@@ -128,7 +148,12 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
           </div>
         )}
       </header>
-      {signedIn && !locked && me?.is_demo && <DemoLine lang={lang} />}
+      {signedIn && !locked && me?.is_demo && (
+        <>
+          <DemoLine lang={lang} />
+          <TourPanel lang={lang} path={path} />
+        </>
+      )}
       {/* a new screen fades in as the old one fades out (globals.css) */}
       <ViewTransition enter="screen" exit="screen" default="none">
         {children}

@@ -406,35 +406,15 @@
   margin-block-start: var(--hero-cta-top);
 }
 
-/* The "coming soon" line under a button. It sits outside the layout flow, just below its
-   host, so the page keeps exactly the spacing of the approved landing page. */
-.noteHost {
-  position: relative;
-}
-
+/* The line under the hero's demo button. It is part of the text block, 8px under the buttons,
+   so the box measures it (the gap to the square, the crowd's clear zone and the vertical
+   centring all include it). It reads from the start of "Try the demo": the hero sets its left
+   margin, also on phones where the buttons are centred. It may run on into the box's right
+   padding, and wraps only when that is still too narrow. */
 .note {
-  position: absolute;
-  inset-inline: 0;
-  top: 100%;
-  margin: var(--space-3) 0 0;
+  margin: var(--space-2) calc(-1 * var(--copy-pad, 0px)) 0 0;
   color: var(--text-muted);
   font: var(--type-body-s);
-  transition: color var(--dur-menu) var(--ease-out);
-}
-
-/* pressing its "coming soon" button makes the note stand out */
-.note[data-lit] {
-  color: var(--text);
-}
-
-/* In the hero the note is part of the text block, 8px under the buttons, so the box measures
-   it (the gap to the square, the crowd's clear zone and the vertical centring all include it).
-   It reads from the start of "Try the demo": the hero sets its left margin, also on phones where
-   the buttons are centred. It may run on into the box's right padding, and wraps only when
-   that is still too narrow. */
-.note[data-hero-note] {
-  position: static;
-  margin: var(--space-2) calc(-1 * var(--copy-pad, 0px)) 0 0;
   text-wrap: balance;
   text-align: start;
 }
@@ -664,6 +644,18 @@
 
 .tourButton {
   margin-block-start: var(--tour-button-gap);
+}
+
+/* how opening the demo is going, under the tour's button: in the flow, so a long sentence
+   pushes the stops down instead of covering them, and gone while there is nothing to say */
+.tourNote {
+  margin-block-start: var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.tourNote:empty {
+  display: none;
 }
 
 .stops {
