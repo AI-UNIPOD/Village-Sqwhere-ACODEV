@@ -6,8 +6,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text, update
 
-from app.models import PlatformRole, Post, PostRevision, User
+from app.models import PlatformRole, Post, PostRevision, PostType, User
 from tests.conftest import test_async_session as db_session
+from tests.test_hub_models import create_committed_hub
 
 
 def _truncate_posts() -> None:
@@ -422,3 +423,102 @@ def test_get_or_delete_missing_post_returns_404(client: TestClient, sign_in) -> 
     del_resp = client.delete(f"/v1/posts/{missing_id}", headers=auth)
     assert del_resp.status_code == 404
     assert del_resp.json()["detail"]["code"] == "POST_NOT_FOUND"
+
+
+# --- Lists and the feed ----------------------------------------------------------------------
+
+
+def _create(client: TestClient, auth: dict[str, str], body: str, **fields: object) -> str:
+    resp = client.post("/v1/posts", headers=auth, json={"body": body, **fields})
+    assert resp.status_code == 201, resp.text
+    return resp.json()["data"]["id"]
+
+
+def _bodies(resp) -> list[str]:
+    assert resp.status_code == 200, resp.text
+    return [post["body"] for post in resp.json()["data"]]
+
+
+def _add_hub_milestone(author_id: UUID) -> None:
+    async def _add() -> None:
+        hub_id = await create_committed_hub()
+        async with db_session() as session:
+            session.add(
+                Post(
+                    author_id=author_id, type=PostType.HUB_MILESTONE, body="Hub only", hub_id=hub_id
+                )
+            )
+            await session.commit()
+
+    asyncio.run(_add())
+
+
+def test_list_posts_pages_newest_first_and_hides_deleted_and_hub_posts(
+    client: TestClient, sign_in
+) -> None:
+    ada = sign_in("github-code-ada")
+    auth = _bearer(ada["access_token"])
+    for body in ("Lagos", "Dakar", "Nairobi"):
+        _create(client, auth, body)
+    gone = _create(client, auth, "Deleted")
+    assert client.delete(f"/v1/posts/{gone}", headers=auth).status_code == 204
+    _add_hub_milestone(UUID(ada["user"]["id"]))
+
+    first = client.get("/v1/posts", headers=auth, params={"limit": 2})
+    assert _bodies(first) == ["Nairobi", "Dakar"]
+    assert first.json()["next_offset"] == 2
+    last = client.get("/v1/posts", headers=auth, params={"limit": 2, "offset": 2})
+    assert _bodies(last) == ["Lagos"]
+    assert last.json()["next_offset"] is None
+    assert _bodies(client.get("/v1/posts", headers=auth, params={"type": "hub_milestone"})) == []
+
+
+def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in) -> None:
+    ada_auth = _bearer(sign_in("github-code-ada")["access_token"])
+    moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
+    _create(client, ada_auth, "Ada asks", type="question", topics=["python"])
+    _create(client, ada_auth, "Ada shares", topics=["rust"])
+    _create(client, moussa_auth, "Moussa asks", type="question", topics=["rust"])
+
+    def bodies(**params: str) -> list[str]:
+        return _bodies(client.get("/v1/posts", headers=ada_auth, params=params))
+
+    assert bodies(type="question") == ["Moussa asks", "Ada asks"]
+    assert bodies(topic="rust") == ["Moussa asks", "Ada shares"]
+    assert bodies(author="ADA-lagos") == ["Ada shares", "Ada asks"]
+    assert bodies(type="question", topic="rust") == ["Moussa asks"]
+    assert bodies(topic="no-such-topic") == []
+    assert bodies(author="nobody-here") == []
+    for bad in (
+        {"type": "meme"},
+        {"topic": "a" + chr(0)},
+        {"author": "a" + chr(0)},
+        {"offset": 10**20},
+    ):
+        assert client.get("/v1/posts", headers=ada_auth, params=bad).status_code == 422, bad
+
+
+def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    ada_auth = _bearer(ada["access_token"])
+    _add_hub_milestone(UUID(ada["user"]["id"]))
+    moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
+    _create(client, moussa_auth, "Moussa on Python", topics=["python"])
+    _create(client, moussa_auth, "Moussa on Rust", topics=["rust"])
+    _create(client, ada_auth, "Ada with no topic")
+
+    def feed_with(topics: list[str]) -> list[str]:
+        resp = client.put("/v1/me/feed-topics", headers=ada_auth, json={"technologies": topics})
+        assert resp.status_code == 200, resp.text
+        return _bodies(client.get("/v1/feed", headers=ada_auth))
+
+    try:
+        assert feed_with([]) == ["Ada with no topic", "Moussa on Rust", "Moussa on Python"]
+        assert feed_with(["python", "docker"]) == ["Ada with no topic", "Moussa on Python"]
+    finally:
+        feed_with([])
+
+
+def test_lists_require_authentication(client: TestClient) -> None:
+    assert client.get("/v1/posts").status_code == 401
+    assert client.get("/v1/feed").status_code == 401
