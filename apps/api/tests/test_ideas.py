@@ -128,6 +128,23 @@ def test_owner_can_update_details_stage_and_roles(client: TestClient) -> None:
     assert stored_idea(updated["id"]).details is None
 
 
+def test_owner_can_keep_a_role_while_replacing_the_others(client: TestClient) -> None:
+    owner = make_user()
+    draft = create(client, owner)  # backend-engineer and ui-ux-engineer
+
+    response = client.patch(
+        f"{MY_IDEAS}/{draft['id']}",
+        headers=auth(owner),
+        json={"roles_needed": ["backend-engineer", "mobile-engineer"]},
+    )
+
+    assert response.status_code == 200, response.text
+    kept = [role["slug"] for role in response.json()["data"]["roles_needed"]]
+    assert sorted(kept) == ["backend-engineer", "mobile-engineer"]
+    reread = client.get(f"{MY_IDEAS}/{draft['id']}", headers=auth(owner)).json()["data"]
+    assert sorted(role["slug"] for role in reread["roles_needed"]) == sorted(kept)
+
+
 def test_only_the_owner_can_read_or_change_an_idea(client: TestClient) -> None:
     owner = make_user()
     other = make_user()
