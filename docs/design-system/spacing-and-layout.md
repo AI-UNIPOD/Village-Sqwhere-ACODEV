@@ -16,8 +16,8 @@ in-between values: if a design shows 6, 10 or 14px, round it to the nearest step
 | `--space-8` | 32 | Between groups inside a section; desktop page margins |
 | `--space-10` | 40 | A section heading to its content, on wide screens |
 | `--space-12` | 48 | Between sections on phones |
-| `--space-16` | 64 | Between sections on desktop; below the header |
-| `--space-20` | 80 | Above and below the hero, desktop only |
+| `--space-16` | 64 | Between sections on desktop; below the header; the hero text box to the logo square (beside it or above it), until the square's cells reach 20px |
+| `--space-20` | 80 | Above and below the hero, desktop only; the hero text box to the logo square beside it, from 20px cells |
 
 **Touch targets:** anything you tap is at least 44px high (`--tap-min`), whatever its
 padding.
@@ -34,7 +34,12 @@ Design for 360px first, then widen.
 | `--section` (between sections) | 48 | 48 | 64 |
 
 Content is at most 1180px wide (`--content-max`), centred. Headings grow from 900px (see
-`typography.md`).
+`typography.md`). The hero is the one exception: on big screens it breaks out to a frame of
+`clamp(--content-max, --hero-frame-share, --hero-frame-max)`, which is 72% of the width up to
+1760px (1180px up to about 1640px wide, 1382px at 1920, 1760px from 2445). Its text and square
+sit in that frame, and the header uses the same width, so its logo lines up with the headline.
+The hero's logo square grows with it, up to 20px cells, and its headline up to 80px. The crowd
+of words behind it always runs the full width of the screen.
 
 **Page rhythm, top to bottom:** header, then `--space-16` below it; hero; `--section`
 between sections; `--space-8` (phone) or `--space-10` (wide) from a section heading to

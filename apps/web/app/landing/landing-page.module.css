@@ -50,9 +50,11 @@
     flex-wrap: nowrap;
     gap: var(--nav-gap);
     block-size: var(--nav-height);
+    /* the hero's frame (it breaks out wider than --content-max on big screens), so the logo
+       and the links line up with the hero's text and square */
     padding-inline:
-      max(var(--space-8), calc((100% - var(--content-max)) / 2 + var(--space-8)))
-      max(var(--float-gutter), calc((100% - var(--content-max)) / 2 + var(--space-8)));
+      max(var(--space-8), calc((100% - clamp(var(--content-max), var(--hero-frame-share), var(--hero-frame-max))) / 2 + var(--space-8)))
+      max(var(--float-gutter), calc((100% - clamp(var(--content-max), var(--hero-frame-share), var(--hero-frame-max))) / 2 + var(--space-8)));
   }
 }
 
@@ -314,10 +316,15 @@
   color: var(--text);
 }
 
-/* in the hero the note sits closer to the buttons and reads from the start of "Try the demo"
-   (the hero sets where that is), also on phones where the buttons are centred */
+/* In the hero the note is part of the text block, 8px under the buttons, so the box measures
+   it (the gap to the square, the crowd's clear zone and the vertical centring all include it).
+   It reads from the start of "Try the demo": the hero sets its left margin, also on phones where
+   the buttons are centred. It may run on into the box's right padding, and wraps only when
+   that is still too narrow. */
 .note[data-hero-note] {
-  margin-block-start: var(--space-2);
+  position: static;
+  margin: var(--space-2) calc(-1 * var(--copy-pad, 0px)) 0 0;
+  text-wrap: balance;
   text-align: start;
 }
 

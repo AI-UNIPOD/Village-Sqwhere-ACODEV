@@ -10,6 +10,7 @@ import { ThemeToggle } from "../landing/theme-toggle";
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
 import { API_URL, useSession } from "../session/session";
+import { Tooltip } from "../tooltip";
 import { copy, type ProblemKey } from "./copy";
 import styles from "./sign-in-page.module.css";
 
@@ -206,6 +207,7 @@ export function SignInPage({ lang }: { lang: Lang }) {
         aria-label={shared.switchLabel}
       >
         {shared.switchText}
+        <Tooltip label={shared.switchLabel} side="left" />
       </a>
       <ThemeToggle toDark={shared.toDark} toLight={shared.toLight} />
 

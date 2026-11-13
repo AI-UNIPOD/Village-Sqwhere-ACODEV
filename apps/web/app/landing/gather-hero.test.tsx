@@ -1,9 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { crowdFontSize, layoutCrowd } from "./gather";
 import { GatherHero } from "./gather-hero";
 import { heroAvoid, heroGeometry } from "./hero-layout";
+import { MOTION_KEY } from "./motion";
 
 let resizeCallbacks: Array<() => void> = [];
 const labels = { pause: "Pause animation", play: "Play animation" };
@@ -12,7 +13,10 @@ const labels = { pause: "Pause animation", play: "Play animation" };
 function fakeContext() {
   const noop = () => {};
   return new Proxy(
-    { getImageData: () => ({ data: new Uint8ClampedArray(32 * 32 * 4) }) } as Record<string, unknown>,
+    {
+      getImageData: () => ({ data: new Uint8ClampedArray(32 * 32 * 4) }),
+      createLinearGradient: () => ({ addColorStop: () => {} }),
+    } as Record<string, unknown>,
     {
       get: (target, key: string) => (key in target ? target[key] : noop),
       set: (target, key: string, value) => {
@@ -23,15 +27,26 @@ function fakeContext() {
   );
 }
 
+// the system's reduced-motion setting; `set` changes it and tells whoever listens, like a browser
 function stubMotion(reduced: boolean) {
+  let current = reduced;
+  const listeners = new Set<() => void>();
   vi.stubGlobal(
     "matchMedia",
     vi.fn().mockImplementation((query: string) => ({
-      matches: reduced && query.includes("reduced-motion"),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
+      get matches() {
+        return current && query.includes("reduced-motion");
+      },
+      addEventListener: (_: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
     })),
   );
+  return {
+    set(next: boolean) {
+      current = next;
+      act(() => listeners.forEach((listener) => listener()));
+    },
+  };
 }
 
 function stubCanvas(available: boolean) {
@@ -63,6 +78,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -78,9 +94,9 @@ function renderHero(heroLabels = labels) {
 const logoLayer = (container: HTMLElement) =>
   container.querySelector<HTMLElement>('svg[fill="var(--logo)"]')!.parentElement!;
 
-// a hidden element has no accessible name, so find the hidden button by its label attribute
-const pauseButton = (container: HTMLElement) =>
-  container.querySelector<HTMLElement>('button[aria-label="Pause animation"]')!;
+// a hidden element has no accessible name, so find the hidden button by where it is
+const playButton = (container: HTMLElement) =>
+  container.querySelector<HTMLElement>("section > button")!;
 
 test("shows the headline in a region named by it", () => {
   renderHero();
@@ -114,7 +130,11 @@ test("draws the logo from the Logo component, and hides the drawing from screen 
 test("offers a pause button under the square while the names are moving", () => {
   const { container } = renderHero();
   const button = screen.getByRole("button", { name: "Pause animation" });
-  expect(button.style.display).toBe("grid");
+  expect(button.style.display).toBe("inline-flex");
+  // the visible words are its name, and it does not claim a pressed state
+  expect(button.textContent).toContain("Pause animation");
+  expect(button.hasAttribute("aria-pressed")).toBe(false);
+  expect(button.getAttribute("type")).toBe("button");
   const square = container.querySelector<HTMLElement>("section > div[aria-hidden]")!;
   const squareBottom = parseFloat(square.style.top) + parseFloat(square.style.height);
   expect(parseFloat(button.style.top)).toBe(squareBottom + 12);
@@ -135,20 +155,12 @@ test("labels the pause button in French on the French page", () => {
   expect(screen.getByRole("button", { name: "Lire l'animation" })).toBeTruthy();
 });
 
-test("with reduced motion, nothing moves: the logo shows and there is no pause button", () => {
-  stubMotion(true);
-  const { container } = renderHero();
-  expect(parseFloat(logoLayer(container).style.opacity)).toBe(1);
-  expect(pauseButton(container).style.display).toBe("none");
-  expect(screen.queryByRole("button", { name: "Pause animation" })).toBeNull();
-});
-
-test("when the browser cannot draw, it keeps the still frame: the logo and no pause button", () => {
+test("when the browser cannot draw, it keeps the still frame: the logo and no button, as nothing can move", () => {
   stubCanvas(false);
   const { container } = renderHero();
   expect(container.querySelector("section")!.hasAttribute("data-ready")).toBe(true);
   expect(parseFloat(logoLayer(container).style.opacity)).toBe(1);
-  expect(pauseButton(container).style.display).toBe("none");
+  expect(playButton(container).style.display).toBe("none");
 });
 
 test("centres the text on a phone-width hero and not on a wide one", () => {
@@ -168,7 +180,7 @@ test("if placing the hero fails, it still shows the hero with the logo, not a bl
   const { container } = renderHero();
   expect(container.querySelector("section")!.hasAttribute("data-ready")).toBe(true);
   expect(parseFloat(logoLayer(container).style.opacity)).toBe(1);
-  expect(pauseButton(container).style.display).toBe("none");
+  expect(playButton(container).style.display).toBe("none");
 });
 
 test("places everything again when the width changes", () => {
@@ -203,7 +215,7 @@ test("the coming-soon line starts exactly where the first button starts", () => 
     return this.tagName === "BUTTON" ? 45 : 0;
   });
   const { container } = renderHeroWithNote();
-  expect(container.querySelector<HTMLElement>("[data-hero-note]")!.style.left).toBe("45px");
+  expect(container.querySelector<HTMLElement>("[data-hero-note]")!.style.marginLeft).toBe("45px");
 });
 
 test("the coming-soon line starts under the button it belongs to, wherever that button is", () => {
@@ -227,12 +239,11 @@ test("the coming-soon line starts under the button it belongs to, wherever that 
       </p>
     </GatherHero>,
   );
-  expect(container.querySelector<HTMLElement>("[data-hero-note]")!.style.left).toBe("260px");
+  expect(container.querySelector<HTMLElement>("[data-hero-note]")!.style.marginLeft).toBe("260px");
 });
 
-test("no background words are drawn behind the coming-soon line", () => {
-  // the line hangs 28px below the text block: the block measures 240px, its overflow 268px
-  vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(268);
+test("no background words are drawn behind the text block, the coming-soon line included", () => {
+  // the line is in the block's flow: the block's height (240px here) already contains it
   const drawn: Array<[number, number]> = [];
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
     const ctx = fakeContext();
@@ -243,14 +254,11 @@ test("no background words are drawn behind the coming-soon line", () => {
   const copy = container.querySelector<HTMLElement>("section > div")!;
   const left = parseFloat(copy.style.left);
   const right = left + parseFloat(copy.style.width);
-  const lineTop = parseFloat(copy.style.top) + 240;
-  const lineBottom = parseFloat(copy.style.top) + 268;
+  const top = parseFloat(copy.style.top);
 
   expect(drawn.length).toBeGreaterThan(100); // the crowd was drawn
-  const behindTheLine = drawn.filter(
-    ([x, y]) => x < right && x > left - 40 && y >= lineTop - 10 && y <= lineBottom,
-  );
-  expect(behindTheLine).toEqual([]);
+  const behindTheBlock = drawn.filter(([x, y]) => x < right && x > left - 40 && y >= top - 10 && y <= top + 240);
+  expect(behindTheBlock).toEqual([]);
 });
 
 // ---------- the background scroll ----------
@@ -276,6 +284,7 @@ function aCrowdWord() {
     width: 1440,
     viewportHeight: window.innerHeight,
     navHeight: 0,
+    copyPad: 0,
     measureCopy: () => 240,
   });
   const fontSize = crowdFontSize(g.cell);
@@ -334,14 +343,6 @@ test("the pause button stops the drift too, for phones and keyboards that cannot
   setDriftTokens(false);
 });
 
-test("with reduced motion the background words stay still", () => {
-  setDriftTokens(true);
-  stubMotion(true);
-  const { container } = renderHero();
-  expect(container.querySelector("section")!.getAttribute("data-drift")).toBe("off");
-  setDriftTokens(false);
-});
-
 test("without the motion tokens the background words stay still instead of guessing a speed", () => {
   setDriftTokens(false);
   const { container } = renderHero();
@@ -360,9 +361,9 @@ test("the crowd is drawn twice, one hero width apart, then masked, so the loop h
   });
   renderHero();
 
-  // the band at its shift and again exactly one band width to its right
+  // the band at its shift and again exactly one hero width (1440px) to its right
   const band = drawn.filter((d) => d.op === "source-over" && d.img.width === 1440);
-  expect(band.some((a) => band.some((b) => b.img === a.img && b.x === a.x + a.img.width))).toBe(true);
+  expect(band.some((a) => band.some((b) => b.img === a.img && b.x === a.x + 1440))).toBe(true);
   // then only the mask's open areas are kept: the text, the square and the button stay clear
   expect(drawn.some((d) => d.op === "destination-in")).toBe(true);
   setDriftTokens(false);
@@ -371,15 +372,149 @@ test("the crowd is drawn twice, one hero width apart, then masked, so the loop h
 test("with reduced motion the crowd is drawn once, still, laid out around the text", () => {
   setDriftTokens(true);
   stubMotion(true);
-  const drawn: Array<{ x: number; op: string }> = [];
+  const drawn: Array<{ x: number }> = [];
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
     const ctx = fakeContext() as Record<string, unknown>;
-    ctx.globalCompositeOperation = "source-over";
-    ctx.drawImage = (_img: unknown, x: number) => drawn.push({ x, op: String(ctx.globalCompositeOperation) });
+    ctx.drawImage = (_img: unknown, x: number) => drawn.push({ x });
     return ctx as unknown as RenderingContext;
   });
   renderHero();
   expect(drawn.every((d) => d.x === 0)).toBe(true);
-  expect(drawn.some((d) => d.op === "destination-in")).toBe(false);
+  setDriftTokens(false);
+});
+
+// ---------- the crowd is full width, with no fade at a frame ----------
+
+test.each([
+  ["moving", false],
+  ["still", true],
+])("on a wide screen the crowd has no frame fade: the mask has no gradient, %s", (_, reduced) => {
+  setDriftTokens(true);
+  stubMotion(reduced);
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(2560);
+  const gradients: number[][] = [];
+  const ops: string[] = [];
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
+    const ctx = fakeContext() as Record<string, unknown>;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.createLinearGradient = (...args: number[]) => {
+      gradients.push(args);
+      return { addColorStop: () => {} };
+    };
+    ctx.drawImage = () => ops.push(String(ctx.globalCompositeOperation));
+    return ctx as unknown as RenderingContext;
+  });
+  renderHero();
+  setDriftTokens(false);
+  expect(gradients).toEqual([]);
+  // only a scrolling crowd goes through the mask
+  expect(ops.includes("destination-in")).toBe(!reduced);
+});
+
+// ---------- motion: the visitor's choice, else the system setting ----------
+
+const section = (container: HTMLElement) => container.querySelector("section")!;
+
+test("by default reduced motion is respected: still, with a visible button that offers to play", () => {
+  setDriftTokens(true);
+  stubMotion(true);
+  const { container } = renderHero();
+  expect(parseFloat(logoLayer(container).style.opacity)).toBe(1);
+  expect(section(container).getAttribute("data-drift")).toBe("off");
+  const button = screen.getByRole("button", { name: "Play animation" });
+  expect(button.style.display).toBe("inline-flex");
+  expect(localStorage.getItem(MOTION_KEY)).toBeNull();
+  setDriftTokens(false);
+});
+
+test("playing despite reduced motion remembers it and starts all the motion", () => {
+  setDriftTokens(true);
+  stubMotion(true);
+  const { container } = renderHero();
+  fireEvent.click(screen.getByRole("button", { name: "Play animation" }));
+  expect(localStorage.getItem(MOTION_KEY)).toBe("on");
+  expect(section(container).getAttribute("data-drift")).toBe("on");
+  // the logo fades with the walking names again, so it is not simply shown
+  expect(parseFloat(logoLayer(container).style.opacity)).toBeLessThan(1);
+  expect(screen.getByRole("button", { name: "Pause animation" })).toBeTruthy();
+  setDriftTokens(false);
+});
+
+test("pausing remembers it, and the next visit starts still", () => {
+  setDriftTokens(true);
+  const first = renderHero();
+  fireEvent.click(screen.getByRole("button", { name: "Pause animation" }));
+  expect(localStorage.getItem(MOTION_KEY)).toBe("off");
+  expect(section(first.container).getAttribute("data-drift")).toBe("off");
+  cleanup();
+
+  const again = renderHero();
+  expect(section(again.container).getAttribute("data-drift")).toBe("off");
+  expect(parseFloat(logoLayer(again.container).style.opacity)).toBe(1);
+  expect(screen.getByRole("button", { name: "Play animation" })).toBeTruthy();
+  setDriftTokens(false);
+});
+
+test("a saved 'on' wins over reduced motion, a saved 'off' over no preference", () => {
+  setDriftTokens(true);
+  stubMotion(true);
+  localStorage.setItem(MOTION_KEY, "on");
+  const on = renderHero();
+  expect(section(on.container).getAttribute("data-drift")).toBe("on");
+  expect(screen.getByRole("button", { name: "Pause animation" })).toBeTruthy();
+  cleanup();
+
+  stubMotion(false);
+  localStorage.setItem(MOTION_KEY, "off");
+  const off = renderHero();
+  expect(section(off.container).getAttribute("data-drift")).toBe("off");
+  expect(parseFloat(logoLayer(off.container).style.opacity)).toBe(1);
+  expect(screen.getByRole("button", { name: "Play animation" })).toBeTruthy();
+  setDriftTokens(false);
+});
+
+test("with nothing saved, a change of the system setting is followed; a saved choice is not", () => {
+  setDriftTokens(true);
+  const system = stubMotion(false);
+  const { container } = renderHero();
+  expect(section(container).getAttribute("data-drift")).toBe("on");
+  system.set(true);
+  expect(section(container).getAttribute("data-drift")).toBe("off");
+  expect(screen.getByRole("button", { name: "Play animation" })).toBeTruthy();
+  system.set(false);
+  expect(section(container).getAttribute("data-drift")).toBe("on");
+
+  fireEvent.click(screen.getByRole("button", { name: "Pause animation" }));
+  system.set(true);
+  system.set(false);
+  expect(section(container).getAttribute("data-drift")).toBe("off");
+  setDriftTokens(false);
+});
+
+test("a choice made in another tab is followed", () => {
+  setDriftTokens(true);
+  const { container } = renderHero();
+  localStorage.setItem(MOTION_KEY, "off");
+  act(() => {
+    window.dispatchEvent(new StorageEvent("storage", { key: MOTION_KEY, newValue: "off" }));
+  });
+  expect(section(container).getAttribute("data-drift")).toBe("off");
+  expect(screen.getByRole("button", { name: "Play animation" })).toBeTruthy();
+  setDriftTokens(false);
+});
+
+test("blocked storage does not break the page, and the button still works until it closes", () => {
+  setDriftTokens(true);
+  const blocked = () => {
+    throw new DOMException("blocked", "SecurityError");
+  };
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation(blocked);
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(blocked);
+  const { container } = renderHero();
+  expect(section(container).getAttribute("data-drift")).toBe("on");
+  fireEvent.click(screen.getByRole("button", { name: "Pause animation" }));
+  expect(section(container).getAttribute("data-drift")).toBe("off");
+  fireEvent.click(screen.getByRole("button", { name: "Play animation" }));
+  expect(section(container).getAttribute("data-drift")).toBe("on");
   setDriftTokens(false);
 });
