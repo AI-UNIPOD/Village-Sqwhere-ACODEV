@@ -13,10 +13,10 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   verification (GitHub analysis, a five-question AI interview over a WebSocket, a report) with
   peer review by developers verified in that role, Groq and Gemini fallbacks and a separate
   worker. Guide: `docs/backend.md`; routes: `docs/architecture.md`.
-- Ideas: private drafts with required roles, published for signed-in developers, then closed;
-  the brief stays owner-only. Matching ranks developers and ideas by verified roles (no AI yet).
-  `POST /v1/hubs` makes a signed hub from an open idea; posts and other hub routes have no API.
-  Schema: `infra/db/init/` (`004` is a TEST agreement). API tests need `TEST_DATABASE_URL`.
+- Ideas: private drafts with roles, published for signed-in developers, then closed; the brief
+  stays owner-only. Matching ranks people and ideas by verified roles (no AI). Hubs: create,
+  read, list mine, invite, accept by signing, decline, members and the brief for members. No
+  posts API yet. Schema: `infra/db/init/` (`004`: TEST agreement). Tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32 characters or more) and keeps sign-in state in memory,
   so run one process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`).
 - The landing page is at `/en` and `/fr` (`apps/web/app/landing/`; `/` redirects by browser
@@ -38,8 +38,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 ## What's next
 
 1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
-2. Hub invitations and membership, then the four hub phases, then semantic similarity from
-   `idea_embeddings` as one more matching signal (needs a model and hosting decision).
+2. Leaving and removing members, editing and archiving a hub, and the four hub phases (decisions
+   and next steps need a new schema script); later, semantic similarity for matching.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
 4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
