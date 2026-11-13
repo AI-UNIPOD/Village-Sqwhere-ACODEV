@@ -1295,3 +1295,77 @@ The signed-in developer's saved posts, most recently saved first, paged like
 
 * **Authentication:** Required (Bearer token)
 * **Success Response (200 OK):** Same shape as `GET /v1/posts`.
+
+---
+
+## Comments and replies
+
+Developers comment on a post and reply to each other. A reply is a comment with a
+`parent_id`. Replies nest up to depth 1000, the schema's limit. All comment routes need a
+Bearer token.
+Rules are in `docs/decisions/2026-11-13-post-comments.md`.
+
+### Error codes for comments
+
+| Code | Status | Reason |
+| :--- | :--- | :--- |
+| `POST_NOT_FOUND` | 404 | The post does not exist, is deleted, or belongs to a hub |
+| `COMMENT_NOT_FOUND` | 404 | The comment does not exist, is deleted, or its post is deleted or belongs to a hub |
+| `PARENT_NOT_FOUND` | 422 | `parent_id` is not a live comment on the same post |
+| `MAX_DEPTH_EXCEEDED` | 422 | The parent is already at depth 1000 |
+| `NOT_COMMENT_AUTHOR` | 403 | Editing someone else's comment, or deleting it without being a moderator |
+
+### The comment object
+
+```json
+{
+  "id": "0f6b1c2e-6a51-4c2b-9d3e-1b2a3c4d5e6f",
+  "post_id": "7d1e2f3a-4b5c-4d6e-8f90-1a2b3c4d5e6f",
+  "parent_id": null,
+  "depth": 0,
+  "author": {
+    "id": "5b6c7d8e-9f01-4a2b-8c3d-4e5f6a7b8c9d",
+    "username": "moussa-dakar",
+    "display_name": "Moussa Diop",
+    "avatar_url": null,
+    "is_verified": true
+  },
+  "body": "We run ours in Johannesburg, about 40 ms from Lagos.",
+  "like_count": 0,
+  "reply_count": 0,
+  "created_at": "2026-11-13T14:02:11.120000Z",
+  "edited_at": null,
+  "liked_by_me": false
+}
+```
+
+`depth` is 0 for a comment on the post, 1 for a reply to it, and so on. `reply_count`
+counts direct replies, including deleted ones. A post's `comment_count` counts comments and
+replies that are not deleted.
+
+### `POST /v1/posts/{post_id}/comments`
+
+Comment on a post, or reply to a comment on it.
+
+* **Request Body:** `{"body": "...", "parent_id": "<comment id>"}`. `body` is 1 to 5000
+  characters and not only spaces. Leave out `parent_id` for a comment on the post itself.
+* **Success Response (201 Created):** the comment object in `{"data": ...}`.
+* A deleted, missing or hub post gives 404 `POST_NOT_FOUND`, also when the post is deleted
+  while the comment is being saved. A parent that is deleted, missing or on another post gives
+  422 `PARENT_NOT_FOUND`. Replying to a comment at depth 1000 gives 422 `MAX_DEPTH_EXCEEDED`.
+
+### `GET /v1/comments/{comment_id}`
+
+One comment, for a permalink. 404 `COMMENT_NOT_FOUND` if it or its post is deleted.
+
+### `PATCH /v1/comments/{comment_id}`
+
+Edit your own comment. Request Body: `{"body": "..."}`, with the same rules as when
+creating it. The old text is kept in `comment_revisions` and `edited_at` is set. Another
+person's comment gives 403 `NOT_COMMENT_AUTHOR`.
+
+### `DELETE /v1/comments/{comment_id}`
+
+Soft-delete a comment. The author deletes with reason `author`; a moderator or admin deletes
+anyone's with reason `moderator`. Replies under it stay in the database. Returns 204, then
+404 `COMMENT_NOT_FOUND` for any later request on that comment.
