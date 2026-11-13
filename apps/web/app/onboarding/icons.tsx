@@ -148,3 +148,29 @@ export const Flag = () => (
     <path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.33 2q2.1 0 4.2-.8A1 1 0 0 1 21 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 17 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.5" />
   </Icon>
 );
+
+export const Newspaper = ({ className }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="M15 18h-5M18 14h-8" />
+    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2" />
+    <rect width="8" height="4" x="10" y="6" rx="1" />
+  </Icon>
+);
+
+export const Heart = () => (
+  <Icon>
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  </Icon>
+);
+
+export const Bookmark = ({ className }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+  </Icon>
+);
+
+export const MessageCircle = () => (
+  <Icon>
+    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+  </Icon>
+);
