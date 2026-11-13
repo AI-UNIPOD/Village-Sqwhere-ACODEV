@@ -18,8 +18,8 @@ Tanny gave the feed and posts API to one session. That session chose the followi
 
 1. **Replies nest up to depth 1000, the schema's limit.** The API adds no lower limit. A
    reply to a comment already at depth 1000 gets 422 `MAX_DEPTH_EXCEEDED`, not a 500.
-   The screen decides how deep to indent, and it can open a deeper part with the thread route
-   that comes in a later pull request.
+   The screen decides how deep to indent. The thread route returns five levels at a time,
+   and the screen asks again from the deepest reply to go further.
 2. **A deleted comment is 404 `COMMENT_NOT_FOUND` on its own routes**, the same rule as
    deleted posts (`2026-11-11-posts-pagination-and-visibility.md`). Its replies stay. The lists
    show a deleted comment that still has replies as an entry with no author and no text, so
@@ -47,7 +47,7 @@ Tanny gave the feed and posts API to one session. That session chose the followi
 
 ## Consequences
 
-- The web app can build comment boxes and replies now. Lists, the thread route and comment
-  likes come in the next pull requests (tracker rows 67 to 75).
+- The web app has every comment route it needs (tracker rows 67 to 75): writing, editing,
+  deleting, lists with reply previews, replies, threads and likes.
 - A busy post briefly holds new comments in line while it is edited or deleted. That wait is
   milliseconds, and it is what makes those writes safe.

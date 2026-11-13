@@ -1,5 +1,12 @@
 /* The page frame, title, tabs and list come from the ideas screens (ideas.module.css). */
 
+/* one post on its own page: the card's parts with more room, under the title */
+.page {
+  display: grid;
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+}
+
 .card {
   display: grid;
   gap: var(--space-3);
@@ -32,6 +39,15 @@
   min-inline-size: 0;
   font: var(--type-title);
   overflow-wrap: anywhere;
+}
+
+/* the link reaches 12px past its lines above and below, so a one-line title is 44px to press */
+.cardTitle a {
+  display: block;
+  margin-block: calc(var(--space-3) * -1);
+  padding-block: var(--space-3);
+  color: inherit;
+  text-decoration: none;
 }
 
 /* line breaks are kept; a post is never read as markup */
@@ -77,6 +93,7 @@
   background: none;
   color: var(--text-muted);
   font: var(--type-label);
+  text-decoration: none;
   transition:
     background-color var(--dur-press) var(--ease-out),
     color var(--dur-press) var(--ease-out);
@@ -113,8 +130,53 @@
   }
 
   .action[aria-pressed="true"]:hover { color: var(--link); }
+
+  a.comments:hover {
+    background: var(--surface-sunken);
+    color: var(--text);
+  }
+
+  .cardTitle a:hover { text-decoration: underline; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .like:active svg { transform: none; }
+}
+
+/* ---------- writing a post ---------- */
+/* the kinds are radio cards: one column on a phone, two when there is room */
+.kinds {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* the sticky row sits over the bottom of the screen: a field that takes focus is kept clear of it,
+   by the same distance as a chip or a card (onboarding.module.css) */
+.form :is(input, textarea) {
+  scroll-margin-block-end: calc(var(--tap-min) + var(--space-6) + var(--space-3));
+}
+
+/* "optional" after a label reads as a note, not as part of the name */
+.optional {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* at five topics the rest cannot be chosen; the chip stays in the tab order so a screen reader
+   can still find it and read why */
+.chip[aria-disabled="true"] {
+  border-color: var(--line);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Edit and Delete side by side while they fit */
+.owner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }

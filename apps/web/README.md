@@ -98,6 +98,16 @@ with three tabs: For you (`GET /v1/feed`), Saved (`GET /v1/me/saved-posts`) and 
 change the screen at once and send the request after; a failure puts the button back and says
 so (`feed-api.ts`, `post-card.tsx`).
 
+One post is at `/en/posts/view?id=`, and the navigation marks Feed there (`AppFrame` treats
+`posts` as part of the feed). Its author can delete it, after a confirm dialog, and lands on
+Yours with "Post deleted". A post that is gone, or an id that is not one, gets its own screen.
+
+A post is written at `/en/posts/compose` and edited at `/en/posts/compose?id=` (its author
+only), in `post-composer.tsx`: the kind of post, a title (required for an RFC), the text, a
+link and up to five topics. The kind and the topics cannot change after posting, because the
+API's `PATCH` takes only the title, the text and the link; an edit sends only what changed. It
+shares its field and its leave warning with the idea composer.
+
 The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to

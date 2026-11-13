@@ -11,6 +11,9 @@ its number:
 ## 2026-11-13
 
 - fix(api): align posts lists and interactions (#105)
+- feat(web): add writing and editing a post (#106)
+- feat(api): add comment threads and comment likes (#103)
+- feat(web): add the post page (#102)
 - test(web): wait for the sign-in request before a test ends (#104)
 - feat(web): add the feed with likes and saves (#101)
 - feat(api): add comment lists with reply previews (#99)

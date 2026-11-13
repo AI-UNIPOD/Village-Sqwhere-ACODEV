@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
-import { Bookmark, Newspaper } from "../onboarding/icons";
+import { Bookmark, Check, Newspaper } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
@@ -38,11 +39,11 @@ function Blocks({ lang }: { lang: Lang }) {
 }
 
 // Shown while the page opens: blocks where the title and the first posts will be.
-function FeedSkeleton({ lang }: { lang: Lang }) {
+export function FeedSkeleton({ label }: { label: string }) {
   return (
     <main className={`${onboarding.column} ${ideas.main}`} aria-busy="true">
       <p className={landing.srOnly} role="status">
-        {copy[lang].loading}
+        {label}
       </p>
       <div className={onboarding.skeleton} aria-hidden="true">
         <div className={`${onboarding.block} ${onboarding.blockTitle}`} />
@@ -55,6 +56,15 @@ function FeedSkeleton({ lang }: { lang: Lang }) {
   );
 }
 
+// The whole page while it loads, for the route's Suspense boundary.
+export function FeedLoading({ lang, tab }: { lang: Lang; tab: Tab }) {
+  return (
+    <AppFrame lang={lang} path={PATHS[tab]}>
+      <FeedSkeleton label={copy[lang].loading} />
+    </AppFrame>
+  );
+}
+
 function Empty({ lang, tab }: { lang: Lang; tab: Tab }) {
   const t = copy[lang].empty[tab === "for-you" ? "forYou" : tab];
   const EmptyIcon = tab === "saved" ? Bookmark : Newspaper;
@@ -63,7 +73,7 @@ function Empty({ lang, tab }: { lang: Lang; tab: Tab }) {
       <EmptyIcon className={onboarding.emptyIcon} />
       <h2 className={onboarding.emptyTitle}>{t.title}</h2>
       <p>{t.text}</p>
-      <Link className={landing.ghost} href={tab === "for-you" ? `/${lang}/ideas` : `/${lang}/feed`}>
+      <Link className={landing.ghost} href={tab === "for-you" ? `/${lang}/ideas` : tab === "mine" ? `/${lang}/posts/compose` : `/${lang}/feed`}>
         {t.action}
       </Link>
     </div>
@@ -154,6 +164,8 @@ function Posts({ lang, tab }: { lang: Lang; tab: Tab }) {
   const t = copy[lang];
   // every tab asks for the profile, so the places bar knows whether to offer Reviews
   const me = useMe();
+  // a deleted post sends its author here with ?done=deleted
+  const deleted = useSearchParams().get("done") === "deleted";
   return (
     <main className={`${onboarding.column} ${ideas.main}`}>
       <h1 className={ideas.title}>{t.title}</h1>
@@ -161,6 +173,15 @@ function Posts({ lang, tab }: { lang: Lang; tab: Tab }) {
       <div className={ideas.toolbar}>
         <FeedTabs lang={lang} current={tab} />
       </div>
+      {tab === "mine" && deleted && (
+        <p className={ideas.done} role="status">
+          <Check />
+          {t.deleted}
+        </p>
+      )}
+      <Link className={`${landing.btn} ${ideas.share}`} href={`/${lang}/posts/compose`}>
+        {t.write}
+      </Link>
       {tab === "mine" ? (
         // your own posts are the ones whose author is you, so they wait for your username
         me ? <PostList lang={lang} tab={tab} username={me.username} /> : <Blocks lang={lang} />
@@ -175,7 +196,7 @@ function Posts({ lang, tab }: { lang: Lang; tab: Tab }) {
 export function Feed({ lang, tab }: { lang: Lang; tab: Tab }) {
   return (
     <AppFrame lang={lang} path={PATHS[tab]}>
-      <RequireSession lang={lang} fallback={<FeedSkeleton lang={lang} />}>
+      <RequireSession lang={lang} fallback={<FeedSkeleton label={copy[lang].loading} />}>
         <Posts lang={lang} tab={tab} />
       </RequireSession>
     </AppFrame>

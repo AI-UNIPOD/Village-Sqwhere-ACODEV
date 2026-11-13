@@ -36,14 +36,25 @@ The web frontend's owner chose, on 13 November 2026:
 - **The type is a small label, not a status pill with an icon.** It names a kind of post, and
   seven icons for seven kinds would say less than the words. A plain post shows no label.
 - **A card has no whole-card link.** Its row holds buttons, and a button inside a link cannot
-  be pressed reliably.
+  be pressed reliably. Its title (or, with no title, the first line of its text) and its comment
+  count lead to the post page.
+- **A post has its own page, `/posts/view?id=`,** the way hubs and ideas do: the query string
+  carries the id, and the page is keyed by it. The page marks Feed in the places bar, because a
+  post is read in the feed (`AppFrame` treats the `posts` part of an address as the feed).
+  A post that is deleted, or an id that is not a post's id (the API answers 404 or 422), shows
+  one screen, "This post is gone", with the way back to the feed.
+- **Only the author sees Delete, behind a confirmation,** and nothing else changes the post
+  there. The API takes no reason from an author, so none is asked for. It also lets a platform
+  moderator delete any post; the web app has no moderator screens, so it offers Delete to the
+  author only. After a delete the person goes to Yours, which says "Post deleted" from the
+  address (`?done=deleted`), so a reload or another tab never repeats it from stale state.
 
 ## What is left out, and why
 
-- **Writing and editing a post** are another task's composer (`/posts/compose`). There is no
-  Write button here, and nothing links to those addresses.
 - **Comments.** Only creating one and reading one by id exist in the API; listing a post's
-  comments does not yet. The card shows the number of comments and nothing more.
+  comments does not yet. The card shows the number of comments and nothing more, and the post
+  page says in one line that comments are coming. That line is replaced when the comments
+  section is built.
 
 ## Options we considered
 
@@ -63,3 +74,42 @@ The web frontend's owner chose, on 13 November 2026:
   repeats a post already shown is filtered.
 - A post is not removed from the list the moment it is un-saved on Saved, so the count of
   posts there can be one or two higher than the API's until the next load.
+
+## Writing and editing a post
+
+Added the same day, once the composer was built (`/posts/compose`, and `/posts/compose?id=` to
+edit).
+
+- **The kind and the topics are fixed after posting.** The API's edit request takes only the
+  title, the text and the link (`PostUpdateRequest` forbids any other field), and its docs say
+  topics and type are immutable. The edit form therefore shows the kind and the topics as plain
+  text and says under each that it cannot be changed. Showing them as disabled controls would
+  look broken instead of settled. A person who picked the wrong kind has to delete the post and
+  write it again, which is the API's rule, not a choice made here.
+- **The text is plain text, with no preview.** The post page shows a body as plain text, so
+  what is typed is what is shown, line breaks included. A preview would show the same words in
+  the same place and nothing more. The form says so under the field ("Plain text. Line breaks
+  are kept, and nothing is formatted").
+- **The RFC title rule appears with the kind.** An RFC needs a title (the API refuses one
+  without, and refuses clearing one later). The label changes to "required for an RFC" the
+  moment RFC is chosen, and the error goes the moment the kind or the title changes.
+- **Most refusals are said before sending, the rest from the API's codes.** The page checks the
+  text, title, link and topic count itself and says why in words. The API's own codes
+  (`UNKNOWN_TOPIC`, `TOO_MANY_TOPICS`, `DUPLICATE_TOPICS`, `HUB_MILESTONE_NOT_SUPPORTED`,
+  `RFC_TITLE_REQUIRED`, `EMPTY_UPDATE`, `NOT_POST_AUTHOR`, `POST_NOT_FOUND`) each have a
+  sentence next to the field they are about. The API answers a model-level refusal (an RFC with
+  no title) as a list-shaped 422 whose field is `body`, so that case cannot be told apart from
+  a refused text by field; the page never sends it, because it checks first.
+- **An edit sends only what changed, and nothing when nothing did.** Like the idea composer,
+  which does the same, so an untouched field is not written again. A cleared title or link is
+  sent as `null`, which is how the API clears them (an empty string is refused).
+- **Leaving.** The idea composer only asks before the tab is closed (`beforeunload`), so the
+  post composer does the same, through the same `useLeaveWarning`. There is no prompt for
+  moving inside the app.
+- **After a first publish the form is emptied before the person moves on.** The app keeps the
+  page it left, so a form still holding the sent text could send the same post twice when the
+  person comes back. The edit form holds the saved post instead. Both are keyed by the post's id.
+- **The entry points:** one main "Write a post" button on all three tabs of the feed (so the
+  Yours empty state leads to the same place with a quieter "Write your first post"), and Edit
+  beside Delete for the author on the post page. Publishing and saving go to the post with
+  `?done=published` or `?done=saved`, read from the address.

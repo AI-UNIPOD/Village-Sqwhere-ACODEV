@@ -78,7 +78,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 - **Comments** (Bearer token): comment or reply with `POST /v1/posts/{post_id}/comments`, then
   `GET /v1/comments/{comment_id}`, `PATCH /v1/comments/{comment_id}` and
   `DELETE /v1/comments/{comment_id}`. Lists, oldest first: `GET /v1/posts/{post_id}/comments`
-  (with the first two replies of each) and `GET /v1/comments/{comment_id}/replies`.
+  (with the first two replies of each), `GET /v1/comments/{comment_id}/replies` and
+  `GET /v1/comments/{comment_id}/thread` (five levels below). Likes, safe to repeat:
+  `PUT /v1/comments/{comment_id}/like` and `DELETE /v1/comments/{comment_id}/like`.
 - OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
   API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
 

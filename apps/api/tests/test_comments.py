@@ -418,6 +418,121 @@ def test_comment_lists_hide_deleted_and_hub_posts(client: TestClient, sign_in) -
         assert _error(resp, 404) == "COMMENT_NOT_FOUND"
 
 
+def test_a_thread_returns_five_levels_below_by_depth_then_age(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create(client, auth, "Deep discussion")
+    chain = [_comment_id(client, auth, post_id, "Level 0")]
+    for level in range(1, 8):
+        chain.append(_comment_id(client, auth, post_id, f"Level {level}", parent_id=chain[-1]))
+    _comment_id(client, auth, post_id, "Level 1 too", parent_id=chain[0])
+    assert client.delete(f"/v1/comments/{chain[2]}", headers=auth).status_code == 204
+
+    thread = client.get(f"/v1/comments/{chain[0]}/thread", headers=auth)
+    assert _bodies(thread) == [
+        "Level 0",
+        "Level 1",
+        "Level 1 too",
+        None,
+        "Level 3",
+        "Level 4",
+        "Level 5",
+    ]
+    assert thread.json()["data"][3]["deleted"] is True
+    deeper = client.get(f"/v1/comments/{chain[5]}/thread", headers=auth)
+    assert _bodies(deeper) == ["Level 5", "Level 6", "Level 7"]
+
+    page = client.get(f"/v1/comments/{chain[0]}/thread", headers=auth, params={"limit": 3})
+    assert page.json()["next_offset"] == 3
+    rest = client.get(
+        f"/v1/comments/{chain[0]}/thread", headers=auth, params={"offset": 3, "limit": 10}
+    )
+    assert _bodies(rest) == [None, "Level 3", "Level 4", "Level 5"]
+
+
+def test_a_thread_needs_a_listed_comment_on_a_visible_post(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    auth = _bearer(ada["access_token"])
+    post_id = _create(client, auth, "Threads")
+    alone = _comment_id(client, auth, post_id, "No replies")
+    assert client.delete(f"/v1/comments/{alone}", headers=auth).status_code == 204
+    hub_comment = _insert_comment(_hub_post(ada["user"]["id"]), ada["user"]["id"])
+
+    for gone in (alone, hub_comment, str(uuid4())):
+        resp = client.get(f"/v1/comments/{gone}/thread", headers=auth)
+        assert _error(resp, 404) == "COMMENT_NOT_FOUND"
+
+
+def test_liking_a_comment_is_safe_to_repeat(client: TestClient, sign_in) -> None:
+    ada_auth = _bearer(sign_in("github-code-ada")["access_token"])
+    moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
+    post_id = _create(client, ada_auth, "Likes")
+    comment_id = _comment_id(client, ada_auth, post_id, "Like me")
+    url = f"/v1/comments/{comment_id}/like"
+
+    for _ in range(2):
+        assert client.put(url, headers=moussa_auth).status_code == 204
+    seen_by_moussa = client.get(f"/v1/comments/{comment_id}", headers=moussa_auth).json()["data"]
+    assert (seen_by_moussa["like_count"], seen_by_moussa["liked_by_me"]) == (1, True)
+    listed = client.get(f"/v1/posts/{post_id}/comments", headers=ada_auth).json()["data"][0]
+    assert (listed["like_count"], listed["liked_by_me"]) == (1, False)
+
+    for _ in range(2):
+        assert client.delete(url, headers=moussa_auth).status_code == 204
+    after = client.get(f"/v1/comments/{comment_id}", headers=moussa_auth).json()["data"]
+    assert (after["like_count"], after["liked_by_me"]) == (0, False)
+
+
+def test_likes_need_a_live_comment_on_a_visible_post(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    auth = _bearer(ada["access_token"])
+    post_id = _create(client, auth, "No likes here")
+    removed = _comment_id(client, auth, post_id, "Removed")
+    assert client.delete(f"/v1/comments/{removed}", headers=auth).status_code == 204
+    hub_comment = _insert_comment(_hub_post(ada["user"]["id"]), ada["user"]["id"])
+
+    for gone in (removed, hub_comment, str(uuid4())):
+        for request in (client.put, client.delete):
+            resp = request(f"/v1/comments/{gone}/like", headers=auth)
+            assert _error(resp, 404) == "COMMENT_NOT_FOUND"
+
+
+def test_a_like_that_waits_on_a_comment_delete_answers_404(client: TestClient, sign_in) -> None:
+    ada = sign_in("github-code-ada")
+    auth = _bearer(ada["access_token"])
+    post_id = _create(client, auth, "Like race")
+    comment_id = _comment_id(client, auth, post_id, "Deleted while liked")
+
+    async def run() -> httpx.Response:
+        async with db_session() as deleting:
+            await deleting.execute(
+                text(
+                    "UPDATE comments SET deleted_at = now(), deleted_by = author_id,"
+                    " deletion_reason = 'author' WHERE id = :id"
+                ),
+                {"id": comment_id},
+            )
+            transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+            async with httpx.AsyncClient(transport=transport, base_url="http://test") as http:
+                pending = asyncio.create_task(
+                    http.put(f"/v1/comments/{comment_id}/like", headers=auth)
+                )
+                async with db_session() as probe:
+                    for _ in range(200):
+                        waiting = await probe.scalar(
+                            text(
+                                "SELECT count(*) FROM pg_stat_activity"
+                                " WHERE wait_event_type = 'Lock'"
+                            )
+                        )
+                        if waiting or pending.done():
+                            break
+                        await asyncio.sleep(0.02)
+                await deleting.commit()
+                return await pending
+
+    assert _error(asyncio.run(run()), 404) == "COMMENT_NOT_FOUND"
+
+
 def test_comment_routes_need_sign_in(client: TestClient) -> None:
     some_id = uuid4()
     assert client.post(f"/v1/posts/{some_id}/comments", json={"body": "Hi"}).status_code == 401
@@ -426,3 +541,6 @@ def test_comment_routes_need_sign_in(client: TestClient) -> None:
     assert client.delete(f"/v1/comments/{some_id}").status_code == 401
     assert client.get(f"/v1/posts/{some_id}/comments").status_code == 401
     assert client.get(f"/v1/comments/{some_id}/replies").status_code == 401
+    assert client.get(f"/v1/comments/{some_id}/thread").status_code == 401
+    assert client.put(f"/v1/comments/{some_id}/like").status_code == 401
+    assert client.delete(f"/v1/comments/{some_id}/like").status_code == 401
