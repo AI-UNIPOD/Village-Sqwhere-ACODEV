@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ViewTransition, type ReactNode } from "react";
+import { ViewTransition, useEffect, type ReactNode } from "react";
 
 import { copy } from "./app-frame-copy";
 import styles from "./app-frame.module.css";
@@ -13,7 +13,7 @@ import { LANGUAGE_NAMES, type Lang } from "./locales";
 import { Logo } from "./logo";
 import { Home, Lightbulb, Newspaper, ShieldCheck, User, Users } from "./onboarding/icons";
 import { useDemoRefusals } from "./session/demo";
-import { useKeptMe } from "./session/me";
+import { ensureMe, useKeptMe } from "./session/me";
 import { useSession } from "./session/session";
 import { SignOutButton } from "./session/session-ui";
 
@@ -64,6 +64,9 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
   const other: Lang = lang === "en" ? "fr" : "en";
   const signedIn = !!useSession();
   const me = useKeptMe();
+  useEffect(() => {
+    if (signedIn) ensureMe();
+  }, [signedIn]);
   // known once the village or Your hubs has loaded them this visit
   const invited = (useKeptInvitations()?.length ?? 0) > 0;
   const places = signedIn && !locked && !bare;
