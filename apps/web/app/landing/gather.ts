@@ -179,13 +179,17 @@ type Field = {
   y: number;
   width: number;
   height: number;
-  /** Areas the walking names must start clear of: the text, the square, the pause button. */
+  /**
+   * Areas the walking names must start clear of and must not walk across: the text, the square
+   * (their way in), the motion button.
+   */
   avoid: readonly Rect[];
 };
 
 /**
  * One cycle: gives every piece a start cell in the crowd, on an even row, clear of the text,
- * the square, the pause button and the other pieces, about 7 to 19 cells from its target.
+ * the square, the motion button and the other pieces, about 7 to 19 cells from its target, and
+ * walking to it without crossing the text or the button (only the square it walks into).
  * Then the timings: walk in, hold, logo, walk out.
  */
 export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avoid }: Field): Cycle {
@@ -195,12 +199,24 @@ export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avo
   const gyMin = Math.ceil((6 - Y) / c);
   const gyMax = Math.floor((height - 6 - Y) / c) - 1;
   const occ = new Set<string>();
-  const ok = (gx: number, gy: number, len: number) => {
+  const ok = (gx: number, gy: number, packed: PackedPiece) => {
+    const len = packed.len;
     if (gx < gxMin || gx + len - 1 > gxMax || gy < gyMin || gy > gyMax) return false;
     for (let i = -1; i <= len; i++) if (occ.has(`${gx + i}|${gy}`)) return false;
-    const x0 = X + gx * c;
-    const y0 = Y + gy * c;
-    return !overlaps(avoid, x0, y0, x0 + len * c, y0 + c);
+    if (overlaps(avoid, X + gx * c, Y + gy * c, X + (gx + len) * c, Y + (gy + 1) * c)) return false;
+    // the way in (and out): every step must clear the areas that do not hold the target
+    const targetX = X + (packed.tx + 0.5) * c;
+    const targetY = Y + (packed.ty + 0.5) * c;
+    const other = avoid.filter(
+      (q) => !(targetX > q[0] && targetX < q[2] && targetY > q[1] && targetY < q[3]),
+    );
+    const steps = Math.max(Math.abs(packed.tx - gx), Math.abs(packed.ty - gy));
+    for (let k = 1; k <= steps; k++) {
+      const px = gx + Math.sign(packed.tx - gx) * Math.min(k, Math.abs(packed.tx - gx));
+      const py = gy + Math.sign(packed.ty - gy) * Math.min(k, Math.abs(packed.ty - gy));
+      if (overlaps(other, X + px * c, Y + py * c, X + (px + len) * c, Y + (py + 1) * c)) return false;
+    }
+    return true;
   };
 
   const placed: Piece[] = [];
@@ -212,7 +228,7 @@ export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avo
     for (let tries = 0; tries < 500; tries++) {
       const gy = gyMin + Math.floor(rnd() * (gyMax - gyMin + 1));
       const gx = gxMin + Math.floor(rnd() * (gxMax - gxMin - packed.len + 2));
-      if (((gy % 2) + 2) % 2 || !ok(gx, gy, packed.len)) continue;
+      if (((gy % 2) + 2) % 2 || !ok(gx, gy, packed)) continue;
       const d = Math.max(
         Math.abs(gx + packed.len / 2 - (packed.tx + packed.len / 2)),
         Math.abs(gy - packed.ty),

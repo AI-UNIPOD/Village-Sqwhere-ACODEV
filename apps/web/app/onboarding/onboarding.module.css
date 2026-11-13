@@ -22,7 +22,11 @@
 
 @media (min-width: 768px) {
   .header {
-    padding-inline: max(var(--gutter), calc((100% - var(--content-max)) / 2 + var(--gutter)));
+    /* the same frame as the hero below it, which widens on large screens (see tokens.css) */
+    padding-inline: max(
+      var(--gutter),
+      calc((100% - clamp(var(--content-max), var(--hero-frame-share), var(--hero-frame-max))) / 2 + var(--gutter))
+    );
   }
 }
 

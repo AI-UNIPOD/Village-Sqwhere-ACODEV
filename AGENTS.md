@@ -139,8 +139,13 @@ checks pull request titles with the same hook, because the title becomes the com
 - One feature or fix per pull request. Do not stack pull requests (a branch made from
   another unmerged branch). If `main` moves, merge `main` into your branch.
 - The pull request title follows the commit rule. Fill in the template.
-- A pull request merges only when CI is green and at least one teammate has approved it.
-  We squash merge, so `main` gets one commit per pull request, and then delete the branch.
+- A pull request merges only when every check is green. While GitHub Actions is off, Tanny's
+  merge agent runs the checks from Tanny's PC (it is not in this repository), squash merges
+  green pull requests and deletes the branch, so `main` gets one commit per pull request. A teammate's review is
+  welcome but not required. Add the `do-not-merge` label to hold a pull request back.
+- When the agent flags a pull request (`agent: checks failed` or `agent: conflicts`), fix it on
+  the branch. When it resolves conflicts itself (`agent: review conflicts`), read the
+  resolution and remove the label; it never merges its own resolution unreviewed.
 
 **What a reviewer checks:** does it do what it says, and only that? Are there tests, and
 do they test behaviour? Is anything unnecessary (code, dependency, file)? Does the UI work
@@ -148,8 +153,8 @@ in both languages, on a phone, with loading and error states? Are the docs and
 `CHANGELOG.md` updated? Is anything secret or personal in the diff? Ask questions, suggest
 specific fixes, and approve only what you would be happy to maintain.
 
-**As the author:** answer every review comment, push fixes as new commits on the same
-branch, and merge after approval.
+**As the author:** answer every review comment and push fixes as new commits on the same
+branch. If you want a review before merging, add `do-not-merge` until you have it.
 
 ## 4. Documentation, with the why
 
@@ -202,7 +207,8 @@ This applies to docs, comments, commit messages, pull requests and UI text.
   text to commits or pull requests. If you cannot, commit with
   `git commit -m "<one line>"` and check the message before pushing.
 - Never push to `main`, force-push a shared branch, rewrite history, delete branches,
-  drop database tables or delete data without asking your human first.
+  drop database tables or delete data without asking your human first. The merge agent is
+  the one exception: Tanny set it up to merge green pull requests and delete their branches.
 - Stay inside the area your task is about. Ask before changing CI, `infra/`, this file or
   dependencies the task did not mention.
 - Never hand-edit generated files: `pnpm-lock.yaml`, `apps/api/uv.lock`, or the block in
@@ -228,5 +234,5 @@ API tests also need `TEST_DATABASE_URL` in your `.env`: the address of a separat
 development database. Create it once with the commands in `apps/api/README.md`. Without it
 the tests stop at start-up and say so. CI uses its own database and needs no setting.
 
-CI runs the same checks, plus the pull request title rule, the dash check and a secret
-scan. Nothing merges on red.
+CI and the merge agent run the same checks, plus the pull request title rule, the dash check
+and a secret scan. Nothing merges on red.
