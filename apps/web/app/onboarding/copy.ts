@@ -29,7 +29,9 @@ type Copy = {
   topicsLabel: string;
   nextTitle: string;
   nextSteps: string[];
-  preview: string;
+  saving: string;
+  saved: string;
+  saveFailed: string;
   village: string;
   change: string;
   githubProfile: string;
@@ -93,7 +95,9 @@ const en: Copy = {
     "We suggest teammates when your skills match an idea.",
     "Verify your role to earn your Green Tick.",
   ],
-  preview: "This is a preview. Your answers are not saved yet.",
+  saving: "Saving your role and stack",
+  saved: "Your role and stack are saved. Your country and topics are not saved yet.",
+  saveFailed: "We couldn't save your role and stack. Your answers are still here, so try again.",
   village: "Go to the village",
   change: "Change my answers",
   githubProfile: "GitHub profile, opens in a new tab",
@@ -161,7 +165,10 @@ const fr: Copy = {
     "Nous vous proposons des coéquipiers quand vos compétences correspondent à une idée.",
     "Faites vérifier votre rôle pour obtenir votre Green Tick.",
   ],
-  preview: "Ceci est un aperçu. Vos réponses ne sont pas encore enregistrées.",
+  saving: "Enregistrement de votre rôle et de vos technologies",
+  saved: "Votre rôle et vos technologies sont enregistrés. Votre pays et vos domaines ne le sont pas encore.",
+  saveFailed:
+    "Nous n'avons pas pu enregistrer votre rôle et vos technologies. Vos réponses sont toujours là, vous pouvez donc réessayer.",
   village: "Aller au village",
   change: "Modifier mes réponses",
   githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",

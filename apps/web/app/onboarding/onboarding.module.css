@@ -144,6 +144,8 @@
   margin-block-start: calc((1lh - var(--space-4)) / 2);
 }
 
+.retry { margin-block-start: var(--space-3); }
+
 .roleList,
 .countryList {
   display: grid;

@@ -6,8 +6,10 @@ import type { CSSProperties } from "react";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { copy, fill } from "./copy";
+import { AlertCircle } from "./icons";
 import styles from "./onboarding.module.css";
 import { ROLES, TECHNOLOGIES, TOPICS, countriesFor, firstName, type Profile } from "./options";
+import { useSavedProfile } from "./save-answers";
 import type { Answers } from "./steps";
 
 // Static tags that arrive one after another once the card has landed (--i is the place).
@@ -35,6 +37,7 @@ type DoneStepProps = { lang: Lang; answers: Answers; profile: Profile; onChange:
 
 export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
   const t = copy[lang];
+  const { status, retry } = useSavedProfile(answers);
   const name = profile.displayName ?? profile.username;
   const initials = name
     .split(" ")
@@ -88,7 +91,22 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
           <li key={text}>{text}</li>
         ))}
       </ol>
-      <p className={styles.muted}>{t.preview}</p>
+      {(status === "saving" || status === "saved") && (
+        <p className={styles.muted} role="status">
+          {status === "saving" ? t.saving : t.saved}
+        </p>
+      )}
+      {status === "failed" && (
+        <>
+          <p className={styles.error} role="alert">
+            <AlertCircle />
+            {t.saveFailed}
+          </p>
+          <button type="button" className={`${landing.ghost} ${styles.retry}`} onClick={retry}>
+            {t.retry}
+          </button>
+        </>
+      )}
       <div className={styles.actions}>
         <Link className={landing.btn} href={`/${lang}/village`}>
           {t.village}
