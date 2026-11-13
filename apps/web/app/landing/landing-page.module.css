@@ -72,6 +72,11 @@
   min-block-size: var(--nav-height);
 }
 
+/* in the footer it is a link like any other: tall enough to tap */
+.foot .brand {
+  min-block-size: var(--tap-min);
+}
+
 @media (min-width: 768px) {
   .nav .brand {
     min-block-size: var(--tap-min);

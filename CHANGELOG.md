@@ -11,6 +11,7 @@ its number:
 ## 2026-11-13
 
 - fix(api): refuse a null character in post text instead of failing (#100)
+- fix(web): open an address typed without a language (#98)
 - feat(api): add comments and replies on posts
 - feat(web): rebuild the not-found page and send it as html (#96)
 - fix(web): tidy the loose ends left by the screen pull requests (#95)
