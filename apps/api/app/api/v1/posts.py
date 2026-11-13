@@ -1,4 +1,4 @@
-"""Developer Exchange posts: create, read, update, delete, the feed and filtered lists.
+"""Developer Exchange posts: create, read, edit, delete, like, save, the feed and lists.
 
 Integrity and revisions are maintained by PostgreSQL triggers. Authors, topics and the
 viewer's likes and saves are loaded for a whole page in four queries, never one per post.
@@ -9,7 +9,8 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, delete, func, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbSession
@@ -315,3 +316,59 @@ async def my_feed(
             )
         )
     return await _post_page(query.order_by(*NEWEST_FIRST), offset, limit, current_user.id, db)
+
+
+async def _set_mark(
+    mark: type[PostLike] | type[SavedPost],
+    post_id: UUID,
+    user_id: UUID,
+    db: AsyncSession,
+    *,
+    on: bool,
+) -> Response:
+    await _get_visible_post(post_id, db)
+    if on:
+        statement = (
+            pg_insert(mark).values(post_id=post_id, user_id=user_id).on_conflict_do_nothing()
+        )
+    else:
+        statement = delete(mark).where(mark.post_id == post_id, mark.user_id == user_id)
+    await db.execute(statement)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put("/posts/{post_id}/like", status_code=status.HTTP_204_NO_CONTENT)
+async def like_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
+    return await _set_mark(PostLike, post_id, current_user.id, db, on=True)
+
+
+@router.delete("/posts/{post_id}/like", status_code=status.HTTP_204_NO_CONTENT)
+async def unlike_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
+    return await _set_mark(PostLike, post_id, current_user.id, db, on=False)
+
+
+@router.put("/posts/{post_id}/save", status_code=status.HTTP_204_NO_CONTENT)
+async def save_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
+    return await _set_mark(SavedPost, post_id, current_user.id, db, on=True)
+
+
+@router.delete("/posts/{post_id}/save", status_code=status.HTTP_204_NO_CONTENT)
+async def unsave_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
+    return await _set_mark(SavedPost, post_id, current_user.id, db, on=False)
+
+
+@router.get("/me/saved-posts", response_model=PostListResponse)
+async def my_saved_posts(
+    current_user: CurrentUser,
+    db: DbSession,
+    offset: PageOffset = 0,
+    limit: PageLimit = 20,
+) -> PostListResponse:
+    query = (
+        _visible_posts()
+        .join(SavedPost, SavedPost.post_id == Post.id)
+        .where(SavedPost.user_id == current_user.id)
+        .order_by(SavedPost.created_at.desc(), Post.id.desc())
+    )
+    return await _post_page(query, offset, limit, current_user.id, db)

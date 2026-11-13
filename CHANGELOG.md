@@ -11,6 +11,7 @@ its number:
 ## 2026-11-13
 
 - fix(web): say when a hub's team is full (#92)
+- feat(api): add liking and saving posts (#91)
 - feat(api): add the feed and post lists (#90)
 - feat(api): cap a hub at five active members (#89)
 - feat(api): add posts crud endpoints (#88)
