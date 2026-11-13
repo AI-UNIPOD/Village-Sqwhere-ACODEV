@@ -134,7 +134,11 @@ test("the header leads home to the village and switches language on the same scr
   await screen.findByRole("heading", { level: 1 });
   expect(screen.getByRole("link", { name: "Village Sqwhere" }).getAttribute("href")).toBe("/en/village");
   expect(screen.getByRole("link", { name: "Français" }).getAttribute("href")).toBe("/fr/village");
-  expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+  // the places: the village is where we are, and reviews wait for a Green Tick
+  const places = within(screen.getByRole("navigation", { name: "Main" }));
+  expect(places.getByRole("link", { name: "Village" }).getAttribute("aria-current")).toBe("page");
+  expect(places.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/en/profile");
+  expect(places.queryByRole("link", { name: "Reviews" })).toBeNull();
 });
 
 test.each([

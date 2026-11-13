@@ -1,14 +1,12 @@
 "use client";
 
-import { useState } from "react";
-
 import { AppFrame } from "../app-frame";
 import ideas from "../ideas/ideas.module.css";
 import { copy as shared } from "../landing/copy";
 import landing from "../landing/landing-page.module.css";
 import { LANGUAGE_NAMES, LOCALES, type Lang } from "../locales";
 import onboarding from "../onboarding/onboarding.module.css";
-import { useMe, type Me } from "../session/me";
+import { keepMe, useMe } from "../session/me";
 import { RequireSession, SignOutButton } from "../session/session-ui";
 import { copy } from "./copy";
 import styles from "./profile.module.css";
@@ -70,15 +68,12 @@ function Account({ lang }: { lang: Lang }) {
 }
 
 function Profile({ lang }: { lang: Lang }) {
-  const loaded = useMe();
-  // What the API answered after a change. It holds only until the profile is loaded again, so a
-  // page shown again from memory never keeps an older answer over a newer one.
-  const [changed, setChanged] = useState<{ from: Me | null; me: Me } | null>(null);
-  const me = changed && changed.from === loaded ? changed.me : loaded;
+  const me = useMe();
   if (!me) return <ProfileSkeleton lang={lang} />;
 
   const t = copy[lang];
-  const onMe = (next: Me) => setChanged({ from: loaded, me: next });
+  // a change is kept for the visit, so the village and the header show it too
+  const onMe = keepMe;
   return (
     <main className={`${onboarding.column} ${ideas.main}`}>
       <h1 className={ideas.title}>{t.title}</h1>

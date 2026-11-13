@@ -116,7 +116,7 @@
    Continue is always in reach. The margin above leaves room after the last item. */
 .questionActions {
   position: sticky;
-  inset-block-end: 0;
+  inset-block-end: var(--app-bottom, 0px);
   margin-inline: calc(var(--gutter) * -1);
   padding: var(--space-3) var(--gutter);
   border-block-start: 1px solid var(--line);

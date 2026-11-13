@@ -23,8 +23,14 @@ through `POST /v1/me/roles` and `PUT /v1/me/technologies`; the country and topic
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
 team. Onboarding's last screen leads there, and the bare onboarding address sends a developer
-who already has a role there too. Screens for signed-in people share one header, `AppFrame` in
+who already has a role there too. Screens for signed-in people share one frame, `AppFrame` in
 `app/app-frame.tsx`: pass it the screen's address so the language link opens the same screen.
+The frame also holds the places (village, ideas, hubs, reviews for a verified developer,
+profile): a bar at the bottom of a phone, links in the header from 768px. A new place is one
+line in `PLACES` and one word in `app/app-frame-copy.ts`. The profile is kept for the visit, so
+a screen opened later shows at once; a screen that changes it calls `loadMe()` or `keepMe()`.
+Screens crossfade with React's `<ViewTransition>` (`globals.css`), and a sticky row at the
+bottom of a screen uses `var(--app-bottom)` to sit above the bar.
 
 Role verification is `app/verification/` (at `/en/verification`), for the developer's main role:
 a start form (public GitHub repositories and a consent box), then the attempt's three stages

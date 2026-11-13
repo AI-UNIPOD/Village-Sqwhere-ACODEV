@@ -94,6 +94,29 @@ a {
   --step-offset: var(--space-8);
 }
 
+/* Moving between signed-in screens (app/app-frame.tsx). This happens many times a day, so it is
+   quick and nothing travels: the new screen fades in as the old one fades out. The one thing
+   that moves is the mark under the current place, which slides to the place just opened. */
+::view-transition-old(.screen) {
+  animation: var(--dur-menu-out) var(--ease-out) both step-fade reverse;
+}
+
+::view-transition-new(.screen) {
+  animation: var(--dur-menu) var(--ease-out) both step-fade;
+}
+
+::view-transition-group(.place-mark) {
+  animation-duration: var(--dur-menu);
+  animation-timing-function: var(--ease-out);
+}
+
+/* reduced motion: the mark changes place without sliding */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(.place-mark) {
+    animation: none;
+  }
+}
+
 /* reduced motion: no movement, the steps crossfade */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(.step-forward),

@@ -39,6 +39,8 @@ class FakeSocket {
 
 const fetchMock = vi.fn();
 const scrollIntoView = vi.fn();
+// what matchMedia answers: the header's theme switch also listens to it
+const media = (matches: boolean) => ({ matches, addEventListener: vi.fn(), removeEventListener: vi.fn() });
 
 const attempt = (status: string, current_phase: string | null) =>
   new Response(JSON.stringify({ data: { status, current_phase } }), { status: 200 });
@@ -59,7 +61,7 @@ beforeEach(() => {
   FakeSocket.all = [];
   vi.stubGlobal("WebSocket", FakeSocket);
   vi.stubGlobal("fetch", fetchMock);
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue(media(false)));
   Element.prototype.scrollIntoView = scrollIntoView;
   // jsdom has no modal dialogs
   HTMLDialogElement.prototype.showModal = function () {
@@ -325,7 +327,7 @@ test("the socket closes when the page goes away", async () => {
 });
 
 test("the newest message scrolls without gliding when motion is reduced", async () => {
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue(media(true)));
   await begun();
   expect(scrollIntoView).toHaveBeenLastCalledWith({ block: "end", behavior: "instant" });
 });

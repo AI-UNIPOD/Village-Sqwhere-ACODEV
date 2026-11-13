@@ -124,6 +124,19 @@ export const Users = ({ className }: { className?: string }) => (
   </Icon>
 );
 
+export const Home = () => (
+  <Icon>
+    <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z" />
+  </Icon>
+);
+
+export const User = () => (
+  <Icon>
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </Icon>
+);
+
 export const CircleDashed = () => (
   <Icon>
     <path d="M10.1 2.18a10 10 0 0 1 3.8 0M17.6 3.71a10 10 0 0 1 2.69 2.7M21.82 10.1a10 10 0 0 1 0 3.8M20.29 17.6a10 10 0 0 1-2.7 2.69M13.9 21.82a10 10 0 0 1-3.8 0M6.4 20.29a10 10 0 0 1-2.69-2.7M2.18 13.9a10 10 0 0 1 0-3.8M3.71 6.4a10 10 0 0 1 2.7-2.69" />

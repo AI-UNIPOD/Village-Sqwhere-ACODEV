@@ -10,7 +10,7 @@ export default function OnboardingError({ retry }: { retry: () => void }) {
   const lang = useLang();
   const t = copy[lang];
   return (
-    <AppFrame lang={lang} path="onboarding">
+    <AppFrame lang={lang} path="onboarding" bare>
       <main className={`${styles.column} ${styles.step}`}>
         <h1 className={styles.title}>{t.errorTitle}</h1>
         <p className={styles.why}>{t.errorText}</p>
