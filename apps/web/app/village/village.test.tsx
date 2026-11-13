@@ -94,6 +94,7 @@ test("with a role chosen, the profile step is done and verifying the role is nex
   expect(within(idea).getByText("Ouverte")).toBeTruthy();
   expect(within(idea).getByRole("link", { name: "Partager une idée" }).getAttribute("href")).toBe("/fr/ideas/mine");
   expect(within(idea).getByRole("link", { name: "Parcourir les idées ouvertes" }).getAttribute("href")).toBe("/fr/ideas");
+  expect(screen.getByRole("link", { name: "Vos espaces" }).getAttribute("href")).toBe("/fr/hubs");
 });
 
 test("with an attempt under way, the step leads back to where it stands", async () => {

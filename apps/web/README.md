@@ -52,6 +52,13 @@ Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=
 part only, a "Needs your role" line when a role slug matches, and how joining works (the owner
 invites; there is no request to join).
 
+Hubs are `app/hubs/`: create one from an open idea at `/en/hubs/new?idea=` (name, terms, the
+agreement as the server sends it, a typed legal name, then a confirm dialog), one hub at
+`/en/hubs/view?id=`, and your hubs at `/en/hubs`. The request carries the agreement's id and hash
+that were shown; if the API says the agreement changed, the page shows the new text and asks
+again. The agreement's Markdown is rendered by `agreement-text.tsx` as headings, lists and
+paragraphs only, never as markup.
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is

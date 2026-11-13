@@ -24,6 +24,7 @@ type Copy = {
   review: string;
   ideas: string;
   browse: string;
+  hubs: string;
   loading: string;
   errorTitle: string;
   errorText: string;
@@ -69,6 +70,7 @@ const en: Copy = {
   review: "Review attempts in your role",
   ideas: "Share an idea",
   browse: "Browse open ideas",
+  hubs: "Your hubs",
   loading: "Opening your village",
   errorTitle: "We couldn't open your village",
   errorText:
@@ -116,6 +118,7 @@ const fr: Copy = {
   review: "Relire des tentatives dans votre rôle",
   ideas: "Partager une idée",
   browse: "Parcourir les idées ouvertes",
+  hubs: "Vos espaces",
   loading: "Ouverture de votre village",
   errorTitle: "Nous n'avons pas pu ouvrir votre village",
   errorText:

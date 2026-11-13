@@ -150,6 +150,12 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
                       </Link>
                     </div>
                   )}
+                  {/* a hub is created from an open idea; this leads to the ones you are in */}
+                  {id === "hub" && role && (
+                    <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/hubs`}>
+                      {t.hubs}
+                    </Link>
+                  )}
                   {/* a Green Tick is also the right to decide other developers' attempts */}
                   {id === "verify" && state === "done" && (
                     <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/reviews`}>

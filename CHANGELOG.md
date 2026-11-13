@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(web): add creating a hub, the hub page and your hubs (#78)
 - feat(web): add browsing open ideas and the idea page (#77)
 - feat(web): add writing, publishing and closing an idea (#76)
 - feat(api): add role-based idea matching (#66)
