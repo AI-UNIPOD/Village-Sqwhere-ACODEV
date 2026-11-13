@@ -108,9 +108,16 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
         </>
       )}
       <div className={styles.actions}>
-        <Link className={landing.btn} href={`/${lang}/village`}>
-          {t.village}
-        </Link>
+        {/* the village reads the role from the API, so the way there waits for the save */}
+        {status === "saving" ? (
+          <button type="button" className={landing.btn} aria-disabled="true">
+            {t.village}
+          </button>
+        ) : (
+          <Link className={landing.btn} href={`/${lang}/village`}>
+            {t.village}
+          </Link>
+        )}
         <button type="button" className={landing.ghost} onClick={onChange}>
           {role ? t.change : t.start}
         </button>

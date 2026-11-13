@@ -20,6 +20,12 @@ landing page is `app/landing/`, and the onboarding page shown after the first si
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role and the stack
 through `POST /v1/me/roles` and `PUT /v1/me/technologies`; the country and topics stay in the tab.
 
+A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
+from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
+team. Onboarding's last screen leads there, and the bare onboarding address sends a developer
+who already has a role there too. Screens for signed-in people share one header, `AppFrame` in
+`app/app-frame.tsx`: pass it the screen's address so the language link opens the same screen.
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is

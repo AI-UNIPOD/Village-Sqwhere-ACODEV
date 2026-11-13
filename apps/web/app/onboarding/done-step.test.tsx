@@ -111,3 +111,15 @@ test("with no role chosen nothing is saved and no save message shows", () => {
   expect(screen.queryByText(/Saving your role/)).toBeNull();
   expect(fetchMock).not.toHaveBeenCalled();
 });
+
+test("the way to the village opens once the role is saved", async () => {
+  card("fr", { displayName: "Kofi Mensah", username: "kofi-ships" });
+  expect(screen.getByRole("button", { name: "Aller au village" }).getAttribute("aria-disabled")).toBe("true");
+  const link = await screen.findByRole("link", { name: "Aller au village" });
+  expect(link.getAttribute("href")).toBe("/fr/village");
+});
+
+test("someone who skipped can go straight to the village", () => {
+  render(<DoneStep lang="en" answers={NO_ANSWERS} profile={{ displayName: null, username: "kofi-ships" }} onChange={() => {}} />);
+  expect(screen.getByRole("link", { name: "Go to the village" }).getAttribute("href")).toBe("/en/village");
+});

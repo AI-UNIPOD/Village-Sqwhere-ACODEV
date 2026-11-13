@@ -259,7 +259,8 @@ test("the profile card shows what was chosen", () => {
   const next = screen.getByRole("heading", { name: "What happens next" }).nextElementSibling as HTMLElement;
   expect(within(next).getAllByRole("listitem")).toHaveLength(3);
 
-  expect(screen.getByRole("link", { name: "Go to the village" }).getAttribute("href")).toBe("/en/village");
+  // nobody is signed in here, so the save never ends and the way to the village stays closed
+  expect(screen.getByRole("button", { name: "Go to the village" }).getAttribute("aria-disabled")).toBe("true");
 
   click("button", "Change my answers");
   expect(nav.push).toHaveBeenCalledWith("/en/onboarding?step=role", { scroll: false });
