@@ -78,8 +78,9 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
         </p>
       )}
       {status === "invited" && <InvitationCard lang={lang} hub={hub} onChange={setHub} />}
+      {status === "requested" && <p className={ideas.lead}>{t.ask.asked}</p>}
       {status === "declined" && <p className={ideas.lead}>{t.declinedNote}</p>}
-      {!isMember && status !== "invited" && status !== "declined" && <p className={ideas.lead}>{t.notMember}</p>}
+      {!isMember && status !== "invited" && status !== "requested" && status !== "declined" && <p className={ideas.lead}>{t.notMember}</p>}
       {hub.description && <p className={styles.text}>{hub.description}</p>}
 
       <h2 className={`${ideas.heading} ${styles.heading}`}>{t.ideaHeading}</h2>

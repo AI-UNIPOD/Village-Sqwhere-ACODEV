@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(web): add asking to join a hub (#121)
 - feat(api): add made-up content for the demo (#120)
 - feat(web): open the read-only demo from the landing page (#119)
 - feat(web): save the sectors chosen in onboarding (#118)

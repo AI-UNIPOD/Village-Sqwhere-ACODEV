@@ -7,59 +7,20 @@ import { useEffect, useState } from "react";
 import { AppFrame } from "../app-frame";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
+import { AskToJoin } from "../hubs/ask-to-join";
+import { copy as hubCopy } from "../hubs/copy";
 import { fill } from "../onboarding/copy";
 import { ArrowLeft, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
-import { useMe, type Me } from "../session/me";
+import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
-import { FitLine, RoleChips, fitOf } from "./browse";
+import { FitLine, RoleChips } from "./browse";
 import { copy } from "./copy";
 import { IdeaError, loadOpenIdea, type PublicIdea } from "./ideas-api";
 import styles from "./ideas.module.css";
 import { IdeasSkeleton } from "./my-ideas";
-
-// The one thing this developer can do about the idea. There is no "ask to join": the owner
-// invites, so the action is whatever makes them someone the owner can be shown.
-function NextStep({ lang, idea, me }: { lang: Lang; idea: PublicIdea; me: Me }) {
-  const t = copy[lang].open;
-  if (idea.author.username === me.username) {
-    return (
-      <Link className={`${landing.btn} ${styles.act}`} href={`/${lang}/ideas/compose?id=${idea.id}`}>
-        {t.edit}
-      </Link>
-    );
-  }
-  if (me.roles.length === 0) {
-    return (
-      <>
-        <p className={styles.lead}>{t.setUpWhy}</p>
-        <Link className={`${landing.btn} ${styles.act}`} href={`/${lang}/onboarding?step=role`}>
-          {t.setUp}
-        </Link>
-      </>
-    );
-  }
-  const fit = fitOf(idea, me);
-  if (!fit) return <p className={styles.lead}>{t.otherRoles}</p>;
-  if (fit.verified) {
-    return (
-      <p className={styles.done} role="status">
-        <Check />
-        {t.fitNote}
-      </p>
-    );
-  }
-  return (
-    <>
-      <p className={styles.lead}>{t.verifyWhy}</p>
-      <Link className={`${landing.btn} ${styles.act}`} href={`/${lang}/verification`}>
-        {t.verify}
-      </Link>
-    </>
-  );
-}
 
 function OpenIdea({ lang, id }: { lang: Lang; id: string | null }) {
   const t = copy[lang];
@@ -152,18 +113,21 @@ function OpenIdea({ lang, id }: { lang: Lang; id: string | null }) {
         </div>
       </div>
 
-      <h2 className={styles.heading}>{t.open.joinTitle}</h2>
-      <ol className={styles.join}>
-        {t.open.joinSteps.map((step) => (
-          <li key={step}>{step}</li>
-        ))}
-      </ol>
-      <NextStep lang={lang} idea={idea} me={me} />
+      {idea.author.username === me.username ? (
+        <Link className={`${landing.btn} ${styles.act}`} href={`/${lang}/ideas/compose?id=${idea.id}`}>
+          {t.open.edit}
+        </Link>
+      ) : (
+        <>
+          <h2 className={styles.heading}>{hubCopy[lang].ask.heading}</h2>
+          <AskToJoin key={idea.hub_id ?? "none"} lang={lang} hubId={idea.hub_id} />
+        </>
+      )}
     </main>
   );
 }
 
-// One open idea, as any signed-in developer sees it: the public part, and how joining works.
+// One open idea, as any signed-in developer sees it: the public part, and the step towards its team.
 export function IdeaPage({ lang }: { lang: Lang }) {
   const id = useSearchParams().get("id");
   return (

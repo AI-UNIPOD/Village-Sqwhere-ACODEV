@@ -58,8 +58,11 @@ apart from the private brief, saves only the fields that changed, and asks befor
 closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
 Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=`: the public
-part only, a "Needs your role" line when a role slug matches, and how joining works (the owner
-invites; there is no request to join).
+part only, a "Needs your role" line when a role slug matches, and "Ask to join" when the idea
+has a hub (`hubs/ask-to-join.tsx`, `POST /v1/hubs/{id}/join-requests`). The page reads the
+hub's card to know whether the viewer already asked, is invited or is a member. The owner
+answers in the hub's team list with Approve or Decline; approving makes it an invitation, signed
+on the join page. "Your hubs" lists a developer's own requests under "Waiting for the owner".
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
 developer is verified in (`GET /v1/me/matches`), each with the roles that matched. Matching goes

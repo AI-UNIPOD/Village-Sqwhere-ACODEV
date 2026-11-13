@@ -283,14 +283,14 @@ test("declining asks first, then declines and says so", async () => {
   expect(posted()).toEqual([]);
 
   fireEvent.click(within(dialog).getByRole("button", { name: "Decline" }));
-  expect(await screen.findByText("You declined the invitation to this hub.")).toBeTruthy();
+  expect(await screen.findByText("You are not in this hub. You declined its invitation, or the owner declined your request.")).toBeTruthy();
   expect(posted()).toEqual([["/v1/hubs/hub-1/invitation/decline", null]]);
   expect(screen.queryByRole("link", { name: "Read and sign" })).toBeNull();
 });
 
 test("a developer who declined sees their line and nothing private", async () => {
   await open({ viewer: { membership_status: "declined", member_role: "member" } }, []);
-  expect(screen.getByText("You declined the invitation to this hub.")).toBeTruthy();
+  expect(screen.getByText("You are not in this hub. You declined its invitation, or the owner declined your request.")).toBeTruthy();
   expect(screen.queryByText("You are not a member of this hub.")).toBeNull();
   expect(screen.queryByRole("link", { name: "Read and sign" })).toBeNull();
 });
@@ -318,7 +318,7 @@ test("the success message after joining shows for an active member only", async 
 const invited = hub({ id: "hub-9", name: "Clinic queue hub", idea: { id: "idea-9", title: "Clinic queue", summary: "Waiting rooms." }, owner: { username: "ama-mensah", display_name: "Ama Mensah", is_verified: false }, viewer: { membership_status: "invited", member_role: "member" } });
 
 test("your hubs show the invitations above the hubs, each leading to its hub", async () => {
-  api({ "GET /v1/me/hubs": { data: [hub()], next_offset: null }, "GET /v1/me/hubs?status=invited": { data: [invited] } });
+  api({ "GET /v1/me/hubs": { data: [hub()], next_offset: null }, "GET /v1/me/hubs?status=requested": { data: [] }, "GET /v1/me/hubs?status=invited": { data: [invited] } });
   render(<MyHubs lang="en" />);
   const heading = await screen.findByRole("heading", { level: 2, name: "Invitations" });
   const card = screen.getByRole("link", { name: "Clinic queue hub" }).closest("li")!;
@@ -330,14 +330,14 @@ test("your hubs show the invitations above the hubs, each leading to its hub", a
 });
 
 test("your hubs still list when the invitations request fails, and show no Invitations section", async () => {
-  api({ "GET /v1/me/hubs": { data: [hub()], next_offset: null }, "GET /v1/me/hubs?status=invited": refusal(500, "BOOM") });
+  api({ "GET /v1/me/hubs": { data: [hub()], next_offset: null }, "GET /v1/me/hubs?status=requested": { data: [] }, "GET /v1/me/hubs?status=invited": refusal(500, "BOOM") });
   render(<MyHubs lang="en" />);
   expect(await screen.findByRole("link", { name: "Borehole map hub" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Invitations" })).toBeNull();
 });
 
 test("invitations without any hub still show the empty state for hubs below them", async () => {
-  api({ "GET /v1/me/hubs": { data: [], next_offset: null }, "GET /v1/me/hubs?status=invited": { data: [invited] } });
+  api({ "GET /v1/me/hubs": { data: [], next_offset: null }, "GET /v1/me/hubs?status=requested": { data: [] }, "GET /v1/me/hubs?status=invited": { data: [invited] } });
   render(<MyHubs lang="en" />);
   expect(await screen.findByRole("heading", { level: 2, name: "Invitations" })).toBeTruthy();
   expect(screen.getByRole("heading", { level: 2, name: "No hubs yet" })).toBeTruthy();
