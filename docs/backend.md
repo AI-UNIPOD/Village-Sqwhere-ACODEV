@@ -609,7 +609,7 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | --- | --- | --- |
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
-| `404` | `NOT_FOUND` | The idea does not exist, is deleted, or is someone else's draft. |
+| `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
 | `409` | `IDEA_NOT_OPEN` | The idea is a draft or closed. Open it first. |
 | `409` | `HUB_ALREADY_EXISTS` | The idea already has a hub (one hub per idea). |
 | `409` | `AGREEMENT_MISMATCH` | The signed `template_id` or `template_sha256` is not the current agreement. Fetch `GET /v1/agreements/current` again and show it before signing. |
@@ -715,6 +715,24 @@ are saved together, or nothing is saved.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `422` (a field breaks a rule),
   `404 NOT_FOUND`, `403 NOT_IDEA_AUTHOR`, `409 IDEA_NOT_OPEN`, `409 HUB_ALREADY_EXISTS`,
   `409 AGREEMENT_MISMATCH`, `503 AGREEMENT_NOT_PUBLISHED`.
+
+#### `GET /v1/hubs/{hub_id}`
+
+Returns one hub's card. Any signed-in user can read it, member or not, so they can decide to
+ask to join. Archived hubs can still be read.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Success Response (200 OK):** the same hub card as `POST /v1/hubs` returns, in `data`.
+  `viewer` is the caller's own membership in this hub, in any status:
+  ```json
+  { "membership_status": "invited", "member_role": "member" }
+  ```
+  Both are `null` when the caller has never been a member. `membership_status` is one of
+  `requested`, `invited`, `active`, `declined`, `left` or `removed`, and `member_role` is
+  `owner` or `member`. `member_count` counts active members only. The idea's confidential
+  details and the agreement signatures are never part of the card, whoever asks.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
+  id), `422` (the id is not a UUID).
 
 ---
 
