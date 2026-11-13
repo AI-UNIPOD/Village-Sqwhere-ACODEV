@@ -178,6 +178,8 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
       .catch((error: unknown) => {
         if (error instanceof SignedOutError) return;
         set(target.liked_by_me, target.like_count);
+        // in the demo the frame says why; "try again" would be wrong
+        if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return;
         setNotice(t.likeFailed);
         reveal.current = { element: "comments-notice" };
       })

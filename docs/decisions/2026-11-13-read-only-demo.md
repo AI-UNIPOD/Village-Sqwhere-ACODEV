@@ -31,9 +31,12 @@ the web session, in three pull requests:
      with `403 DEMO_READ_ONLY`. The verification interview socket closes for it. A test walks
      every write route in the OpenAPI schema with a demo token, so a route added later is
      checked too.
-2. **A two-sided wall.** Demo content is shown only to the demo account. The demo account sees
-   only demo content, in every list and on single reads: a real id answers 404 for it. It is
-   never matched, suggested or invited.
+2. **A two-sided wall.** Demo content is shown only to demo accounts, and demo accounts see
+   only demo content, in every list and on single reads: an id from the other side answers 404.
+   A demo account is never matched, suggested or invited, and a real developer cannot ask to
+   join a demo hub. One rule, `same_world` in `apps/api/app/api/deps.py`, decides it from the
+   user behind each row: a post's or idea's author, a hub's owner, a reviewed attempt's
+   applicant.
 3. **Made-up content** from a seed script outside `infra/db/init/`, run by hand only where the
    demo is wanted. Production never gets fake rows. Times are relative to when it runs, so the
    feed reads "2 hours ago", and it can run again to refresh them.
@@ -59,3 +62,24 @@ the web session, in three pull requests:
 - Part 2 adds an `is_demo` condition to every list and read of shared content. A new list
   must add it too.
 - Tanny sets `DEMO_ENABLED=true` only where the demo should be on.
+
+## On the web
+
+Added when the web side was built, on 13 November 2026:
+
+- **"Try the demo" is a real button on the landing page,** in the hero and the footer. The line
+  under it says what the demo is ("No sign-up. Look at everything, change nothing."), then how
+  opening it is going. A 404 from the route says the demo is not available here.
+- **One line under the header on every signed-in screen** tells the demo account that nothing
+  it changes is saved, with "Leave the demo" (sign out). It is not a banner that can be closed:
+  the fact stays true on every screen.
+- **A refused change is noticed in one place,** `apiFetch`, which every screen calls through.
+  The line then says "That was not saved", and a screen reader hears it each time. No screen
+  has to know about the demo.
+- **The screen that asked still shows its own failure sentence** ("We couldn't save your
+  changes..."), next to the demo line. Teaching each of about fifty handlers the demo's code
+  was not worth it for the first version. Likes are the exception, because they are pressed
+  often: a refused like goes back with no "try again".
+- **Nothing is disabled up front.** Buttons and forms look as they do for a real developer, so
+  the demo shows the real product; the refusal comes when a change is sent.
+- **The tour still says "Coming soon".** It is built on top of the demo, after the seed.

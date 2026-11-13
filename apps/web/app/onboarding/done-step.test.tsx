@@ -73,21 +73,21 @@ test("the French card shows technologies in French", () => {
   ]);
 });
 
-test("the card says what is saved (role, stack, feed) and what is not (country, sectors)", async () => {
+test("the card says what is saved (role, stack, sectors, feed) and what is not (country)", async () => {
   card("en", { displayName: "Kofi Mensah", username: "kofi-ships" });
-  expect(screen.getByText("Saving your role, your stack and your feed")).toBeTruthy();
+  expect(screen.getByText("Saving your answers")).toBeTruthy();
   expect(
-    await screen.findByText("Your role, your stack and what your feed shows are saved. Your country and sectors are not saved yet."),
+    await screen.findByText("Your role, stack, sectors and what your feed shows are saved. Your country is not saved yet."),
   ).toBeTruthy();
-  // the role, the stack, the feed's technologies
-  expect(fetchMock).toHaveBeenCalledTimes(3);
+  // the role, the stack, the feed's technologies, the sectors
+  expect(fetchMock).toHaveBeenCalledTimes(4);
 });
 
 test("the saved message is in French too", async () => {
   card("fr", { displayName: "Kofi Mensah", username: "kofi-ships" });
   expect(
     await screen.findByText(
-      "Votre rôle, vos technologies et le contenu de votre fil sont enregistrés. Votre pays et vos domaines ne le sont pas encore.",
+      "Votre rôle, vos technologies, vos domaines et le contenu de votre fil sont enregistrés. Votre pays ne l'est pas encore.",
     ),
   ).toBeTruthy();
 });
@@ -100,16 +100,16 @@ test("a failed save shows an alert and Try again sends it all again", async () =
 
   fetchMock.mockClear();
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-  expect(await screen.findByText(/^Your role, your stack and what your feed shows are saved/)).toBeTruthy();
+  expect(await screen.findByText(/^Your role, stack, sectors and what your feed shows are saved/)).toBeTruthy();
   expect(screen.queryByRole("alert")).toBeNull();
-  expect(fetchMock).toHaveBeenCalledTimes(3);
+  expect(fetchMock).toHaveBeenCalledTimes(4);
 });
 
 test("with no role chosen nothing is saved and no save message shows", () => {
   render(
     <DoneStep lang="en" answers={NO_ANSWERS} profile={{ displayName: "Kofi Mensah", username: "kofi-ships" }} onChange={() => {}} />,
   );
-  expect(screen.queryByText(/Saving your role/)).toBeNull();
+  expect(screen.queryByText(/Saving your answers/)).toBeNull();
   expect(fetchMock).not.toHaveBeenCalled();
 });
 

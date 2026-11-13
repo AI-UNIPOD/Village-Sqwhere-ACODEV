@@ -15,6 +15,8 @@ export type MeRole = {
 export type Me = {
   username: string;
   display_name: string;
+  /** The shared demo account: it can look at everything and change nothing. */
+  is_demo?: boolean;
   bio: string | null;
   roles: MeRole[];
   technologies: { slug: string; name: string }[];

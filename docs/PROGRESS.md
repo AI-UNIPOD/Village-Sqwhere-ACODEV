@@ -20,7 +20,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). `POST /v1/auth/demo`
   signs in as a read-only demo account when `DEMO_ENABLED=true`.
 - Landing page at `/en` and `/fr` matches B3v design with motion and dark theme. Hero leads to
-  sign-in; demo and tour show "Coming soon". GitHub sign-in works end to end with token refresh.
+  sign-in, and "Try the demo" opens the read-only demo account; the tour shows "Coming soon".
+  GitHub sign-in works end to end with token refresh.
 - Below the hero, sections reveal once; the header pins as a pill while scrolling. Onboarding
   saves role and stack. Signed-in web screens share `AppFrame`.
 - Unknown addresses get a 404 sent as HTML; landing and sign-in have an error page. Design system
@@ -33,10 +34,10 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    and next steps need a new schema script); later, semantic similarity for matching.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-4. Save the onboarding sectors with `PUT /v1/me/sectors`, then the country and a completion
-   flag once the API has fields for them.
-5. Demo, from `docs/decisions/2026-11-13-read-only-demo.md`: keep demo content and real content
-   apart in every list and read, then a seed script outside `infra/db/init/`.
+4. Save the onboarding country and a completion flag once the API has fields (the sectors and
+   the feed's technologies are saved).
+5. Demo, from `docs/decisions/2026-11-13-read-only-demo.md`: the seed script with made-up
+   content, outside `infra/db/init/`. Sign-in, read-only and the wall are in.
 6. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
 7. Web next: a French-speaking teammate's check of the copy.
 8. Before launch, move the session out of localStorage and sign-in state out of API memory

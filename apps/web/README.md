@@ -18,10 +18,10 @@ The site is bilingual by address: pages live in `app/[lang]/` and are served at 
 language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
 landing page is `app/landing/`, and the onboarding page shown after the first sign-in is
-`app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack and
-the technologies the feed should show (`POST /v1/me/roles`, `PUT /v1/me/technologies`,
-`PUT /v1/me/feed-topics`); the country and the sectors stay in the tab until the API can store
-them.
+`app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
+technologies the feed should show and the sectors (`POST /v1/me/roles`,
+`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`); the country stays
+in the tab until the API can store it.
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
@@ -128,6 +128,12 @@ The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
+
+"Try the demo" on the landing page (`landing/demo-button.tsx`, `session/demo.ts`) signs in as the
+shared demo account with `POST /v1/auth/demo` and opens the village. The account can change
+nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that
+answer for every screen, and `AppFrame` shows the demo account a line under the header that
+says what the demo is, says so when a change was refused, and offers the way out.
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in

@@ -12,6 +12,7 @@ import { ThemeButton } from "./landing/theme-toggle";
 import { LANGUAGE_NAMES, type Lang } from "./locales";
 import { Logo } from "./logo";
 import { Home, Lightbulb, Newspaper, ShieldCheck, User, Users } from "./onboarding/icons";
+import { useDemoRefusals } from "./session/demo";
 import { useKeptMe } from "./session/me";
 import { useSession } from "./session/session";
 import { SignOutButton } from "./session/session-ui";
@@ -37,6 +38,22 @@ type AppFrameProps = {
   bare?: boolean;
   children: ReactNode;
 };
+
+// Under the header for the shared demo account: what the demo is, and the way out of it. When
+// the API refuses a change, the line says so, and a screen reader hears it each time.
+function DemoLine({ lang }: { lang: Lang }) {
+  const t = copy[lang].demo;
+  const refusals = useDemoRefusals();
+  return (
+    <div className={styles.demo} data-refused={refusals > 0 || undefined}>
+      {/* the key makes each refusal a new line, so it is announced and drawn again */}
+      <p key={refusals} role="status">
+        {refusals > 0 ? t.refused : t.line}
+      </p>
+      <SignOutButton lang={lang} label={t.leave} className={landing.navLink} />
+    </div>
+  );
+}
 
 // The header and the page around every screen for a signed-in developer, so their loading and
 // error screens keep the way around too. On a phone the places sit in a bar at the bottom of
@@ -108,6 +125,7 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
           </div>
         )}
       </header>
+      {signedIn && !locked && me?.is_demo && <DemoLine lang={lang} />}
       {/* a new screen fades in as the old one fades out (globals.css) */}
       <ViewTransition enter="screen" exit="screen" default="none">
         {children}

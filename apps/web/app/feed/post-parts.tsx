@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { Person } from "../hubs/team";
+import { IdeaError } from "../ideas/ideas-api";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -120,7 +121,8 @@ export function PostActions({ lang, post, onChange, commentsHref }: { lang: Lang
         // a refused session is handled by the page: it sends the person to sign in
         if (error instanceof SignedOutError) return;
         onChange(undo);
-        setFailed(mark);
+        // in the demo the frame says why; "try again" would be wrong
+        if (!(error instanceof IdeaError && error.code === "DEMO_READ_ONLY")) setFailed(mark);
       })
       .finally(() => sending.current.delete(mark));
   }

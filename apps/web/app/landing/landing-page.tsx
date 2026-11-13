@@ -6,6 +6,7 @@ import { Logo } from "../logo";
 import { AccountNavLink } from "../session/session-ui";
 import { Tooltip } from "../tooltip";
 import { copy } from "./copy";
+import { DemoButton, DemoNote } from "./demo-button";
 import { GatherHero } from "./gather-hero";
 import { HeaderPin } from "./header-pin";
 import styles from "./landing-page.module.css";
@@ -13,7 +14,7 @@ import { SectionMotion } from "./section-motion";
 import { stopShares } from "./stops";
 import { ThemeToggle } from "./theme-toggle";
 
-// The demo and the tour are not built yet. The control stays visible, stays focusable
+// The tour is not built yet. The control stays visible, stays focusable
 // and does nothing, and its name says why, so nobody lands on a dead link. Pressing it
 // announces `announce` and makes the visible note with id `note` stand out (SectionMotion).
 export function SoonButton({
@@ -110,17 +111,13 @@ export function LandingPage({ lang }: { lang: Lang }) {
             <a className={`${styles.ghost} ${styles.heroButton}`} href="#tour">
               {t.ctaTour}
             </a>
-            <SoonButton
-              className={`${styles.ghost} ${styles.heroButton}`}
-              soon={t.soon}
-              announce={t.demoNote}
-              note="demo-note"
-            >
+            <DemoButton lang={lang} className={`${styles.ghost} ${styles.heroButton}`} note="demo-note">
               {t.ctaDemo}
-            </SoonButton>
+            </DemoButton>
           </div>
-          <p className={styles.note} id="demo-note" aria-hidden="true" data-hero-note="">
-            {t.demoNote}
+          {/* what the demo is, then how opening it is going */}
+          <p className={styles.note} id="demo-note" data-hero-note="">
+            <DemoNote lang={lang} />
           </p>
         </GatherHero>
 
@@ -211,13 +208,10 @@ export function LandingPage({ lang }: { lang: Lang }) {
                   </a>
                 </li>
                 <li>
-                  <SoonButton
-                    className={`${styles.footLink} ${styles.soonLink}`}
-                    soon={t.soon}
-                    announce={t.demoNote}
-                  >
+                  <DemoButton lang={lang} className={styles.footLink}>
                     {t.footDemo}
-                  </SoonButton>
+                  </DemoButton>
+                  <DemoNote lang={lang} quiet />
                 </li>
                 <li>
                   <Link className={styles.footLink} href={`/${lang}/sign-in`}>

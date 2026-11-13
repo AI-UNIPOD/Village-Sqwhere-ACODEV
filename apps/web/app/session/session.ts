@@ -1,6 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 
 import type { Lang } from "../locales";
+import { noticeDemoRefusal } from "./demo";
 
 // The session lives in localStorage so it survives a reload and is shared between tabs. The
 // trade-off is that any script on this origin can read it, so the site must stay free of
@@ -158,9 +159,10 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const session = await currentSession();
   const send = (s: Session) =>
     fetch(`${API_URL}${path}`, { ...init, headers: { ...init.headers, Authorization: `Bearer ${s.access_token}` } });
-  const response = await send(session);
-  if (response.status !== 401) return response;
-  return send(await refresh(session));
+  let response = await send(session);
+  if (response.status === 401) response = await send(await refresh(session));
+  await noticeDemoRefusal(response);
+  return response;
 }
 
 // Forgets the session here first, so signing out works even when the API cannot be reached,
