@@ -613,7 +613,7 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | `409` | `IDEA_NOT_OPEN` | The idea is a draft or closed. Open it first. |
 | `409` | `HUB_ALREADY_EXISTS` | The idea already has a hub (one hub per idea). |
 | `409` | `AGREEMENT_MISMATCH` | The signed `template_id` or `template_sha256` is not the current agreement. Fetch `GET /v1/agreements/current` again and show it before signing. |
-| `422` | (FastAPI's list) | A field breaks a rule. `detail` is a list, and each item's `loc` names the field. |
+| `422` | (FastAPI's list) | A field or query parameter breaks a rule. `detail` is a list, and each item's `loc` names it. |
 | `503` | `AGREEMENT_NOT_PUBLISHED` | No agreement is published on this server, so no hub can be created. A setup problem, not something the person can fix. |
 
 #### `GET /v1/agreements/current`
@@ -733,6 +733,37 @@ ask to join. Archived hubs can still be read.
   details and the agreement signatures are never part of the card, whoever asks.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
   id), `422` (the id is not a UUID).
+
+#### `GET /v1/me/hubs`
+
+Lists the hubs the signed-in person is in, newest hub first. Archived hubs stay in the list.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Query Parameters:**
+  * `status`: the person's own membership, `active` (default), `requested` (they asked to
+    join) or `invited` (the owner invited them). Declined, left and removed memberships are
+    never listed, and asking for them is refused with `422`.
+  * `offset`: how many hubs to skip, 0 or more (default 0).
+  * `limit`: how many hubs to return, 1 to 50 (default 20).
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": [
+      {
+        "id": "0193f2e0-4a5c-7f6e-9b54-0000000000e1",
+        "name": "Farm Ledger Hub",
+        "...": "the same hub card as GET /v1/hubs/{hub_id}",
+        "viewer": { "membership_status": "invited", "member_role": "member" }
+      }
+    ],
+    "next_offset": 20
+  }
+  ```
+  Each item is the same hub card as `GET /v1/hubs/{hub_id}`. `next_offset` is the `offset` for
+  the next page, or `null` on the last page. Hubs made at the same moment are ordered by id,
+  so no hub appears on two pages.
+* **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `422` (a bad `status`, `offset` or
+  `limit`).
 
 ---
 
