@@ -27,7 +27,7 @@ signed in, `apiFetch()` calls the API with the access token and refreshes it whe
 `signOut()` forgets the session and revokes it, and `RequireSession` sends signed-out visitors
 to sign-in. Only the tokens are stored; pages read the profile from `GET /v1/me`. Style pages only with the design system tokens, imported in
 `app/globals.css` from [`docs/design-system/`](../../docs/design-system/README.md), and use
-`Logo` from `app/logo.tsx` for the logo. See the root [CONTRIBUTING.md](../../CONTRIBUTING.md) for the team workflow.
+`Logo` from `app/logo.tsx` for the logo and `Tooltip` from `app/tooltip.tsx` for icon buttons. See the root [CONTRIBUTING.md](../../CONTRIBUTING.md) for the team workflow.
 
 An address that matches no page shows a not-found page in the address's language:
 `app/[lang]/[...rest]` calls `notFound()` and `app/[lang]/not-found.tsx` renders it. An unknown
