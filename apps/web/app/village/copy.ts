@@ -14,6 +14,7 @@ type Copy = {
   pathLead: string;
   done: string;
   next: string;
+  open: string;
   later: string;
   steps: { profile: Step; verify: Step; idea: Step; hub: Step };
   setUp: string;
@@ -21,6 +22,7 @@ type Copy = {
   verifyStart: string;
   verifyContinue: string;
   review: string;
+  ideas: string;
   loading: string;
   errorTitle: string;
   errorText: string;
@@ -39,6 +41,7 @@ const en: Copy = {
   pathLead: "Four steps take you from a profile to building with a team. This is where you are.",
   done: "Done",
   next: "Next",
+  open: "Open",
   later: "Later",
   steps: {
     profile: {
@@ -63,6 +66,7 @@ const en: Copy = {
   verifyStart: "Start verification",
   verifyContinue: "See where it stands",
   review: "Review attempts in your role",
+  ideas: "Share an idea",
   loading: "Opening your village",
   errorTitle: "We couldn't open your village",
   errorText:
@@ -83,6 +87,7 @@ const fr: Copy = {
   pathLead: "Quatre étapes mènent d'un profil à une équipe qui construit. Voici où vous en êtes.",
   done: "Fait",
   next: "À faire",
+  open: "Ouverte",
   later: "Plus tard",
   steps: {
     profile: {
@@ -107,6 +112,7 @@ const fr: Copy = {
   verifyStart: "Commencer la vérification",
   verifyContinue: "Voir où en est la vérification",
   review: "Relire des tentatives dans votre rôle",
+  ideas: "Partager une idée",
   loading: "Ouverture de votre village",
   errorTitle: "Nous n'avons pas pu ouvrir votre village",
   errorText:

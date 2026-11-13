@@ -43,6 +43,12 @@ developer is verified in, never their own, with no AI score shown) and one case 
 repositories check), then the AI's report marked as a suggestion, then the decision form: notes
 are required, and pass or fail confirms in a dialog. Everything from `ai_result` is plain text.
 
+Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/ideas/compose`
+(new) or `/en/ideas/compose?id=` (existing). The form keeps what everyone sees (title, summary)
+apart from the private brief, saves only the fields that changed, and asks before publishing or
+closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
+app keeps pages in memory between visits, so a form is keyed by the id in its address.
+
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in
 started in. `app/session/` holds the rest: `useSession()` tells a page whether someone is
