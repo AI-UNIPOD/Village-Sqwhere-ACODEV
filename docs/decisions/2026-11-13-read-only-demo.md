@@ -31,9 +31,12 @@ the web session, in three pull requests:
      with `403 DEMO_READ_ONLY`. The verification interview socket closes for it. A test walks
      every write route in the OpenAPI schema with a demo token, so a route added later is
      checked too.
-2. **A two-sided wall.** Demo content is shown only to the demo account. The demo account sees
-   only demo content, in every list and on single reads: a real id answers 404 for it. It is
-   never matched, suggested or invited.
+2. **A two-sided wall.** Demo content is shown only to demo accounts, and demo accounts see
+   only demo content, in every list and on single reads: an id from the other side answers 404.
+   A demo account is never matched, suggested or invited, and a real developer cannot ask to
+   join a demo hub. One rule, `same_world` in `apps/api/app/api/deps.py`, decides it from the
+   user behind each row: a post's or idea's author, a hub's owner, a reviewed attempt's
+   applicant.
 3. **Made-up content** from a seed script outside `infra/db/init/`, run by hand only where the
    demo is wanted. Production never gets fake rows. Times are relative to when it runs, so the
    feed reads "2 hours ago", and it can run again to refresh them.

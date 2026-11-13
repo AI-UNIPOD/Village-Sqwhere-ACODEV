@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import AgreementTemplate, Hub, HubMember, HubMemberStatus
+from app.models import AgreementTemplate, Hub, HubMember, HubMemberStatus, User
 from app.schemas.hubs import Hub as HubCard
 from app.schemas.hubs import HubAgreement, HubIdea, HubOwner, HubViewer
 
@@ -23,6 +23,12 @@ async def current_agreement_template(db: AsyncSession) -> AgreementTemplate | No
         .limit(1)
     )
     return result.scalar_one_or_none()
+
+
+def in_viewers_world(hub: Hub, viewer: User) -> bool:
+    """Demo hubs exist only for demo accounts, and demo accounts see only demo hubs.
+    docs/decisions/2026-11-13-read-only-demo.md"""
+    return hub.owner.is_demo == viewer.is_demo
 
 
 async def load_hub(db: AsyncSession, hub_id: UUID) -> Hub | None:

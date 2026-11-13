@@ -35,8 +35,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    Systalink platform access, a deploy job in CI.
 4. Save the onboarding sectors with `PUT /v1/me/sectors`, then the country and a completion
    flag once the API has fields for them.
-5. Demo, from `docs/decisions/2026-11-13-read-only-demo.md`: keep demo content and real content
-   apart in every list and read, then a seed script outside `infra/db/init/`.
+5. Demo, from `docs/decisions/2026-11-13-read-only-demo.md`: the seed script with made-up
+   content, outside `infra/db/init/`. Sign-in, read-only and the wall are in.
 6. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
 7. Web next: a French-speaking teammate's check of the copy.
 8. Before launch, move the session out of localStorage and sign-in state out of API memory
