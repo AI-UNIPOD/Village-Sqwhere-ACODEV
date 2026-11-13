@@ -27,8 +27,10 @@ type Copy = {
   retry: string;
   loadMore: string;
   moreFailed: string;
+  deleted: string;
   types: Record<LabelledType, string>;
   ago: string;
+  postBy: string;
   opensNewTab: string;
   like: string;
   likeCount: string;
@@ -37,6 +39,21 @@ type Copy = {
   saveFailed: string;
   commentOne: string;
   commentMany: string;
+  post: {
+    pageTitle: string;
+    back: string;
+    edited: string;
+    commentsSoon: string;
+    delete: string;
+    deleteConfirm: { title: string; text: string; confirm: string; cancel: string };
+    deleteFailed: string;
+    notAuthor: string;
+    goneTitle: string;
+    goneText: string;
+    goneAction: string;
+    loading: string;
+    errorTitle: string;
+  };
 };
 
 export const copy: Record<Lang, Copy> = {
@@ -76,6 +93,7 @@ export const copy: Record<Lang, Copy> = {
     retry: "Try again",
     loadMore: "Show more",
     moreFailed: "We couldn't load more posts. The ones above are still here, so try again.",
+    deleted: "Post deleted",
     types: {
       question: "Question",
       architecture_challenge: "Architecture challenge",
@@ -86,6 +104,7 @@ export const copy: Record<Lang, Copy> = {
       hub_milestone: "Hub milestone",
     },
     ago: "{time} ago",
+    postBy: "Post by {name}",
     opensNewTab: "opens in a new tab",
     like: "Like",
     likeCount: "Like ({n})",
@@ -94,6 +113,26 @@ export const copy: Record<Lang, Copy> = {
     saveFailed: "The save did not go through. Try again.",
     commentOne: "{n} comment",
     commentMany: "{n} comments",
+    post: {
+      pageTitle: "A post | Village Sqwhere",
+      back: "Feed",
+      edited: "Edited {time}",
+      commentsSoon: "Comments are coming soon. Until then, you can only see how many there are.",
+      delete: "Delete post",
+      deleteConfirm: {
+        title: "Delete this post?",
+        text: "It will be removed for everyone, and you cannot bring it back.",
+        confirm: "Delete post",
+        cancel: "Keep post",
+      },
+      deleteFailed: "We couldn't delete the post. Nothing was changed, so try again.",
+      notAuthor: "Only the author can delete this post.",
+      goneTitle: "This post is gone",
+      goneText: "Its author may have deleted it, or the address is wrong.",
+      goneAction: "Back to the feed",
+      loading: "Getting the post",
+      errorTitle: "We couldn't show this post",
+    },
   },
   // Needs a native French review before launch.
   fr: {
@@ -132,6 +171,7 @@ export const copy: Record<Lang, Copy> = {
     retry: "Réessayer",
     loadMore: "Afficher plus",
     moreFailed: "Nous n'avons pas pu charger d'autres publications. Celles ci-dessus sont toujours là, réessayez.",
+    deleted: "Publication supprimée",
     types: {
       question: "Question",
       architecture_challenge: "Défi d'architecture",
@@ -142,6 +182,7 @@ export const copy: Record<Lang, Copy> = {
       hub_milestone: "Étape d'espace",
     },
     ago: "il y a {time}",
+    postBy: "Publication de {name}",
     opensNewTab: "s'ouvre dans un nouvel onglet",
     like: "J'aime",
     likeCount: "J'aime ({n})",
@@ -150,5 +191,25 @@ export const copy: Record<Lang, Copy> = {
     saveFailed: "L'enregistrement n'a pas abouti. Réessayez.",
     commentOne: "{n} commentaire",
     commentMany: "{n} commentaires",
+    post: {
+      pageTitle: "Une publication | Village Sqwhere",
+      back: "Fil",
+      edited: "Modifiée {time}",
+      commentsSoon: "Les commentaires arrivent bientôt. D'ici là, vous pouvez seulement voir leur nombre.",
+      delete: "Supprimer la publication",
+      deleteConfirm: {
+        title: "Supprimer cette publication\u202f?",
+        text: "Elle sera retirée pour tout le monde, et vous ne pourrez pas la récupérer.",
+        confirm: "Supprimer la publication",
+        cancel: "Garder la publication",
+      },
+      deleteFailed: "Nous n'avons pas pu supprimer la publication. Rien n'a été modifié, réessayez.",
+      notAuthor: "Seul l'auteur peut supprimer cette publication.",
+      goneTitle: "Cette publication n'existe plus",
+      goneText: "Son auteur l'a peut-être supprimée, ou l'adresse est erronée.",
+      goneAction: "Retour au fil",
+      loading: "Chargement de la publication",
+      errorTitle: "Nous n'avons pas pu afficher cette publication",
+    },
   },
 };

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { copy } from "../../../feed/copy";
-import { Feed } from "../../../feed/feed";
+import { Feed, FeedLoading } from "../../../feed/feed";
 import { hasLocale } from "../../../locales";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/feed/mine">): Promise<Metadata> {
@@ -15,5 +16,10 @@ export default async function MyPostsPage({ params }: PageProps<"/[lang]/feed/mi
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
 
-  return <Feed lang={lang} tab="mine" />;
+  // the query string (the message after a delete) needs a Suspense boundary above it
+  return (
+    <Suspense fallback={<FeedLoading lang={lang} tab="mine" />}>
+      <Feed lang={lang} tab="mine" />
+    </Suspense>
+  );
 }

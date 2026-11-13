@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { Person } from "../hubs/team";
@@ -42,11 +43,19 @@ export function PostHead({ lang, post, now }: { lang: Lang; post: Post; now: num
 }
 
 // Plain text with its line breaks kept. A post is never rendered as markup, and in a list it is
-// cut short.
-export function PostBody({ post, clamp }: { post: Post; clamp?: boolean }) {
+// cut short. With an `href` (a post that has no title) the first line is the link to the post.
+export function PostBody({ post, clamp, href }: { post: Post; clamp?: boolean; href?: string }) {
+  const [first, ...rest] = post.body.trimStart().split("\n");
   return (
     <p className={styles.body} data-clamp={clamp || undefined}>
-      {post.body}
+      {href ? (
+        <>
+          <Link href={href}>{first}</Link>
+          {rest.length > 0 && `\n${rest.join("\n")}`}
+        </>
+      ) : (
+        post.body
+      )}
     </p>
   );
 }
@@ -87,7 +96,7 @@ export function PostTopics({ lang, topics }: { lang: Lang; topics: Post["topics"
 
 // Like, save and the number of comments. A press changes the screen at once through
 // `onChange`, then sends the request; if it fails the change is taken back and a sentence says so.
-export function PostActions({ lang, post, onChange }: { lang: Lang; post: Post; onChange: (change: Partial<Post>) => void }) {
+export function PostActions({ lang, post, onChange, commentsHref }: { lang: Lang; post: Post; onChange: (change: Partial<Post>) => void; commentsHref?: string }) {
   const t = copy[lang];
   // a second press of the same button while its request is out would send the same thing twice
   const sending = useRef(new Set<"like" | "save">());
@@ -117,6 +126,15 @@ export function PostActions({ lang, post, onChange }: { lang: Lang; post: Post; 
   }
 
   const comments = new Intl.PluralRules(lang).select(post.comment_count) === "one" ? t.commentOne : t.commentMany;
+  const count = (
+    <>
+      <MessageCircle />
+      <span className={styles.count} aria-hidden="true">
+        {post.comment_count}
+      </span>
+      <span className={landing.srOnly}>{fill(comments, { n: post.comment_count })}</span>
+    </>
+  );
   return (
     <>
       <div className={styles.actions}>
@@ -134,13 +152,13 @@ export function PostActions({ lang, post, onChange }: { lang: Lang; post: Post; 
           <Bookmark />
           {t.save}
         </button>
-        <span className={styles.comments}>
-          <MessageCircle />
-          <span className={styles.count} aria-hidden="true">
-            {post.comment_count}
-          </span>
-          <span className={landing.srOnly}>{fill(comments, { n: post.comment_count })}</span>
-        </span>
+        {commentsHref ? (
+          <Link className={styles.comments} href={commentsHref}>
+            {count}
+          </Link>
+        ) : (
+          <span className={styles.comments}>{count}</span>
+        )}
       </div>
       {failed && (
         <p className={onboarding.error} role="alert">
