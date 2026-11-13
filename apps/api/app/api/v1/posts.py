@@ -9,6 +9,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
+from pydantic import StringConstraints
 from sqlalchemy import Select, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,6 +40,10 @@ router = APIRouter()
 
 PageOffset = Annotated[int, Query(ge=0, le=100_000)]
 PageLimit = Annotated[int, Query(ge=1, le=50)]
+TopicSlug = Annotated[str, StringConstraints(max_length=64, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")]
+# The team capped repeatable filters at ten, so a shared link cannot grow without limit.
+MAX_TOPIC_FILTERS = 10
+TopicFilters = Annotated[list[TopicSlug] | None, Query(max_length=MAX_TOPIC_FILTERS)]
 NEWEST_FIRST = (Post.created_at.desc(), Post.id.desc())
 
 
@@ -278,7 +283,7 @@ async def list_posts(
     current_user: CurrentUser,
     db: DbSession,
     post_type: Annotated[PostType | None, Query(alias="type")] = None,
-    topic: Annotated[str | None, Query(max_length=64, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")] = None,
+    topic: TopicFilters = None,
     author: Annotated[str | None, Query(pattern=r"^[A-Za-z0-9_-]{3,39}$")] = None,
     offset: PageOffset = 0,
     limit: PageLimit = 20,
@@ -286,12 +291,12 @@ async def list_posts(
     query = visible_posts(current_user)
     if post_type is not None:
         query = query.where(Post.type == post_type)
-    if topic is not None:
+    if topic:
         query = query.where(
             Post.id.in_(
                 select(PostTopic.post_id)
                 .join(Technology, Technology.id == PostTopic.technology_id)
-                .where(Technology.slug == topic)
+                .where(Technology.slug.in_(topic))
             )
         )
     if author is not None:
