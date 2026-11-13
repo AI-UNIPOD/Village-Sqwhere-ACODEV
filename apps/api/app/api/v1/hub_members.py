@@ -19,6 +19,7 @@ from app.api.v1.hubs import client_ip, hub_error
 from app.models import (
     AgreementSignature,
     Hub,
+    HubDeclineKind,
     HubMember,
     HubMemberRole,
     HubMemberStatus,
@@ -137,6 +138,7 @@ def member_card(member: HubMember, user: User) -> HubMemberCard:
         user=HubOwner.model_validate(user),
         member_role=member.member_role,
         status=member.status,
+        decline_kind=member.decline_kind,
         joined_at=member.joined_at,
         updated_at=member.updated_at,
     )
@@ -259,7 +261,7 @@ async def invite_to_hub(
         db.add(member)
     else:
         # asked again after declining, leaving or being removed: a fresh invitation
-        member.status = HubMemberStatus.INVITED
+        member.status, member.decline_kind = HubMemberStatus.INVITED, None
         member.invited_by = current_user.id
         member.created_at = datetime.now(UTC)
         member.joined_at = None
@@ -356,6 +358,7 @@ async def decline_invitation(hub_id: UUID, current_user: CurrentUser, db: DbSess
     hub = await find_hub(db, hub_id, current_user, lock=True)
     member = await pending_invitation(db, hub, current_user.id)
     member.status = HubMemberStatus.DECLINED
+    member.decline_kind = HubDeclineKind.INVITATION_DECLINED
     await db.commit()
 
     declined = await load_hub(db, hub.id)
@@ -418,7 +421,7 @@ async def request_to_join(hub_id: UUID, current_user: CurrentUser, db: DbSession
         )
     else:
         # asking again after declining, leaving, being removed or being turned down
-        member.status = HubMemberStatus.REQUESTED
+        member.status, member.decline_kind = HubMemberStatus.REQUESTED, None
         member.invited_by = None
         member.created_at = datetime.now(UTC)
         member.joined_at = None
@@ -454,7 +457,7 @@ async def withdraw_request(hub_id: UUID, current_user: CurrentUser, db: DbSessio
     # Kept as "declined", a request that did not go through, not deleted: the row also holds
     # the count of the owner's earlier declines, which a withdrawal must not wipe. It starts no
     # wait, because the owner said nothing.
-    member.status = HubMemberStatus.DECLINED
+    member.status, member.decline_kind = HubMemberStatus.DECLINED, HubDeclineKind.REQUEST_WITHDRAWN
     await db.commit()
 
     withdrawn = await load_hub(db, hub.id)
@@ -488,7 +491,7 @@ async def decline_request(
     hub = await find_hub(db, hub_id, current_user, lock=True)
     require_owner(hub, current_user.id)
     member, requester = await pending_request(db, hub, user_id)
-    member.status = HubMemberStatus.DECLINED
+    member.status, member.decline_kind = HubMemberStatus.DECLINED, HubDeclineKind.REQUEST_DECLINED
     member.declines_in_a_row += 1
     if member.declines_in_a_row >= DECLINES_BEFORE_LONG_WAIT:
         # the long wait ends the run, so the next decline after it is a short wait again

@@ -1005,12 +1005,17 @@ The owner invites one developer. The username is matched without regard to case.
       },
       "member_role": "member",
       "status": "invited",
+      "decline_kind": null,
       "joined_at": null,
       "updated_at": "2026-11-13T10:02:41.120000Z"
     }
   }
   ```
   Someone who declined, left or was removed can be invited again.
+  `decline_kind` says which "no" a `declined` status was: `invitation_declined` (the developer
+  declined an invitation), `request_declined` (the owner turned down a join request) or
+  `request_withdrawn` (the developer withdrew their own request). It is `null` for every other
+  status, and for rows declined before it was recorded (`infra/db/init/013-hub-decline-kind.sql`).
 * **Errors:** `403 NOT_HUB_OWNER`, `404 USER_NOT_FOUND`, `409 ALREADY_MEMBER`,
   `409 ALREADY_INVITED`, `409 HUB_ARCHIVED`, `409 TEAM_FULL`, `422` (a missing or malformed
   username).

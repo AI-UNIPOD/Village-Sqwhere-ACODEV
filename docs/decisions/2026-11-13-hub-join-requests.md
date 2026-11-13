@@ -55,6 +55,19 @@ Tanny asked for developers to be able to take back their own request:
 - A withdrawal starts no wait, because the owner said nothing, and the developer may ask again
   at once.
 
+### Update, 14 November 2026: telling the three "no"s apart
+
+The owner's team list showed `declined` for a request the owner turned down, a request the
+developer withdrew and an invitation the developer declined. Tanny asked for the list to tell
+them apart.
+
+- `hub_members.decline_kind` records which one it was (`infra/db/init/013-hub-decline-kind.sql`),
+  and the member card sends it. Asking or being invited again clears it.
+- One column, not new statuses: every rule that reads `declined` (who may ask or be invited
+  again, what the owner sees) stays as it is.
+- Rows declined before the column have no kind and show as before. The old rows cannot be
+  sorted out reliably, so they are left alone.
+
 ## Options we considered
 
 - **Sign the agreement when asking, and join on approval:** rejected. The owner might approve

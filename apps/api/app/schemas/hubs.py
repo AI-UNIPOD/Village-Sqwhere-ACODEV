@@ -20,7 +20,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.models.hubs import HubMemberRole, HubMemberStatus, HubStatus
+from app.models.hubs import HubDeclineKind, HubMemberRole, HubMemberStatus, HubStatus
 from app.models.ideas import IdeaStage, IdeaStatus
 
 # Our own limit, not the database's: hub terms written as compact JSON may be at most this
@@ -209,11 +209,16 @@ class HubListResponse(BaseModel):
 
 
 class HubMemberCard(BaseModel):
-    """One person's place in a hub. `updated_at` is when the status last changed."""
+    """One person's place in a hub. `updated_at` is when the status last changed.
+
+    `decline_kind` says which "no" a "declined" status was, and is null for every other status
+    and for rows declined before it was recorded.
+    """
 
     user: HubOwner
     member_role: HubMemberRole
     status: HubMemberStatus
+    decline_kind: HubDeclineKind | None = None
     joined_at: datetime | None = None
     updated_at: datetime
 

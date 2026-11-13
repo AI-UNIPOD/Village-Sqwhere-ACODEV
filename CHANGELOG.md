@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-14
+
+- feat(api): say which no ended a declined hub membership (#136)
+
 ## 2026-11-13
 
 - feat(web): let a developer withdraw their join request (#135)
