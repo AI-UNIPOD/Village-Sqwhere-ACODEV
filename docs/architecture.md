@@ -70,7 +70,7 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   my verified roles. No AI model and no idea details are involved.
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
   `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
-  `GET /v1/posts` (filter by `type`, `topic`, `author`) and `GET /v1/feed` (your feed topics
+  `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics
   and your own posts). Likes and saves, each safe to repeat: `PUT /v1/posts/{post_id}/like`,
   `DELETE /v1/posts/{post_id}/like`, `PUT /v1/posts/{post_id}/save`,
   `DELETE /v1/posts/{post_id}/save` and `GET /v1/me/saved-posts`.
