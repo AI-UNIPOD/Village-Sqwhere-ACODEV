@@ -92,9 +92,16 @@ test("offers a dark mode toggle in each language", () => {
   expect(screen.getByRole("button", { name: "Passer en mode sombre" })).toBeTruthy();
 });
 
-test("marks the header so the hero can place itself under it", () => {
+// the slot, not the header, is measured: a pinned header is shorter than the one in the page
+test("marks the header's slot so the hero can place itself under it", () => {
   const { container } = render(<LandingPage lang="en" />);
-  expect(container.querySelector("header[data-site-header]")).not.toBeNull();
+  expect(container.querySelector("[data-site-header][data-header-slot] > header")).not.toBeNull();
+});
+
+test("has one banner and one main navigation, whether or not the header is pinned", () => {
+  render(<LandingPage lang="en" />);
+  expect(screen.getAllByRole("banner")).toHaveLength(1);
+  expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
 });
 
 // jsdom has no layout, so this reads the stylesheet. At 360px the French links need 311px but
