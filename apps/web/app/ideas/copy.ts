@@ -78,6 +78,31 @@ type Copy = {
     emptyTitle: string;
     emptyText: string;
   };
+  seeMatches: string;
+  matches: {
+    pageTitle: string;
+    title: string;
+    lead: string;
+    verifiedIn: string;
+    techOne: string;
+    techMany: string;
+    technologies: string;
+    invite: string;
+    noHubTitle: string;
+    noHubText: string;
+    moreFailed: string;
+    notOpenTitle: string;
+    notOpenText: string;
+    notOpenAction: string;
+    closedTitle: string;
+    closedText: string;
+    noRolesTitle: string;
+    noRolesText: string;
+    noRolesAction: string;
+    noneTitle: string;
+    noneText: string;
+    noneAction: string;
+  };
   forYou: {
     pageTitle: string;
     title: string;
@@ -213,6 +238,35 @@ const en: Copy = {
     moreFailed: "We couldn't load more ideas. The ones above are still here, so try again.",
     emptyTitle: "No open ideas yet",
     emptyText: "Be the first: share what you want to build.",
+  },
+  seeMatches: "See who matches",
+  matches: {
+    pageTitle: "Developers who match your idea | Village Sqwhere",
+    title: "Who matches {title}",
+    lead: "Developers verified in a role your idea needs. Each one shows why they matched.",
+    verifiedIn: "Verified in: {roles}",
+    techOne: "1 technology in common with you",
+    techMany: "{n} technologies in common with you",
+    technologies: "Technologies",
+    invite: "Invite to the hub",
+    noHubTitle: "You need a hub to invite",
+    noHubText:
+      "Invitations go through your idea's hub, where the team signs the agreement and builds together. Create it, then come back to invite these developers.",
+    moreFailed: "We couldn't load more developers. The ones above are still here, so try again.",
+    notOpenTitle: "Publish the idea to see who matches",
+    notOpenText:
+      "Matching only runs for an open idea. Publish yours and the developers verified in the roles it needs show up here.",
+    notOpenAction: "Open your idea",
+    closedTitle: "This idea is closed",
+    closedText: "A closed idea is no longer matched, and it cannot be opened again.",
+    noRolesTitle: "This idea names no roles yet",
+    noRolesText:
+      "Matching goes by the roles an idea needs. Add the roles it is missing and the developers verified in them show up here.",
+    noRolesAction: "Add roles",
+    noneTitle: "No verified developer holds these roles yet",
+    noneText:
+      "The list fills as developers verify their roles. You can already invite someone you know by their GitHub username.",
+    noneAction: "Invite by GitHub username",
   },
   forYou: {
     pageTitle: "Ideas that need you | Village Sqwhere",
@@ -365,6 +419,35 @@ const fr: Copy = {
     moreFailed: "Nous n'avons pas pu charger plus d'idées. Celles du dessus sont toujours là, vous pouvez réessayer.",
     emptyTitle: "Pas encore d'idée ouverte",
     emptyText: "Lancez-vous en premier\u202f: partagez ce que vous voulez construire.",
+  },
+  seeMatches: "Voir qui correspond",
+  matches: {
+    pageTitle: "Développeurs qui correspondent à votre idée | Village Sqwhere",
+    title: "Qui correspond à {title}",
+    lead: "Des développeurs vérifiés dans un rôle que votre idée recherche. Chacun montre pourquoi il correspond.",
+    verifiedIn: "Vérifié dans\u202f: {roles}",
+    techOne: "1 technologie en commun avec vous",
+    techMany: "{n} technologies en commun avec vous",
+    technologies: "Technologies",
+    invite: "Inviter dans l'espace",
+    noHubTitle: "Il faut un espace pour inviter",
+    noHubText:
+      "Les invitations passent par l'espace de votre idée, où l'équipe signe l'accord et construit ensemble. Créez-le, puis revenez inviter ces développeurs.",
+    moreFailed: "Nous n'avons pas pu charger plus de développeurs. Ceux du dessus sont toujours là, vous pouvez réessayer.",
+    notOpenTitle: "Publiez l'idée pour voir qui correspond",
+    notOpenText:
+      "La recherche ne porte que sur une idée ouverte. Publiez la vôtre et les développeurs vérifiés dans les rôles qu'elle recherche apparaîtront ici.",
+    notOpenAction: "Ouvrir votre idée",
+    closedTitle: "Cette idée est fermée",
+    closedText: "Une idée fermée n'est plus mise en correspondance et ne peut pas être rouverte.",
+    noRolesTitle: "Cette idée n'indique encore aucun rôle",
+    noRolesText:
+      "La recherche se fait selon les rôles qu'une idée recherche. Ajoutez ceux qui lui manquent et les développeurs vérifiés dans ces rôles apparaîtront ici.",
+    noRolesAction: "Ajouter des rôles",
+    noneTitle: "Aucun développeur vérifié n'a encore ces rôles",
+    noneText:
+      "La liste se remplit à mesure que les développeurs font vérifier leur rôle. Vous pouvez déjà inviter quelqu'un que vous connaissez avec son nom d'utilisateur GitHub.",
+    noneAction: "Inviter avec un nom d'utilisateur GitHub",
   },
   forYou: {
     pageTitle: "Idées qui ont besoin de vous | Village Sqwhere",

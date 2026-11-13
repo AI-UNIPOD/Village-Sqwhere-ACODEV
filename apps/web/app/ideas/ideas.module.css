@@ -125,6 +125,13 @@
 
 .more { margin-block-start: var(--space-6); }
 
+/* the links at the foot of an idea's card, side by side while they fit */
+.cardLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+}
+
 /* ---------- the composer ---------- */
 .backLink {
   text-decoration: none;
@@ -297,6 +304,41 @@ p.verified { margin-inline-start: 0; }
 }
 
 .moreFailed { margin-block-start: var(--space-4); }
+
+/* ---------- developers who match an idea ---------- */
+.personRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+
+/* why they matched: plain lines in the text colour, since they are the point of the card */
+.why {
+  display: grid;
+  gap: var(--space-1);
+  font: var(--type-body-s);
+}
+
+/* what stands in the way of inviting, above the list: not an error, so no alarm colours */
+.notice {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  margin-block-start: var(--space-6);
+  padding: var(--pad-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface-sunken);
+}
+
+.noticeTitle { font: var(--type-title); }
+
+.noticeText {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
 
 /* ---------- one open idea ---------- */
 .viewMeta {
