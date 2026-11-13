@@ -522,3 +522,66 @@ def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> N
 def test_lists_require_authentication(client: TestClient) -> None:
     assert client.get("/v1/posts").status_code == 401
     assert client.get("/v1/feed").status_code == 401
+
+
+# --- Likes and saves -------------------------------------------------------------------------
+
+
+def test_like_is_counted_once_per_developer_and_shown_to_each_viewer(
+    client: TestClient, sign_in
+) -> None:
+    ada_auth = _bearer(sign_in("github-code-ada")["access_token"])
+    moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
+    post_id = _create(client, moussa_auth, "Offline sync with CRDTs")
+
+    for _ in range(2):
+        assert client.put(f"/v1/posts/{post_id}/like", headers=ada_auth).status_code == 204
+    ada_view = client.get(f"/v1/posts/{post_id}", headers=ada_auth).json()["data"]
+    assert (ada_view["like_count"], ada_view["liked_by_me"]) == (1, True)
+    moussa_view = client.get("/v1/posts", headers=moussa_auth).json()["data"][0]
+    assert (moussa_view["like_count"], moussa_view["liked_by_me"]) == (1, False)
+
+    for _ in range(2):
+        assert client.delete(f"/v1/posts/{post_id}/like", headers=ada_auth).status_code == 204
+    ada_view = client.get("/v1/feed", headers=ada_auth).json()["data"][0]
+    assert (ada_view["like_count"], ada_view["liked_by_me"]) == (0, False)
+
+
+def test_saved_posts_list_newest_save_first_for_me_only(client: TestClient, sign_in) -> None:
+    ada_auth = _bearer(sign_in("github-code-ada")["access_token"])
+    moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
+    older = _create(client, moussa_auth, "Older post")
+    newer = _create(client, moussa_auth, "Newer post")
+    gone = _create(client, moussa_auth, "Deleted later")
+    unsaved = _create(client, moussa_auth, "Unsaved later")
+    for post_id in (newer, older, gone, unsaved, older):
+        assert client.put(f"/v1/posts/{post_id}/save", headers=ada_auth).status_code == 204
+    assert client.delete(f"/v1/posts/{unsaved}/save", headers=ada_auth).status_code == 204
+    assert client.delete(f"/v1/posts/{gone}", headers=moussa_auth).status_code == 204
+
+    saved = client.get("/v1/me/saved-posts", headers=ada_auth)
+    assert _bodies(saved) == ["Older post", "Newer post"]
+    assert all(post["saved_by_me"] for post in saved.json()["data"])
+    assert _bodies(client.get("/v1/me/saved-posts", headers=moussa_auth)) == []
+
+
+def test_like_and_save_refuse_missing_and_deleted_posts(client: TestClient, sign_in) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    gone = _create(client, auth, "Soon deleted")
+    assert client.delete(f"/v1/posts/{gone}", headers=auth).status_code == 204
+
+    for post_id in (gone, str(uuid4())):
+        for action in ("like", "save"):
+            for method in (client.put, client.delete):
+                resp = method(f"/v1/posts/{post_id}/{action}", headers=auth)
+                assert resp.status_code == 404, (action, method)
+                assert resp.json()["detail"]["code"] == "POST_NOT_FOUND"
+
+
+def test_likes_and_saves_require_authentication(client: TestClient) -> None:
+    post_id = uuid4()
+    assert client.put(f"/v1/posts/{post_id}/like").status_code == 401
+    assert client.delete(f"/v1/posts/{post_id}/like").status_code == 401
+    assert client.put(f"/v1/posts/{post_id}/save").status_code == 401
+    assert client.delete(f"/v1/posts/{post_id}/save").status_code == 401
+    assert client.get("/v1/me/saved-posts").status_code == 401

@@ -865,3 +865,26 @@ The signed-in developer's feed, newest first, paged like `GET /v1/posts`.
   `feed_topics` is empty, so it can invite the developer to pick some.
 * New posts can shift later pages, so skip post ids already on screen.
 * Why: `docs/decisions/2026-11-13-post-feed-and-lists.md`.
+
+---
+
+### `PUT` and `DELETE /v1/posts/{post_id}/like`, `PUT` and `DELETE /v1/posts/{post_id}/save`
+
+Like or unlike a post, save or unsave it.
+
+* **Authentication:** Required (Bearer token). Anyone signed in, the author included.
+* `PUT` adds the like or save, `DELETE` removes it. Both are safe to send again: a second
+  like changes nothing and `like_count` counts each developer once.
+* **Success Response (204 No Content):** Empty body. Read `like_count`, `liked_by_me` and
+  `saved_by_me` from the post when you need the new values.
+* A missing, deleted or hub post returns HTTP 404 `POST_NOT_FOUND`.
+
+---
+
+### `GET /v1/me/saved-posts`
+
+The signed-in developer's saved posts, most recently saved first, paged like
+`GET /v1/posts`. Posts deleted after saving drop out of the list.
+
+* **Authentication:** Required (Bearer token)
+* **Success Response (200 OK):** Same shape as `GET /v1/posts`.
