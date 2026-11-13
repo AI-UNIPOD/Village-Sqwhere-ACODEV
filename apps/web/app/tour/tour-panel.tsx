@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { scrollToId, scrollToTop } from "../scroll";
+import { scrollToPart } from "../scroll";
 import { signOut } from "../session/session";
 import { copy } from "./copy";
 import styles from "./tour.module.css";
@@ -20,6 +20,7 @@ export function TourPanel({ lang, path }: { lang: Lang; path: string }) {
   const router = useRouter();
   const { tour, arriving } = useTour();
   const heading = useRef<HTMLHeadingElement>(null);
+  const panel = useRef<HTMLElement>(null);
   // the idea and hub are asked for once, when the tour starts; a failure belongs to one try
   const [attempt, setAttempt] = useState(0);
   const [failedAttempt, setFailedAttempt] = useState<number | null>(null);
@@ -59,18 +60,16 @@ export function TourPanel({ lang, path }: { lang: Lang; path: string }) {
     const address = stopAddress(to, route);
     const sameScreen = stopPath(to, route) === path;
     chooseStop(to);
-    // the same screen with a new hash: the router's own scroll puts the part at the very top,
-    // under this bar, so the scroll is done here
+    // the same screen with another part to show: the router's own scroll would put the part
+    // at the very top, under this bar, so the scroll is done here
     router.push(`/${lang}/${address}`, sameScreen ? { scroll: false } : undefined);
-    if (!sameScreen) return;
-    const [, hash] = address.split("#");
-    if (hash) scrollToId(hash);
-    else scrollToTop();
+    const [, part] = address.split("#");
+    if (sameScreen && part && panel.current) scrollToPart(panel.current, part);
   }
 
   if (!onStop && !arriving) {
     return (
-      <section className={styles.panel} aria-label={t.label} data-compact="">
+      <section className={styles.panel} aria-label={t.label} data-compact="" data-sticks-top="">
         <p className={styles.line}>
           {count && <span className={styles.count}>{count}</span>}
           <span className={styles.name}>{name}</span>
@@ -89,7 +88,7 @@ export function TourPanel({ lang, path }: { lang: Lang; path: string }) {
 
   if (!route && failedAttempt === attempt) {
     return (
-      <section className={styles.panel} aria-label={t.label}>
+      <section className={styles.panel} aria-label={t.label} data-sticks-top="">
         <p className={styles.text} role="alert">
           {t.failed.text}
         </p>
@@ -107,7 +106,7 @@ export function TourPanel({ lang, path }: { lang: Lang; path: string }) {
 
   const last = step === STOPS;
   return (
-    <section className={styles.panel} aria-label={t.label}>
+    <section ref={panel} className={styles.panel} aria-label={t.label} data-sticks-top="">
       {/* a new stop is a new block, so the words arrive again */}
       <div key={step}>
         {count && <p className={styles.count}>{count}</p>}

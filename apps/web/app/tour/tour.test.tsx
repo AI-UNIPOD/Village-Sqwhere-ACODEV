@@ -60,7 +60,6 @@ const button = (name: string) => screen.getByRole("button", { name });
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   vi.stubGlobal("location", { replace: vi.fn() });
-  Element.prototype.scrollIntoView = vi.fn();
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   signIn();
   serve();
@@ -163,7 +162,7 @@ test("the route is the open idea that has a hub the account owns", async () => {
 
 test.each([
   ["Next", 1, "/en/ideas/matches?id=idea-1", "ideas/compose?id=idea-1"],
-  ["Next", 2, "/en/hubs/view?id=hub-1", "ideas/matches?id=idea-1"],
+  ["Next", 2, "/en/hubs/view?id=hub-1#team", "ideas/matches?id=idea-1"],
   ["Back", 1, "/en/village", "ideas/compose?id=idea-1"],
   ["Back", 2, "/en/ideas/compose?id=idea-1", "ideas/matches?id=idea-1"],
   ["Back", 3, "/en/ideas/matches?id=idea-1", "hubs/view?id=hub-1"],
@@ -175,35 +174,56 @@ test.each([
   expect(nav.push).toHaveBeenCalledExactlyOnceWith(address, undefined);
 });
 
-test("the last two stops are one screen: Next and Back scroll to the phases and to the top, and the router leaves the scroll alone", async () => {
+// a part of the hub's page, as the page gives it: inside the same frame as the panel
+function part(id: string, top: number) {
+  const section = document.createElement("section");
+  section.id = id;
+  section.getBoundingClientRect = () => ({ top }) as DOMRect;
+  document.querySelector("[data-frame]")!.append(section);
+  return section;
+}
+
+test("the last two stops are one screen: Next and Back scroll to the phases and to the team, under the panel, and the router leaves the scroll alone", async () => {
   atStop(3);
   render(frame("hubs/view?id=hub-1"));
-  await panel();
+  const region = await panel();
+  region.getBoundingClientRect = () => ({ height: 180 }) as DOMRect;
+  part("team", 600);
+  part("phases", 1400);
+  // a hidden screen kept in memory has the same ids: it is not the one to scroll to
+  const kept = document.createElement("section");
+  kept.id = "phases";
+  document.body.prepend(kept);
+
   fireEvent.click(button("Next"));
   expect(nav.push).toHaveBeenLastCalledWith("/en/hubs/view?id=hub-1#phases", { scroll: false });
-  expect(window.scrollTo).not.toHaveBeenCalled();
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 1400 - 180, behavior: "smooth" });
   expect((await panel()).querySelector("h2")?.textContent).toBe("Walk the hub's four phases");
 
+  (await panel()).getBoundingClientRect = () => ({ height: 180 }) as DOMRect;
   fireEvent.click(button("Back"));
-  expect(nav.push).toHaveBeenLastCalledWith("/en/hubs/view?id=hub-1", { scroll: false });
-  expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+  expect(nav.push).toHaveBeenLastCalledWith("/en/hubs/view?id=hub-1#team", { scroll: false });
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 600 - 180, behavior: "smooth" });
+  kept.remove();
 });
 
-test("the phases come to the middle of the screen, and without movement when the person asked for that", async () => {
-  const phases = document.createElement("section");
-  phases.id = "phases";
-  document.body.append(phases);
+test("the scroll does not glide when the person asked for less motion", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
   atStop(3);
   render(frame("hubs/view?id=hub-1"));
   await panel();
+  part("phases", 1400);
   fireEvent.click(button("Next"));
-  expect(phases.scrollIntoView).toHaveBeenLastCalledWith({ block: "center", behavior: "smooth" });
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 1400, behavior: "auto" });
+});
 
-  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
-  fireEvent.click(button("Back"));
+test("a stop on another screen is left to that screen to scroll", async () => {
+  atStop(2);
+  render(frame("ideas/matches?id=idea-1"));
+  await panel();
   fireEvent.click(button("Next"));
-  expect(phases.scrollIntoView).toHaveBeenLastCalledWith({ block: "center", behavior: "auto" });
-  phases.remove();
+  expect(nav.push).toHaveBeenLastCalledWith("/en/hubs/view?id=hub-1#team", undefined);
+  expect(window.scrollTo).not.toHaveBeenCalled();
 });
 
 test.each([
@@ -274,7 +294,7 @@ test("the way back is in French too, and the shrunk panel can still end the tour
   const region = await panel("fr");
   expect(region.textContent).toContain("Étape 3 sur 4");
   fireEvent.click(button("Revenir au parcours"));
-  expect(nav.push).toHaveBeenCalledWith("/fr/hubs/view?id=hub-1", undefined);
+  expect(nav.push).toHaveBeenCalledWith("/fr/hubs/view?id=hub-1#team", undefined);
   fireEvent.click(button("Quitter la visite"));
   expect(screen.queryByRole("region")).toBeNull();
 });

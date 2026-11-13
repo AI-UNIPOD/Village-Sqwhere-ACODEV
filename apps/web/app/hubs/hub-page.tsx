@@ -11,7 +11,7 @@ import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { ArrowLeft, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
-import { scrollToIdWhileSettling } from "../scroll";
+import { scrollToPartWhileSettling } from "../scroll";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
@@ -44,13 +44,14 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
     };
   }, [id]);
 
-  // The card arrives after the page, so the browser's own jump to #phases finds nothing: scroll
-  // to the part the address names once the card is there (the guided tour's last stop).
+  // The card arrives after the page, so the browser's own jump to #team or #phases finds
+  // nothing: scroll to the part the address names once the card is there (the guided tour's
+  // last two stops).
   const card = useRef<HTMLElement>(null);
   const shown = !!hub;
   useEffect(() => {
-    const id = window.location.hash.slice(1);
-    if (shown && id && card.current) return scrollToIdWhileSettling(id, card.current);
+    const part = window.location.hash.slice(1);
+    if (shown && part && card.current) return scrollToPartWhileSettling(card.current, part);
   }, [shown]);
 
   if (failure) throw failure;
@@ -104,19 +105,21 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
 
       {isMember && <BriefSection lang={lang} hubId={hub.id} ideaId={hub.idea.id} isOwner={isOwner} moment={created || joined} />}
 
-      <h2 className={`${ideas.heading} ${styles.heading}`}>{t.teamHeading}</h2>
-      {isMember ? (
-        <Team lang={lang} hub={hub} />
-      ) : (
-        <>
-          <p className={ideas.meta}>{fill(t.members, { n: hub.member_count })}</p>
-          <ul className={styles.members}>
-            <li className={styles.member}>
-              <Person lang={lang} user={hub.owner} role={t.owner} />
-            </li>
-          </ul>
-        </>
-      )}
+      <section id="team" className={styles.part}>
+        <h2 className={`${ideas.heading} ${styles.heading}`}>{t.teamHeading}</h2>
+        {isMember ? (
+          <Team lang={lang} hub={hub} />
+        ) : (
+          <>
+            <p className={ideas.meta}>{fill(t.members, { n: hub.member_count })}</p>
+            <ul className={styles.members}>
+              <li className={styles.member}>
+                <Person lang={lang} user={hub.owner} role={t.owner} />
+              </li>
+            </ul>
+          </>
+        )}
+      </section>
 
       <h2 className={`${ideas.heading} ${styles.heading}`}>{t.termsHeading}</h2>
       {ownership && <p className={styles.strong}>{ownership.title}</p>}
@@ -126,7 +129,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       <p className={`${ideas.meta} ${styles.line}`}>{t.termsFrozen}</p>
       <p className={`${ideas.meta} ${styles.line}`}>{fill(t.agreementVersion, { n: hub.agreement.version })}</p>
 
-      <section id="phases">
+      <section id="phases" className={styles.part}>
         <h2 className={`${ideas.heading} ${styles.heading}`}>{t.phasesHeading}</h2>
         <ol className={styles.phases}>
           {t.phases.map((phase, at) => (

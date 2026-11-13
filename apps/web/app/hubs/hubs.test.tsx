@@ -221,9 +221,9 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
 
 // The hub arrives after the page, so the browser's own jump to an address's hash finds nothing,
 // and its team and brief arrive after the hub, so the page grows after the first scroll.
-test("the phases are a section of their own, and the page scrolls to the part the address names, again as the page grows, until the person takes over", async () => {
+test("the team and the phases are parts the address can name, and the page scrolls to the one named, again as the page grows, until the person takes over", async () => {
   const scroll = vi.fn();
-  Element.prototype.scrollIntoView = scroll;
+  window.scrollTo = scroll as unknown as typeof window.scrollTo;
   let grew = () => {};
   vi.stubGlobal(
     "ResizeObserver",
@@ -244,15 +244,17 @@ test("the phases are a section of their own, and the page scrolls to the part th
   api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
   const { container } = render(<HubPage lang="en" />);
   await screen.findByRole("heading", { level: 1, name: "Borehole map hub" });
-  const phases = container.querySelector("section#phases")!;
-  expect(within(phases as HTMLElement).getByRole("heading", { level: 2, name: "Phases" })).toBeTruthy();
+  const phases = container.querySelector<HTMLElement>("section#phases")!;
+  expect(within(phases).getByRole("heading", { level: 2, name: "Phases" })).toBeTruthy();
+  expect(within(container.querySelector<HTMLElement>("section#team")!).getByRole("heading", { level: 2, name: "Team" })).toBeTruthy();
   await waitFor(() => expect(scroll).toHaveBeenCalledOnce());
-  expect(scroll.mock.contexts[0]).toBe(phases);
-  expect(scroll).toHaveBeenCalledWith({ block: "center", behavior: "smooth" });
+  expect(scroll).toHaveBeenLastCalledWith({ top: 0, behavior: "smooth" });
 
-  // the team arrives and the page grows: the phases are brought back to the middle
+  // the team arrives and the page grows: the phases have moved down, and are brought back
+  phases.getBoundingClientRect = () => ({ top: 150 }) as DOMRect;
   grew();
   expect(scroll).toHaveBeenCalledTimes(2);
+  expect(scroll).toHaveBeenLastCalledWith({ top: 150, behavior: "smooth" });
   // the person scrolls: the page is theirs
   fireEvent.wheel(window);
   grew();
@@ -260,14 +262,32 @@ test("the phases are a section of their own, and the page scrolls to the part th
   history.replaceState(null, "", "/");
 });
 
-test("with no hash in the address, the page stays where it is", async () => {
+test("with no hash in the address, or one that names nothing, the page stays where it is", async () => {
   const scroll = vi.fn();
-  Element.prototype.scrollIntoView = scroll;
+  window.scrollTo = scroll as unknown as typeof window.scrollTo;
   nav.search = "id=hub-1";
   api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
+  const first = render(<HubPage lang="en" />);
+  await screen.findByRole("heading", { level: 1, name: "Borehole map hub" });
+  expect(scroll).not.toHaveBeenCalled();
+  first.unmount();
+
+  // an address is typed by anyone: a hash that is no id, or not even a valid selector, does nothing
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(private grew: () => void) {}
+      observe() {
+        this.grew();
+      }
+      disconnect() {}
+    },
+  );
+  history.replaceState(null, "", "/en/hubs/view?id=hub-1#nothing]here");
   render(<HubPage lang="en" />);
   await screen.findByRole("heading", { level: 1, name: "Borehole map hub" });
   expect(scroll).not.toHaveBeenCalled();
+  history.replaceState(null, "", "/");
 });
 
 test("someone who is not a member is told so, and gets no owner's links", async () => {

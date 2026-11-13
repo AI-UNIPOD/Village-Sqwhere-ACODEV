@@ -100,7 +100,7 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
     </>
   );
   return (
-    <div className={styles.page} data-places={places || undefined}>
+    <div className={styles.page} data-frame="" data-places={places || undefined}>
       <header className={styles.header} data-site-header="">
         {locked ? (
           <span className={`${landing.brand} ${styles.brand}`}>{brand}</span>

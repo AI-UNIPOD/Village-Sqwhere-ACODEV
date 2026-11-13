@@ -91,7 +91,7 @@ export function stopAddress(step: number, route: Route | null) {
   if (!route || step === 0) return "village";
   const idea = encodeURIComponent(route.idea);
   const hub = encodeURIComponent(route.hub);
-  return [`ideas/compose?id=${idea}`, `ideas/matches?id=${idea}`, `hubs/view?id=${hub}`, `hubs/view?id=${hub}#phases`][step - 1];
+  return [`ideas/compose?id=${idea}`, `ideas/matches?id=${idea}`, `hubs/view?id=${hub}#team`, `hubs/view?id=${hub}#phases`][step - 1];
 }
 
 /** The same without the hash: what the frame's `path` is when the person is on the stop. */
