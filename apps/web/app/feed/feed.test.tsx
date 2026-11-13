@@ -271,12 +271,31 @@ test("on Saved, a post you un-save stays until the list loads again, with Save s
 test.each([
   ["for-you", "Nobody has posted yet", "See open ideas", "/en/ideas"],
   ["saved", "Nothing saved yet", "Go to For you", "/en/feed"],
-  ["mine", "You have not posted yet", "Go to For you", "/en/feed"],
+  ["mine", "You have not posted yet", "Write your first post", "/en/posts/compose"],
 ] as const)("the %s tab with no posts says so, with a way on", async (tab, title, action, href) => {
   api({ "GET /v1/feed": page([]), "GET /v1/me/saved-posts": page([]), "GET /v1/posts": page([]) });
   render(<Feed lang="en" tab={tab} />);
   expect(await screen.findByRole("heading", { name: title })).toBeTruthy();
   expect(screen.getByRole("link", { name: action }).getAttribute("href")).toBe(href);
+});
+
+// ---------- writing ----------
+
+test.each([["for-you"], ["saved"], ["mine"]] as const)("%s has one main button, Write a post, that opens the composer", async (tab) => {
+  api({ "GET /v1/feed": page([post()]), "GET /v1/me/saved-posts": page([post()]), "GET /v1/posts": page([post()]) });
+  render(<Feed lang="en" tab={tab} />);
+  await screen.findByRole("heading", { name: "Pooling with asyncpg" });
+  const write = screen.getByRole("link", { name: "Write a post" });
+  expect(write.getAttribute("href")).toBe("/en/posts/compose");
+  expect(write.className).toMatch(/btn/);
+  expect(screen.getAllByRole("link", { name: "Write a post" })).toHaveLength(1);
+});
+
+test("the way to write is there while the list loads, and in French", async () => {
+  api({ "GET /v1/feed": page([]) });
+  render(<Feed lang="fr" tab="for-you" />);
+  expect(screen.getByRole("link", { name: "Écrire une publication" }).getAttribute("href")).toBe("/fr/posts/compose");
+  await screen.findByRole("heading", { name: "Personne n'a encore publié" });
 });
 
 test("Show more adds the next page, skips a post it already has, and a failed page keeps the list", async () => {

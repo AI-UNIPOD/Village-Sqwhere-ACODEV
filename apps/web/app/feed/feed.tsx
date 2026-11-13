@@ -73,7 +73,7 @@ function Empty({ lang, tab }: { lang: Lang; tab: Tab }) {
       <EmptyIcon className={onboarding.emptyIcon} />
       <h2 className={onboarding.emptyTitle}>{t.title}</h2>
       <p>{t.text}</p>
-      <Link className={landing.ghost} href={tab === "for-you" ? `/${lang}/ideas` : `/${lang}/feed`}>
+      <Link className={landing.ghost} href={tab === "for-you" ? `/${lang}/ideas` : tab === "mine" ? `/${lang}/posts/compose` : `/${lang}/feed`}>
         {t.action}
       </Link>
     </div>
@@ -179,6 +179,9 @@ function Posts({ lang, tab }: { lang: Lang; tab: Tab }) {
           {t.deleted}
         </p>
       )}
+      <Link className={`${landing.btn} ${ideas.share}`} href={`/${lang}/posts/compose`}>
+        {t.write}
+      </Link>
       {tab === "mine" ? (
         // your own posts are the ones whose author is you, so they wait for your username
         me ? <PostList lang={lang} tab={tab} username={me.username} /> : <Blocks lang={lang} />

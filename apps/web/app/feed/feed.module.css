@@ -142,3 +142,41 @@
 @media (prefers-reduced-motion: reduce) {
   .like:active svg { transform: none; }
 }
+
+/* ---------- writing a post ---------- */
+/* the kinds are radio cards: one column on a phone, two when there is room */
+.kinds {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* the sticky row sits over the bottom of the screen: a field that takes focus is kept clear of it,
+   by the same distance as a chip or a card (onboarding.module.css) */
+.form :is(input, textarea) {
+  scroll-margin-block-end: calc(var(--tap-min) + var(--space-6) + var(--space-3));
+}
+
+/* "optional" after a label reads as a note, not as part of the name */
+.optional {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* at five topics the rest cannot be chosen; the chip stays in the tab order so a screen reader
+   can still find it and read why */
+.chip[aria-disabled="true"] {
+  border-color: var(--line);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Edit and Delete side by side while they fit */
+.owner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

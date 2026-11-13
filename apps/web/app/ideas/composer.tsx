@@ -47,10 +47,20 @@ function validate(fields: IdeaFields, t: (typeof copy)[Lang]["errors"]): Errors 
   return errors;
 }
 
+// Closing the tab with text that was not saved asks first.
+export function useLeaveWarning(dirty: boolean) {
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+}
+
 // A label, its control, the helper line and, once the text nears its limit, a count.
-function Field(props: {
+export function Field(props: {
   id: string;
-  label: string;
+  label: ReactNode;
   help: string;
   error?: string;
   count?: string;
@@ -115,12 +125,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
   }, [id, saved]);
 
   const dirty = JSON.stringify(fields) !== JSON.stringify(saved ? toFields(saved) : EMPTY);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  useLeaveWarning(dirty);
 
   function change(patch: Partial<IdeaFields>) {
     const next = { ...fields, ...patch };
