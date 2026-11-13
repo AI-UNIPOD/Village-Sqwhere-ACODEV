@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const fetchMock = vi.fn();
-// a 204 has no body, as the API sends it
+// a 204 has no body; PUT /like and PUT /save answer 200 with their new state
 const reply = (status: number, body: unknown = {}) => new Response(status === 204 ? null : JSON.stringify(body), { status });
 
 // a made-up post, as the API answers it
@@ -190,10 +190,17 @@ test("a like shows at once, sends one request, and keeps the count", async () =>
   fireEvent.click(screen.getByRole("button", { name: "Like (3)" }));
   await waitFor(() => expect(asked()).toContain("PUT /v1/posts/post-1/like"));
 
-  request.release(reply(204));
+  request.release(reply(200, { data: { liked: true, like_count: 3 } }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Like (3)" }).getAttribute("aria-pressed")).toBe("true"));
   expect(asked().filter((call) => call.startsWith("PUT")).length).toBe(1);
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("a like reconciles with the count from the server response", async () => {
+  api({ "GET /v1/feed": page([post({ like_count: 2 })]), "PUT /v1/posts/post-1/like": reply(200, { data: { liked: true, like_count: 5 } }) });
+  render(<Feed lang="en" tab="for-you" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Like (2)" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Like (5)" }).getAttribute("aria-pressed")).toBe("true"));
 });
 
 test("pressing a liked post's like takes it back with DELETE", async () => {
@@ -213,7 +220,7 @@ test("a like that fails goes back and says so", async () => {
 });
 
 test("a save shows at once and sends one request; a failed one goes back and says so", async () => {
-  api({ "GET /v1/feed": page([post()]), "PUT /v1/posts/post-1/save": reply(204) });
+  api({ "GET /v1/feed": page([post()]), "PUT /v1/posts/post-1/save": reply(200, { data: { saved: true } }) });
   render(<Feed lang="en" tab="for-you" />);
   const save = await screen.findByRole("button", { name: "Save" });
   fireEvent.click(save);

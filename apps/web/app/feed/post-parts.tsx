@@ -107,6 +107,14 @@ export function PostActions({ lang, post, onChange }: { lang: Lang; post: Post; 
         : [{ saved_by_me: on }, { saved_by_me: post.saved_by_me }];
     onChange(change);
     setMark(post.id, mark, on)
+      .then((res) => {
+        if (!res?.data) return;
+        if ("like_count" in res.data) {
+          onChange({ liked_by_me: res.data.liked, like_count: res.data.like_count });
+        } else if ("saved" in res.data) {
+          onChange({ saved_by_me: res.data.saved });
+        }
+      })
       .catch((error: unknown) => {
         // a refused session is handled by the page: it sends the person to sign in
         if (error instanceof SignedOutError) return;

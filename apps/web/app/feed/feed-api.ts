@@ -38,6 +38,12 @@ export const loadSavedPosts = (offset = 0) => call<PostPage>(`/v1/me/saved-posts
 export const loadPostsBy = (username: string, offset = 0) =>
   call<PostPage>(`/v1/posts?author=${encodeURIComponent(username)}&${paging(offset)}`);
 
-// Likes and saves answer 204 with no body: turning one on or off is the same request each time.
+export type PostLikeData = { liked: boolean; like_count: number };
+export type PostSaveData = { saved: boolean };
+
+// Likes and saves answer 200 with their new state on PUT, and 204 with no body on DELETE.
 export const setMark = (id: string, mark: "like" | "save", on: boolean) =>
-  call<null>(`/v1/posts/${encodeURIComponent(id)}/${mark}`, on ? "PUT" : "DELETE");
+  call<{ data: PostLikeData | PostSaveData } | null>(
+    `/v1/posts/${encodeURIComponent(id)}/${mark}`,
+    on ? "PUT" : "DELETE",
+  );
