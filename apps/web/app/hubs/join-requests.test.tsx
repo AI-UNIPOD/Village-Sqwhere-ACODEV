@@ -210,7 +210,8 @@ test("a hub card that fails to load says so and loads again on Try again", async
 test("asking is the same page in French", async () => {
   await view(placed(null), { "POST /v1/hubs/hub-1/join-requests": reply(201, { data: hub(placed("requested")) }) }, {}, "fr");
   expect(await screen.findByRole("heading", { level: 2, name: "Rejoindre l'équipe" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Demander à rejoindre" }));
+  // the heading is the idea page's own; the button comes once the hub's card has loaded
+  fireEvent.click(await screen.findByRole("button", { name: "Demander à rejoindre" }));
   expect(await screen.findByText("Vous avez demandé à rejoindre l'équipe. Le porteur vous répondra.")).toBeTruthy();
 });
 
