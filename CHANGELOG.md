@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(web): add the ideas that need you (#86)
 - feat(web): add navigation between the signed-in screens (#85)
 - feat(web): add joining a hub by signing its agreement (#83)
 - feat(web): add the hub team, invitations and the private brief (#82)

@@ -58,6 +58,11 @@ Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=
 part only, a "Needs your role" line when a role slug matches, and how joining works (the owner
 invites; there is no request to join).
 
+"For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
+developer is verified in (`GET /v1/me/matches`), each with the roles that matched. Matching goes
+by verified roles, so a developer without one is sent to verify, and the page does not call the
+API for them.
+
 Hubs are `app/hubs/`: create one from an open idea at `/en/hubs/new?idea=` (name, terms, the
 agreement as the server sends it, a typed legal name, then a confirm dialog), one hub at
 `/en/hubs/view?id=`, and your hubs at `/en/hubs`. The request carries the agreement's id and hash
