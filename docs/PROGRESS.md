@@ -29,10 +29,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - Onboarding after sign-in is at `/en/onboarding` and `/fr/onboarding`, for signed-in people
   only, greeting them by their name from `GET /v1/me`. The last screen saves the main role and
   the stack; country and topics stay in the tab (`docs/decisions/2026-11-11-onboarding-page.md`).
-- Signed-in screens share the `AppFrame` header: the village home (`/en/village`: profile, four
-  steps to a team), role verification with its live interview, peer review (`/en/reviews`), and
-  ideas (write, publish, close, browse at `/en/ideas`), and hubs: create one by signing the
-  agreement, its page, your hubs (`/en/hubs`). Why: `docs/decisions/2026-11-13-*`.
+- Signed-in web screens (shared `AppFrame` header): village home, role verification with its live
+  interview, peer review, ideas (write, publish, close, browse) and hubs (create by signing the
+  agreement, hub page, your hubs). Addresses: `apps/web/README.md`; why: `docs/decisions/2026-11-13-*`.
 - Unknown addresses get a 404 in their language; landing and sign-in have an error page. French
   copy puts a narrow no-break space before ? ! : ; (`docs/design-system/voice-and-tone.md`).
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
