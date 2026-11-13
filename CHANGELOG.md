@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- feat(api): add hub invitations and membership (#68)
 - fix(web): scale the hero on wide screens and add a motion toggle (#62)
 - docs: let green pull requests merge without a teammate approval (#61)
 - feat(api): add the get hub endpoint (#60)
