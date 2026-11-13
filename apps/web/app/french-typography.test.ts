@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import { copy as authCallback } from "./auth-callback/copy";
+import { copy as ideas } from "./ideas/copy";
 import { copy as landing } from "./landing/copy";
 import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
@@ -23,6 +24,7 @@ function strings(value: unknown): string[] {
 
 const french = strings([
   authCallback.fr,
+  ideas.fr,
   landing.fr,
   onboarding.fr,
   signIn.fr,

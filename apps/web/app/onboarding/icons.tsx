@@ -44,6 +44,25 @@ export const Clock = () => (
   </Icon>
 );
 
+export const Lock = () => (
+  <Icon>
+    <rect x="3" y="11" width="18" height="11" rx="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </Icon>
+);
+
+export const Cross = () => (
+  <Icon>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </Icon>
+);
+
+export const Lightbulb = ({ className }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4" />
+  </Icon>
+);
+
 export const AlertCircle = () => (
   <Icon>
     <circle cx="12" cy="12" r="10" />
