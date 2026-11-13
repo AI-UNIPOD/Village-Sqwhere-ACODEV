@@ -719,7 +719,8 @@ discovery or matching candidates.
 #### `GET /v1/ideas` and `GET /v1/ideas/{idea_id}`
 
 Returns only open idea cards to signed-in developers. A card contains title, summary, stage,
-roles needed, author and timestamps. It never contains the confidential `details` field.
+roles needed, author, `hub_id` (the idea's hub, or `null` before it has one) and timestamps. It
+never contains the confidential `details` field. A developer asks to join through `hub_id`.
 `GET /v1/ideas` accepts `offset` and `limit`, with `next_offset` when another page exists.
 
 ### Matching
@@ -1037,10 +1038,33 @@ The invited person says no. Answers `200` with the hub card, `viewer.membership_
 
 * **Errors:** `404 INVITATION_NOT_FOUND`, `409 ALREADY_MEMBER`.
 
+#### `POST /v1/hubs/{hub_id}/join-requests`
+
+A developer asks to join a hub, usually from an open idea's `hub_id`. No body. Answers `201`
+with the hub card, `viewer.membership_status: "requested"`. The owner answers with approve or
+decline below. The developer finds their pending requests with `GET /v1/me/hubs?status=requested`.
+Someone who declined, left, was removed or was turned down may ask again.
+
+* **Errors:** `404 NOT_FOUND` (no such hub), `409 HUB_ARCHIVED`, `409 IDEA_CLOSED` (the idea is
+  not looking for people), `409 TEAM_FULL`, `409 ALREADY_MEMBER`, `409 ALREADY_INVITED` (accept
+  the invitation instead), `409 ALREADY_REQUESTED`.
+
+#### `POST /v1/hubs/{hub_id}/members/{user_id}/approve` and `.../decline`
+
+The owner answers a pending request. Both answer `200` with the member card. Approving turns
+the request into an invitation (`status: "invited"`): the developer then reads the agreement
+and joins with `POST /v1/hubs/{hub_id}/invitation/accept`, the same as anyone invited. Declining
+sets `status: "declined"`. Inviting a developer who has a pending request approves it too.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 REQUEST_NOT_FOUND` (no pending request from this
+  person), and for approve only `409 HUB_ARCHIVED` and `409 TEAM_FULL` (the request stays
+  pending, so the owner can make room).
+* Why: `docs/decisions/2026-11-13-hub-join-requests.md`.
+
 #### `GET /v1/hubs/{hub_id}/members`
 
 The team, for active members only: the owner first, then members by joining time. The owner
-also sees `invited` and `declined` people, to follow up or withdraw. Nobody sees people who
+also sees `requested`, `invited` and `declined` people, to answer, follow up or withdraw. Nobody sees people who
 left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
 
 * **Errors:** `403 NOT_HUB_MEMBER`.

@@ -1,4 +1,5 @@
-"""Joining a hub: the owner invites, the invitee signs the hub's agreement or declines.
+"""Joining a hub: the owner invites, or a developer asks and the owner approves. Either way
+the person then signs the hub's agreement or declines.
 
 The idea's confidential details are shown only to active members, who have signed. Every
 change to memberships locks the hub row first, so an invitation cannot be withdrawn while it
@@ -22,6 +23,7 @@ from app.models import (
     HubMemberRole,
     HubMemberStatus,
     HubStatus,
+    IdeaStatus,
     User,
 )
 from app.schemas.hubs import (
@@ -41,8 +43,13 @@ from app.services.hubs import hub_card, load_hub
 
 router = APIRouter()
 
-# what the owner sees beyond the team itself: people who were asked and their answer
-OWNER_ONLY_STATUSES = (HubMemberStatus.INVITED, HubMemberStatus.DECLINED)
+# what the owner sees beyond the team itself: people who asked, people who were asked, and
+# the answers
+OWNER_ONLY_STATUSES = (
+    HubMemberStatus.REQUESTED,
+    HubMemberStatus.INVITED,
+    HubMemberStatus.DECLINED,
+)
 
 # The most active members a hub has, the owner included. The web app shows the same limit
 # (TEAM_MAX in apps/web/app/hubs/team.tsx). Why five: docs/decisions/2026-11-13-hub-team-cap.md
@@ -342,3 +349,103 @@ async def decline_invitation(hub_id: UUID, current_user: CurrentUser, db: DbSess
     declined = await load_hub(db, hub.id)
     assert declined is not None
     return HubResponse(data=await hub_card(db, declined, current_user.id))
+
+
+# --- join requests: docs/decisions/2026-11-13-hub-join-requests.md ---------------------------
+
+
+@router.post(
+    "/hubs/{hub_id}/join-requests", response_model=HubResponse, status_code=status.HTTP_201_CREATED
+)
+async def request_to_join(hub_id: UUID, current_user: CurrentUser, db: DbSession) -> HubResponse:
+    hub = await find_hub(db, hub_id, lock=True)
+    require_active_hub(hub)
+    if hub.idea.status != IdeaStatus.OPEN or hub.idea.deleted_at is not None:
+        raise hub_error(
+            status.HTTP_409_CONFLICT,
+            "IDEA_CLOSED",
+            "This idea is no longer looking for people, so its hub takes no requests.",
+        )
+    member = await find_membership(db, hub.id, current_user.id)
+    if member is not None and member.status == HubMemberStatus.ACTIVE:
+        raise hub_error(
+            status.HTTP_409_CONFLICT, "ALREADY_MEMBER", "You are already a member of this hub."
+        )
+    if member is not None and member.status == HubMemberStatus.INVITED:
+        raise hub_error(
+            status.HTTP_409_CONFLICT,
+            "ALREADY_INVITED",
+            "You already have an invitation to this hub: accept it to join.",
+        )
+    if member is not None and member.status == HubMemberStatus.REQUESTED:
+        raise hub_error(
+            status.HTTP_409_CONFLICT,
+            "ALREADY_REQUESTED",
+            "You already asked to join. The owner will answer.",
+        )
+    await require_room(db, hub)
+    if member is None:
+        db.add(
+            HubMember(
+                hub_id=hub.id,
+                user_id=current_user.id,
+                member_role=HubMemberRole.MEMBER,
+                status=HubMemberStatus.REQUESTED,
+            )
+        )
+    else:
+        # asking again after declining, leaving, being removed or being turned down
+        member.status = HubMemberStatus.REQUESTED
+        member.invited_by = None
+        member.created_at = datetime.now(UTC)
+        member.joined_at = None
+        member.left_at = None
+    await db.commit()
+
+    requested = await load_hub(db, hub.id)
+    assert requested is not None
+    return HubResponse(data=await hub_card(db, requested, current_user.id))
+
+
+async def pending_request(db: AsyncSession, hub: Hub, user_id: UUID) -> tuple[HubMember, User]:
+    member = await find_membership(db, hub.id, user_id)
+    if member is None or member.status != HubMemberStatus.REQUESTED:
+        raise hub_error(
+            status.HTTP_404_NOT_FOUND,
+            "REQUEST_NOT_FOUND",
+            "This developer has no pending request to join this hub.",
+        )
+    requester = await db.scalar(select(User).options(raiseload("*")).where(User.id == user_id))
+    assert requester is not None  # the membership's foreign key keeps the user
+    return member, requester
+
+
+@router.post("/hubs/{hub_id}/members/{user_id}/approve", response_model=HubMemberResponse)
+async def approve_request(
+    hub_id: UUID, user_id: UUID, current_user: CurrentUser, db: DbSession
+) -> HubMemberResponse:
+    hub = await find_hub(db, hub_id, lock=True)
+    require_owner(hub, current_user.id)
+    require_active_hub(hub)
+    member, requester = await pending_request(db, hub, user_id)
+    await require_room(db, hub)
+    # Approval is an invitation: the person still signs the hub's agreement to join, through
+    # POST /v1/hubs/{hub_id}/invitation/accept, the same as anyone the owner invites.
+    member.status = HubMemberStatus.INVITED
+    member.invited_by = current_user.id
+    await db.commit()
+    await db.refresh(member)
+    return HubMemberResponse(data=member_card(member, requester))
+
+
+@router.post("/hubs/{hub_id}/members/{user_id}/decline", response_model=HubMemberResponse)
+async def decline_request(
+    hub_id: UUID, user_id: UUID, current_user: CurrentUser, db: DbSession
+) -> HubMemberResponse:
+    hub = await find_hub(db, hub_id, lock=True)
+    require_owner(hub, current_user.id)
+    member, requester = await pending_request(db, hub, user_id)
+    member.status = HubMemberStatus.DECLINED
+    await db.commit()
+    await db.refresh(member)
+    return HubMemberResponse(data=member_card(member, requester))

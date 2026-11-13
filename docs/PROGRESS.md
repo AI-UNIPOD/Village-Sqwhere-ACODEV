@@ -12,10 +12,10 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, sectors and
   verification (GitHub analysis, five-question AI interview, report, peer review), Groq
   and Gemini fallbacks and a separate worker. Guide: `docs/backend.md`.
-- Ideas, matching and hubs are in place (drafts, cards, ranking, agreements, membership).
-  Posts: create, read, edit, delete, like, save, a filtered list (`GET /v1/posts`), the
-  feed and saved posts. Comments and replies: create, read, edit, delete, lists, threads
-  and likes. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
+- Ideas, matching and hubs are in place (drafts, cards, ranking, agreements, invitations,
+  join requests). Posts: create, read, edit, delete, like, save, a filtered list
+  (`GET /v1/posts`), the feed and saved posts. Comments and replies: create, read, edit,
+  delete, lists, threads and likes. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32+ chars) and keeps sign-in state in memory, so run one
   process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). `POST /v1/auth/demo`
   signs in as a read-only demo account when `DEMO_ENABLED=true`.
