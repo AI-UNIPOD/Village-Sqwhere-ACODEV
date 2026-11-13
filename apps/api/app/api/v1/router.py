@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
+from app.api.v1.hub_members import router as hub_members_router
 from app.api.v1.hubs import router as hubs_router
 from app.api.v1.ideas import router as ideas_router
 from app.api.v1.interviews import router as interviews_router
@@ -19,4 +20,5 @@ api_v1_router.include_router(me_router, tags=["Me"])
 api_v1_router.include_router(verifications_router, tags=["Verifications"])
 api_v1_router.include_router(reviews_router, tags=["Reviews"])
 api_v1_router.include_router(hubs_router, tags=["Hubs"])
+api_v1_router.include_router(hub_members_router, tags=["Hubs"])
 api_v1_router.include_router(ideas_router, tags=["Ideas"])
