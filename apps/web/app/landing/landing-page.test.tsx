@@ -113,17 +113,19 @@ test("on phones the section links reach into the language button's gutter, and n
   expect(wide).toContain("flex: 0 1 auto;");
 });
 
-test("the demo and the tour say they are coming soon and do nothing", () => {
+test("the tour says it is coming soon and does nothing; the demo is a real button that says what it is", () => {
   const { container } = render(<LandingPage lang="en" />);
-  for (const name of [/^Try the demo/, /^Start the tour/]) {
-    for (const button of screen.getAllByRole("button", { name })) {
-      expect(button.getAttribute("aria-disabled")).toBe("true");
-      expect(button.textContent).toContain("Coming soon");
-      expect(() => fireEvent.click(button)).not.toThrow();
-    }
+  for (const button of screen.getAllByRole("button", { name: /^Start the tour/ })) {
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(button.textContent).toContain("Coming soon");
+    expect(() => fireEvent.click(button)).not.toThrow();
   }
-  expect(container.querySelector("#demo-note")?.textContent).toBe("The demo is coming soon.");
   expect(container.querySelector("#tour-note")?.textContent).toBe("The guided tour is coming soon.");
+  // the hero and the footer each have one
+  const demo = screen.getAllByRole("button", { name: "Try the demo" });
+  expect(demo).toHaveLength(2);
+  for (const button of demo) expect(button.hasAttribute("aria-disabled")).toBe(false);
+  expect(container.querySelector("#demo-note")?.textContent).toBe("No sign-up. Look at everything, change nothing.");
 });
 
 // the hero's actions, in order: everything you can press under the headline
@@ -133,8 +135,8 @@ function heroActions(headline: string) {
 }
 
 test.each([
-  ["en", "Builders across Africa, one square.", "Join the village", "Take the tour", "Try the demo, Coming soon"],
-  ["fr", "Toute l'Afrique, une seule place.", "Rejoindre le village", "Faire la visite", "Essayer la démo, Bientôt disponible"],
+  ["en", "Builders across Africa, one square.", "Join the village", "Take the tour", "Try the demo"],
+  ["fr", "Toute l'Afrique, une seule place.", "Rejoindre le village", "Faire la visite", "Essayer la démo"],
 ] as const)("the %s hero leads to sign-in first, then the tour, then the demo", (lang, headline, join, tour, demo) => {
   render(<LandingPage lang={lang} />);
   const actions = heroActions(headline);
@@ -144,7 +146,7 @@ test.each([
   expect(first).toBe(screen.getByRole("link", { name: join }));
   expect(first.getAttribute("href")).toBe(`/${lang}/sign-in`);
   expect(last.tagName).toBe("BUTTON");
-  expect(last.getAttribute("aria-disabled")).toBe("true");
+  expect(last.hasAttribute("aria-disabled")).toBe(false);
 });
 
 test("the demo note sits under the demo button, not under the first action", () => {
@@ -168,9 +170,9 @@ test.each([
 test("the French page says the same in French", () => {
   render(<LandingPage lang="fr" />);
   // the hero and the footer each have one
-  const demo = screen.getAllByRole("button", { name: /^Essayer la démo, Bientôt disponible/ });
+  const demo = screen.getAllByRole("button", { name: "Essayer la démo" });
   expect(demo).toHaveLength(2);
-  expect(screen.getByText("La démo arrive bientôt.")).toBeTruthy();
+  expect(screen.getByText("Sans inscription. Regardez tout, sans rien modifier.")).toBeTruthy();
 });
 
 test("has one main landmark and no empty links or buttons", () => {

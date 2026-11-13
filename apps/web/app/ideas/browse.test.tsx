@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { hub } from "../hubs/test-support";
 import { SESSION_KEY } from "../session/session";
 import { BrowseIdeas } from "./browse";
 import { IdeaPage } from "./idea-page";
@@ -28,6 +29,7 @@ const idea = (over: Record<string, unknown> = {}) => ({
   stage: "prototype",
   roles_needed: [backend, mobile],
   author: { username: "ama-mensah", display_name: "Ama Mensah", is_verified: true },
+  hub_id: "hub-1",
   published_at: "2026-11-12T10:00:00Z",
   ...over,
 });
@@ -175,7 +177,8 @@ test("the two idea pages point at each other and mark where you are", async () =
 
 function view(roles: unknown[], over: Record<string, unknown> = {}, username?: string) {
   nav.search = "id=idea-1";
-  api({ "/v1/me": { data: me(roles, username) }, "/v1/ideas/idea-1": { data: idea(over) } });
+  const noPlace = { viewer: { membership_status: null, member_role: null } };
+  api({ "/v1/me": { data: me(roles, username) }, "/v1/ideas/idea-1": { data: idea(over) }, "/v1/hubs/hub-1": { data: hub(noPlace) } });
   render(<IdeaPage lang="en" />);
   return screen.findByRole("heading", { level: 1, name: "Clinic queue for Kano" });
 }
@@ -187,36 +190,21 @@ test("the idea page shows the public part in full and its author, and never asks
   const github = screen.getByRole("link", { name: "@ama-mensah (GitHub profile, opens in a new tab)" });
   expect(github.getAttribute("href")).toBe("https://github.com/ama-mensah");
   expect(github.getAttribute("rel")).toBe("noopener noreferrer");
-  expect(screen.getAllByRole("listitem").some((item) => item.textContent?.startsWith("The owner invites"))).toBe(true);
   expect(asked().some((path) => path.startsWith("/v1/me/ideas"))).toBe(false);
 });
 
-test("a developer with no role is sent to choose one", async () => {
-  await view([]);
-  expect(screen.getByRole("link", { name: "Set up your profile" }).getAttribute("href")).toBe("/en/onboarding?step=role");
-});
-
-test("a developer whose needed role is not verified is sent to verify it", async () => {
+test("the idea's roles come with a line on the developer's own fit, and the way to verify", async () => {
   await view([role("backend-engineer")]);
-  expect(screen.getByText("Owners are only shown developers whose role is verified.")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Verify your role" }).getAttribute("href")).toBe("/en/verification");
-});
-
-test("a developer verified in a needed role is told the owner can be shown their profile", async () => {
-  await view([role("backend-engineer", true)]);
-  expect(screen.getByRole("status").textContent).toContain("You are verified in a role this idea needs");
-  expect(screen.queryByRole("link", { name: "Verify your role" })).toBeNull();
-});
-
-test("a developer with other roles is told so, with no button that pretends", async () => {
-  await view([role("security-engineer", true)]);
-  expect(screen.getByText("This idea needs other roles than yours.")).toBeTruthy();
-  expect(screen.queryByRole("link", { name: "Verify your role" })).toBeNull();
+  expect(screen.getByText(/Needs your role: Backend and Systems Engineer/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Verify it" }).getAttribute("href")).toBe("/en/verification");
 });
 
 test("the idea's own author is offered the composer", async () => {
   await view([role("backend-engineer", true)], {}, "ama-mensah");
   expect(screen.getByRole("link", { name: "Edit your idea" }).getAttribute("href")).toBe("/en/ideas/compose?id=idea-1");
+  // the owner has their own links: no ask, and no need to read the hub's card
+  expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
+  expect(asked().some((path) => path.startsWith("/v1/hubs"))).toBe(false);
 });
 
 test("an idea with no roles says the owner has not chosen any", async () => {

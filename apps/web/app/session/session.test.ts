@@ -154,3 +154,30 @@ test("a refused refresh keeps the new pair another tab already saved", async () 
   expect(authOf(fetchMock.mock.calls[1]).Authorization).toBe("Bearer access-tab");
   expect(stored().refresh_token).toBe("rt_tab");
 });
+
+test("a change refused for the demo account is noticed once, and the screen can still read the answer", async () => {
+  const { resetDemo, useDemoRefusals } = await import("./demo");
+  const { renderHook, act } = await import("@testing-library/react");
+  resetDemo();
+  store("2026-11-12T10:10:00Z");
+  const count = renderHook(() => useDemoRefusals());
+  expect(count.result.current).toBe(0);
+
+  fetchMock.mockResolvedValueOnce(
+    new Response(JSON.stringify({ detail: { code: "DEMO_READ_ONLY", message: "English" } }), { status: 403 }),
+  );
+  let response!: Response;
+  await act(async () => {
+    response = await apiFetch("/v1/posts", { method: "POST" });
+  });
+  expect(count.result.current).toBe(1);
+  expect((await response.json()).detail.code).toBe("DEMO_READ_ONLY");
+
+  // another kind of 403 is not the demo's
+  fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ detail: { code: "NOT_POST_AUTHOR" } }), { status: 403 }));
+  await act(async () => {
+    await apiFetch("/v1/posts/1", { method: "DELETE" });
+  });
+  expect(count.result.current).toBe(1);
+  resetDemo();
+});

@@ -150,6 +150,10 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
         if not user:
             await websocket.close(code=1008, reason="Authentication required.")
             return
+        if user.is_demo:
+            # An interview writes answers, and the demo account may only read (see deps.py).
+            await websocket.close(code=1008, reason="The demo cannot take an interview.")
+            return
 
         session = await load_interview_session(session_id, user.id, db)
         if (

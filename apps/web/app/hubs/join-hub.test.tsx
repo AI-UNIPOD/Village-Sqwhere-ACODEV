@@ -87,11 +87,11 @@ test("nothing is sent without the box ticked and a legal name", async () => {
   press("Sign and join");
   expect(screen.getByText("Read the agreement, then tick this box to sign.")).toBeTruthy();
   expect(screen.getByText("Type your full legal name, at least 2 characters.")).toBeTruthy();
-  expect(document.activeElement).toBe(screen.getByRole("checkbox"));
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("checkbox")));
   expect(screen.queryByRole("dialog")).toBeNull();
   tick();
   press("Sign and join");
-  expect(document.activeElement).toBe(screen.getByLabelText("Your full legal name"));
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Your full legal name")));
   expect(posted()).toEqual([]);
 });
 

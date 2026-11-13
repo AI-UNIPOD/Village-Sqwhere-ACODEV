@@ -9,14 +9,16 @@ import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { AlertCircle, Check, Clock, X } from "../onboarding/icons";
+import { AlertCircle, Check, Clock, Users, X } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { SignedOutError } from "../session/session";
 import village from "../village/village.module.css";
 import { copy } from "./copy";
 import { FieldError, LoadFailed } from "./form-parts";
 import {
+  approveRequest,
   declineInvitation,
+  declineRequest,
   inviteMember,
   loadHub,
   loadMembers,
@@ -28,6 +30,24 @@ import styles from "./hubs.module.css";
 import { forgetInvitation } from "./invitations";
 
 export const TEAM_MAX = 5;
+
+// How a person who is not an active member is marked. A request waits on the owner, so it is the
+// one that stands out.
+const PILLS = {
+  requested: { state: "next", Icon: Users },
+  invited: { state: "open", Icon: Clock },
+  declined: { state: "later", Icon: X },
+} as const;
+
+function Pill({ status, label }: { status: keyof typeof PILLS; label: string }) {
+  const { state, Icon } = PILLS[status];
+  return (
+    <span className={village.pill} data-state={state}>
+      <Icon />
+      {label}
+    </span>
+  );
+}
 
 type TeamCopy = (typeof copy)[Lang]["team"];
 type Who = Pick<Member["user"], "username" | "display_name" | "is_verified">;
@@ -165,8 +185,11 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
   // the row the owner just added: only that one arrives with motion
   const [arrived, setArrived] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState<Member | null>(null);
+  const [declining, setDeclining] = useState<Member | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  // what the owner's last answer did, for a screen reader
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -187,10 +210,33 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
     setArrived(member.user.id);
   }
 
+  // approving or declining a request: the API answers with the person's new place, which replaces the row
+  async function answer(member: Member, approve: boolean) {
+    if (busy) return;
+    setBusy(true);
+    setProblem(null);
+    setNotice(null);
+    try {
+      put(await (approve ? approveRequest : declineRequest)(hub.id, member.user.id));
+      setNotice(fill(approve ? t.team.approved : t.team.requestDeclined, { name: member.user.display_name }));
+    } catch (error) {
+      if (error instanceof SignedOutError) return;
+      if (error instanceof IdeaError && error.code === "REQUEST_NOT_FOUND") {
+        // the person withdrew nothing, but the request is gone (answered elsewhere): show the list as it is now
+        setAttempt((n) => n + 1);
+        setProblem(t.team.requestGone);
+      } else setProblem((approve ? inviteMessage(error, t.team) : null) ?? t.team.actionFailed);
+    } finally {
+      setBusy(false);
+      setDeclining(null);
+    }
+  }
+
   async function inviteAgain(member: Member) {
     if (busy) return;
     setBusy(true);
     setProblem(null);
+    setNotice(null);
     try {
       put(await inviteMember(hub.id, member.user.username));
     } catch (error) {
@@ -204,6 +250,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
     if (!withdrawing || busy) return;
     setBusy(true);
     setProblem(null);
+    setNotice(null);
     try {
       await withdrawInvitation(hub.id, withdrawing.user.id);
       setMembers((list) => list && list.filter((other) => other.user.id !== withdrawing.user.id));
@@ -219,6 +266,8 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
   }
 
   const active = members?.filter((member) => member.status === "active").length ?? hub.member_count;
+  // requests wait on the owner, so they come first
+  const shown = [...(members ?? [])].sort((a, b) => Number(b.status === "requested") - Number(a.status === "requested"));
 
   return (
     <div aria-busy={(!members && !failed) || undefined}>
@@ -239,7 +288,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
         </div>
       ) : (
         <ul className={styles.members}>
-          {members.map((member) => (
+          {shown.map((member) => (
             <li key={member.user.id} className={styles.member} data-arrived={member.user.id === arrived || undefined}>
               <Person
                 lang={lang}
@@ -249,16 +298,27 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
               />
               {member.status !== "active" && (
                 <div className={styles.side}>
-                  {member.status === "invited" ? (
-                    <span className={village.pill} data-state="open">
-                      <Clock />
-                      {t.team.invited}
-                    </span>
-                  ) : (
-                    <span className={village.pill} data-state="later">
-                      <X />
-                      {t.team.declined}
-                    </span>
+                  <Pill status={member.status} label={t.team[member.status]} />
+                  {isOwner && member.status === "requested" && (
+                    <>
+                      <button
+                        type="button"
+                        className={landing.ghost}
+                        aria-label={fill(t.team.named, { action: t.team.approve, name: member.user.display_name })}
+                        aria-busy={busy || undefined}
+                        onClick={() => answer(member, true)}
+                      >
+                        {t.team.approve}
+                      </button>
+                      <button
+                        type="button"
+                        className={landing.ghost}
+                        aria-label={fill(t.team.named, { action: t.team.decline, name: member.user.display_name })}
+                        onClick={() => setDeclining(member)}
+                      >
+                        {t.team.decline}
+                      </button>
+                    </>
                   )}
                   {isOwner && member.status === "invited" && (
                     <button
@@ -287,6 +347,12 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
           ))}
         </ul>
       )}
+      {notice && (
+        <p className={ideas.done} role="status">
+          <Check />
+          {notice}
+        </p>
+      )}
       {problem && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
@@ -305,6 +371,18 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
             </p>
           </>
         ))}
+      <ConfirmDialog
+        open={!!declining}
+        title={t.team.declineDialog.title}
+        confirm={t.team.declineDialog.confirm}
+        cancel={t.team.declineDialog.cancel}
+        danger
+        busy={busy}
+        onConfirm={() => declining && answer(declining, false)}
+        onCancel={() => setDeclining(null)}
+      >
+        <p>{t.team.declineDialog.text}</p>
+      </ConfirmDialog>
       <ConfirmDialog
         open={!!withdrawing}
         title={t.team.withdrawDialog.title}

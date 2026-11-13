@@ -603,6 +603,36 @@ def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in
         assert client.get("/v1/posts", headers=ada_auth, params=bad).status_code == 422, bad
 
 
+def test_list_posts_matches_any_of_several_topics_once(client: TestClient, sign_in) -> None:
+    ada_auth = _bearer(sign_in("github-code-ada")["access_token"])
+    moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
+    _create(client, ada_auth, "Python only", topics=["python"])
+    _create(client, moussa_auth, "Rust only", topics=["rust"])
+    _create(client, moussa_auth, "Python and Rust", topics=["python", "rust"])
+    _create(client, ada_auth, "No topic")
+
+    def bodies(*topics: str) -> list[str]:
+        params = [("topic", topic) for topic in topics]
+        return _bodies(client.get("/v1/posts", headers=ada_auth, params=params))
+
+    assert bodies("rust", "python") == ["Python and Rust", "Rust only", "Python only"]
+    assert bodies("python", "python") == ["Python and Rust", "Python only"]
+    assert bodies("no-such-topic", "rust") == ["Python and Rust", "Rust only"]
+
+
+def test_list_posts_refuses_more_than_ten_topics_or_a_malformed_one(
+    client: TestClient, sign_in
+) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+
+    too_many = [("topic", "python")] * 11
+    assert client.get("/v1/posts", headers=auth, params=too_many[:10]).status_code == 200
+    assert client.get("/v1/posts", headers=auth, params=too_many).status_code == 422
+
+    malformed = [("topic", "python"), ("topic", "Not_A_Slug")]
+    assert client.get("/v1/posts", headers=auth, params=malformed).status_code == 422
+
+
 def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> None:
     ada = sign_in("github-code-ada")
     ada_auth = _bearer(ada["access_token"])

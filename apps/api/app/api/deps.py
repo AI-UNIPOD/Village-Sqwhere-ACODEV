@@ -1,16 +1,17 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app import config
 from app.core.security import decode_access_token
 from app.database import get_db
-from app.models.users import User, UserFeedTopic, UserRole, UserTechnology
-from app.schemas.lookups import TechnologyRef
+from app.models.users import User, UserFeedTopic, UserRole, UserSector, UserTechnology
+from app.schemas.lookups import SectorRef, TechnologyRef
 from app.schemas.users import (
     UserIdentityRef,
     UserProfile,
@@ -62,6 +63,7 @@ def user_to_profile(user: User) -> UserProfile:
         for uf in user.feed_topics
         if uf.technology is not None
     ]
+    sectors = [SectorRef(slug=us.sector.slug, name=us.sector.name) for us in user.sectors]
     identities = [
         UserIdentityRef(
             provider=(
@@ -89,15 +91,18 @@ def user_to_profile(user: User) -> UserProfile:
             if hasattr(user.platform_role, "value")
             else str(user.platform_role)
         ),
+        is_demo=user.is_demo,
         roles=role_details,
         technologies=technologies,
         feed_topics=feed_topics,
+        sectors=sectors,
         identities=identities,
         created_at=user.created_at,
     )
 
 
 async def get_current_user(
+    request: Request,
     db: DbSession,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security_bearer)],
 ) -> User:
@@ -134,6 +139,7 @@ async def get_current_user(
             selectinload(User.roles).selectinload(UserRole.verification_sessions),
             selectinload(User.technologies).selectinload(UserTechnology.technology),
             selectinload(User.feed_topics).selectinload(UserFeedTopic.technology),
+            selectinload(User.sectors).selectinload(UserSector.sector),
         )
         .where(User.id == user_id, User.deleted_at.is_(None))
     )
@@ -147,7 +153,46 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    if user.is_demo:
+        refuse_demo(request.method)
     return user
+
+
+def same_world(user_id: ColumnElement[UUID], viewer: User) -> ColumnElement[bool]:
+    """Demo content is for demo accounts only, and demo accounts see only demo content.
+
+    Anyone can sign in to the demo, so this keeps real developers' work out of it and the
+    made-up developers out of everyone else's lists. Apply it to the user behind every shared
+    row a list or read returns. docs/decisions/2026-11-13-read-only-demo.md
+    """
+    demo_ids = select(User.id).where(User.is_demo)
+    return user_id.in_(demo_ids) if viewer.is_demo else user_id.not_in(demo_ids)
+
+
+def demo_switched_off() -> HTTPException:
+    # Tokens the demo handed out stop working as soon as the demo is switched off.
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail={"code": "DEMO_UNAVAILABLE", "message": "The demo is off. Sign in with GitHub."},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def refuse_demo(method: str) -> None:
+    """The demo account is shared and anyone can sign in as it, so it may only read. Every
+    signed-in route resolves the user here, so a new write route is covered with no check of
+    its own."""
+    if not config.DEMO_ENABLED:
+        raise demo_switched_off()
+    if method not in ("GET", "HEAD", "OPTIONS"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "DEMO_READ_ONLY",
+                "message": "The demo can look at everything but change nothing. "
+                "Sign in with GitHub to take part.",
+            },
+        )
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

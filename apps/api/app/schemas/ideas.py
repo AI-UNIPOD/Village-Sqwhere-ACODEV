@@ -105,6 +105,7 @@ class PublicIdea(BaseModel):
     status: IdeaStatus
     roles_needed: list[RoleRef]
     author: IdeaAuthor
+    hub_id: UUID | None
     published_at: datetime
     created_at: datetime
     updated_at: datetime

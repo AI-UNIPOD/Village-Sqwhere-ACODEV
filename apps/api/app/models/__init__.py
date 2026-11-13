@@ -8,7 +8,7 @@ from app.models.hubs import (
     HubStatus,
 )
 from app.models.ideas import Idea, IdeaRoleNeed, IdeaStage, IdeaStatus
-from app.models.lookups import Base, Role, Technology
+from app.models.lookups import Base, Role, Sector, Technology
 from app.models.posts import (
     Comment,
     CommentLike,
@@ -29,6 +29,7 @@ from app.models.users import (
     UserFeedTopic,
     UserIdentity,
     UserRole,
+    UserSector,
     UserTechnology,
     VerificationInterview,
     VerificationInterviewTurn,
@@ -63,11 +64,13 @@ __all__ = [
     "PostType",
     "Role",
     "SavedPost",
+    "Sector",
     "Technology",
     "User",
     "UserFeedTopic",
     "UserIdentity",
     "UserRole",
+    "UserSector",
     "UserTechnology",
     "VerificationInterview",
     "VerificationInterviewTurn",

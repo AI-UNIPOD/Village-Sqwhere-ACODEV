@@ -125,15 +125,7 @@ type Copy = {
     noRoles: string;
     sharedBy: string;
     githubProfile: string;
-    joinTitle: string;
-    joinSteps: string[];
     edit: string;
-    fitNote: string;
-    verify: string;
-    verifyWhy: string;
-    setUp: string;
-    setUpWhy: string;
-    otherRoles: string;
     goneTitle: string;
     goneText: string;
   };
@@ -293,19 +285,7 @@ const en: Copy = {
     noRoles: "The owner has not said which roles are needed yet.",
     sharedBy: "Shared by",
     githubProfile: "GitHub profile, opens in a new tab",
-    joinTitle: "How joining works",
-    joinSteps: [
-      "The owner sees developers whose verified role fills a gap.",
-      "The owner invites the people they want on the team, 2 to 5 in all.",
-      "Invited developers sign the hub agreement, then read the full brief and build together.",
-    ],
     edit: "Edit your idea",
-    fitNote: "You are verified in a role this idea needs, so the owner can be shown your profile.",
-    verify: "Verify your role",
-    verifyWhy: "Owners are only shown developers whose role is verified.",
-    setUp: "Set up your profile",
-    setUpWhy: "Choose your main role first, so ideas that need it can find you.",
-    otherRoles: "This idea needs other roles than yours.",
     goneTitle: "This idea is not open",
     goneText: "It may have been closed by its owner, or the address is wrong.",
   },
@@ -474,19 +454,7 @@ const fr: Copy = {
     noRoles: "Le porteur de l'idée n'a pas encore indiqué les rôles recherchés.",
     sharedBy: "Partagée par",
     githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
-    joinTitle: "Comment rejoindre une équipe",
-    joinSteps: [
-      "Le porteur de l'idée voit les développeurs dont le rôle vérifié comble un manque.",
-      "Il invite les personnes qu'il veut dans l'équipe, de 2 à 5 en tout.",
-      "Les développeurs invités signent l'accord de l'espace, puis lisent le dossier complet et construisent ensemble.",
-    ],
     edit: "Modifier votre idée",
-    fitNote: "Vous êtes vérifié dans un rôle que cette idée recherche\u202f: votre profil peut être proposé à son porteur.",
-    verify: "Faire vérifier votre rôle",
-    verifyWhy: "Seuls les développeurs au rôle vérifié sont proposés aux porteurs d'idées.",
-    setUp: "Configurer votre profil",
-    setUpWhy: "Choisissez d'abord votre rôle principal, pour que les idées qui le recherchent vous trouvent.",
-    otherRoles: "Cette idée recherche d'autres rôles que le vôtre.",
     goneTitle: "Cette idée n'est pas ouverte",
     goneText: "Elle a peut-être été fermée par son porteur, ou l'adresse est incorrecte.",
   },

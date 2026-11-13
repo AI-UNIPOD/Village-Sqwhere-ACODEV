@@ -1,11 +1,12 @@
 """Rules the hub endpoints share, kept in one place."""
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import AgreementTemplate, Hub, HubMember, HubMemberStatus
+from app.models import AgreementTemplate, Hub, HubMember, HubMemberStatus, User
 from app.schemas.hubs import Hub as HubCard
 from app.schemas.hubs import HubAgreement, HubIdea, HubOwner, HubViewer
 
@@ -23,6 +24,12 @@ async def current_agreement_template(db: AsyncSession) -> AgreementTemplate | No
         .limit(1)
     )
     return result.scalar_one_or_none()
+
+
+def in_viewers_world(hub: Hub, viewer: User) -> bool:
+    """Demo hubs exist only for demo accounts, and demo accounts see only demo hubs.
+    docs/decisions/2026-11-13-read-only-demo.md"""
+    return hub.owner.is_demo == viewer.is_demo
 
 
 async def load_hub(db: AsyncSession, hub_id: UUID) -> Hub | None:
@@ -49,6 +56,7 @@ async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
         .execution_options(populate_existing=True)
     )
     viewer = membership.scalar_one_or_none()
+    wait = viewer.can_ask_again_at if viewer else None
     return HubCard(
         id=hub.id,
         name=hub.name,
@@ -67,5 +75,6 @@ async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
         viewer=HubViewer(
             membership_status=viewer.status if viewer else None,
             member_role=viewer.member_role if viewer else None,
+            can_ask_again_at=wait if wait and wait > datetime.now(UTC) else None,
         ),
     )

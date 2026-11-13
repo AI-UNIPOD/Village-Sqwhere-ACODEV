@@ -21,7 +21,8 @@ export type Hub = {
   member_count: number;
   agreement: { version: number };
   // both null for someone who was never a member
-  viewer: { membership_status: string | null; member_role: "owner" | "member" | null };
+  // `can_ask_again_at` is set only while a wait after a decline is still ahead
+  viewer: { membership_status: string | null; member_role: "owner" | "member" | null; can_ask_again_at?: string | null };
 };
 
 export type NewHub = {
@@ -56,11 +57,11 @@ export async function loadHubsByIdea(): Promise<Record<string, Hub>> {
   return found;
 }
 
-// One person's place in a hub. Only an owner is sent the `invited` and `declined` ones.
+// One person's place in a hub. Only an owner is sent the `requested`, `invited` and `declined` ones.
 export type Member = {
   user: { id: string; username: string; display_name: string; is_verified: boolean };
   member_role: "owner" | "member";
-  status: "active" | "invited" | "declined";
+  status: "active" | "requested" | "invited" | "declined";
   joined_at: string | null;
   updated_at: string;
 };
@@ -84,6 +85,20 @@ export const declineInvitation = async (id: string) =>
   (await call<{ data: Hub }>(`${hubPath(id)}/invitation/decline`, "POST")).data;
 
 export const loadInvitations = async () => (await call<{ data: Hub[] }>("/v1/me/hubs?status=invited&limit=50")).data;
+
+// The hubs the developer asked to join and the owner has not answered yet.
+export const loadRequests = async () => (await call<{ data: Hub[] }>("/v1/me/hubs?status=requested&limit=50")).data;
+
+// Answers with the hub card, whose `viewer.membership_status` is now "requested".
+export const askToJoin = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/join-requests`, "POST")).data;
+
+// The owner answers a request. Approving makes it an invitation (the member card says "invited"),
+// which the developer then signs; declining makes it "declined".
+export const approveRequest = async (id: string, userId: string) =>
+  (await call<{ data: Member }>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/approve`, "POST")).data;
+
+export const declineRequest = async (id: string, userId: string) =>
+  (await call<{ data: Member }>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/decline`, "POST")).data;
 
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;

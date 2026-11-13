@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import IdeasError from "../[lang]/ideas/error";
 import { api, asked, fetchMock, hub, idea, posted, refusal, reply } from "../hubs/test-support";
+import { forgetMe, keepMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { IdeaMatches } from "./idea-matches";
 
@@ -55,6 +56,8 @@ const cardOf = (name: string) => within(screen.getByText(name, { selector: "p, a
 const title = (text: string) => screen.findByRole("heading", { level: 1, name: text });
 
 beforeEach(() => {
+  // the frame already knows who is signed in, as it does after the first screen of a visit
+  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, roles: [], technologies: [], feed_topics: [] });
   nav.search = "id=idea-1";
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem(
@@ -65,6 +68,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  forgetMe();
   vi.unstubAllGlobals();
   fetchMock.mockReset();
   localStorage.clear();
