@@ -597,6 +597,76 @@ Only `passed` and `failed` are accepted. A reviewer must be verified in the appl
 cannot review their own attempt, and cannot decide a case that is no longer awaiting review. A
 passed decision marks the applicant's role and profile as verified through the database trigger.
 
+### Ideas
+
+An idea starts as an owner-only draft. Its `summary` is the safe public abstract for discovery.
+Its optional `details` field is a confidential brief, so the API never returns it outside the
+owner-only endpoints. Required roles are the platform role slugs a collaborator must have.
+
+**Idea error codes.** Errors use `{"detail": {"code": "...", "message": "..."}}`. Branch
+on `code`, never on `message`.
+
+| Status | Code | When |
+| --- | --- | --- |
+| `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
+| `404` | `NOT_FOUND` | The idea does not exist, is deleted, is not yours on a `/me` route, or is not open on a discovery route. |
+| `409` | `IDEA_NOT_DRAFT` | Trying to publish an idea that is already open or closed. |
+| `409` | `IDEA_NOT_OPEN` | Trying to close a draft or a closed idea. |
+| `422` | `UNKNOWN_ROLE` | A role slug does not exist or is inactive. |
+| `422` | (FastAPI's list) | A field is invalid, duplicate, unknown or missing. `detail` is a list. |
+
+#### `POST /v1/me/ideas`
+
+Creates a private draft. The server takes the author from the access token. It does not accept
+an owner or a status from the client.
+
+* **Authentication:** Bearer token required.
+* **Request Body:**
+  ```json
+  {
+    "title": "Offline farm ledger for co-operatives",
+    "summary": "A shared ledger that works offline for farming co-operatives in Kano.",
+    "details": "Private plan for onboarding the first co-operatives.",
+    "stage": "concept",
+    "roles_needed": ["backend-engineer", "ui-ux-engineer"]
+  }
+  ```
+  `title` is 5 to 150 characters, `summary` is 20 to 1000, and `details` is optional and up
+  to 20,000. `stage` is `concept`, `prototype` or `building`. `roles_needed` has zero to nine
+  distinct active role slugs. Unknown fields are refused.
+* **Success Response (201 Created):** Returns the full owner-only idea, including `details`,
+  with `status: "draft"` and `published_at: null`.
+
+#### `GET /v1/me/ideas` and `GET /v1/me/ideas/{idea_id}`
+
+Lists the signed-in developer's active ideas, or returns one full owner-only idea. List results
+omit `details` to keep a page light. Both accept or return the usual `offset`, `limit` and
+`next_offset` pagination values, where applicable.
+
+#### `PATCH /v1/me/ideas/{idea_id}`
+
+Changes any supplied idea field. Send `details: null` to remove the confidential brief. Send
+`roles_needed: []` to clear the role requirements. Leaving a field out keeps it unchanged.
+Changing title or summary invalidates its vector in the database, so matching can re-embed the
+new public text.
+
+#### `POST /v1/me/ideas/{idea_id}/publish`
+
+Moves a draft to `open` and records the publication time. An open idea can be discovered by
+signed-in developers and can be used to create a hub. A closed idea cannot be published again
+in this first version.
+
+#### `POST /v1/me/ideas/{idea_id}/close`
+
+Moves an open idea to `closed`. The owner retains the full record, but it no longer appears in
+discovery or matching candidates.
+
+#### `GET /v1/ideas` and `GET /v1/ideas/{idea_id}`
+
+Returns only open idea cards to signed-in developers. A card contains title, summary, stage,
+roles needed, author and timestamps. It never contains the confidential `details` field.
+`GET /v1/ideas` accepts `offset` and `limit`, with `next_offset` when another page exists.
+
 ### Hubs
 
 A hub is the space where a team builds an idea together. Every member signs the same
