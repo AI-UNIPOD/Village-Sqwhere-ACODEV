@@ -29,9 +29,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - Onboarding after sign-in is at `/en/onboarding` and `/fr/onboarding`, for signed-in people
   only, greeting them by their name from `GET /v1/me`. The last screen saves the main role and
   the stack; country and topics stay in the tab (`docs/decisions/2026-11-11-onboarding-page.md`).
-- Signed-in screens share the `AppFrame` header: the village home (`/en/village`: profile, four
-  steps to a team), role verification with its live interview, peer review (`/en/reviews`), and
-  ideas: write, publish, close, and browse open ones (`/en/ideas`). Why: `docs/decisions/2026-11-13-*`.
+- Signed-in screens share the `AppFrame` header: village home, role verification and its
+  interview, peer review, ideas (write, publish, browse). Why: `docs/decisions/2026-11-13-*`.
 - Unknown addresses get a 404 in their language; landing and sign-in have an error page. French
   copy puts a narrow no-break space before ? ! : ; (`docs/design-system/voice-and-tone.md`).
 - The design system is in `docs/design-system/`: tokens, the palaver tree logo and docs.
@@ -40,13 +39,14 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 ## What's next
 
 1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
-2. Build AI matching on published ideas, then the owner's team approval, invitations and the
-   four hub phases. Ask Tanny for the PRD before any product decision it must settle.
-3. Add production deployment configuration and, once the team has Systalink platform access, a
-   deploy job in CI.
+2. Leaving and removing members, editing and archiving a hub, and the four hub phases (decisions
+   and next steps need a new schema script); later, semantic similarity for matching.
+3. Add peer-review report display, production deployment configuration and, once the team has
+   Systalink platform access, a deploy job in CI.
 4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
-6. Web screens next: hubs, a profile page and navigation between screens. Also a server-rendered 404 and a French-speaking teammate's check of the copy.
+6. Web screens next: hubs, a profile page and navigation between screens. Also a
+   server-rendered 404 and a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
 8. Turn on GitHub protection for `main` (an org admin and a paid plan, or a public repository);
