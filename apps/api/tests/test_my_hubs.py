@@ -250,7 +250,10 @@ def test_pages_cover_every_hub_once(client: TestClient) -> None:
 
     pages = []
     offset: int | None = 0
-    while offset is not None:
+    # bounded, so a next_offset that never ends fails the test instead of hanging it
+    for _ in range(5):
+        if offset is None:
+            break
         body = client.get(URL, params={"offset": offset, "limit": 2}, headers=auth(owner)).json()
         pages.append(ids(body))
         offset = body["next_offset"]
