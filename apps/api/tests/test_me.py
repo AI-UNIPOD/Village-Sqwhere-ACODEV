@@ -462,4 +462,6 @@ def test_replacing_a_list_from_two_tabs_at_once_never_fails(sign_in, path: str, 
 
     assert codes == [200] * len(lists)
     saved = [t["slug"] for t in client.get("/v1/me", headers=bearer(data)).json()["data"][field]]
-    assert saved in lists  # one whole replacement won, never a mix of two
+    # GET /v1/me lists them in no fixed order, so compare without order. One whole replacement
+    # still has to win, never a mix of two.
+    assert sorted(saved) in [sorted(sent) for sent in lists]
