@@ -45,6 +45,7 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
   const name = profile.displayName ?? profile.username;
   const role = me.roles.find((r) => r.is_primary) ?? me.roles[0];
   const verified = !!role?.verified_at;
+  const attemptUnderWay = ["pending", "in_progress", "awaiting_review"].includes(role?.verification?.latest_status ?? "");
   // Ideas and hubs open here when their screens exist.
   const states: Record<(typeof STEPS)[number], StepState> = {
     profile: role ? "done" : "next",
@@ -126,6 +127,17 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
                       href={`/${lang}/onboarding?step=role`}
                     >
                       {role ? t.change : t.setUp}
+                    </Link>
+                  )}
+                  {id === "verify" && state === "next" && (
+                    <Link className={`${landing.btn} ${styles.action}`} href={`/${lang}/verification`}>
+                      {attemptUnderWay ? t.verifyContinue : t.verifyStart}
+                    </Link>
+                  )}
+                  {/* a Green Tick is also the right to decide other developers' attempts */}
+                  {id === "verify" && state === "done" && (
+                    <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/reviews`}>
+                      {t.review}
                     </Link>
                   )}
                 </div>
