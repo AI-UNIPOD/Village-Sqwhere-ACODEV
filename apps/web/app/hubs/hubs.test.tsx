@@ -219,6 +219,33 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
   expect(github.getAttribute("href")).toBe("https://github.com/kwabena-owusu");
 });
 
+// The hub arrives after the page, so the browser's own jump to an address's hash finds nothing.
+test("the phases are a section of their own, and the page scrolls to the part the address names once the hub has loaded", async () => {
+  const scroll = vi.fn();
+  Element.prototype.scrollIntoView = scroll;
+  history.replaceState(null, "", "/en/hubs/view?id=hub-1#phases");
+  nav.search = "id=hub-1";
+  api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
+  const { container } = render(<HubPage lang="en" />);
+  await screen.findByRole("heading", { level: 1, name: "Borehole map hub" });
+  const phases = container.querySelector("section#phases")!;
+  expect(within(phases as HTMLElement).getByRole("heading", { level: 2, name: "Phases" })).toBeTruthy();
+  await waitFor(() => expect(scroll).toHaveBeenCalledOnce());
+  expect(scroll.mock.contexts[0]).toBe(phases);
+  expect(scroll).toHaveBeenCalledWith({ block: "center", behavior: "smooth" });
+  history.replaceState(null, "", "/");
+});
+
+test("with no hash in the address, the page stays where it is", async () => {
+  const scroll = vi.fn();
+  Element.prototype.scrollIntoView = scroll;
+  nav.search = "id=hub-1";
+  api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
+  render(<HubPage lang="en" />);
+  await screen.findByRole("heading", { level: 1, name: "Borehole map hub" });
+  expect(scroll).not.toHaveBeenCalled();
+});
+
 test("someone who is not a member is told so, and gets no owner's links", async () => {
   nav.search = "id=hub-1&created=1";
   api({ "GET /v1/hubs/hub-1": { data: hub({ viewer: { membership_status: null, member_role: null } }) } });

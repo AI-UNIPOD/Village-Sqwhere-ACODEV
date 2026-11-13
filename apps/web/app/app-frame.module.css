@@ -111,6 +111,13 @@
   font: var(--type-body-s);
 }
 
+/* the tour and the way out, side by side; they wrap together under the line on a phone */
+.demoActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-4);
+}
+
 /* a change was refused: the line says so, in the text colour, and arrives again */
 .demo[data-refused] p {
   color: var(--text);

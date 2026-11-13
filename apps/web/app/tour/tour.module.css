@@ -1,0 +1,150 @@
+/* The guided tour's bar. It sticks to the top of the screen under the demo line, so the stop
+   stays in view while the page scrolls. Kept small: on a phone it takes about a quarter of the
+   screen. */
+.panel {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--gutter);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+/* the words of a stop arrive with a short fade and a small rise */
+.panel > div:first-child {
+  animation: tour-arrive var(--dur-menu) var(--ease-out) both;
+}
+
+@keyframes tour-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+.count {
+  color: var(--text-muted);
+  font: var(--type-caption);
+}
+
+.name {
+  font: var(--type-label);
+}
+
+/* the heading takes focus after a stop is chosen: it is read out, not drawn as a control */
+.name:focus {
+  outline: none;
+}
+
+.text {
+  margin-block-start: var(--space-1);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  text-wrap: pretty;
+}
+
+/* the link's padding makes a 44px target without changing the lines of text */
+.link {
+  padding-block: calc((var(--tap-min) - 1lh) / 2);
+}
+
+/* four parts, the done ones and the current one filled */
+.progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.part {
+  position: relative;
+  overflow: hidden;
+  block-size: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--line);
+}
+
+.part::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--text);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.part[data-filled]::after {
+  transform: scaleX(1);
+}
+
+/* the part just reached fills from the left */
+.part[data-current]::after {
+  animation: tour-fill var(--dur-menu) var(--ease-out) both;
+}
+
+@keyframes tour-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* the buttons here are smaller than a section's, so three fit a phone in French; the last one
+   is the way out and sits to the right */
+.buttons > button {
+  padding-inline: var(--space-4);
+}
+
+.buttons > button:last-child {
+  margin-inline-start: auto;
+  padding-inline: 0;
+}
+
+/* off the route: one line, and the way back */
+.panel[data-compact] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-4);
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  font: var(--type-label);
+}
+
+.line .count {
+  align-self: center;
+}
+
+@media (max-width: 479px) {
+  .panel[data-compact] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* reduced motion: the words keep their fade, the movement goes, and the part fills at once */
+@media (prefers-reduced-motion: reduce) {
+  .panel > div:first-child {
+    animation-name: tour-fade;
+  }
+
+  .part[data-current]::after {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes tour-fade {
+  from {
+    opacity: 0;
+  }
+}

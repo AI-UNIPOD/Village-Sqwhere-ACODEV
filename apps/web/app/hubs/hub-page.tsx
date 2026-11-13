@@ -11,6 +11,7 @@ import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { ArrowLeft, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
+import { scrollToId } from "../scroll";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
@@ -42,6 +43,13 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       live = false;
     };
   }, [id]);
+
+  // The card arrives after the page, so the browser's own jump to #phases finds nothing: scroll
+  // to the part the address names once the card is there (the guided tour's last stop).
+  const shown = !!hub;
+  useEffect(() => {
+    if (shown && window.location.hash) scrollToId(window.location.hash.slice(1));
+  }, [shown]);
 
   if (failure) throw failure;
   if (hub === null) return <MissingHub lang={lang} />;
@@ -116,19 +124,21 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       <p className={`${ideas.meta} ${styles.line}`}>{t.termsFrozen}</p>
       <p className={`${ideas.meta} ${styles.line}`}>{fill(t.agreementVersion, { n: hub.agreement.version })}</p>
 
-      <h2 className={`${ideas.heading} ${styles.heading}`}>{t.phasesHeading}</h2>
-      <ol className={styles.phases}>
-        {t.phases.map((phase, at) => (
-          <li key={phase}>
-            <span className={styles.num} aria-hidden="true">
-              {String(at + 1).padStart(2, "0")}
-            </span>
-            <span className={styles.strong}>{phase}</span>
-            <span className={ideas.meta}>{t.notStarted}</span>
-          </li>
-        ))}
-      </ol>
-      <p className={ideas.lead}>{t.phasesNote}</p>
+      <section id="phases">
+        <h2 className={`${ideas.heading} ${styles.heading}`}>{t.phasesHeading}</h2>
+        <ol className={styles.phases}>
+          {t.phases.map((phase, at) => (
+            <li key={phase}>
+              <span className={styles.num} aria-hidden="true">
+                {String(at + 1).padStart(2, "0")}
+              </span>
+              <span className={styles.strong}>{phase}</span>
+              <span className={ideas.meta}>{t.notStarted}</span>
+            </li>
+          ))}
+        </ol>
+        <p className={ideas.lead}>{t.phasesNote}</p>
+      </section>
     </main>
   );
 }

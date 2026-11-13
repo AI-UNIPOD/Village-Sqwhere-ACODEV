@@ -10,10 +10,8 @@ type Copy = {
   navTour: string;
   signIn: string;
   signOut: string;
-  soon: string;
   /** Under "Try the demo": what it is, then how opening it is going. */
   demo: { idle: string; opening: string; unavailable: string; network: string; failed: string };
-  tourNote: string;
   switchText: string;
   switchLabel: string;
   toDark: string;
@@ -50,7 +48,6 @@ const en: Copy = {
   navTour: "Tour",
   signIn: "Sign in",
   signOut: "Sign out",
-  soon: "Coming soon",
   demo: {
     idle: "No sign-up. Look at everything, change nothing.",
     opening: "Opening the demo",
@@ -58,7 +55,6 @@ const en: Copy = {
     network: "We couldn't reach Village Sqwhere. Check your connection and try again.",
     failed: "The demo did not open. Try again.",
   },
-  tourNote: "The guided tour is coming soon.",
   switchText: "FR",
   switchLabel: "Passer en français",
   toDark: "Switch to dark mode",
@@ -96,9 +92,9 @@ const en: Copy = {
     "A guided route through a live demo account. No sign-up, and you can leave the route at any stop to look around.",
   tourButton: "Start the tour",
   stops: [
-    { text: "Share an idea in Dakar", time: "0:30" },
-    { text: "Watch the matcher score co-⁠builders", time: "0:45" },
-    { text: "Approve a team of four", time: "0:30" },
+    { text: "Share an idea", time: "0:30" },
+    { text: "See who the matcher suggests", time: "0:45" },
+    { text: "Approve your team", time: "0:30" },
     { text: "Walk the hub's four phases", time: "1:15" },
   ],
   total: { text: "Total", time: "3:00" },
@@ -119,7 +115,6 @@ const fr: Copy = {
   navTour: "Visite",
   signIn: "Connexion",
   signOut: "Déconnexion",
-  soon: "Bientôt disponible",
   demo: {
     idle: "Sans inscription. Regardez tout, sans rien modifier.",
     opening: "Ouverture de la démo",
@@ -127,7 +122,6 @@ const fr: Copy = {
     network: "Nous n'avons pas pu joindre Village Sqwhere. Vérifiez votre connexion et réessayez.",
     failed: "La démo ne s'est pas ouverte. Réessayez.",
   },
-  tourNote: "La visite guidée arrive bientôt.",
   switchText: "EN",
   switchLabel: "Switch to English",
   toDark: "Passer en mode sombre",
@@ -165,9 +159,9 @@ const fr: Copy = {
     "Un parcours guidé dans un compte de démo en direct. Sans inscription, et vous pouvez quitter le parcours à chaque étape pour explorer.",
   tourButton: "Commencer la visite",
   stops: [
-    { text: "Partager une idée à Dakar", time: "0:30" },
-    { text: "Voir le matcher noter des partenaires", time: "0:45" },
-    { text: "Valider une équipe de quatre", time: "0:30" },
+    { text: "Partager une idée", time: "0:30" },
+    { text: "Voir qui le matcher propose", time: "0:45" },
+    { text: "Valider votre équipe", time: "0:30" },
     { text: "Parcourir les quatre phases de l'espace", time: "1:15" },
   ],
   total: { text: "Total", time: "3:00" },

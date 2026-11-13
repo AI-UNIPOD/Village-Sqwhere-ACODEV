@@ -7,6 +7,12 @@ import { forgetInvitation, keepInvitations } from "./hubs/invitations";
 import { noticeDemoRefusal, resetDemo } from "./session/demo";
 import { forgetMe, useMe } from "./session/me";
 import { SESSION_KEY } from "./session/session";
+import { endTour } from "./tour/tour";
+
+// the demo line's "Take the tour" and the tour panel go to a screen with the router
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 const fetchMock = vi.fn();
 const answer = (roles: unknown[] = [], display_name = "Aminata Ndiaye") =>
@@ -40,6 +46,8 @@ afterEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute("data-theme");
   resetDemo();
+  endTour();
+  // the frame asks for the profile itself (ensureMe), so each test starts without the last one's
   forgetMe();
 });
 

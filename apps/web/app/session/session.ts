@@ -168,8 +168,9 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 // Forgets the session here first, so signing out works even when the API cannot be reached,
 // asks the API to revoke the refresh token (keepalive lets the request outlive the page), and
 // goes home. This tab's hooks are not told: a guarded page would send the person to sign-in
-// first. Other tabs still hear it through the storage event.
-export function signOut(lang: Lang) {
+// first. Other tabs still hear it through the storage event. `to` is the page to open
+// instead of the home page, after the language ("/sign-in").
+export function signOut(lang: Lang, to = "") {
   const session = parseSession(readRaw());
   try {
     localStorage.removeItem(SESSION_KEY);
@@ -191,5 +192,5 @@ export function signOut(lang: Lang) {
     }).catch(() => {});
   }
   // a full load, so nothing from the signed-in page stays in memory
-  window.location.replace(`/${lang}`);
+  window.location.replace(`/${lang}${to}`);
 }

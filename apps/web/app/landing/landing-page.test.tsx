@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { LandingPage } from "./landing-page";
@@ -113,19 +113,30 @@ test("on phones the section links reach into the language button's gutter, and n
   expect(wide).toContain("flex: 0 1 auto;");
 });
 
-test("the tour says it is coming soon and does nothing; the demo is a real button that says what it is", () => {
+test("the tour is a real button under the tour's words, and so are both demo buttons, each with its line", () => {
   const { container } = render(<LandingPage lang="en" />);
-  for (const button of screen.getAllByRole("button", { name: /^Start the tour/ })) {
-    expect(button.getAttribute("aria-disabled")).toBe("true");
-    expect(button.textContent).toContain("Coming soon");
-    expect(() => fireEvent.click(button)).not.toThrow();
-  }
-  expect(container.querySelector("#tour-note")?.textContent).toBe("The guided tour is coming soon.");
-  // the hero and the footer each have one
+  const tour = within(container.querySelector<HTMLElement>("#tour")!).getByRole("button", { name: "Start the tour" });
+  expect(tour.hasAttribute("aria-disabled")).toBe(false);
+  expect(tour.getAttribute("aria-describedby")).toBe("tour-note");
+  // its line says nothing until there is something to report
+  expect(container.querySelector("#tour-note")?.textContent).toBe("");
+  // the hero and the footer each have a demo button
   const demo = screen.getAllByRole("button", { name: "Try the demo" });
   expect(demo).toHaveLength(2);
   for (const button of demo) expect(button.hasAttribute("aria-disabled")).toBe(false);
   expect(container.querySelector("#demo-note")?.textContent).toBe("No sign-up. Look at everything, change nothing.");
+});
+
+test.each([
+  ["en", ["Share an idea", "See who the matcher suggests", "Approve your team", "Walk the hub's four phases"]],
+  ["fr", ["Partager une idée", "Voir qui le matcher propose", "Valider votre équipe", "Parcourir les quatre phases de l'espace"]],
+] as const)("the %s tour lists what the tour shows, stop by stop", (lang, stops) => {
+  const { container } = render(<LandingPage lang={lang} />);
+  const listed = within(container.querySelector<HTMLElement>("#tour")!)
+    .getAllByRole("listitem")
+    .slice(0, 4)
+    .map((item) => item.querySelector("span:nth-of-type(2)")?.textContent);
+  expect(listed).toEqual(stops);
 });
 
 // the hero's actions, in order: everything you can press under the headline

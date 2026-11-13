@@ -4,11 +4,25 @@ import type { ReactNode } from "react";
 
 import type { Lang } from "../locales";
 import { openDemo, useDemoOpening } from "../session/demo";
+import { startTour } from "../tour/tour";
 import { copy } from "./copy";
 
 // "Try the demo": signs in as the shared demo account, with no GitHub, and opens the village.
-// `note` is the id of the line that reports on it; the hero places that line under this button.
-export function DemoButton({ lang, className, note, children }: { lang: Lang; className: string; note?: string; children: ReactNode }) {
+// With `tour` the guided tour is on when the village opens. `note` is the id of the line that
+// reports on it; the hero places that line under this button.
+export function DemoButton({
+  lang,
+  className,
+  note,
+  tour,
+  children,
+}: {
+  lang: Lang;
+  className: string;
+  note?: string;
+  tour?: boolean;
+  children: ReactNode;
+}) {
   const opening = useDemoOpening() === "opening";
   return (
     <button
@@ -19,7 +33,9 @@ export function DemoButton({ lang, className, note, children }: { lang: Lang; cl
       aria-describedby={note}
       onClick={async () => {
         // a whole new page, as after signing in with GitHub: nothing kept from the visitor's page applies
-        if (await openDemo()) window.location.replace(`/${lang}/village`);
+        if (!(await openDemo())) return;
+        if (tour) startTour();
+        window.location.replace(`/${lang}/village`);
       }}
     >
       {children}
@@ -27,9 +43,8 @@ export function DemoButton({ lang, className, note, children }: { lang: Lang; cl
   );
 }
 
-// What the demo is, then how opening it is going. A screen reader hears it change (the page's
-// one status line belongs to the coming-soon buttons, so this is a live region of its own). With
-// `quiet` it says nothing until there is something to report (the footer's copy of the button).
+// What the demo is, then how opening it is going. A screen reader hears it change. With `quiet`
+// it says nothing until there is something to report (the copies of the button below the hero).
 export function DemoNote({ lang, quiet }: { lang: Lang; quiet?: boolean }) {
   const t = copy[lang].demo;
   const opening = useDemoOpening();

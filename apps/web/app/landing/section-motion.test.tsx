@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { LandingPage } from "./landing-page";
@@ -170,23 +170,4 @@ test("phones get the section links too: they are in the header, not only on wide
   const nav = within(container.querySelector("header nav")!);
   expect(nav.getByRole("link", { name: "How it works" }).getAttribute("href")).toBe("#how");
   expect(nav.getByRole("link", { name: "Tour" }).getAttribute("href")).toBe("#tour");
-});
-
-test("pressing 'Start the tour' says it is coming soon, and the note under it stands out", () => {
-  const { container } = render(<LandingPage lang="en" />);
-  const status = screen.getByRole("status");
-  expect(status.textContent).toBe("");
-
-  fireEvent.click(screen.getByRole("button", { name: /^Start the tour/ }));
-  expect(status.textContent).toBe("The guided tour is coming soon.");
-  expect(container.querySelector("#tour-note")!.hasAttribute("data-lit")).toBe(true);
-  // nothing navigated
-  expect(window.location.hash).toBe("");
-});
-
-test("in French, pressing 'Commencer la visite' says so in French", () => {
-  const { container } = render(<LandingPage lang="fr" />);
-  fireEvent.click(screen.getByRole("button", { name: /^Commencer la visite/ }));
-  expect(screen.getByRole("status").textContent).toBe("La visite guidée arrive bientôt.");
-  expect(container.querySelector("#tour-note")!.hasAttribute("data-lit")).toBe(true);
 });

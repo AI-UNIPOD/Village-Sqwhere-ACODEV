@@ -16,7 +16,6 @@ const END_IN_VIEW = 0.9;
 // - reveals: items marked data-reveal rise into place the first time they scroll into view.
 //   Only items below the screen at load wait; without JavaScript nothing is ever hidden.
 // - the header link of the section in view is marked with aria-current="location".
-// - pressing a "coming soon" button announces its note and makes it stand out.
 export function SectionMotion() {
   useEffect(() => {
     const cleanups: Array<() => void> = [];
@@ -90,18 +89,6 @@ export function SectionMotion() {
         }
       }
     }
-
-    // a disabled button gives no feedback by itself, so say what it would do
-    const status = document.querySelector<HTMLElement>("[data-soon-status]");
-    const onClick = (event: MouseEvent) => {
-      const button = (event.target as Element | null)?.closest<HTMLElement>("[data-announce]");
-      if (!button || !status) return;
-      status.textContent = button.dataset.announce ?? "";
-      const note = button.dataset.note ? document.getElementById(button.dataset.note) : null;
-      note?.setAttribute("data-lit", "");
-    };
-    document.addEventListener("click", onClick);
-    cleanups.push(() => document.removeEventListener("click", onClick));
 
     return () => cleanups.forEach((cleanup) => cleanup());
   }, []);
