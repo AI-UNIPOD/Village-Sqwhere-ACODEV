@@ -16,8 +16,6 @@ type Copy = {
   rolesNeeded: string;
   noRoles: string;
   updated: string;
-  edit: string;
-  view: string;
   loadMore: string;
   donePublished: string;
   doneClosed: string;
@@ -81,8 +79,6 @@ const en: Copy = {
   rolesNeeded: "Roles needed",
   noRoles: "No roles chosen",
   updated: "Updated {date}",
-  edit: "Edit",
-  view: "Open",
   loadMore: "Show more",
   donePublished: "Your idea is open. Signed-in developers can now find it.",
   doneClosed: "Your idea is closed. It no longer shows to other developers.",
@@ -168,8 +164,6 @@ const fr: Copy = {
   rolesNeeded: "Rôles recherchés",
   noRoles: "Aucun rôle choisi",
   updated: "Modifiée le {date}",
-  edit: "Modifier",
-  view: "Ouvrir",
   loadMore: "Afficher plus",
   donePublished: "Votre idée est ouverte. Les développeurs connectés peuvent maintenant la trouver.",
   doneClosed: "Votre idée est fermée. Elle n'est plus montrée aux autres développeurs.",
