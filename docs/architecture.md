@@ -29,7 +29,8 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 - **Lookups** (public): `GET /v1/roles`, `GET /v1/sectors` and `GET /v1/technologies`.
 - **Sign-in** with GitHub, OAuth with PKCE: `POST /v1/auth/oauth/{provider}/start`,
   `GET /v1/auth/oauth/{provider}/callback`, `POST /v1/auth/token` (a login code or a
-  refresh token) and `POST /v1/auth/logout`. The API signs access and refresh tokens with
+  refresh token) and `POST /v1/auth/logout`. `POST /v1/auth/demo` signs in as the shared,
+  read-only demo account when `DEMO_ENABLED` is `true`. The API signs access and refresh tokens with
   `JWT_SECRET_KEY`. Bitbucket is not built and returns `503`. A new account also gets a
   verified email from GitHub when there is one (`apps/api/app/services/provider_emails.py`).
   A missing, clashing or unreadable email never blocks sign-in.

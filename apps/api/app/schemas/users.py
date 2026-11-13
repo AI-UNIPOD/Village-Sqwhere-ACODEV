@@ -46,6 +46,7 @@ class UserProfile(BaseModel):
     is_verified: bool = False
     verified_at: datetime | None = None
     platform_role: str = "member"
+    is_demo: bool = False
     roles: list[UserRoleDetail] = []
     technologies: list[TechnologyRef] = []
     feed_topics: list[TechnologyRef] = []

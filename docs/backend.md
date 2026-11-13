@@ -267,6 +267,7 @@ Exchanges a `login_code` (from the OAuth redirect) OR a `refresh_token` (to rene
         "bio": "Backend engineer",
         "is_verified": false,
         "platform_role": "member",
+        "is_demo": false,
         "roles": [],
         "technologies": [],
         "identities": [
@@ -294,6 +295,23 @@ Revokes the refresh token and signs out the session.
   ```
 * **Success Response (204 No Content):** Empty body.
 
+#### `POST /v1/auth/demo`
+Signs in as the shared demo account, for "Try the demo". No GitHub, no body.
+
+* **Authentication:** None
+* **Success Response (200 OK):** the same body as `POST /v1/auth/token`, with `user.is_demo` true.
+  Refreshing with `POST /v1/auth/token` and signing out with `POST /v1/auth/logout` work as for
+  any account.
+* **Error Response:** `404 DEMO_UNAVAILABLE` when the API runs without `DEMO_ENABLED=true`, or
+  the database has no demo account.
+* **Read-only:** the demo account can call every `GET`, but any other method on a signed-in route
+  answers `403 DEMO_READ_ONLY`, and the verification interview socket closes with code `1008`.
+  The check sits in the dependency every signed-in route uses, so a new write route is covered
+  without a check of its own. `tests/test_demo.py` tries every write route with a demo token.
+* **Switched off:** once `DEMO_ENABLED` is not `true`, tokens the demo already handed out answer
+  `401 DEMO_UNAVAILABLE`, refresh included.
+* Why: `docs/decisions/2026-11-13-read-only-demo.md`.
+
 ---
 
 ### Current User (`/v1/me`)
@@ -318,6 +336,7 @@ Fetches the full profile of the currently signed-in user.
       "is_verified": true,
       "verified_at": "2026-11-06T18:00:00Z",
       "platform_role": "member",
+      "is_demo": false,
       "roles": [
         {
           "slug": "backend-engineer",

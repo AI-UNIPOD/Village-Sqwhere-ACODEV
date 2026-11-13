@@ -31,6 +31,7 @@ They run in file name order, once, on an empty database:
 | `008-verification-interview-incomplete.sql` | Adds `incomplete` to `interview_status` if it is missing. On an empty database it changes nothing, because `007` already creates it. Running it twice is safe. |
 | `009-verification-interview-conversation.sql` | Adds `welcome_message` and `closing_message` to `verification_interviews` and `acknowledgement` to `verification_interview_turns`, if they are missing. On an empty database it changes nothing, because `007` already creates them. Running it twice is safe. |
 | `010-sectors.sql` | `sectors` (the ten areas onboarding asks about, such as `fintech` and `health`) and `user_sectors` (each developer's chosen set). Running it twice is safe, so a database made before it can run it once by hand. |
+| `011-demo-account.sql` | `users.is_demo`, which marks the one shared, read-only demo account (a unique index allows at most one). Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
