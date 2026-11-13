@@ -9,8 +9,8 @@ from sqlalchemy.orm import selectinload
 
 from app.core.security import decode_access_token
 from app.database import get_db
-from app.models.users import User, UserFeedTopic, UserRole, UserTechnology
-from app.schemas.lookups import TechnologyRef
+from app.models.users import User, UserFeedTopic, UserRole, UserSector, UserTechnology
+from app.schemas.lookups import SectorRef, TechnologyRef
 from app.schemas.users import (
     UserIdentityRef,
     UserProfile,
@@ -62,6 +62,7 @@ def user_to_profile(user: User) -> UserProfile:
         for uf in user.feed_topics
         if uf.technology is not None
     ]
+    sectors = [SectorRef(slug=us.sector.slug, name=us.sector.name) for us in user.sectors]
     identities = [
         UserIdentityRef(
             provider=(
@@ -92,6 +93,7 @@ def user_to_profile(user: User) -> UserProfile:
         roles=role_details,
         technologies=technologies,
         feed_topics=feed_topics,
+        sectors=sectors,
         identities=identities,
         created_at=user.created_at,
     )
@@ -134,6 +136,7 @@ async def get_current_user(
             selectinload(User.roles).selectinload(UserRole.verification_sessions),
             selectinload(User.technologies).selectinload(UserTechnology.technology),
             selectinload(User.feed_topics).selectinload(UserFeedTopic.technology),
+            selectinload(User.sectors).selectinload(UserSector.sector),
         )
         .where(User.id == user_id, User.deleted_at.is_(None))
     )

@@ -123,6 +123,20 @@ Fetches all active platform engineering roles (e.g. for registration, role picke
   ```
 * **Frontend Note:** Use `slug` when sending requests to the API, and use `name` when displaying to users.
 
+#### `GET /v1/sectors`
+The sectors a developer can say they want to build for, in the onboarding list's order. Onboarding
+asks for them next to the stack.
+
+* **Authentication:** None
+* **Success Response (200 OK):**
+  ```json
+  { "data": [ { "slug": "fintech", "name": "Fintech" }, { "slug": "agritech", "name": "Agritech" } ] }
+  ```
+  The ten slugs: `fintech`, `agritech`, `health`, `education`, `climate-energy`,
+  `mobility-logistics`, `commerce`, `civic`, `media-culture`, `developer-tools`. Names are English;
+  the web app shows its own French name by slug and falls back to `name` for a slug it does not know.
+* Why: `docs/decisions/2026-11-13-onboarding-sectors.md`.
+
 #### `GET /v1/technologies`
 Search or browse active technologies, frameworks, and tools.
 
@@ -322,6 +336,7 @@ Fetches the full profile of the currently signed-in user.
         { "slug": "postgresql", "name": "PostgreSQL" }
       ],
       "feed_topics": [],
+      "sectors": [{ "slug": "fintech", "name": "Fintech" }],
       "identities": [
         {
           "provider": "github",
@@ -460,6 +475,21 @@ Full replacement of feed preference topics. An empty array `[]` means "show ever
 * **Error Responses:**
   * `422 Unprocessable Content`: `{"detail": {"code": "UNKNOWN_SLUG", "message": "Unknown technology slugs: ..."}}` (Returned if any slug is not in the `technologies` lookup table).
   * `422 Unprocessable Content`: `{"detail": {"code": "VALIDATION_FAILED", "message": "Duplicate topics are not allowed."}}`
+
+#### `PUT /v1/me/sectors`
+Replaces the developer's whole set of sectors. Sending the same set again is safe, and `[]` clears it.
+
+* **Authentication:** Bearer token required
+* **Request Body:** `{"sectors": ["health", "fintech"]}`: 0 to 20 slugs from `GET /v1/sectors`, no
+  duplicates.
+* **Success Response (200 OK):** the saved sectors in the order sent, `{"data": [{"slug": "health",
+  "name": "Health"}, ...]}`. `GET /v1/me` lists them under `sectors` in the sector list's order.
+* **Error Responses:**
+  * `422 UNKNOWN_SLUG`: a slug is not an active sector. The message names it, for example
+    `Unknown sector slugs: space-mining`.
+  * `422 VALIDATION_FAILED`: the same slug twice.
+  * `422` (FastAPI's list): a slug that is not lowercase letters, digits and hyphens, or a body
+    without `sectors`.
   * `422 Unprocessable Content`: `{"detail": [{"loc": ["body", "technologies"], "msg": "Field required"}]}` (Returned if the JSON key was named `"topics"` instead of `"technologies"`).
 
 ### Experience verification

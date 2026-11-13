@@ -6,8 +6,8 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.lookups import Role, Technology
-from app.schemas.lookups import RolesListResponse, TechnologiesListResponse
+from app.models.lookups import Role, Sector, Technology
+from app.schemas.lookups import RolesListResponse, SectorsListResponse, TechnologiesListResponse
 
 router = APIRouter()
 
@@ -20,6 +20,12 @@ async def list_roles(db: DbSession) -> RolesListResponse:
     result = await db.execute(query)
     roles: Sequence[Role] = result.scalars().all()
     return RolesListResponse(data=list(roles))
+
+
+@router.get("/sectors", response_model=SectorsListResponse)
+async def list_sectors(db: DbSession) -> SectorsListResponse:
+    sectors = await db.scalars(select(Sector).where(Sector.is_active.is_(True)).order_by(Sector.id))
+    return SectorsListResponse(data=list(sectors))
 
 
 @router.get("/technologies", response_model=TechnologiesListResponse)

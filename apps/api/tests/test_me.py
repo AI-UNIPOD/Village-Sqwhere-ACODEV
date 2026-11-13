@@ -15,6 +15,7 @@ from app.models.users import (
     User,
     UserFeedTopic,
     UserRole,
+    UserSector,
     UserTechnology,
     VerificationSession,
     VerificationStatus,
@@ -48,6 +49,7 @@ def cleanup_user(user_id: UUID) -> None:
             await session.execute(delete(UserRole).where(UserRole.user_id == user_id))
             await session.execute(delete(UserTechnology).where(UserTechnology.user_id == user_id))
             await session.execute(delete(UserFeedTopic).where(UserFeedTopic.user_id == user_id))
+            await session.execute(delete(UserSector).where(UserSector.user_id == user_id))
             await session.commit()
 
     asyncio.run(_clean())
@@ -429,6 +431,50 @@ def test_replace_feed_topics(sign_in) -> None:
     assert me["feed_topics"] == []
 
 
+def test_replace_sectors(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    cleanup_user(UUID(data["user"]["id"]))
+    assert client.get("/v1/me", headers=bearer(data)).json()["data"]["sectors"] == []
+
+    def put(sectors: list) -> object:
+        return client.put("/v1/me/sectors", headers=bearer(data), json={"sectors": sectors})
+
+    saved = put(["health", "fintech"])
+    assert saved.status_code == 200
+    assert saved.json()["data"] == [
+        {"slug": "health", "name": "Health"},
+        {"slug": "fintech", "name": "Fintech"},
+    ]
+    # GET /v1/me lists them in the sector list's order, the same as GET /v1/sectors.
+    me = client.get("/v1/me", headers=bearer(data)).json()["data"]
+    assert [sector["slug"] for sector in me["sectors"]] == ["fintech", "health"]
+
+    # Sending the same set again is safe, and a new set replaces the old one whole.
+    assert put(["health", "fintech"]).status_code == 200
+    assert put(["civic"]).status_code == 200
+    me = client.get("/v1/me", headers=bearer(data)).json()["data"]
+    assert [sector["slug"] for sector in me["sectors"]] == ["civic"]
+
+    duplicate = put(["civic", "civic"])
+    assert duplicate.status_code == 422
+    assert duplicate.json()["detail"]["code"] == "VALIDATION_FAILED"
+    unknown = put(["civic", "space-mining"])
+    assert unknown.status_code == 422
+    assert unknown.json()["detail"] == {
+        "code": "UNKNOWN_SLUG",
+        "message": "Unknown sector slugs: space-mining",
+    }
+    for malformed in (["Fintech"], ["fin\x00tech"], [7], "fintech"):
+        assert put(malformed).status_code == 422, malformed
+    assert client.get("/v1/me", headers=bearer(data)).json()["data"]["sectors"][0]["slug"] == (
+        "civic"
+    )
+
+    cleared = put([])
+    assert (cleared.status_code, cleared.json()["data"]) == (200, [])
+    assert client.get("/v1/me", headers=bearer(data)).json()["data"]["sectors"] == []
+
+
 def test_profile_skills_unauthorized() -> None:
     assert client.post("/v1/me/roles", json={"role": "backend-engineer"}).status_code == 401
     assert (
@@ -437,6 +483,7 @@ def test_profile_skills_unauthorized() -> None:
     assert client.delete("/v1/me/roles/backend-engineer").status_code == 401
     assert client.put("/v1/me/technologies", json={"technologies": ["python"]}).status_code == 401
     assert client.put("/v1/me/feed-topics", json={"technologies": ["react"]}).status_code == 401
+    assert client.put("/v1/me/sectors", json={"sectors": ["health"]}).status_code == 401
 
 
 @pytest.mark.parametrize(

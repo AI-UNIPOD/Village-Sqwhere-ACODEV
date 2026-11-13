@@ -20,7 +20,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.lookups import Base, Role, Technology
+from app.models.lookups import Base, Role, Sector, Technology
 
 
 class AuthProvider(StrEnum):
@@ -105,6 +105,12 @@ class User(Base):
     )
     feed_topics: Mapped[list["UserFeedTopic"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", lazy="selectin"
+    )
+    sectors: Mapped[list["UserSector"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="UserSector.sector_id",
     )
 
 
@@ -205,6 +211,27 @@ class UserFeedTopic(Base):
 
     user: Mapped["User"] = relationship(back_populates="feed_topics")
     technology: Mapped["Technology"] = relationship(lazy="selectin")
+
+
+class UserSector(Base):
+    __tablename__ = "user_sectors"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    sector_id: Mapped[int] = mapped_column(
+        SmallInteger,
+        ForeignKey("sectors.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    user: Mapped["User"] = relationship(back_populates="sectors")
+    sector: Mapped["Sector"] = relationship(lazy="selectin")
 
 
 class VerificationSession(Base):

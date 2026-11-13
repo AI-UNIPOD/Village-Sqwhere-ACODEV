@@ -9,7 +9,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
 - Team rules are in `AGENTS.md`. GitHub Actions is off (billing limit), so a merge agent on
   Tanny's PC runs the CI checks and merges green pull requests (not in this repository).
-- The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics and
+- The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, sectors and
   verification (GitHub analysis, five-question AI interview, report, peer review), Groq
   and Gemini fallbacks and a separate worker. Guide: `docs/backend.md`.
 - Ideas, matching and hubs are in place (drafts, cards, ranking, agreements, membership).
@@ -32,8 +32,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    and next steps need a new schema script); later, semantic similarity for matching.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-4. Save the onboarding country, sectors and a completion flag once the API has fields.
-   Onboarding asks for both sectors (on screen only) and the feed's technologies (saved).
+4. Save the onboarding sectors with `PUT /v1/me/sectors`, then the country and a completion
+   flag once the API has fields for them.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
 6. Web next: a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory

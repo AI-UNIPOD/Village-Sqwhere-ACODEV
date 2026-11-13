@@ -91,6 +91,7 @@ async def match_developers_to_my_idea(
             selectinload(User.technologies),
             raiseload(User.identities),
             raiseload(User.feed_topics),
+            raiseload(User.sectors),
         )
         .where(
             User.deleted_at.is_(None),
