@@ -255,12 +255,22 @@
 }
 
 .chip {
+  position: relative;
   min-block-size: calc(var(--tap-min) - var(--space-2));
   padding: 0 var(--space-3);
   background: var(--bg);
   color: var(--text);
   font: var(--type-body-s);
   font-weight: 500;
+}
+
+/* A chip is 36px high, and anything tapped needs 44px: the tap area reaches past the chip on
+   both sides, into the gap between the rows. */
+.chip::after {
+  content: "";
+  position: absolute;
+  /* measured from inside the 1px border */
+  inset: calc(var(--space-2) / -2 - 1px) 0;
 }
 
 .chip[aria-pressed="true"] {
