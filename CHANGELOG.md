@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-13
 
+- fix(api): stop a 500 when a list is replaced twice at once (#71)
 - feat(web): pin the landing header as a pill while scrolling (#70)
 - feat(web): save the onboarding role and stack to the api (#69)
 - feat(api): add the list my hubs endpoint (#67)
