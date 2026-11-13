@@ -39,10 +39,10 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 ## What's next
 
 1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
-2. Build AI matching on published ideas, then the owner's team approval, invitations and the
-   four hub phases. Ask Tanny for the PRD before any product decision it must settle.
-3. Add production deployment configuration and, once the team has Systalink platform access, a
-   deploy job in CI.
+2. Leaving and removing members, editing and archiving a hub, and the four hub phases (decisions
+   and next steps need a new schema script); later, semantic similarity for matching.
+3. Add peer-review report display, production deployment configuration and, once the team has
+   Systalink platform access, a deploy job in CI.
 4. Save the onboarding country and topics, and a completion flag, once API gaps 1, 2 and 3 close.
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
 6. Web screens next: navigation, matches and invitations. Also a server-rendered
