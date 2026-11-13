@@ -16,6 +16,7 @@ import { RequireSession } from "../session/session-ui";
 import { copy } from "./copy";
 import { loadFeed, loadPostsBy, loadSavedPosts, type Post } from "./feed-api";
 import { FeedTabs, type Tab } from "./feed-tabs";
+import { FeedTopics } from "./feed-topics";
 import { PostCard } from "./post-card";
 
 // Where each tab lives, as AppFrame wants it: the language link opens the same tab.
@@ -166,6 +167,8 @@ function Posts({ lang, tab }: { lang: Lang; tab: Tab }) {
   const me = useMe();
   // a deleted post sends its author here with ?done=deleted
   const deleted = useSearchParams().get("done") === "deleted";
+  // choosing other topics loads the For you list again from the top
+  const [loaded, setLoaded] = useState(0);
   return (
     <main className={`${onboarding.column} ${ideas.main}`}>
       <h1 className={ideas.title}>{t.title}</h1>
@@ -182,11 +185,12 @@ function Posts({ lang, tab }: { lang: Lang; tab: Tab }) {
       <Link className={`${landing.btn} ${ideas.share}`} href={`/${lang}/posts/compose`}>
         {t.write}
       </Link>
+      {tab === "for-you" && me && <FeedTopics lang={lang} me={me} onSaved={() => setLoaded((n) => n + 1)} />}
       {tab === "mine" ? (
         // your own posts are the ones whose author is you, so they wait for your username
         me ? <PostList lang={lang} tab={tab} username={me.username} /> : <Blocks lang={lang} />
       ) : (
-        <PostList lang={lang} tab={tab} />
+        <PostList key={loaded} lang={lang} tab={tab} />
       )}
     </main>
   );

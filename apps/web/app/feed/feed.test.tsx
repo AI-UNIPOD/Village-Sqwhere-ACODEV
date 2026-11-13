@@ -36,7 +36,7 @@ const post = (over: Record<string, unknown> = {}) => ({
 });
 const page = (data: unknown[], next_offset: number | null = null) => ({ data, next_offset });
 
-const me = { username: "kwabena-owusu", display_name: "Kwabena Owusu", bio: null, roles: [], technologies: [] };
+const me = { username: "kwabena-owusu", display_name: "Kwabena Owusu", bio: null, roles: [], technologies: [], feed_topics: [] };
 
 // Answers each "METHOD /path" by its longest matching start; anything else is a mistake. Every
 // tab asks for the profile.

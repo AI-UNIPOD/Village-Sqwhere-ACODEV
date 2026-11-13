@@ -91,3 +91,8 @@ export async function updatePost(fields: PostFields, saved: Post): Promise<Post>
   if (Object.keys(changed).length === 0) return saved;
   return (await call<{ data: Post }>(`/v1/posts/${encodeURIComponent(saved.id)}`, "PATCH", changed)).data;
 }
+
+// Replaces the topics of the feed. The request key is `technologies`, because the API keeps
+// feed topics in its technologies table. No topics means the feed shows every post.
+export const saveFeedTopics = async (slugs: string[]) =>
+  (await call<{ data: { slug: string; name: string }[] }>("/v1/me/feed-topics", "PUT", { technologies: slugs })).data;

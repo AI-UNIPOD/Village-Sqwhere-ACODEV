@@ -42,6 +42,20 @@ type Copy = {
   commentMany: string;
   write: string;
   done: { published: string; saved: string };
+  topics: {
+    everyone: string;
+    choose: string;
+    change: string;
+    about: string;
+    and: string;
+    more: string;
+    own: string;
+    label: string;
+    help: string;
+    save: string;
+    cancel: string;
+    failed: string;
+  };
   compose: {
     pageTitle: string;
     newTitle: string;
@@ -155,6 +169,20 @@ export const copy: Record<Lang, Copy> = {
     commentMany: "{n} comments",
     write: "Write a post",
     done: { published: "Post published", saved: "Changes saved" },
+    topics: {
+      everyone: "Showing every post",
+      choose: "Choose topics",
+      change: "Change topics",
+      about: "Showing posts about {topics}",
+      and: "{list} and {last}",
+      more: "{list} and {n} more",
+      own: "Your own posts always show too.",
+      label: "Topics for your feed",
+      help: "Choose the topics you want to see. Save with none chosen to see every post.",
+      save: "Save",
+      cancel: "Cancel",
+      failed: "We couldn't save your topics. Nothing was changed, so try again.",
+    },
     compose: {
       pageTitle: "Write a post | Village Sqwhere",
       newTitle: "Write a post",
@@ -291,6 +319,20 @@ export const copy: Record<Lang, Copy> = {
     commentMany: "{n} commentaires",
     write: "Écrire une publication",
     done: { published: "Publication mise en ligne", saved: "Modifications enregistrées" },
+    topics: {
+      everyone: "Toutes les publications sont affichées",
+      choose: "Choisir des sujets",
+      change: "Changer les sujets",
+      about: "Publications affichées sur {topics}",
+      and: "{list} et {last}",
+      more: "{list} et {n} autres",
+      own: "Vos propres publications s'affichent toujours.",
+      label: "Sujets de votre fil",
+      help: "Choisissez les sujets que vous voulez voir. Enregistrez sans rien choisir pour tout voir.",
+      save: "Enregistrer",
+      cancel: "Annuler",
+      failed: "Nous n'avons pas pu enregistrer vos sujets. Rien n'a été modifié, réessayez.",
+    },
     compose: {
       pageTitle: "Écrire une publication | Village Sqwhere",
       newTitle: "Écrire une publication",
