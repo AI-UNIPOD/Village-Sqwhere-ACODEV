@@ -178,6 +178,9 @@ Avatar to name `--space-3`, name to city `--space-1`. A clickable card lifts to
 error icon. When a match lands it counts up once over `--dur-moment`, and a strong match
 gets a small bulge. With reduced motion it appears without counting.
 
+The matcher has no score yet: it is planned. Until then the component appears only in the
+landing page's matcher demo, with simulated scores and a line under the suggestions saying so.
+
 ## Messages
 
 Inline notes inside a page or hub: what happened and what to do.

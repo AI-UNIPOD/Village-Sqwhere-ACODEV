@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 
 import type { Lang } from "../../locales";
+import { parseSeconds } from "../gather";
 import { HeadingText } from "../heading-text";
 import page from "../landing-page.module.css";
 import { copy } from "./matcher-demo-copy";
@@ -44,6 +45,52 @@ function Check({ className }: { className?: string }) {
   );
 }
 
+// The match score's step (docs/design-system/components.md): 80 and above, 60 to 79, 40 to 59,
+// below 40.
+const stepOf = (score: number) => (score >= 80 ? 0 : score >= 60 ? 1 : score >= 40 ? 2 : 3);
+
+type ScoreProps = {
+  value: number;
+  count: boolean;
+  steps: readonly string[];
+  line: (score: number, step: string) => string;
+};
+
+// A simulated match score, drawn as the design system's match score: the number, its step as a
+// pill underneath. Match scores are planned; today's matcher has none, and the panel says so.
+// Right after the matcher has run it counts up once (a strong one swells a little at the end);
+// otherwise, and with reduced motion, it shows at once.
+function Score({ value, count, steps, line }: ScoreProps) {
+  const [counting] = useState(() => count && !still());
+  const [shown, setShown] = useState(counting ? 0 : value);
+  useEffect(() => {
+    if (!counting) return;
+    const ms = (parseSeconds(getComputedStyle(document.documentElement).getPropertyValue("--dur-moment")) ?? 0.52) * 1000;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - start) / ms);
+      setShown(Math.round(value * (1 - (1 - k) ** 3)));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [counting, value]);
+  const step = stepOf(value);
+  return (
+    <p className={styles.score} data-step={step}>
+      <span className={page.srOnly}>{line(value, steps[step])}</span>
+      <span className={styles.scoreValue} data-swell={(counting && step === 0) || undefined} aria-hidden="true">
+        {shown}
+      </span>
+      <span className={styles.scorePill} aria-hidden="true">
+        {step === 0 && <Check className={styles.scoreIcon} />}
+        {steps[step]}
+      </span>
+    </p>
+  );
+}
+
 // The matcher, played with made-up ideas: pick one, watch it suggest three verified developers,
 // invite them, and see the team form. The server draws the first idea's suggestions so the
 // section reads without JavaScript; in the browser it waits and runs the first time it is seen.
@@ -52,6 +99,8 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
   const [ideaIndex, setIdeaIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("results");
   const [step, setStep] = useState(0);
+  // whether the suggestions on screen came from a run the visitor saw (their scores count up)
+  const [ran, setRan] = useState(false);
   const section = useRef<HTMLElement>(null);
   const picker = useRef<HTMLFieldSetElement>(null);
   const id = useId();
@@ -67,6 +116,7 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
       ([entry]) => {
         if (!entry.isIntersecting) return;
         seen.disconnect();
+        setRan(true);
         setStep(0);
         setPhase((now) => (now === "idle" ? "running" : now));
       },
@@ -91,6 +141,7 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
   }, [phase, step, t.run.length, idea.matches.length]);
 
   function pick(index: number) {
+    setRan(true);
     setIdeaIndex(index);
     setStep(0);
     setPhase(still() ? "results" : "running");
@@ -212,10 +263,13 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
                         </p>
                       )}
                     </div>
+                    <Score value={match.score} count={ran} steps={t.steps} line={t.scoreLine} />
                   </li>
                 ))}
               </ol>
             )}
+
+            {shown && <p className={styles.simulated}>{t.simulated}</p>}
 
             {shown && (
               <div className={styles.foot}>
