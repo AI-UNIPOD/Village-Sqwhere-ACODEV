@@ -54,6 +54,17 @@ test("without a script it shows the first idea's suggestions, each verified, wit
   expect(section().getAllByRole("list", { name: "In common with Ọmọlará" })).toHaveLength(3);
 });
 
+// The product stores a country and no city, so the demo shows a country for the owner and each match.
+test.each([
+  ["en", ["Morocco", "South Africa", "Ethiopia"], "Shared by Ọmọlará Adéwálé, Nigeria"],
+  ["fr", ["Maroc", "Afrique du Sud", "Éthiopie"], "Partagée par Ọmọlará Adéwálé, Nigeria"],
+] as const)("in %s the people are placed by country, not city", (lang, countries, sharedBy) => {
+  render(<MatcherDemo lang={lang} />);
+  for (const country of countries) expect(section().getByText(country)).toBeTruthy();
+  expect(section().getByText(sharedBy)).toBeTruthy();
+  expect(section().queryByText(/Casablanca|Johannesburg|Addis|Lagos/)).toBeNull();
+});
+
 // Match scores are planned, not built: the demo shows simulated ones, drawn as the design
 // system's match score, and says they are simulated.
 test.each([
@@ -98,7 +109,7 @@ test("inviting the three shows each signature, then the closing line", () => {
   expect(section().getByText("Hamza Benali read the agreement and signed.")).toBeTruthy();
   expect(section().queryByText("Kidist Alemayehu read the agreement and signed.")).toBeNull();
   beats(3, 500);
-  const win = "All three read the agreement and signed. Four builders in Lagos, Casablanca, Johannesburg and Addis Ababa.";
+  const win = "All three read the agreement and signed. Four builders in Nigeria, Morocco, South Africa and Ethiopia.";
   expect(section().getByText(win, shown)).toBeTruthy();
   expect(live()).toBe(win);
   fireEvent.click(section().getByRole("button", { name: "Try another idea" }));

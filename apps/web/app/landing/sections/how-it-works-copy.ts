@@ -5,7 +5,7 @@ type Step = { title: string; text: string; view: string };
 type Match = {
   name: string;
   initials: string;
-  city: string;
+  country: string;
   verified: string;
   tech: readonly string[];
   why: string;
@@ -39,9 +39,13 @@ export type Copy = {
     count: string;
     phasesHeading: string;
     phases: readonly [string, string, string, string];
-    notStarted: string;
+    /** The labels of the hub page's phase states (apps/web/app/hubs/copy.ts). */
+    states: { done: string; inProgress: string; notStarted: string };
   };
 };
+
+// The phase of the sample hub that is in progress: those before it are done, those after not started.
+export const SAMPLE_PHASE = 1;
 
 const en: Copy = {
   title: "From an idea to a team, in four steps.",
@@ -64,15 +68,15 @@ const en: Copy = {
     },
     {
       title: "Hub",
-      text: "Your team gets one hub: the agreement, the terms and the team, in one place. It lists four phases (brainstorm, design and architecture, build, review and test); their tools are still to come.",
-      view: "The hub, with its four phases listed",
+      text: "Your team gets one hub: the agreement, the terms and the team, in one place. The owner confirms the team, Brainstorm opens, and the owner moves the hub through four phases, one at a time. The tools for each phase are still to come.",
+      view: "A sample hub, each phase Done, In progress or Not started",
     },
   ],
   idea: {
     draft: "Draft",
     title: "Daily naira payouts for market traders",
     pitch: "An app that pays market traders in naira each evening and retries when the bank network drops.",
-    sharedBy: "Shared by Ọmọlará Adéwálé, Lagos",
+    sharedBy: "Shared by Ọmọlará Adéwálé, Nigeria",
     rolesNeeded: "Roles needed",
     roles: ["Backend and Systems Engineer", "Mobile Engineer", "Cybersecurity and Smart Contract Auditor"],
   },
@@ -82,7 +86,7 @@ const en: Copy = {
       {
         name: "Hamza Benali",
         initials: "HB",
-        city: "Casablanca, Morocco",
+        country: "Morocco",
         verified: "Verified",
         tech: ["Go", "PostgreSQL", "Docker"],
         why: "Verified backend engineer. Go, PostgreSQL and Docker in common with Ọmọlará.",
@@ -90,7 +94,7 @@ const en: Copy = {
       {
         name: "Thandiwe Mokoena",
         initials: "TM",
-        city: "Johannesburg, South Africa",
+        country: "South Africa",
         verified: "Verified",
         tech: ["Flutter", "React Native"],
         why: "Verified mobile engineer. Flutter and React Native in common with Ọmọlará.",
@@ -98,7 +102,7 @@ const en: Copy = {
       {
         name: "Kidist Alemayehu",
         initials: "KA",
-        city: "Addis Ababa, Ethiopia",
+        country: "Ethiopia",
         verified: "Verified",
         tech: ["Python"],
         why: "Verified security auditor. Python in common with Ọmọlará.",
@@ -123,7 +127,7 @@ const en: Copy = {
     count: "4 of 5 members",
     phasesHeading: "Phases",
     phases: ["Brainstorm", "Design and architecture", "Build", "Review and test"],
-    notStarted: "Not started",
+    states: { done: "Done", inProgress: "In progress", notStarted: "Not started" },
   },
 };
 
@@ -149,8 +153,8 @@ const fr: Copy = {
     },
     {
       title: "Espace",
-      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Il liste quatre phases (brainstorm, conception et architecture, construction, revue et tests)\u202f; leurs outils restent à venir.",
-      view: "L'espace, avec ses quatre phases listées",
+      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Le porteur confirme l'équipe, le brainstorm s'ouvre, puis le porteur fait passer l'espace par quatre phases, une à la fois. Les outils de chaque phase restent à venir.",
+      view: "Un espace d'exemple, chaque phase Terminée, En cours ou Pas commencée",
     },
   ],
   idea: {
@@ -158,7 +162,7 @@ const fr: Copy = {
     title: "Paiement en nairas chaque soir pour les marchands",
     pitch:
       "Une application qui paie les marchands en nairas chaque soir et relance le paiement si le réseau bancaire tombe.",
-    sharedBy: "Partagée par Ọmọlará Adéwálé, Lagos",
+    sharedBy: "Partagée par Ọmọlará Adéwálé, Nigeria",
     rolesNeeded: "Rôles recherchés",
     roles: ["Ingénieur backend et systèmes", "Ingénieur mobile", "Auditeur cybersécurité et smart contracts"],
   },
@@ -168,7 +172,7 @@ const fr: Copy = {
       {
         name: "Hamza Benali",
         initials: "HB",
-        city: "Casablanca, Maroc",
+        country: "Maroc",
         verified: "Vérifié",
         tech: ["Go", "PostgreSQL", "Docker"],
         why: "Ingénieur backend vérifié. Go, PostgreSQL et Docker en commun avec Ọmọlará.",
@@ -176,7 +180,7 @@ const fr: Copy = {
       {
         name: "Thandiwe Mokoena",
         initials: "TM",
-        city: "Johannesburg, Afrique du Sud",
+        country: "Afrique du Sud",
         verified: "Vérifiée",
         tech: ["Flutter", "React Native"],
         why: "Ingénieure mobile vérifiée. Flutter et React Native en commun avec Ọmọlará.",
@@ -184,7 +188,7 @@ const fr: Copy = {
       {
         name: "Kidist Alemayehu",
         initials: "KA",
-        city: "Addis-Abeba, Éthiopie",
+        country: "Éthiopie",
         verified: "Vérifiée",
         tech: ["Python"],
         why: "Auditrice sécurité vérifiée. Python en commun avec Ọmọlará.",
@@ -209,7 +213,7 @@ const fr: Copy = {
     count: "Membres\u202f: 4 sur 5",
     phasesHeading: "Phases",
     phases: ["Brainstorm", "Conception et architecture", "Construction", "Revue et tests"],
-    notStarted: "Pas commencée",
+    states: { done: "Terminée", inProgress: "En cours", notStarted: "Pas commencée" },
   },
 };
 

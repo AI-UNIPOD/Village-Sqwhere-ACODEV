@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- fix(web): show the hub phases and the language choice that now ship
 - feat(web): show a hub's real phases and let its owner move them (#158)
 - feat(web): start a verification in the page's language (#157)
 - feat(api): write the repositories check in the applicant's language (#156)
