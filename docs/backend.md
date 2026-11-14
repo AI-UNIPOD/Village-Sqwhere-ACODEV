@@ -1224,7 +1224,8 @@ a full board.
 
 * **Success Response (200 OK):** `{"data": [<note>], "next_offset": null}`. `next_offset` is the
   `offset` of the next page, or null on the last one.
-* **Errors:** `401`, `403 NOT_HUB_MEMBER`, `404 NOT_FOUND`, `409 TEAM_NOT_CONFIRMED`, `422`.
+* **Errors:** `401`, `422` (a bad `offset` or `limit`, checked first), `404 NOT_FOUND`,
+  `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`. The checks after `422` run in that order.
 
 #### `POST /v1/hubs/{hub_id}/notes`
 
@@ -1232,17 +1233,20 @@ Adds a note, as the signed-in member.
 
 * **Request Body:** `{ "body": "…" }`. The other fields are refused.
 * **Success Response (201 Created):** the note, in `data`.
-* **Errors:** `401`, `403 NOT_HUB_MEMBER`, `404 NOT_FOUND`, `409 TEAM_NOT_CONFIRMED`,
-  `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `409 NOTES_FULL`, `422` (empty or only spaces, over
-  280 characters, a null character, or an unknown field). The checks run in that order.
+* **Errors:** `401`, `422` (empty or only spaces, over 280 characters, a null character, or an
+  unknown field), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `409 NOTES_FULL`. A body that fails validation gets
+  `422` before any other check, even on a hub that is past brainstorm. After that the checks run
+  in the order listed.
 
 #### `DELETE /v1/hubs/{hub_id}/notes/{note_id}`
 
 The note's author or the hub's owner removes a note. Answers `204`.
 
-* **Errors:** `401`, `403 NOT_HUB_MEMBER`, `403 NOT_NOTE_AUTHOR` (another member's note),
-  `404 NOT_FOUND`, `404 NOTE_NOT_FOUND`, `409 TEAM_NOT_CONFIRMED`, `409 PHASE_CLOSED`,
-  `409 HUB_ARCHIVED`.
+* **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `404 NOTE_NOT_FOUND`,
+  `403 NOT_NOTE_AUTHOR` (another member's note). The checks run in that order, so a closed phase
+  is reported before a missing note.
 
 ---
 

@@ -321,6 +321,17 @@ def test_a_bad_body_is_a_422_and_saves_nothing(client: TestClient, body: Any) ->
     assert listed(client, hub, owner).json()["data"] == []
 
 
+def test_a_bad_body_is_a_422_before_any_other_refusal(client: TestClient) -> None:
+    hub, owner, _ = brainstorming_hub(client)
+    outsider = make_user()
+    assert move(client, hub, owner, "design").status_code == 200
+
+    assert add(client, hub, owner, "").status_code == 422  # phase is closed
+    assert add(client, hub, outsider, "").status_code == 422  # not a member
+    unknown = client.post(f"/v1/hubs/{UNKNOWN_ID}/notes", headers=auth(owner), json={"body": ""})
+    assert unknown.status_code == 422  # no such hub
+
+
 @pytest.mark.parametrize("payload", [{}, {"body": "x", "author_id": UNKNOWN_ID}])
 def test_the_request_needs_a_body_and_refuses_other_fields(
     client: TestClient, payload: dict[str, str]
