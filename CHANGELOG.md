@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-14
 
-- feat(web): show the country and shared technologies on match cards
+- feat(web): show the country and shared technologies on match cards (#161)
 - feat(web): save the country from onboarding and the profile (#159)
 - feat(web): show a hub's real phases and let its owner move them (#158)
 - feat(web): start a verification in the page's language (#157)
