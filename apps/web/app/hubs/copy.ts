@@ -67,7 +67,7 @@ type Copy = {
   phases: Record<Phase, string>;
   phaseStates: Record<PhaseState, string>;
   // where things stand, under the list
-  phasesNote: { toConfirm: string; waiting: string; confirmed: string };
+  phasesNote: { toConfirm: string; waiting: string; confirmed: string; archived: string };
   phaseActions: {
     confirm: { button: string; title: string; text: string; alone: string; done: string };
     forward: { button: string; title: string; text: string; done: string };
@@ -253,6 +253,7 @@ const en: Copy = {
     toConfirm: "Confirm the team when you are ready to start. Brainstorm opens, and you can still invite people after, up to five.",
     waiting: "The phases open when the owner confirms the team.",
     confirmed: "The owner moves the hub from one phase to the next. The tools for each phase are still to come.",
+    archived: "This hub is archived, so its phases will not start.",
   },
   phaseActions: {
     confirm: {
@@ -505,6 +506,7 @@ const fr: Copy = {
     toConfirm: "Confirmez l'équipe quand vous êtes prêt à commencer. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
     waiting: "Les phases s'ouvrent quand le porteur confirme l'équipe.",
     confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Les outils de chaque phase restent à venir.",
+    archived: "Cet espace est archivé, ses phases ne démarreront donc pas.",
   },
   phaseActions: {
     confirm: {

@@ -1,3 +1,4 @@
+import { Activity } from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -184,12 +185,70 @@ test.each(["HUB_ARCHIVED", "NOT_HUB_OWNER"])("%s: the hub is loaded again and th
   expect(within(phases()).queryAllByRole("button")).toHaveLength(0);
 });
 
-test("any other failure, the demo's refusal included, says nothing changed and keeps the buttons", async () => {
+test("a refusal the demo frame already explains adds no second message and keeps the buttons", async () => {
   await open(asOwner, { "POST /v1/hubs/hub-1/team/confirm": refusal(403, "DEMO_READ_ONLY") });
+  press("Confirm the team");
+  confirmIn("Confirm the team?", "Confirm the team");
+  await waitFor(() => expect(posted()).toHaveLength(1));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(within(phases()).queryByRole("alert")).toBeNull();
+  expect(within(phases()).getByRole("button", { name: "Confirm the team" })).toBeTruthy();
+});
+
+test("any other failure says nothing changed and keeps the buttons", async () => {
+  await open(asOwner, { "POST /v1/hubs/hub-1/team/confirm": refusal(500, "INTERNAL") });
   press("Confirm the team");
   confirmIn("Confirm the team?", "Confirm the team");
   await waitFor(() => expect(within(phases()).getByRole("alert").textContent).toContain("We couldn't save that. Nothing changed, so try again."));
   expect(within(phases()).getByRole("button", { name: "Confirm the team" })).toBeTruthy();
+});
+
+test("the owner of an archived hub that was never confirmed is not told to confirm", async () => {
+  await open({ ...asOwner, status: "archived" });
+  expect(within(phases()).getByText("This hub is archived, so its phases will not start.")).toBeTruthy();
+  expect(within(phases()).queryByText(/^Confirm the team when/)).toBeNull();
+});
+
+test("focus moves to the status line when the button that was pressed goes away", async () => {
+  const statusFocused = () => expect(document.activeElement).toBe(within(phases()).getByRole("status"));
+  await open(asOwner, { "POST /v1/hubs/hub-1/team/confirm": { data: hub({ ...asOwner, ...at("brainstorm") }) } });
+  press("Confirm the team");
+  confirmIn("Confirm the team?", "Confirm the team");
+  await waitFor(statusFocused);
+  cleanup();
+  await open({ ...asOwner, ...at("build") }, { "POST /v1/hubs/hub-1/phase": { data: hub({ ...asOwner, ...at("review") }) } });
+  press("Move to Review and test");
+  confirmIn("Move to Review and test?", "Move to Review and test");
+  await waitFor(statusFocused);
+  cleanup();
+  await open({ ...asOwner, ...at("design") }, { "POST /v1/hubs/hub-1/phase": { data: hub({ ...asOwner, ...at("brainstorm") }) } });
+  press("Back to Brainstorm");
+  confirmIn("Go back to Brainstorm?", "Back to Brainstorm");
+  await waitFor(statusFocused);
+});
+
+test("showing the page again drops the status line from the last visit", async () => {
+  nav.search = "id=hub-1";
+  api({
+    "GET /v1/hubs/hub-1": [{ data: hub(asOwner) }, { data: hub({ ...asOwner, ...at("build") }) }],
+    "GET /v1/hubs/hub-1/members": { data: [owner()] },
+    "GET /v1/hubs/hub-1/idea": { data: idea() },
+    "POST /v1/hubs/hub-1/team/confirm": { data: hub({ ...asOwner, ...at("brainstorm") }) },
+  });
+  const page = (mode: "visible" | "hidden") => (
+    <Activity mode={mode}>
+      <HubPage lang="en" />
+    </Activity>
+  );
+  const { rerender } = render(page("visible"));
+  await screen.findByRole("heading", { level: 1, name: "Borehole map hub" });
+  press("Confirm the team");
+  confirmIn("Confirm the team?", "Confirm the team");
+  await waitFor(() => expect(within(phases()).getByRole("status").textContent).toContain("The team is confirmed."));
+  rerender(page("hidden"));
+  rerender(page("visible"));
+  await waitFor(() => expect(phases().querySelector("[aria-current='step']")?.textContent).toContain("Build"));
+  expect(within(phases()).queryByRole("status")).toBeNull();
 });
 
 test("while a request runs the confirm button keeps its label, is busy, and a second press sends nothing", async () => {
@@ -214,8 +273,8 @@ test("in French the phases, the line, the dialog and the status are French", asy
   expect(rows()[1]).toBe("02Conception et architecturePas commencée");
   expect(within(phases()).getByText(/^Confirmez l'équipe quand vous êtes prêt/)).toBeTruthy();
   press("Confirmer l'équipe");
-  expect(within(screen.getByRole("dialog", { name: "Confirmer l'équipe ?" })).getByText(/^Vous êtes le seul membre pour le moment/)).toBeTruthy();
-  confirmIn("Confirmer l'équipe ?", "Confirmer l'équipe");
+  expect(within(screen.getByRole("dialog", { name: "Confirmer l'équipe\u202f?" })).getByText(/^Vous êtes le seul membre pour le moment/)).toBeTruthy();
+  confirmIn("Confirmer l'équipe\u202f?", "Confirmer l'équipe");
   await waitFor(() => expect(within(phases()).getByRole("status").textContent).toContain("L'équipe est confirmée. Le brainstorm est ouvert."));
   expect(rows()[0]).toBe("01BrainstormEn cours");
   expect(within(phases()).getByRole("button", { name: "Passer à Conception et architecture" })).toBeTruthy();

@@ -31,6 +31,8 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
   const [failure, setFailure] = useState<Error | null>(null);
   // the developer took their request back on this page, or tried to after the owner answered
   const [withdrawal, setWithdrawal] = useState<WithdrawOutcome | null>(null);
+  // counts the loads, so the phases drop their last status or error line when the page is shown again
+  const [loads, setLoads] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -41,6 +43,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
         setHub(found);
         // the page was left and shown again: what happened on the last visit is no longer news
         setWithdrawal(null);
+        setLoads((n) => n + 1);
       },
       (error: unknown) => {
         if (!live || error instanceof SignedOutError) return;
@@ -152,7 +155,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       <p className={`${ideas.meta} ${styles.line}`}>{t.termsFrozen}</p>
       <p className={`${ideas.meta} ${styles.line}`}>{fill(t.agreementVersion, { n: hub.agreement.version })}</p>
 
-      <Phases lang={lang} hub={hub} onChange={setHub} />
+      <Phases key={loads} lang={lang} hub={hub} onChange={setHub} />
     </main>
   );
 }

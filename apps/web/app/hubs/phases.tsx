@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
 import { IdeaError } from "../ideas/ideas-api";
@@ -44,7 +44,20 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
   const next = hub.phase ? PHASES[at + 1] : undefined;
   const previous = at > 0 ? PHASES[at - 1] : undefined;
   const canAct = hub.viewer.member_role === "owner" && hub.status === "active";
-  const note = hub.phase ? t.phasesNote.confirmed : hub.viewer.member_role === "owner" ? t.phasesNote.toConfirm : t.phasesNote.waiting;
+  const note = hub.phase
+    ? t.phasesNote.confirmed
+    : hub.status !== "active"
+      ? t.phasesNote.archived
+      : hub.viewer.member_role === "owner"
+        ? t.phasesNote.toConfirm
+        : t.phasesNote.waiting;
+
+  // The button that was pressed can vanish with the change (confirming, or reaching the first or
+  // last phase), and so does the open dialog: the status line takes the person's place.
+  const status = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (notice) status.current?.focus();
+  }, [notice]);
 
   async function run(action: Action) {
     if (busy) return;
@@ -63,6 +76,8 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
       }
     } catch (error) {
       if (error instanceof SignedOutError) return;
+      // in the demo the frame says why; "try again" would be wrong
+      if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return;
       const code = error instanceof IdeaError ? error.code : "";
       if (CHANGED.includes(code) || UNAVAILABLE.includes(code)) {
         // show the hub as it is now, so the buttons fit it
@@ -122,7 +137,7 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
       </ol>
       <p className={ideas.lead}>{note}</p>
       {notice && (
-        <p className={ideas.done} role="status">
+        <p ref={status} tabIndex={-1} className={ideas.done} role="status">
           <Check />
           {notice}
         </p>
