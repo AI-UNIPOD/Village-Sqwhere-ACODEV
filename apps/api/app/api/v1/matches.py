@@ -4,6 +4,8 @@ Matching reads only an idea's public card and the roles it needs. Ideas are load
 `details` set to raise, so no code path here can read or return the confidential brief.
 """
 
+from collections import defaultdict
+from collections.abc import Iterable
 from typing import Annotated
 from uuid import UUID
 
@@ -20,6 +22,7 @@ from app.models import (
     Idea,
     IdeaRoleNeed,
     IdeaStatus,
+    Technology,
     User,
     UserRole,
     UserTechnology,
@@ -70,8 +73,11 @@ async def match_developers_to_my_idea(
         .group_by(UserRole.user_id)
         .subquery()
     )
-    author_technologies = select(UserTechnology.technology_id).where(
-        UserTechnology.user_id == idea.author_id
+    # loaded once, then used for the order and to name the shared technologies on each card
+    author_technologies = set(
+        await db.scalars(
+            select(UserTechnology.technology_id).where(UserTechnology.user_id == idea.author_id)
+        )
     )
     shared = (
         select(UserTechnology.user_id, func.count().label("shared_count"))
@@ -88,7 +94,7 @@ async def match_developers_to_my_idea(
         .where(Hub.idea_id == idea.id, HubMember.status.in_(LIVE_STATUSES))
     )
     result = await db.execute(
-        select(User, shared_count)
+        select(User)
         .join(verified, verified.c.user_id == User.id)
         .outerjoin(shared, shared.c.user_id == User.id)
         .options(
@@ -113,18 +119,30 @@ async def match_developers_to_my_idea(
         .offset(offset)
         .limit(limit + 1)
     )
-    rows = result.all()
-    has_more = len(rows) > limit
+    users = list(result.scalars().all())
+    has_more = len(users) > limit
     return DeveloperMatchesResponse(
-        data=[matched_developer(user, needed, count) for user, count in rows[:limit]],
+        data=[matched_developer(user, needed, author_technologies) for user in users[:limit]],
         next_offset=offset + limit if has_more else None,
     )
 
 
-def matched_developer(user: User, needed: set[int], shared_count: int) -> MatchedDeveloper:
+def sorted_technologies(technologies: Iterable[Technology]) -> list[TechnologyRef]:
+    return sorted(
+        (TechnologyRef.model_validate(technology) for technology in technologies),
+        key=lambda technology: technology.name.lower(),
+    )
+
+
+def matched_developer(
+    user: User, needed: set[int], author_technologies: set[int]
+) -> MatchedDeveloper:
     matched = sorted(
         (held for held in user.roles if held.role_id in needed and held.verified_at is not None),
         key=lambda held: held.role_id,
+    )
+    shared = sorted_technologies(
+        held.technology for held in user.technologies if held.technology_id in author_technologies
     )
     return MatchedDeveloper(
         id=user.id,
@@ -133,12 +151,27 @@ def matched_developer(user: User, needed: set[int], shared_count: int) -> Matche
         avatar_url=user.avatar_url,
         is_verified=user.is_verified,
         matched_roles=[RoleRef.model_validate(held.role) for held in matched],
-        technologies=sorted(
-            (TechnologyRef.model_validate(held.technology) for held in user.technologies),
-            key=lambda technology: technology.name.lower(),
-        ),
-        shared_technology_count=shared_count,
+        technologies=sorted_technologies(held.technology for held in user.technologies),
+        shared_technologies=shared,
+        shared_technology_count=len(shared),
+        country_code=user.country_code,
     )
+
+
+async def technologies_shared_with_authors(
+    db: DbSession, user_id: UUID, author_ids: set[UUID]
+) -> dict[UUID, list[TechnologyRef]]:
+    """One query for a whole page: the caller's technologies that each author also has."""
+    mine = select(UserTechnology.technology_id).where(UserTechnology.user_id == user_id)
+    result = await db.execute(
+        select(UserTechnology.user_id, Technology)
+        .join(Technology, Technology.id == UserTechnology.technology_id)
+        .where(UserTechnology.user_id.in_(author_ids), UserTechnology.technology_id.in_(mine))
+    )
+    found: defaultdict[UUID, list[Technology]] = defaultdict(list)
+    for author_id, technology in result:
+        found[author_id].append(technology)
+    return {author_id: sorted_technologies(held) for author_id, held in found.items()}
 
 
 @router.get("/me/matches", response_model=IdeaMatchesResponse)
@@ -185,6 +218,10 @@ async def match_ideas_to_me(
     )
     ideas = list(result.scalars().unique().all())
     has_more = len(ideas) > limit
+    page = ideas[:limit]
+    shared = await technologies_shared_with_authors(
+        db, current_user.id, {idea.author_id for idea in page}
+    )
     return IdeaMatchesResponse(
         data=[
             IdeaMatch(
@@ -194,8 +231,9 @@ async def match_ideas_to_me(
                     for need in idea.roles_needed
                     if need.role_id in mine
                 ],
+                shared_technologies=shared.get(idea.author_id, []),
             )
-            for idea in ideas[:limit]
+            for idea in page
         ],
         next_offset=offset + limit if has_more else None,
     )
