@@ -50,6 +50,8 @@ async def update_my_profile(
         current_user.last_name = payload.last_name
     if payload.bio is not None:
         current_user.bio = payload.bio
+    if "country_code" in payload.model_fields_set:
+        current_user.country_code = payload.country_code
     if payload.email is not None and payload.email != current_user.email:
         current_user.email = payload.email
         # The new address has not been verified yet.

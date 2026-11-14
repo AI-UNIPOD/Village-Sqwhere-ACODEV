@@ -6,9 +6,11 @@ from uuid import UUID
 import jwt
 import pytest
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy import delete, func, select, update
 
 from app.config import JWT_ALGORITHM, JWT_SECRET_KEY
+from app.countries import AFRICAN_COUNTRY_CODES
 from app.main import app
 from app.models.lookups import Role
 from app.models.users import (
@@ -175,6 +177,50 @@ def test_changing_email_clears_its_verification(sign_in) -> None:
     assert resp.status_code == 200
     assert resp.json()["data"]["email"] == "moussa.diop@example.test"
     assert resp.json()["data"]["email_verified"] is False
+
+
+def test_country_is_empty_until_set_then_can_change_and_be_cleared(sign_in) -> None:
+    headers = bearer(sign_in("github-code-moussa"))
+
+    def country() -> str | None:
+        return client.get("/v1/me", headers=headers).json()["data"]["country_code"]
+
+    def patch(body: dict) -> Response:
+        return client.patch("/v1/me", headers=headers, json=body)
+
+    patch({"country_code": None})  # this account keeps its country from earlier test runs
+    assert country() is None
+
+    assert patch({"country_code": "SN"}).json()["data"]["country_code"] == "SN"
+    assert country() == "SN"
+    assert patch({"country_code": "KE"}).json()["data"]["country_code"] == "KE"
+
+    # leaving the key out keeps it, even when other fields change
+    assert patch({"bio": "Mobile money in Dakar"}).json()["data"]["country_code"] == "KE"
+    assert country() == "KE"
+
+    # an explicit null clears it
+    assert patch({"country_code": None}).json()["data"]["country_code"] is None
+    assert country() is None
+
+
+@pytest.mark.parametrize("code", ["XX", "FR", "ng", "NGA", "", "N", " NG"])
+def test_patch_me_refuses_a_country_that_is_not_an_african_code(sign_in, code: str) -> None:
+    headers = bearer(sign_in("github-code-moussa"))
+    client.patch("/v1/me", headers=headers, json={"country_code": "GH"})
+
+    resp = client.patch("/v1/me", headers=headers, json={"country_code": code})
+
+    assert resp.status_code == 422
+    assert resp.json()["detail"][0]["loc"] == ["body", "country_code"]
+    assert client.get("/v1/me", headers=headers).json()["data"]["country_code"] == "GH"
+
+
+def test_there_are_54_african_country_codes() -> None:
+    assert len(AFRICAN_COUNTRY_CODES) == 54
+    assert all(len(code) == 2 and code.isupper() for code in AFRICAN_COUNTRY_CODES)
+    assert {"NG", "SN", "GH", "KE", "ZW"} <= AFRICAN_COUNTRY_CODES
+    assert AFRICAN_COUNTRY_CODES.isdisjoint({"FR", "US", "IN", "BR"})
 
 
 def test_claim_and_update_and_delete_role(sign_in) -> None:
