@@ -3,11 +3,11 @@
 ## Context
 
 On 14 November 2026 Tanny chose a soft-edged circle for the theme switch
-(`2026-11-14-soft-theme-reveal.md`) and then asked for something with more of a story: an idea of
-blocks that unfold outward from the middle of the screen. We compared four effects side by side in
-a preview (the circle that ships, ink and eraser, tiles, and a folding sheet). Tanny picked the
-tiles, starting from the centre of the screen, and asked for them to be slower than the other
-moments so each block's fold can be seen.
+(`2026-11-14-soft-theme-reveal.md`) and then asked for something with more of a story. Tanny's
+proposal was "paper unfolding, or blocks unfolding outward from the middle". We compared four
+effects side by side in a preview (the circle that ships, ink and eraser, tiles, and a folding
+sheet). Tanny chose the tiles, asked for the wave to start at the centre of the screen, and asked
+for a slower pace than the other moments so each block's fold can be seen.
 
 ## Decision
 
@@ -43,19 +43,24 @@ Tanny chose the tiles. The theme now changes like this:
 
 ## Options we considered
 
-- **The soft circle that shipped.** Works, but Tanny wanted something with more of a story.
-- **Ink and eraser, and a folding sheet.** Both were in the preview next to the tiles and Tanny did
-  not choose them. The sheet is the nearest to folding paper: an edge opens from a line through the
-  middle.
-- **Folding real page content like paper.** Not built. Tiles are flat rectangles on one canvas, so
-  the cost is bounded: at most about 320 shapes a frame at 1920 x 1080 and 180 on a phone.
+- **A true paper fold.** Ruled out. The browser gives one flat snapshot of the whole page, so it
+  cannot fold separate panels of real content. A fold faked over that snapshot would also read as a
+  skeuomorphic gimmick on a flat site.
+- **Blocks unfolding outward from the middle.** Chosen: the blocks fit the hero's grid square, and
+  they are flat rectangles on one canvas, so the cost is bounded (at most about 320 shapes a frame
+  at 1920 x 1080 and 180 on a phone).
+- **The soft circle that shipped, ink and eraser, and a folding sheet.** All were in the preview next
+  to the tiles. Tanny chose the tiles.
 - **The button as the origin.** The preview offered it for the tiles; Tanny chose the centre.
 
 ## Consequences
 
 - The tiles are drawn in `--bg`, so the page behind them should be `--bg` where they meet it. `html`
-  and `body` are. The tinted bands further down the landing page (`--landing-band`) differ slightly,
-  so a faint edge can show where the wave crosses one.
+  and `body` are. A section that paints a different background carries `data-tile-bg`: once the new
+  theme is applied, the script measures those sections and their computed background, and a tile
+  whose centre falls inside one is drawn in that colour (and its shades mixed from it), so the wave
+  meets the band and not a different colour. The landing's three warm bands and its closing band
+  carry it. The areas are measured when the wave starts, so a scroll during the wave does not move them.
 - The canvas draws every frame for about 780 ms. Measured in headless Chrome: 60 frames a second with
   the longest frame 33 ms (the first), and the drawing under 3 ms. Check it on a low-end phone.
 - Colour mixes use `color-mix()` in the canvas. Where the browser lacks it the folding half is drawn

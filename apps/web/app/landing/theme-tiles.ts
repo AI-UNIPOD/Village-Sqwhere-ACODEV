@@ -63,9 +63,15 @@ export type TilePlanInput = {
   flipEase?: Ease | null;
 };
 
-/** What one frame holds: polygons to fill, by shade level (0 is the plain background). */
+/** An area of the screen, in px from the top left, whose tiles are drawn in colours of their own. */
+export type TileRegion = { left: number; top: number; right: number; bottom: number };
+
+/** Polygons to fill, by shade level (0 is the plain background). */
+export type TileLevels = [number[], number[], number[], number[], number[]];
+
+/** What one frame holds: the polygons of the tiles outside every region (group 0), then of each region. */
 export type TileFrame = {
-  levels: [number[], number[], number[], number[], number[]];
+  groups: TileLevels[];
   count: number;
   /** The half diagonal, in px, of the diamond where the canvas keeps out, or 0. */
   inner: number;
@@ -80,10 +86,18 @@ export type TilePlan = {
   ringStart: number[];
   /** The half diagonal of the revealed diamond at time t ms, in px. */
   diamond: (t: number) => number;
+  /**
+   * Sets the regions: a tile whose centre lies in one is drawn in that region's colours (the first
+   * that holds it wins), every other tile in the plain ones. Call before the first frame.
+   */
+  setRegions: (regions: TileRegion[]) => void;
   /** The polygons for progress `progress` (0 to 1, eased) at time `t` ms. Reused by the next call. */
   collect: (progress: number, t: number) => TileFrame;
-  /** Draws `collect` on a canvas that spans the screen; returns the number of tiles drawn. */
-  draw: (ctx: TileContext, progress: number, t: number, colours: TileColours) => number;
+  /**
+   * Draws `collect` on a canvas that spans the screen; returns the number of tiles drawn. Colours
+   * are one set for the plain tiles, then one for each region, in the order they were set.
+   */
+  draw: (ctx: TileContext, progress: number, t: number, colours: TileColours[]) => number;
 };
 
 export function createTilePlan(input: TilePlanInput): TilePlan {
@@ -125,7 +139,22 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
   stops.push("1 100%");
   const easing = `linear(${stops.join(", ")})`;
 
-  const frame: TileFrame = { levels: [[], [], [], [], []], count: 0, inner: 0 };
+  const newLevels = (): TileLevels => [[], [], [], [], []];
+  let regions: TileRegion[] = [];
+  const frame: TileFrame = { groups: [newLevels()], count: 0, inner: 0 };
+  let levels = frame.groups[0]; // where the tile being built puts its polygons
+  const groupOf = (x: number, y: number) => {
+    for (let k = 0; k < regions.length; k++) {
+      const r = regions[k];
+      if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return k + 1;
+    }
+    return 0;
+  };
+  const setRegions = (next: TileRegion[]) => {
+    regions = next;
+    frame.groups = [newLevels(), ...next.map(newLevels)];
+    levels = frame.groups[0];
+  };
   const iLo = Math.ceil((-P - o.x) / P);
   const iHi = Math.floor((W + P - o.x) / P);
   const jLo = Math.ceil((-P - o.y) / P);
@@ -134,8 +163,8 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
   // every polygon is stored clockwise: with the nonzero fill rule, overlapping polygons of opposite
   // winding would cancel and leave a hole where the old theme shows through
   function quad(level: number, a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) {
-    if ((c - a) * (f - b) - (d - b) * (e - a) >= 0) frame.levels[level].push(a, b, c, d, e, f, g, h);
-    else frame.levels[level].push(g, h, e, f, c, d, a, b);
+    if ((c - a) * (f - b) - (d - b) * (e - a) >= 0) levels[level].push(a, b, c, d, e, f, g, h);
+    else levels[level].push(g, h, e, f, c, d, a, b);
   }
   function box(level: number, x0: number, y0: number, x1: number, y1: number) {
     quad(level, x0, y0, x1, y0, x1, y1, x0, y1);
@@ -147,6 +176,7 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
     const h = P / 2;
     const cx = o.x + i * P;
     const cy = o.y + j * P;
+    levels = frame.groups[groupOf(cx, cy)];
     if (pe >= 1) {
       box(0, cx - h - OVERLAP, cy - h - OVERLAP, cx + h + OVERLAP, cy + h + OVERLAP);
       return 1;
@@ -196,7 +226,7 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
   function collect(progress: number, t: number): TileFrame {
     const s = progress * reach;
     let n = 0;
-    for (const level of frame.levels) level.length = 0;
+    for (const group of frame.groups) for (const level of group) level.length = 0;
     // rings inside the diamond are covered by the real page: start at its edge
     for (let m = Math.max(0, Math.floor(s / P)); m <= lastRing; m++) {
       const p = (t - ringStart[m]) / flip;
@@ -215,9 +245,9 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
     return frame;
   }
 
-  function draw(ctx: TileContext, progress: number, t: number, colours: TileColours) {
+  function draw(ctx: TileContext, progress: number, t: number, colours: TileColours[]) {
     ctx.clearRect(0, 0, W, H);
-    const { levels, count, inner } = collect(progress, t);
+    const { groups, count, inner } = collect(progress, t);
     if (!count) return 0;
     ctx.save();
     // keep out of the diamond (the real page shows there), overlapping its edge by a hair
@@ -231,26 +261,29 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
       ctx.closePath();
     }
     ctx.clip("evenodd");
-    // shaded halves first; the plain halves then go on top where they overlap
-    for (let level = 4; level >= 0; level--) {
-      const points = levels[level];
-      if (!points.length) continue;
-      ctx.fillStyle = level ? colours.shades[level - 1] : colours.plain;
-      ctx.beginPath();
-      for (let q = 0; q < points.length; q += 8) {
-        ctx.moveTo(points[q], points[q + 1]);
-        ctx.lineTo(points[q + 2], points[q + 3]);
-        ctx.lineTo(points[q + 4], points[q + 5]);
-        ctx.lineTo(points[q + 6], points[q + 7]);
-        ctx.closePath();
+    for (let group = 0; group < groups.length; group++) {
+      const set = colours[group] ?? colours[0];
+      // shaded halves first; the plain halves then go on top where they overlap
+      for (let level = 4; level >= 0; level--) {
+        const points = groups[group][level];
+        if (!points.length) continue;
+        ctx.fillStyle = level ? set.shades[level - 1] : set.plain;
+        ctx.beginPath();
+        for (let q = 0; q < points.length; q += 8) {
+          ctx.moveTo(points[q], points[q + 1]);
+          ctx.lineTo(points[q + 2], points[q + 3]);
+          ctx.lineTo(points[q + 4], points[q + 5]);
+          ctx.lineTo(points[q + 6], points[q + 7]);
+          ctx.closePath();
+        }
+        ctx.fill();
       }
-      ctx.fill();
     }
     ctx.restore();
     return count;
   }
 
-  return { reach, easing, ringStart, diamond, collect, draw };
+  return { reach, easing, ringStart, diamond, setRegions, collect, draw };
 }
 
 /** The fill colours for a theme: its background and four mixes of it with the text colour. */

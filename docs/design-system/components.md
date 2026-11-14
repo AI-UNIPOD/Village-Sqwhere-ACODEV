@@ -49,7 +49,7 @@ Every header ends with the same two switches, in this order (`app/language-switc
   1.5 x `--dur-moment` (about 780 ms; one tile flips over 14% of that), the wave mixing 30%
   `--ease-strong` with a steady pace (a view transition: a diamond reveals the new page, a canvas
   draws the tiles still folding in the new `--bg`). The page behind must be `--bg` where the tiles
-  meet it. A press while it runs is queued, never dropped: the running wave speeds up, the way back
+  meet it, or its section carries `data-tile-bg` and the tiles over it take its colour. A press while it runs is queued, never dropped: the running wave speeds up, the way back
   plays if the last press differs, and the label and icon show the last press at once. With reduced
   motion nothing travels: a crossfade over `--dur-modal`. Where view transitions or CSS `linear()`
   easings are missing it changes at once. Its label and tooltip say what a tap does

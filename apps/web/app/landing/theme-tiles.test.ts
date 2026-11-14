@@ -57,7 +57,7 @@ test("the tiles in a frame all lie outside the diamond", () => {
   const s = progress * p.reach;
   // a tile centred in ring m lies m pitches away along the grid, so no polygon may sit deeper
   // inside than the last finished ring
-  for (const points of frame.levels) {
+  for (const points of frame.groups.flat()) {
     for (let q = 0; q < points.length; q += 8) {
       let cx = 0;
       let cy = 0;
@@ -87,7 +87,7 @@ test("the canvas clips out the diamond before it fills anything, and fills only 
     fill: vi.fn(() => order.push("fill")),
   } satisfies TileContext;
   const t = 400;
-  const colours = tileColours("bg", "text", true);
+  const colours = [tileColours("bg", "text", true)];
   const drawn = p.draw(ctx, p.diamond(t) / p.reach, t, colours);
   expect(drawn).toBeGreaterThan(0);
   // the screen, then the diamond cut out of it (even-odd), and only then the fills
@@ -113,7 +113,7 @@ test("an early frame has no diamond to cut out yet, but still draws its tiles", 
     fill: vi.fn(),
   } satisfies TileContext;
   const t = p.ringStart[2] + 10;
-  expect(p.draw(ctx, 0, t, tileColours("bg", "text", true))).toBeGreaterThan(0);
+  expect(p.draw(ctx, 0, t, [tileColours("bg", "text", true)])).toBeGreaterThan(0);
   expect(ctx.fill).toHaveBeenCalled();
 });
 
@@ -133,4 +133,56 @@ test("the shades are mixes of the background and the text colour, or the backgro
     "color-mix(in srgb, var-bg, var-text 12%)",
   ]);
   expect(tileColours("var-bg", "var-text", false).shades).toEqual(["var-bg", "var-bg", "var-bg", "var-bg"]);
+});
+
+test("a tile whose centre is inside a region is drawn in that region's colour, the others in the plain one", () => {
+  const p = plan();
+  p.setRegions([{ left: -1000, top: -1000, right: 720, bottom: 2000 }]);
+  const t = 400;
+  const frame = p.collect(p.diamond(t) / p.reach, t);
+  expect(frame.groups).toHaveLength(2);
+  const centres = (levels: number[][]) =>
+    levels.flatMap((points) => {
+      const out: number[] = [];
+      for (let q = 0; q < points.length; q += 8) out.push((points[q] + points[q + 2] + points[q + 4] + points[q + 6]) / 4);
+      return out;
+    });
+  const plain = centres(frame.groups[0]);
+  const band = centres(frame.groups[1]);
+  expect(plain.length).toBeGreaterThan(0);
+  expect(band.length).toBeGreaterThan(0);
+  // flaps lean over their cell's edge by up to a pitch, so allow for that around the region's edge
+  expect(Math.min(...plain)).toBeGreaterThan(720 - 80);
+  expect(Math.max(...band)).toBeLessThan(720 + 80);
+});
+
+test("the canvas fills a region's tiles with the region's colours and the rest with the plain ones", () => {
+  const p = plan();
+  p.setRegions([{ left: -1000, top: -1000, right: 3000, bottom: 3000 }]); // everything is band
+  const used = new Set<string>();
+  let style = "";
+  const ctx = {
+    clearRect: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    rect: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    closePath: vi.fn(),
+    clip: vi.fn(),
+    fill: vi.fn(() => used.add(style)),
+    get fillStyle() {
+      return style;
+    },
+    set fillStyle(value: string | CanvasGradient | CanvasPattern) {
+      style = String(value);
+    },
+  } satisfies TileContext;
+  const t = 400;
+  p.draw(ctx, p.diamond(t) / p.reach, t, [tileColours("page", "ink", true), tileColours("band", "ink", true)]);
+  expect(used.has("band")).toBe(true);
+  // the folding halves are mixed from the band's colour too
+  expect([...used].some((colour) => colour.startsWith("color-mix(in srgb, band,"))).toBe(true);
+  expect([...used].some((colour) => colour.includes("page"))).toBe(false);
 });

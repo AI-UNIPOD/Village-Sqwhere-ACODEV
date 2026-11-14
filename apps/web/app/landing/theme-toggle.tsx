@@ -6,7 +6,7 @@ import { Tooltip } from "../tooltip";
 import { parseEasing, parseSeconds } from "./gather";
 import styles from "./landing-page.module.css";
 import { THEME_KEY } from "./theme";
-import { createTilePlan, tileColours, type TileColours, type TilePlan } from "./theme-tiles";
+import { createTilePlan, tileColours, type TileColours, type TilePlan, type TileRegion } from "./theme-tiles";
 
 type Theme = "light" | "dark";
 
@@ -61,6 +61,15 @@ const HURRY = 4;
 // the highest pixel ratio the canvas draws at: sharper than that costs more than it shows
 const MAX_RATIO = 2;
 
+// The visible page: without the classic scrollbar a window can show beside the page.
+function viewportSize() {
+  const root = document.documentElement;
+  return {
+    width: root.clientWidth || window.innerWidth,
+    height: root.clientHeight || window.innerHeight,
+  };
+}
+
 function reducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -71,6 +80,28 @@ function supports(property: string, value: string) {
   } catch {
     return false;
   }
+}
+
+// A background that paints nothing: a tile over it should be drawn in the page's own colour.
+function isClear(colour: string) {
+  return colour === "" || colour === "transparent" || /^rgba\(.*,\s*0\)$/.test(colour) || /\/\s*0\)$/.test(colour);
+}
+
+// The areas that paint a background of their own (marked data-tile-bg), measured once the new theme
+// is applied: a tile whose centre falls inside one is drawn in that colour, so the wave meets the
+// band and not the plain page colour.
+function paintedAreas(width: number, height: number) {
+  const regions: TileRegion[] = [];
+  const colours: string[] = [];
+  document.querySelectorAll<HTMLElement>("[data-tile-bg]").forEach((el) => {
+    const box = el.getBoundingClientRect();
+    const colour = getComputedStyle(el).backgroundColor;
+    if (box.width <= 0 || box.bottom <= 0 || box.top >= height || box.right <= 0 || box.left >= width) return;
+    if (isClear(colour)) return;
+    regions.push({ left: box.left, top: box.top, right: box.right, bottom: box.bottom });
+    colours.push(colour);
+  });
+  return { regions, colours };
 }
 
 // The change that is running, and what to do when another press comes in.
@@ -157,8 +188,7 @@ function fade(target: Theme, done: () => void): Run {
 // timing), and a canvas above it draws the tiles still folding outside the diamond, in the new colours.
 function tiles(target: Theme, done: () => void): Run {
   const root = document.documentElement;
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+  const { width, height } = viewportSize();
   const ratio = Math.min(window.devicePixelRatio || 1, MAX_RATIO);
   const style = getComputedStyle(root);
   const token = (name: string) => style.getPropertyValue(name).trim();
@@ -188,7 +218,7 @@ function tiles(target: Theme, done: () => void): Run {
   const state: {
     canvas: HTMLCanvasElement | null;
     ctx: CanvasRenderingContext2D | null;
-    colours: TileColours | null;
+    colours: TileColours[] | null;
     anim: Animation | null;
     frame: number;
     hurried: boolean;
@@ -244,11 +274,14 @@ function tiles(target: Theme, done: () => void): Run {
       state.ctx = canvas.getContext("2d");
       state.ctx?.setTransform(ratio, 0, 0, ratio, 0, 0);
       const after = getComputedStyle(root);
-      state.colours = tileColours(
-        after.getPropertyValue("--bg").trim(),
-        after.getPropertyValue("--text").trim(),
-        supports("color", "color-mix(in srgb, red, blue 10%)"),
-      );
+      const text = after.getPropertyValue("--text").trim();
+      const mixes = supports("color", "color-mix(in srgb, red, blue 10%)");
+      const areas = paintedAreas(width, height);
+      plan.setRegions(areas.regions);
+      state.colours = [
+        tileColours(after.getPropertyValue("--bg").trim(), text, mixes),
+        ...areas.colours.map((colour) => tileColours(colour, text, mixes)),
+      ];
     });
   } catch {
     cleanup();

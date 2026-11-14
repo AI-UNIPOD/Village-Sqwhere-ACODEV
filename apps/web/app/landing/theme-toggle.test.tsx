@@ -1,5 +1,5 @@
 import { runInNewContext } from "node:vm";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { THEME_INIT_SCRIPT, THEME_KEY } from "./theme";
@@ -117,9 +117,9 @@ function stubMedia({ dark = false, reduce = false }: { dark?: boolean; reduce?: 
 }
 
 // a running wave animation, as the page would hand back
-function stubAnimate() {
+function stubAnimate(progress = 0.4) {
   const animation = {
-    effect: { getComputedTiming: () => ({ progress: 0.4 }) },
+    effect: { getComputedTiming: () => ({ progress }) },
     currentTime: 100,
     playbackRate: 1,
     updatePlaybackRate: vi.fn(),
@@ -212,6 +212,79 @@ test.each([
   await act(async () => {});
   expect(animate.mock.calls[0][1]).toMatchObject({ duration: expected });
   await finishAll(pending);
+});
+
+test("tiles over an area marked data-tile-bg are drawn in that area's colour, the rest in --bg", async () => {
+  const root = document.documentElement;
+  root.style.setProperty("--bg", "paper");
+  root.style.setProperty("--text", "ink");
+  const band = document.createElement("section");
+  band.setAttribute("data-tile-bg", "");
+  band.style.backgroundColor = "tomato";
+  vi.spyOn(band, "getBoundingClientRect").mockReturnValue(
+    { left: 0, top: 0, right: window.innerWidth / 2, bottom: window.innerHeight, width: window.innerWidth / 2, height: window.innerHeight } as DOMRect,
+  );
+  document.body.appendChild(band);
+  const used = new Set<string>();
+  let style = "";
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    ...fakeContext,
+    fill: () => used.add(style),
+    get fillStyle() {
+      return style;
+    },
+    set fillStyle(value: string) {
+      style = value;
+    },
+  } as never);
+  const { pending } = stubTransitions();
+  stubAnimate(0);
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  pending[0].ready();
+  await waitFor(() => expect(used.size).toBeGreaterThan(0));
+  const colours = [...used];
+  // jsdom writes tomato as its rgb() value
+  expect(colours.some((colour) => colour.includes("255, 99, 71"))).toBe(true);
+  expect(colours.some((colour) => colour.includes("paper"))).toBe(true);
+  await finishAll(pending);
+  band.remove();
+  root.style.removeProperty("--bg");
+  root.style.removeProperty("--text");
+});
+
+test("an area marked data-tile-bg that paints nothing is left out", async () => {
+  const band = document.createElement("section");
+  band.setAttribute("data-tile-bg", "");
+  vi.spyOn(band, "getBoundingClientRect").mockReturnValue(
+    { left: 0, top: 0, right: 2000, bottom: 2000, width: 2000, height: 2000 } as DOMRect,
+  );
+  document.body.appendChild(band);
+  const used = new Set<string>();
+  let style = "";
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    ...fakeContext,
+    fill: () => used.add(style),
+    get fillStyle() {
+      return style;
+    },
+    set fillStyle(value: string) {
+      style = value;
+    },
+  } as never);
+  document.documentElement.style.setProperty("--bg", "paper");
+  const { pending } = stubTransitions();
+  stubAnimate(0);
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  pending[0].ready();
+  await waitFor(() => expect(used.size).toBeGreaterThan(0));
+  expect([...used].every((colour) => colour.includes("paper"))).toBe(true);
+  await finishAll(pending);
+  band.remove();
+  document.documentElement.style.removeProperty("--bg");
 });
 
 test("with reduced motion the theme crossfades and no tiles are drawn", async () => {
