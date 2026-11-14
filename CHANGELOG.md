@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-14
 
-- feat(api): store a country on the profile
+- feat(api): store a country on the profile (#152)
 - feat(web): edit the hero headline into shape, once, on the landing page (#148)
 - feat(web): show simulated match scores in the landing matcher demo (#147)
 - feat(web): soften the theme switch and fade it with reduced motion (#146)
