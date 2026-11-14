@@ -6,6 +6,8 @@ from app.models.hubs import (
     HubMember,
     HubMemberRole,
     HubMemberStatus,
+    HubPhase,
+    HubPhaseMove,
     HubStatus,
 )
 from app.models.ideas import Idea, IdeaRoleNeed, IdeaStage, IdeaStatus
@@ -52,6 +54,8 @@ __all__ = [
     "HubMemberRole",
     "HubDeclineKind",
     "HubMemberStatus",
+    "HubPhase",
+    "HubPhaseMove",
     "HubStatus",
     "Idea",
     "IdeaRoleNeed",

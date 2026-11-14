@@ -6,9 +6,9 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import AgreementTemplate, Hub, HubMember, HubMemberStatus, User
+from app.models import AgreementTemplate, Hub, HubMember, HubMemberStatus, HubPhase, User
 from app.schemas.hubs import Hub as HubCard
-from app.schemas.hubs import HubAgreement, HubIdea, HubOwner, HubViewer
+from app.schemas.hubs import HubAgreement, HubIdea, HubOwner, HubPhaseState, HubPhaseStep, HubViewer
 
 
 async def current_agreement_template(db: AsyncSession) -> AgreementTemplate | None:
@@ -40,6 +40,22 @@ async def load_hub(db: AsyncSession, hub_id: UUID) -> Hub | None:
     return result.scalar_one_or_none()
 
 
+def phase_steps(current: HubPhase | None) -> list[HubPhaseStep]:
+    """All four phases in order: done before the current one, in progress on it, not started
+    after it. Before the team is confirmed nothing has started."""
+    order = list(HubPhase)
+    steps = []
+    for index, phase in enumerate(order):
+        if current is None or index > order.index(current):
+            state = HubPhaseState.NOT_STARTED
+        elif phase == current:
+            state = HubPhaseState.IN_PROGRESS
+        else:
+            state = HubPhaseState.DONE
+        steps.append(HubPhaseStep(phase=phase, state=state))
+    return steps
+
+
 async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
     """What any signed-in user may see of a hub, plus their own place in it.
 
@@ -62,6 +78,9 @@ async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
         name=hub.name,
         description=hub.description,
         status=hub.status,
+        phase=hub.phase,
+        team_confirmed_at=hub.team_confirmed_at,
+        phases=phase_steps(hub.phase),
         terms=hub.terms,
         idea=HubIdea.model_validate(hub.idea),
         owner=HubOwner.model_validate(hub.owner),

@@ -38,6 +38,15 @@ class HubStatus(StrEnum):
     ARCHIVED = "archived"
 
 
+class HubPhase(StrEnum):
+    """In the order a hub goes through them."""
+
+    BRAINSTORM = "brainstorm"
+    DESIGN = "design"
+    BUILD = "build"
+    REVIEW = "review"
+
+
 class HubMemberRole(StrEnum):
     OWNER = "owner"
     MEMBER = "member"
@@ -135,6 +144,11 @@ class Hub(Base):
         nullable=False,
     )
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # infra/db/init/016-hub-phases.sql; both empty until the owner confirms the team
+    phase: Mapped[HubPhase | None] = mapped_column(_pg_enum(HubPhase, "hub_phase"), nullable=True)
+    team_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # set once at creation; the hubs_terms_immutable trigger refuses any change
     terms: Mapped[dict[str, Any]] = mapped_column(
         JSONB, server_default=text("'{}'::jsonb"), nullable=False
@@ -158,6 +172,28 @@ class Hub(Base):
         primaryjoin="foreign(Hub.owner_id) == User.id", lazy="selectin", viewonly=True
     )
     agreement_template: Mapped[AgreementTemplate] = relationship(lazy="selectin", viewonly=True)
+
+
+class HubPhaseMove(Base):
+    """One change of a hub's phase. Append-only history."""
+
+    __tablename__ = "hub_phase_moves"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), nullable=False
+    )
+    moved_by: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    # empty for the first move, when the team is confirmed
+    from_phase: Mapped[HubPhase | None] = mapped_column(
+        _pg_enum(HubPhase, "hub_phase"), nullable=True
+    )
+    to_phase: Mapped[HubPhase] = mapped_column(_pg_enum(HubPhase, "hub_phase"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
 
 class AgreementSignature(Base):

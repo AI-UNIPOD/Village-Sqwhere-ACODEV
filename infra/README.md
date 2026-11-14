@@ -36,6 +36,7 @@ They run in file name order, once, on an empty database:
 | `013-hub-decline-kind.sql` | The `hub_decline_kind` type and `hub_members.decline_kind`: whether a `declined` row was an invitation the developer declined, a request the owner turned down or a request the developer withdrew. Rows declined before it have none. Running it twice is safe. |
 | `014-user-country.sql` | `users.country_code`: the country a developer names on their profile, two capital letters such as `NG`, empty until they choose. The API allows only the 54 African countries. Running it twice is safe. |
 | `015-verification-language.sql` | `verification_sessions.language` (`en` or `fr`, default `en`): the language the AI interview and the report use for an attempt. It is set when the attempt starts and never changes. Running it twice is safe. |
+| `016-hub-phases.sql` | The `hub_phase` type, `hubs.phase` and `hubs.team_confirmed_at` (both empty until the owner confirms the team), and `hub_phase_moves`, an append-only log of every phase change. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
