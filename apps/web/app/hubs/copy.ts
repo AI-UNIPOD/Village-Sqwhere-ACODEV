@@ -105,6 +105,62 @@ type Copy = {
     // what a piece points to and what points to it, in words a screen reader can say
     to: string;
     from: string;
+    piece: {
+      title: string;
+      name: string;
+      nameHelp: string;
+      summary: string;
+      summaryHelp: string;
+      left: string;
+      add: string;
+      added: string;
+      edit: string;
+      editLabel: string;
+      save: string;
+      cancel: string;
+      saved: string;
+    };
+    link: {
+      title: string;
+      from: string;
+      fromHelp: string;
+      to: string;
+      toHelp: string;
+      choose: string;
+      label: string;
+      labelHelp: string;
+      add: string;
+      added: string;
+    };
+    delete: {
+      piece: string;
+      pieceLabel: string;
+      pieceTitle: string;
+      pieceText: string;
+      pieceConfirm: string;
+      pieceDone: string;
+      linkLabel: string;
+      linkTitle: string;
+      linkText: string;
+      linkConfirm: string;
+      linkDone: string;
+      cancel: string;
+    };
+    errors: {
+      name: string;
+      long: string;
+      label: string;
+      from: string;
+      to: string;
+      taken: string;
+      piecesFull: string;
+      linksFull: string;
+      linkExists: string;
+      changed: string;
+      moved: string;
+      notAuthor: string;
+      failed: string;
+    };
   };
   missingHub: Screen;
   // the team and the brief on a hub's page
@@ -355,13 +411,69 @@ const en: Copy = {
     loadFailed: "We couldn't load the sketch. Nothing was changed, so check your connection and try again.",
     empty: "No pieces yet.",
     emptyAfter: "No sketch was made during design and architecture.",
-    intro: "This is the team's sketch of the system: its pieces and how they talk.",
+    intro: "This is the team's sketch of the system: its pieces and how they talk. Any member can add a piece or correct one.",
     over: "Design and architecture is over. The sketch stays here to read.",
     archived: "This hub is archived. The sketch stays here to read.",
     refresh: "Refresh",
     refreshed: "The sketch is up to date.",
     to: "To {piece}: {label}",
     from: "From {piece}: {label}",
+    piece: {
+      title: "Add a piece",
+      name: "Name",
+      nameHelp: "A short name, such as Payouts API.",
+      summary: "Summary",
+      summaryHelp: "What it does, in a sentence or two. Optional.",
+      left: "Characters left: {n}",
+      add: "Add the piece",
+      added: "The piece was added.",
+      edit: "Edit",
+      editLabel: "Edit the piece {name}",
+      save: "Save",
+      cancel: "Cancel",
+      saved: "The piece was saved.",
+    },
+    link: {
+      title: "Add a link",
+      from: "From",
+      fromHelp: "The piece that talks.",
+      to: "To",
+      toHelp: "The piece that is talked to.",
+      choose: "Choose a piece",
+      label: "Label",
+      labelHelp: "A few words on what the link is for, such as approves a batch.",
+      add: "Add the link",
+      added: "The link was added.",
+    },
+    delete: {
+      piece: "Delete",
+      pieceLabel: "Delete the piece {name}",
+      pieceTitle: "Delete this piece?",
+      pieceText: "The piece and its links are removed for everyone in the hub. This cannot be undone.",
+      pieceConfirm: "Delete the piece",
+      pieceDone: "The piece and its links were deleted.",
+      linkLabel: "Delete the link from {from} to {to}",
+      linkTitle: "Delete this link?",
+      linkText: "The link is removed for everyone in the hub. This cannot be undone.",
+      linkConfirm: "Delete the link",
+      linkDone: "The link was deleted.",
+      cancel: "Cancel",
+    },
+    errors: {
+      name: "Give the piece a name.",
+      long: "This can have at most {max} characters. Shorten it and try again.",
+      label: "Write a few words on what the link is for.",
+      from: "Choose the piece the link starts from.",
+      to: "Choose the piece the link goes to.",
+      taken: "Another piece already has this name.",
+      piecesFull: "This sketch has 30 pieces, the most it can hold. Delete one to add another.",
+      linksFull: "This sketch has 60 links, the most it can hold. Delete one to add another.",
+      linkExists: "There is already a link from {from} to {to}.",
+      changed: "Someone else changed the sketch. This is how it stands now.",
+      moved: "This hub has moved on, so the sketch can no longer be changed.",
+      notAuthor: "Only the person who added it, or the hub's owner, can delete it.",
+      failed: "We couldn't save that. Nothing changed, so try again.",
+    },
   },
   missingHub: { title: "We couldn't find this hub", text: "It may have been removed, or the address is wrong." },
   team: {
@@ -658,13 +770,69 @@ const fr: Copy = {
     loadFailed: "Nous n'avons pas pu charger le schéma. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
     empty: "Pas encore de composants.",
     emptyAfter: "Aucun schéma n'a été réalisé pendant la conception et l'architecture.",
-    intro: "Voici le schéma du système réalisé par l'équipe\u202f: ses composants et la façon dont ils communiquent.",
+    intro: "Voici le schéma du système réalisé par l'équipe\u202f: ses composants et la façon dont ils communiquent. Chaque membre peut ajouter un composant ou en corriger un.",
     over: "La conception et l'architecture sont terminées. Le schéma reste ici à lire.",
     archived: "Cet espace est archivé. Le schéma reste ici à lire.",
     refresh: "Actualiser",
     refreshed: "Le schéma est à jour.",
     to: "Vers {piece}\u202f: {label}",
     from: "Depuis {piece}\u202f: {label}",
+    piece: {
+      title: "Ajouter un composant",
+      name: "Nom",
+      nameHelp: "Un nom court, par exemple API de paiements.",
+      summary: "Résumé",
+      summaryHelp: "Ce qu'il fait, en une ou deux phrases. Facultatif.",
+      left: "Caractères restants\u202f: {n}",
+      add: "Ajouter le composant",
+      added: "Le composant a été ajouté.",
+      edit: "Modifier",
+      editLabel: "Modifier le composant {name}",
+      save: "Enregistrer",
+      cancel: "Annuler",
+      saved: "Le composant a été enregistré.",
+    },
+    link: {
+      title: "Ajouter un lien",
+      from: "De",
+      fromHelp: "Le composant qui communique.",
+      to: "Vers",
+      toHelp: "Le composant qui reçoit.",
+      choose: "Choisir un composant",
+      label: "Libellé",
+      labelHelp: "Quelques mots sur l'utilité du lien, par exemple approuve un lot.",
+      add: "Ajouter le lien",
+      added: "Le lien a été ajouté.",
+    },
+    delete: {
+      piece: "Supprimer",
+      pieceLabel: "Supprimer le composant {name}",
+      pieceTitle: "Supprimer ce composant\u202f?",
+      pieceText: "Le composant et ses liens sont supprimés pour tous les membres de l'espace. Cette action est irréversible.",
+      pieceConfirm: "Supprimer le composant",
+      pieceDone: "Le composant et ses liens ont été supprimés.",
+      linkLabel: "Supprimer le lien de {from} vers {to}",
+      linkTitle: "Supprimer ce lien\u202f?",
+      linkText: "Le lien est supprimé pour tous les membres de l'espace. Cette action est irréversible.",
+      linkConfirm: "Supprimer le lien",
+      linkDone: "Le lien a été supprimé.",
+      cancel: "Annuler",
+    },
+    errors: {
+      name: "Donnez un nom au composant.",
+      long: "Ce texte peut contenir {max} caractères au maximum. Raccourcissez-le puis réessayez.",
+      label: "Écrivez quelques mots sur l'utilité du lien.",
+      from: "Choisissez le composant d'où part le lien.",
+      to: "Choisissez le composant vers lequel va le lien.",
+      taken: "Un autre composant porte déjà ce nom.",
+      piecesFull: "Ce schéma compte 30 composants, le maximum possible. Supprimez-en un pour en ajouter un autre.",
+      linksFull: "Ce schéma compte 60 liens, le maximum possible. Supprimez-en un pour en ajouter un autre.",
+      linkExists: "Il existe déjà un lien de {from} vers {to}.",
+      changed: "Quelqu'un d'autre a modifié le schéma. Voici où il en est maintenant.",
+      moved: "Cet espace a avancé, le schéma ne peut donc plus être modifié.",
+      notAuthor: "Seule la personne qui l'a ajouté, ou le porteur de l'espace, peut le supprimer.",
+      failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
+    },
   },
   missingHub: {
     title: "Nous n'avons pas trouvé cet espace",

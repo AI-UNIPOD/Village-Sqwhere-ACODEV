@@ -341,7 +341,8 @@
 
 .noteRemove:active { transform: scale(0.97); }
 
-.noteForm { margin-block-start: var(--space-6); }
+.noteForm,
+.designForm { margin-block-start: var(--space-6); }
 
 @media (hover: hover) and (pointer: fine) {
   .noteRemove:hover {
@@ -452,6 +453,18 @@
   font: var(--type-body-s);
   overflow-wrap: anywhere;
 }
+
+/* a link's line holds its words and, to the right, its delete button */
+.linkLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.linkLine .noteRemove { margin: 0; }
+
+.formTitle { font: var(--type-title); }
 
 /* ---------- on an idea's card ---------- */
 /* this link sits above the card's own link, which covers the whole card */

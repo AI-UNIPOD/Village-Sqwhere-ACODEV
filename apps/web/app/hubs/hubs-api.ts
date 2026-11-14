@@ -181,6 +181,23 @@ export type Sketch = { pieces: Piece[]; links: PieceLink[] };
 
 export const loadSketch = async (id: string) => (await call<{ data: Sketch }>(`${hubPath(id)}/design`)).data;
 
+export const PIECE_LIMITS = { name: 60, summary: 280, label: 60 };
+
+export const addPiece = async (id: string, piece: { name: string; summary: string }) =>
+  (await call<{ data: Piece }>(`${hubPath(id)}/pieces`, "POST", piece)).data;
+
+// Only the fields that changed are sent.
+export const editPiece = async (id: string, pieceId: string, changes: { name?: string; summary?: string }) =>
+  (await call<{ data: Piece }>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}`, "PATCH", changes)).data;
+
+// The piece's links go with it.
+export const deletePiece = (id: string, pieceId: string) => call<null>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}`, "DELETE");
+
+export const addLink = async (id: string, link: { from_piece_id: string; to_piece_id: string; label: string }) =>
+  (await call<{ data: PieceLink }>(`${hubPath(id)}/links`, "POST", link)).data;
+
+export const deleteLink = (id: string, linkId: string) => call<null>(`${hubPath(id)}/links/${encodeURIComponent(linkId)}`, "DELETE");
+
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
 
