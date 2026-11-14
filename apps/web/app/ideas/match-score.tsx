@@ -7,7 +7,7 @@ import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { AlertCircle, Check, TriangleAlert } from "../onboarding/icons";
-import { sectorName, technologyName } from "./browse";
+import { sectorName, technologyName } from "./names";
 import { copy } from "./copy";
 import type { Scored } from "./ideas-api";
 import styles from "./match-score.module.css";
