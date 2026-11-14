@@ -7,6 +7,8 @@ type Match = {
   place: string;
   /** Technologies in common with the idea's owner. */
   shared: string[];
+  /** A simulated match score: match scores are planned, the matcher has none today. */
+  score: number;
 };
 
 type Idea = {
@@ -34,6 +36,12 @@ type Copy = {
   waiting: string;
   verified: string;
   inCommon: (owner: string) => string;
+  /** Said once under the suggestions: the scores are simulated. */
+  simulated: string;
+  /** A score as screen readers hear it: what it is, the number and its step. */
+  scoreLine: (score: number, step: string) => string;
+  /** The match score's steps (docs/design-system/components.md): 80+, 60 to 79, 40 to 59, below 40. */
+  steps: [string, string, string, string];
   invite: string;
   inviting: string;
   signed: (name: string) => string;
@@ -54,13 +62,16 @@ const en: Copy = {
     "Reading the roles your idea needs",
     "Finding developers verified in them",
     "Counting the technologies you share",
-    "Ordering by fit",
+    "Ordering by roles held, then shared technologies",
   ],
   done: "Three suggestions. You decide.",
   tag: "The matcher suggests. The owner decides.",
   waiting: "Pick an idea and the matcher starts.",
   verified: "Verified",
   inCommon: (owner) => `In common with ${owner}`,
+  simulated: "Scores here are simulated: match scores are a planned feature.",
+  scoreLine: (score, step) => `Simulated score: ${score}, ${step}`,
+  steps: ["Strong match", "Possible match", "Weak match", "Poor match"],
   invite: "Invite the three to the hub",
   inviting: "Sending invitations",
   signed: (name) => `${name} read the agreement and signed.`,
@@ -77,18 +88,21 @@ const en: Copy = {
       matches: [
         {
           name: "Hamza Benali",
+          score: 92,
           role: "Backend and Systems Engineer",
           place: "Casablanca, Morocco",
           shared: ["Go", "PostgreSQL", "Docker"],
         },
         {
           name: "Thandiwe Mokoena",
+          score: 86,
           role: "Mobile Engineer",
           place: "Johannesburg, South Africa",
           shared: ["Flutter", "React Native"],
         },
         {
           name: "Kidist Alemayehu",
+          score: 74,
           role: "Cybersecurity and Smart Contract Auditor",
           place: "Addis Ababa, Ethiopia",
           shared: ["Python"],
@@ -105,18 +119,21 @@ const en: Copy = {
       matches: [
         {
           name: "Yannick Mbarga",
+          score: 89,
           role: "Backend and Systems Engineer",
           place: "Douala, Cameroon",
           shared: ["Python", "PostgreSQL"],
         },
         {
           name: "Aline Uwimana",
+          score: 81,
           role: "MLOps and Data Engineer",
           place: "Kigali, Rwanda",
           shared: ["Python", "Docker"],
         },
         {
           name: "Joaquim Fortes",
+          score: 67,
           role: "AI and ML Engineer",
           place: "Praia, Cabo Verde",
           shared: ["PyTorch", "LLMs"],
@@ -133,18 +150,21 @@ const en: Copy = {
       matches: [
         {
           name: "Rehema Salim",
+          score: 94,
           role: "Mobile Engineer",
           place: "Mombasa, Kenya",
           shared: ["Flutter", "Java"],
         },
         {
           name: "Nelson Machava",
+          score: 78,
           role: "DevOps and Cloud Engineer",
           place: "Maputo, Mozambique",
           shared: ["Docker", "Kubernetes"],
         },
         {
           name: "Tiana Rakotoarisoa",
+          score: 71,
           role: "UI/UX Engineer and Product Architect",
           place: "Antananarivo, Madagascar",
           shared: ["React"],
@@ -166,14 +186,17 @@ const fr: Copy = {
   run: [
     "Lecture des rôles que votre idée recherche",
     "Recherche des développeurs vérifiés dans ces rôles",
-    "Comparaison des technologies en commun",
-    "Classement par adéquation",
+    "Décompte des technologies en commun",
+    "Classement par rôles détenus, puis technologies en commun",
   ],
   done: "Trois propositions. À vous de décider.",
   tag: "Le matcher propose. Le porteur décide.",
   waiting: "Choisissez une idée et le matcher se lance.",
   verified: "Vérifié",
   inCommon: (owner) => `En commun avec ${owner}`,
+  simulated: "Scores simulés ici\u202f: le score de correspondance est une fonction prévue.",
+  scoreLine: (score, step) => `Score simulé\u202f: ${score}, ${step}`,
+  steps: ["Correspondance forte", "Correspondance possible", "Correspondance faible", "Correspondance très faible"],
   invite: "Inviter les trois dans l'espace",
   inviting: "Envoi des invitations",
   signed: (name) => `${name} a lu l'accord et signé.`,
@@ -195,18 +218,21 @@ const fr: Copy = {
       matches: [
         {
           name: "Hamza Benali",
+          score: 92,
           role: "Ingénieur backend et systèmes",
           place: "Casablanca, Maroc",
           shared: ["Go", "PostgreSQL", "Docker"],
         },
         {
           name: "Thandiwe Mokoena",
+          score: 86,
           role: "Ingénieur mobile",
           place: "Johannesburg, Afrique du Sud",
           shared: ["Flutter", "React Native"],
         },
         {
           name: "Kidist Alemayehu",
+          score: 74,
           role: "Auditeur cybersécurité et smart contracts",
           place: "Addis-Abeba, Éthiopie",
           shared: ["Python"],
@@ -224,18 +250,21 @@ const fr: Copy = {
       matches: [
         {
           name: "Yannick Mbarga",
+          score: 89,
           role: "Ingénieur backend et systèmes",
           place: "Douala, Cameroun",
           shared: ["Python", "PostgreSQL"],
         },
         {
           name: "Aline Uwimana",
+          score: 81,
           role: "Ingénieur MLOps et données",
           place: "Kigali, Rwanda",
           shared: ["Python", "Docker"],
         },
         {
           name: "Joaquim Fortes",
+          score: 67,
           role: "Ingénieur IA et ML",
           place: "Praia, Cap-Vert",
           shared: ["PyTorch", "LLM"],
@@ -252,18 +281,21 @@ const fr: Copy = {
       matches: [
         {
           name: "Rehema Salim",
+          score: 94,
           role: "Ingénieur mobile",
           place: "Mombasa, Kenya",
           shared: ["Flutter", "Java"],
         },
         {
           name: "Nelson Machava",
+          score: 78,
           role: "Ingénieur DevOps et cloud",
           place: "Maputo, Mozambique",
           shared: ["Docker", "Kubernetes"],
         },
         {
           name: "Tiana Rakotoarisoa",
+          score: 71,
           role: "Ingénieur UI/UX et architecte produit",
           place: "Antananarivo, Madagascar",
           shared: ["React"],
