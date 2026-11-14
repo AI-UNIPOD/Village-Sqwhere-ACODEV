@@ -1,0 +1,117 @@
+/* The hero headline. The real text is always in the flow and sets the size of the heading; the
+   animated layer (.stage) is drawn over it and takes no room, so the heading never changes
+   height or line count while it plays. The font, size and alignment come from the hero. */
+.headline {
+  position: relative;
+  /* the finished headline's underline sits under "one square" / "une seule place" */
+  --rule-thick: 0.07em;
+  --rule-offset: 0.02em;
+}
+
+/* The underline of the finished headline, also without JavaScript. It follows the words over
+   two lines. While the layer plays it is off: the layer draws it. */
+.mark {
+  background-image: linear-gradient(var(--action), var(--action));
+  background-repeat: no-repeat;
+  background-size: 100% var(--rule-thick);
+  background-position: 0 calc(100% - var(--rule-offset));
+}
+
+/* While the layer plays, the real text is there for the page and for readers but not seen */
+.headline[data-headline] .real {
+  color: transparent;
+}
+
+.headline[data-headline] .mark {
+  background-size: 0 0;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stage > [data-part] {
+  position: absolute;
+  inset: 0;
+}
+
+.stage [data-part="sels"] {
+  z-index: 0;
+}
+
+.stage [data-part="lines"] {
+  z-index: 1;
+}
+
+.stage [data-part="rules"] {
+  z-index: 1;
+}
+
+.stage [data-part="carets"] {
+  z-index: 2;
+}
+
+/* One line of the real text: spaces are kept, so the line holds its place while a word is empty.
+   It is aligned like the hero's text (--copy-justify is set when the text is centred), and a
+   longer draft word grows from the middle of a centred line, as it would in the real one. */
+.stage [data-part="line"] {
+  position: absolute;
+  inset-inline: 0;
+  display: flex;
+  justify-content: var(--copy-justify, flex-start);
+  white-space: pre;
+}
+
+.stage [data-part="sel"] {
+  position: absolute;
+  height: 1.02em;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  transform-origin: right center;
+  transform: scaleX(0);
+}
+
+.stage [data-part="rule"] {
+  position: absolute;
+  block-size: var(--rule-thick);
+  margin-top: calc(-1 * (var(--rule-offset) + var(--rule-thick)));
+  background: var(--action);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+/* A person's caret and name. Neutral on purpose: one bar and one pill in the text colour for
+   everyone, so no colour says who is who, and nothing says anyone is online. */
+.stage [data-part="caret"] {
+  position: absolute;
+  inset: 0 auto auto 0;
+  inline-size: 0;
+  block-size: 0;
+  opacity: 0;
+  will-change: transform;
+}
+
+.stage [data-part="bar"] {
+  position: absolute;
+  left: 0;
+  top: 0.14em;
+  inline-size: 0.075em;
+  block-size: 0.9em;
+  background: var(--text);
+}
+
+/* the pill sits on top of the bar, its bottom edge where the bar starts */
+.stage [data-part="tag"] {
+  position: absolute;
+  left: 0;
+  bottom: -0.14em;
+  padding: calc(var(--space-1) / 2) var(--space-2);
+  border-radius: var(--radius-full) var(--radius-full) var(--radius-full) var(--radius-xs);
+  background: var(--text);
+  color: var(--bg);
+  font: var(--type-caption);
+  letter-spacing: 0;
+  text-align: start;
+  white-space: nowrap;
+}

@@ -7,6 +7,8 @@ import { copy } from "./copy";
 import { DemoButton, DemoNote } from "./demo-button";
 import { GatherHero } from "./gather-hero";
 import { HeaderPin } from "./header-pin";
+import { HeroHeadline } from "./hero-headline";
+import { headlineEdit } from "./hero-headline-copy";
 import styles from "./landing-page.module.css";
 import { SectionMotion } from "./section-motion";
 import { HeaderTools } from "./header-tools";
@@ -57,7 +59,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
 
       <main>
         <GatherHero labelledBy="hero-title" labels={{ pause: t.pause, play: t.play }}>
-          <h1 id="hero-title">{t.headline}</h1>
+          <HeroHeadline id="hero-title" headline={t.headline} edit={headlineEdit[lang]} />
           <p className={styles.sub}>{t.sub}</p>
           <div className={styles.ctas}>
             <Link className={`${styles.btn} ${styles.heroButton}`} href={`/${lang}/sign-in`}>
