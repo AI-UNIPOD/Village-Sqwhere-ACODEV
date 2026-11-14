@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { copy } from "./how-it-works-copy";
+import { copy, SAMPLE_PHASE } from "./how-it-works-copy";
 import { HowItWorks } from "./how-it-works";
 
 // A stand-in for the browser's IntersectionObserver that the test can drive by hand.
@@ -100,9 +100,19 @@ test.each(["en", "fr"] as const)("each step's view shows its key text in %s", (l
 
   expect(hub.getByText(t.hub.sample)).toBeTruthy();
   for (const phase of t.hub.phases) expect(hub.getByText(phase)).toBeTruthy();
-  // nothing has started: every phase reads Not started
-  expect(hub.getAllByText(t.hub.notStarted)).toHaveLength(4);
-  expect(hub.queryByText(/in progress|en cours/i)).toBeNull();
+  // the sample hub is mid-way: the phases before the current one are done, the ones after not started
+  const states = hub.getAllByRole("listitem").map((item) => item.lastElementChild!.textContent);
+  expect(states).toEqual(
+    t.hub.phases.map((_, i) =>
+      i < SAMPLE_PHASE ? t.hub.states.done : i === SAMPLE_PHASE ? t.hub.states.inProgress : t.hub.states.notStarted,
+    ),
+  );
+  expect(hub.getAllByText(t.hub.states.inProgress)).toHaveLength(1);
+
+  // each match shows a country, not a city
+  for (const m of t.matcher.matches) expect(matcher.getByText(m.country)).toBeTruthy();
+  expect(idea.getByText(t.idea.sharedBy)).toBeTruthy();
+  expect(t.idea.sharedBy.endsWith("Nigeria")).toBe(true);
 });
 
 test("the Lagoon tag appears once in the views of a step, and the people are made up", () => {

@@ -21,6 +21,7 @@ import { loadHub, type Hub } from "./hubs-api";
 import { WithdrawRequest, WithdrawnLine, type WithdrawOutcome } from "./withdraw-request";
 import styles from "./hubs.module.css";
 import { HubsSkeleton, MissingHub } from "./my-hubs";
+import { Notes } from "./notes";
 import { Phases } from "./phases";
 import { InvitationCard, Person, Team } from "./team";
 
@@ -156,11 +157,12 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       <p className={`${ideas.meta} ${styles.line}`}>{fill(t.agreementVersion, { n: hub.agreement.version })}</p>
 
       <Phases key={loads} lang={lang} hub={hub} onChange={setHub} />
+      {isMember && hub.phase && <Notes key={`notes-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
     </main>
   );
 }
 
-// One hub's card: what it builds, who is in it, the terms everyone signed and the four phases.
+// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes.
 export function HubPage({ lang }: { lang: Lang }) {
   const search = useSearchParams();
   const id = search.get("id");

@@ -421,6 +421,10 @@
   background: var(--line);
 }
 
+.rail span[data-on] {
+  background: var(--text);
+}
+
 .phases {
   margin: 0;
   padding: 0;
@@ -444,6 +448,12 @@
 .phaseName {
   font: var(--type-label);
   font-weight: 500;
+}
+
+.phase[data-on] .phaseName,
+.phase[data-on] .meta {
+  color: var(--text);
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {

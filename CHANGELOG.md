@@ -11,6 +11,13 @@ its number:
 ## 2026-11-14
 
 - feat(api): add the design sketch of pieces and links to a hub (#174)
+- feat(api): seed the demo with a range of match scores (#172)
+- feat(web): show the match score and its reasons on match cards (#171)
+- fix(web): make three French lines on the landing page read plainly (#168)
+- feat(api): let members leave a hub and owners remove them (#167)
+- feat(web): add brainstorm notes to the hub page (#166)
+- fix(web): show the hub phases and the language choice that now ship (#164)
+- docs: bring the progress file up to date after phase one (#163)
 - feat(api): add brainstorm notes to a hub (#162)
 - feat(web): show the country and shared technologies on match cards (#161)
 - feat(api): score every match and order both lists by it (#160)

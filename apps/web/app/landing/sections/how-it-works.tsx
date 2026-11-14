@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { Lang } from "../../locales";
 import { HeadingText } from "../heading-text";
-import { copy, type Copy } from "./how-it-works-copy";
+import { copy, SAMPLE_PHASE, type Copy } from "./how-it-works-copy";
 import s from "./how-it-works.module.css";
 import styles from "../landing-page.module.css";
 
@@ -64,7 +64,7 @@ function MatchesView({ t }: { t: Copy }) {
                   {m.verified}
                 </span>
               </p>
-              <p className={s.meta}>{m.city}</p>
+              <p className={s.meta}>{m.country}</p>
               <ul className={s.techs}>
                 {m.tech.map((tech) => (
                   <li key={tech} className={s.tech}>
@@ -128,17 +128,18 @@ function HubView({ t }: { t: Copy }) {
       </p>
       <p className={s.fieldLabel}>{hub.phasesHeading}</p>
       <div className={s.rail} aria-hidden="true">
-        <span />
-        <span />
-        <span />
-        <span />
+        {hub.phases.map((phase, i) => (
+          <span key={phase} data-on={i <= SAMPLE_PHASE ? "" : undefined} />
+        ))}
       </div>
       <ol className={s.phases}>
         {hub.phases.map((phase, i) => (
-          <li key={phase} className={s.phase}>
+          <li key={phase} className={s.phase} data-on={i === SAMPLE_PHASE ? "" : undefined}>
             <span className={s.num}>{`0${i + 1}`}</span>
             <span className={s.phaseName}>{phase}</span>
-            <span className={s.meta}>{hub.notStarted}</span>
+            <span className={s.meta}>
+              {i < SAMPLE_PHASE ? hub.states.done : i === SAMPLE_PHASE ? hub.states.inProgress : hub.states.notStarted}
+            </span>
           </li>
         ))}
       </ol>
