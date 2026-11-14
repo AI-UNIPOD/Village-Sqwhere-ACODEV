@@ -188,9 +188,9 @@ test("from 768px the pieces and links are also drawn, hidden from assistive tech
   const picture = drawing()!;
   expect(picture.getAttribute("aria-hidden")).toBe("true");
   expect(picture.querySelectorAll("rect")).toHaveLength(3);
-  // one path for each link, with its label near it
+  // one path for each link, with its label near it on two short lines
   expect(picture.querySelectorAll("path")).toHaveLength(2);
-  expect([...picture.querySelectorAll("text")].map((text) => text.textContent)).toEqual(["Mobile app", "Payouts API", "SMS gateway", "approves a batch", "returns the status"]);
+  expect([...picture.querySelectorAll("text")].map((text) => text.textContent)).toEqual(["Mobile app", "Payouts API", "SMS gateway", "approves a", "batch", "returns the", "status"]);
   // the list is still there
   expect(cards()).toHaveLength(3);
 });

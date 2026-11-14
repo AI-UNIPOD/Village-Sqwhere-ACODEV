@@ -52,11 +52,13 @@ function Drawing({ sketch }: { sketch: Sketch }) {
           ))}
         </g>
       ))}
-      {arrows.map((arrow) => (
-        <text key={arrow.id} className={styles.arrowLabel} x={arrow.label.x} y={arrow.label.y}>
-          {arrow.label.text}
-        </text>
-      ))}
+      {arrows.map((arrow) =>
+        arrow.label.lines.map((line, i) => (
+          <text key={`${arrow.id}-${i}`} className={styles.arrowLabel} x={arrow.label.x} y={line.y}>
+            {line.text}
+          </text>
+        )),
+      )}
     </svg>
   );
 }

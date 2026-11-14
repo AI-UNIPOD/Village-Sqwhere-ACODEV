@@ -1,23 +1,25 @@
 // Where the boxes and arrows of a hub's design sketch go, worked out from the links alone, in the
 // drawing's own coordinate space. Nothing is saved: the same pieces and links give the same layout.
 
-export const BOX_W = 168;
-export const BOX_H = 56;
+export const BOX_W = 120;
+export const BOX_H = 60;
 export const GAP = 24;
-export const GUTTER = 168;
-// room around the drawing for the heads of arrows and the halo of labels
-export const MARGIN = 12;
+export const GUTTER = 100;
+// room around the drawing for the heads of arrows and the labels
+export const MARGIN = 20;
 export const NAME_LINE = 20;
+export const LABEL_LINE = 14;
 // What a character of the box names (15px) and of the arrow labels (12px) takes at most. The
 // text is cut by counting characters, so it is never wider than its box or its gutter.
-export const CHAR_W = { name: 9, label: 7.2 };
+export const CHAR_W = { name: 8.5, label: 6.8 };
 const TEXT_PAD = 8;
 const HEAD = 8;
 const HEAD_SPREAD = 0.5;
+const LABEL_SPACE = 4;
 
 export type Point = { x: number; y: number };
 export type Box = { id: string; x: number; y: number; w: number; h: number; lines: { text: string; y: number }[] };
-export type Arrow = { id: string; d: string; label: { text: string; x: number; y: number } };
+export type Arrow = { id: string; d: string; label: { x: number; lines: { text: string; y: number }[] } };
 export type Layout = { width: number; height: number; boxes: Box[]; arrows: Arrow[] };
 
 // `text` on at most `maxLines` lines of `perLine` characters: broken at spaces, a word longer
@@ -158,9 +160,28 @@ export function layoutDesign(
     const angle = Math.atan2(to.y - from.y, to.x - from.x);
     const wing = (turn: number) => at({ x: to.x - HEAD * Math.cos(angle + turn), y: to.y - HEAD * Math.sin(angle + turn) });
     const line = `M${points.map(at).join("L")}`;
-    const label = fitText(edge.label, Math.floor((GUTTER - 2 * TEXT_PAD) / CHAR_W.label), 1).join("");
-    return { id: edge.id, d: `${line}M${wing(HEAD_SPREAD)}L${at(to)}L${wing(-HEAD_SPREAD)}`, label: { text: label, x: round((from.x + to.x) / 2), y: round((from.y + to.y) / 2) } };
+    // The label sits beside the middle of the last stretch, in the gutter: above the line for an
+    // arrow going right and below it for one coming back, so a pair of links do not share a place.
+    const words = fitText(edge.label, Math.floor((GUTTER - 2 * TEXT_PAD) / CHAR_W.label), 2);
+    const middle = (from.y + to.y) / 2;
+    const first = (dir > 0 ? middle - LABEL_SPACE - words.length * LABEL_LINE : middle + LABEL_SPACE) + LABEL_LINE / 2;
+    const label = { x: round((from.x + to.x) / 2), lines: words.map((text, n) => ({ text, y: round(first + n * LABEL_LINE) })) };
+    return { id: edge.id, d: `${line}M${wing(HEAD_SPREAD)}L${at(to)}L${wing(-HEAD_SPREAD)}`, label };
   });
+
+  // Labels in one gutter that would overlap are moved down, in their order, until they do not.
+  const gutters = new Map<number, Arrow[]>();
+  for (const arrow of arrows) gutters.set(arrow.label.x, [...(gutters.get(arrow.label.x) ?? []), arrow]);
+  let lowest = 0;
+  for (const found of gutters.values()) {
+    let free = -Infinity;
+    for (const { label } of found.sort((a, b) => a.label.lines[0].y - b.label.lines[0].y)) {
+      const shift = Math.max(0, free - (label.lines[0].y - LABEL_LINE / 2));
+      for (const line of label.lines) line.y = round(line.y + shift);
+      free = label.lines.at(-1)!.y + LABEL_LINE / 2 + LABEL_SPACE;
+      lowest = Math.max(lowest, free);
+    }
+  }
 
   const perLine = Math.floor((BOX_W - 2 * TEXT_PAD) / CHAR_W.name);
   const boxes = pieces.map((piece, i): Box => {
@@ -175,5 +196,5 @@ export function layoutDesign(
     };
   });
 
-  return { width: left(columns - 1) + BOX_W + MARGIN, height: tallest + 2 * MARGIN, boxes, arrows };
+  return { width: left(columns - 1) + BOX_W + MARGIN, height: Math.max(tallest + MARGIN, lowest) + MARGIN, boxes, arrows };
 }

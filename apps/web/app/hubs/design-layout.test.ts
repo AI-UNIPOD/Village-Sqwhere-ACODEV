@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { BOX_H, BOX_W, CHAR_W, fitText, GUTTER, layoutDesign, type Box, type Layout } from "./design-layout";
+import { BOX_H, BOX_W, CHAR_W, fitText, GUTTER, LABEL_LINE, layoutDesign, type Box, type Layout } from "./design-layout";
 
 const pieces = (...names: string[]) => names.map((name) => ({ id: name, name }));
 const link = (from: string, to: string, label = "talks to") => ({ id: `${from}-${to}`, from_piece_id: from, to_piece_id: to, label });
@@ -27,6 +27,11 @@ function expectSound(layout: Layout, links: ReturnType<typeof link>[]) {
     expect(a.y).toBeGreaterThanOrEqual(0);
     expect(a.y + a.h).toBeLessThanOrEqual(layout.height);
   }
+  // labels in one gutter do not overlap
+  const spans = layout.arrows.map(({ id, label }) => ({ id, x: label.x, top: label.lines[0].y - LABEL_LINE / 2, bottom: label.lines.at(-1)!.y + LABEL_LINE / 2 }));
+  for (const [i, a] of spans.entries()) {
+    for (const b of spans.slice(i + 1)) expect(a.x !== b.x || a.bottom <= b.top || b.bottom <= a.top, `labels of ${a.id} and ${b.id}`).toBe(true);
+  }
   for (const { id, from_piece_id: from, to_piece_id: to } of links) {
     const a = box(layout, from);
     const b = box(layout, to);
@@ -48,10 +53,12 @@ function expectSound(layout: Layout, links: ReturnType<typeof link>[]) {
     );
     expect(over.map((other) => other.id), `${id} goes over`).toEqual([]);
     // the label sits in the gutter, clear of every box
-    const { text, x, y } = arrow(layout, id).label;
+    const { x, lines } = arrow(layout, id).label;
+    const reach = (Math.max(...lines.map((found) => found.text.length)) * CHAR_W.label) / 2;
+    expect(lines[0].y - LABEL_LINE / 2, `${id} label is inside the picture`).toBeGreaterThanOrEqual(0);
+    expect(lines.at(-1)!.y + LABEL_LINE / 2).toBeLessThanOrEqual(layout.height);
     for (const other of layout.boxes) {
-      const reach = (text.length * CHAR_W.label) / 2;
-      const clear = x + reach <= other.x || x - reach >= other.x + other.w || y + 8 <= other.y || y - 8 >= other.y + other.h;
+      const clear = x + reach <= other.x || x - reach >= other.x + other.w || lines[0].y - LABEL_LINE / 2 >= other.y + other.h || lines.at(-1)!.y + LABEL_LINE / 2 <= other.y;
       expect(clear, `${id} label over ${other.id}`).toBe(true);
     }
   }
@@ -112,7 +119,9 @@ test("a link each way gives two arrows that start and end at different points", 
   expect(end(layout, "B-A").x).toBe(a.x + BOX_W);
   expect(start(layout, "A-B").y).not.toBe(end(layout, "B-A").y);
   expect(end(layout, "A-B").y).not.toBe(start(layout, "B-A").y);
-  expect(arrow(layout, "A-B").label.y).not.toBe(arrow(layout, "B-A").label.y);
+  // the labels are on the two sides of their lines, so they do not meet
+  const [sent, answered] = [arrow(layout, "A-B"), arrow(layout, "B-A")].map((found) => found.label.lines.map((text) => text.y));
+  expect(Math.max(...sent) + LABEL_LINE / 2).toBeLessThanOrEqual(Math.min(...answered) - LABEL_LINE / 2);
   expectSound(layout, links);
 });
 
@@ -154,8 +163,8 @@ test("a piece with no links is a box of its own, and the picture is as wide as i
 });
 
 test("a name is wrapped onto two lines at most, a long word is broken and the rest ends with an ellipsis", () => {
-  const layout = layoutDesign(pieces("Ledger database", "Payments reconciliation and settlement service for every branch", "A".repeat(80)), []);
-  expect(box(layout, "Ledger database").lines.map((found) => found.text)).toEqual(["Ledger database"]);
+  const layout = layoutDesign(pieces("Mobile app", "Payments reconciliation and settlement service for every branch", "A".repeat(80)), []);
+  expect(box(layout, "Mobile app").lines.map((found) => found.text)).toEqual(["Mobile app"]);
   const long = box(layout, "Payments reconciliation and settlement service for every branch");
   expect(long.lines).toHaveLength(2);
   expect(long.lines[1].text.endsWith("…")).toBe(true);
@@ -165,9 +174,10 @@ test("a name is wrapped onto two lines at most, a long word is broken and the re
   for (const { text } of [...long.lines, ...word.lines]) expect(text.length * CHAR_W.name).toBeLessThanOrEqual(BOX_W);
 });
 
-test("fitText keeps short text as it is and cuts a label to one line", () => {
+test("fitText keeps short text as it is, wraps at spaces and cuts what does not fit", () => {
   expect(fitText("approves a batch", 21, 1)).toEqual(["approves a batch"]);
   expect(fitText("  spaced   out  ", 21, 1)).toEqual(["spaced out"]);
   expect(fitText("returns the status of every batch", 21, 1)).toEqual(["returns the status o…"]);
+  expect(fitText("approves a batch", 12, 2)).toEqual(["approves a", "batch"]);
   expect(fitText("", 21, 1)).toEqual([]);
 });
