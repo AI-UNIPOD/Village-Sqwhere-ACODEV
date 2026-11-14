@@ -10,6 +10,10 @@ role and technology routes). The page is the developer's own: no route shows som
 
 `/{lang}/profile` has four parts: You, Roles, Stack, Account.
 
+Update, 2026-11-14: a Sectors part now sits between Stack and Account. It works like Stack: chips
+from the onboarding list, a "Save sectors" button that is disabled until a chip changes, and
+the whole list sent to `PUT /v1/me/sectors`.
+
 - Roles and the stack change at once on a press (adding a role, making it main, removing it
   after a confirmation). The name and bio, and the stack, wait for a Save button. After a role
   change the page loads `GET /v1/me` again, so it always shows what the API holds. Name and
