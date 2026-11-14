@@ -11,6 +11,7 @@ import {
   chipCentre,
   chipLeft,
   fittingRadius,
+  fittingRing,
   isResting,
   memberStory,
   newGhost,
@@ -111,6 +112,20 @@ test("a tight clearing takes a smaller ring, and no clearing at all takes none",
   expect(r as number).toBeLessThan(RADII[0]);
   // the whole hero is a box
   expect(fittingRadius([600, 100], fitsAround([0, 0, 1200, 700]))).toBeNull();
+});
+
+test("when the clearing is tight the ring slides up or down off the chip, at most 28px, before it shrinks", () => {
+  const fitsAround = (box: Rect) => (room: Rect) => roomFits(room, HERO.width, HERO.height, [box]);
+  // room for the biggest ring only if it slides 14px up
+  const low: Rect = [0, 100 + 52 + 34 - 14 + 6, 1200, 700];
+  const ring = fittingRing([600, 100], fitsAround(low));
+  expect(ring).toEqual({ centre: [600, 86], radius: 52 });
+  // centred when there is room, and the slide is never more than 28px
+  expect(fittingRing([200, 100], fitsAround(BOX))).toEqual({ centre: [200, 100], radius: 52 });
+  const tight = fittingRing([600, 100], fitsAround([0, 100 + 52 + 34 - 40 + 6, 1200, 700]));
+  expect(tight).not.toBeNull();
+  expect(Math.abs((tight as { centre: Point }).centre[1] - 100)).toBeLessThanOrEqual(28);
+  expect(fittingRing([600, 100], fitsAround([0, 0, 1200, 700]))).toBeNull();
 });
 
 // ---------- who is suggested ----------
@@ -349,6 +364,17 @@ test("the ghost picks a spot that fits and is far from the last one, or none whe
   expect(fits(spot as Point)).toBe(true);
   expect(Math.hypot((spot as Point)[0] - 100, (spot as Point)[1] - 100)).toBeGreaterThanOrEqual(220);
   expect(pickGhostSpot(rng(1), 1200, 700, null, () => false)).toBeNull();
+});
+
+test("in a narrow stage the ghost settles for a nearer spot, so it can go on repeating the story", () => {
+  // a 360px phone: the band leaves only about 150px of width for the ring's centre
+  const band = (c: Point) => c[1] > 300 && c[1] < 312;
+  const from: Point = [180, 306];
+  const spot = pickGhostSpot(rng(5), 360, 998, from, band);
+  expect(spot).not.toBeNull();
+  expect(band(spot as Point)).toBe(true);
+  // 220px away is impossible here, so it is as far as the width allows
+  expect(Math.hypot((spot as Point)[0] - from[0], (spot as Point)[1] - from[1])).toBeLessThan(220);
 });
 
 test("the ghost picks a spot, wanders there, rests a quarter second, gathers, leaves, picks another", () => {

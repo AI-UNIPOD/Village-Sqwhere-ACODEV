@@ -27,15 +27,15 @@ import {
   type Run,
 } from "./gather";
 import styles from "./gather-hero.module.css";
-import { heroAvoid, heroGeometry, type HeroGeometry } from "./hero-layout";
+import { ghostStage, heroAvoid, heroGeometry, type HeroGeometry } from "./hero-layout";
 import type { HeroTeamCopy } from "./hero-team-copy";
 import { chipWidth, drawChip, drawSuggestions, drawTeam, measure, type Pen } from "./hero-team-draw";
 import {
   IDLE_GHOST,
-  RADII,
   chipCentre,
   chipLeft,
   fittingRadius,
+  fittingRing,
   isResting,
   newGhost,
   pickGhostSpot,
@@ -147,6 +147,8 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
       visible: !document.hidden,
       onscreen: true,
       clock: 0,
+      // the story's own clock: the cycle of walking names restarts `clock`, a team must not
+      story: 0,
       last: null as number | null,
       pointer: null as Point | null,
       // seconds since the pointer last moved
@@ -169,6 +171,7 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
     let geo: HeroGeometry | null = null;
     let heroWidth = 0;
     let avoid: readonly Rect[] = [];
+    let stage: Rect | null = null;
     let words: CrowdWord[] = [];
     let plan: Cycle | null = null;
     let dpr = 1;
@@ -302,6 +305,7 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
       canvasEl.style.width = `${width}px`;
       canvasEl.style.height = `${hg.height}px`;
       avoid = heroAvoid(hg);
+      stage = ghostStage(hg);
       scrolling = !!drift && !state.still && !!tg && !!mg;
       // A scrolling crowd fills the hero evenly and a fixed mask keeps the text, the square and
       // the button clear, so no empty patch travels with it. A still crowd is laid out around
@@ -394,6 +398,7 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
         width: heroWidth,
         height: geo.height,
         avoid,
+        keepOut: stage ? [stage] : [],
       });
       walkBoxes = footprints(plan, geo.x, geo.y, geo.cell);
     }
@@ -434,17 +439,16 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
 
     // a spot for the ghost's ring that nothing else claims: clear of the boxes with air to
     // spare, and of the walking names' paths
-    const ghostFits = (c: Point) =>
-      fittingRadius(c, (room) => fits(room, 8, 14) && !overWalkers(room)) === RADII[0];
+    const ghostFits = (c: Point) => fittingRadius(c, (room) => fits(room, 8, 8) && !overWalkers(room)) !== null;
 
     function gatherAt(centre: Point, from: Point | null): boolean {
       const p = readyPen();
       if (!p || !geo) return false;
-      const radius = fittingRadius(centre, (room) => fits(room));
-      if (radius === null) return false;
-      const holders = pickTeam(words, centre, currentShift(), heroWidth, scrolling, p.fontSize, avoid);
+      const ring = fittingRing(centre, (room) => fits(room));
+      if (!ring) return false;
+      const holders = pickTeam(words, ring.centre, currentShift(), heroWidth, scrolling, p.fontSize, avoid);
       if (!holders.length) return false;
-      team = startTeam(holders, centre, radius, state.clock, from, nameSize(), (text) =>
+      team = startTeam(holders, ring.centre, ring.radius, state.story, from, nameSize(), (text) =>
         measure(p, text, nameSize(), 500),
       );
       return true;
@@ -467,8 +471,8 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
       if (!team || !storyTokens) return;
       const shift = currentShift();
       const homes = team.members.map((m) => [wordX(m.word, shift, heroWidth, scrolling), m.word.y] as const);
-      const gather = storyTokens.strong(Math.min(1, storyTime(team, state.clock) / STORY.gather));
-      const back = releaseProgress(team, state.clock, storyTokens.modal, storyTokens.out);
+      const gather = storyTokens.strong(Math.min(1, storyTime(team, state.story) / STORY.gather));
+      const back = releaseProgress(team, state.story, storyTokens.modal, storyTokens.out);
       placeMembers(team, homes, heroWidth, gather, back);
       if (team.released !== null && back >= 1) {
         // home: the names are crowd words again
@@ -485,7 +489,7 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
       const ghostOn = !p || (state.idle > IDLE_GHOST && !(team && !team.ghost));
       if (ghostOn) {
         // a pointer's team goes home when the ghost takes over; a ghost's own team goes on
-        if (team && !team.ghost) releaseTeam(team, state.clock);
+        if (team && !team.ghost) releaseTeam(team, state.story);
         ghost ??= newGhost();
         stepGhost(ghost, dt, {
           rnd: rng(500 + ghostSpots * 31),
@@ -498,12 +502,12 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
           gather: () => gatherAt([ghost?.x ?? 0, ghost?.y ?? 0], null),
           team: team ? { released: team.released !== null } : null,
         });
-        if (team?.ghost && shouldRelease(team, state.clock, null, false)) releaseTeam(team, state.clock);
+        if (team?.ghost && shouldRelease(team, state.story, null, false)) releaseTeam(team, state.story);
       } else {
         if (ghost) {
           // the real pointer is back: the ghost fades, and lets its team go
           ghost.alpha = Math.max(0, ghost.alpha - dt * 4);
-          if (team?.ghost) releaseTeam(team, state.clock);
+          if (team?.ghost) releaseTeam(team, state.story);
           if (ghost.alpha <= 0 && !team) ghost = null;
         }
         const rest = state.rest;
@@ -512,8 +516,8 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
           const chip = readyPen() ? chipWidth(pen) : 0;
           gatherAt(chipCentre(p, chip, heroWidth), [p[0], p[1]]);
         }
-        if (team && !team.ghost && shouldRelease(team, state.clock, p, !!p && overBox(p))) {
-          releaseTeam(team, state.clock);
+        if (team && !team.ghost && shouldRelease(team, state.story, p, !!p && overBox(p))) {
+          releaseTeam(team, state.story);
         }
       }
       moveTeam();
@@ -550,7 +554,7 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
           fg.fillText(twin, x, w.y);
         }
       }
-      if (team) drawTeam(p, team, frozen ? 99 : storyTime(team, state.clock), state.clock, storyTokens?.modal ?? 0);
+      if (team) drawTeam(p, team, frozen ? 99 : storyTime(team, state.story), state.story, storyTokens?.modal ?? 0);
       // the ghost idea: a dashed chip centred on its spot
       if (ghost && ghost.alpha > 0 && ghost.x > 0) {
         drawChip(p, ghost.x - chipWidth(p) / 2, ghost.y, true, 0.85 * ghost.alpha);
@@ -656,6 +660,7 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
       if (running()) {
         const step = state.last != null ? Math.min(100, now - state.last) / 1000 : 0;
         state.clock += step;
+        state.story += step;
         state.driftClock += step;
         state.last = now;
         if (plan && state.clock >= plan.end) {

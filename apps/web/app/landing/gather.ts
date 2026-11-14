@@ -196,6 +196,8 @@ type Field = {
    * (their way in), the motion button.
    */
   avoid: readonly Rect[];
+  /** Areas the walking names must not start in, but may cross: the ghost idea's stage. */
+  keepOut?: readonly Rect[];
 };
 
 /**
@@ -204,7 +206,7 @@ type Field = {
  * walking to it without crossing the text or the button (only the square it walks into).
  * Then the timings: walk in, hold, logo, walk out.
  */
-export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avoid }: Field): Cycle {
+export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avoid, keepOut = [] }: Field): Cycle {
   const rnd = rng(101 + cycle * 7);
   const gxMin = Math.ceil((4 - X) / c);
   const gxMax = Math.floor((width - 4 - X) / c) - 1;
@@ -216,6 +218,7 @@ export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avo
     if (gx < gxMin || gx + len - 1 > gxMax || gy < gyMin || gy > gyMax) return false;
     for (let i = -1; i <= len; i++) if (occ.has(`${gx + i}|${gy}`)) return false;
     if (overlaps(avoid, X + gx * c, Y + gy * c, X + (gx + len) * c, Y + (gy + 1) * c)) return false;
+    if (overlaps(keepOut, X + gx * c, Y + gy * c, X + (gx + len) * c, Y + (gy + 1) * c)) return false;
     // the way in (and out): every step must clear the areas that do not hold the target
     const targetX = X + (packed.tx + 0.5) * c;
     const targetY = Y + (packed.ty + 0.5) * c;

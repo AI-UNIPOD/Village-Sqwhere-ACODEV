@@ -13,6 +13,7 @@ import {
   at,
   chars,
   cubicBezier,
+  footprints,
   layoutCrowd,
   pack,
   parseCubicBezier,
@@ -155,6 +156,24 @@ test("no name walks across the text block or the motion button on its way in or 
       }
     }
   }
+});
+
+test("no name starts in a keep-out area (the ghost idea's stage), however much room it leaves", () => {
+  const stage = [0, 0, 1440, 400] as const;
+  const plan = planCycle({ ...field, cycle: 0, keepOut: [stage] });
+  expect(plan.pieces.length).toBeGreaterThan(0);
+  for (const p of plan.pieces) {
+    const y = g.y + p.sy * g.cell;
+    expect(y >= stage[3] || y + g.cell <= stage[1]).toBe(true);
+  }
+});
+
+test("the walking names' footprints cover every third step of each path, with a margin", () => {
+  const plan = planCycle({ ...field, cycle: 0 });
+  const boxes = footprints(plan, g.x, g.y, g.cell);
+  const p = plan.pieces[0];
+  expect(boxes.length).toBeGreaterThanOrEqual(plan.pieces.length);
+  expect(boxes).toContainEqual([g.x + p.sx * g.cell - 2, g.y + p.sy * g.cell - 2, g.x + (p.sx + p.len) * g.cell + 2, g.y + (p.sy + 1) * g.cell + 2]);
 });
 
 test("walks each name one cell per step until it stands on its target", () => {

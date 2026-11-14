@@ -102,6 +102,23 @@ export function fittingRadius(centre: Point, fits: (room: Rect) => boolean): num
   return RADII.find((r) => fits(ringRoom(centre, r))) ?? null;
 }
 
+/** How far up or down a ring may slide off the chip, in px, when a clearing is tight. */
+const SLIDES = [0, -14, 14, -28, 28] as const;
+
+/**
+ * Where the ring goes for a chip at `centre`: the biggest ring that fits, centred on the chip or
+ * slid up or down by at most 28px (the chip stays inside it), or null when none fits.
+ */
+export function fittingRing(centre: Point, fits: (room: Rect) => boolean): { centre: Point; radius: number } | null {
+  for (const radius of RADII) {
+    for (const slide of SLIDES) {
+      const moved: Point = [centre[0], centre[1] + slide];
+      if (fits(ringRoom(moved, radius))) return { centre: moved, radius };
+    }
+  }
+  return null;
+}
+
 // ---------- the team ----------
 
 /** Where a crowd word shows now: a word that has scrolled off the left comes back from the right. */
@@ -320,7 +337,10 @@ export type Ghost = {
 
 export const newGhost = (): Ghost => ({ x: -99, y: -99, alpha: 0, state: "new", t: 0, target: [0, 0], spot: null });
 
-/** A clear spot for the ghost's ring, at least 220px from `from`, or null when the crowd has none. */
+/**
+ * A clear spot for the ghost's ring, as far from `from` as the crowd allows: 220px if it can,
+ * else 80px, else anywhere; null when no spot fits at all.
+ */
 export function pickGhostSpot(
   rnd: () => number,
   width: number,
@@ -328,13 +348,16 @@ export function pickGhostSpot(
   from: Point | null,
   fits: (centre: Point) => boolean,
 ): Point | null {
-  const margin = RADII[0] + 72;
-  for (let i = 0; i < 70; i++) {
-    const x = margin + rnd() * (width - 2 * margin);
-    const y = RADII[0] + 38 + rnd() * (height - 2 * (RADII[0] + 44));
-    if (!fits([x, y])) continue;
-    if (from && Math.hypot(x - from[0], y - from[1]) < 220) continue;
-    return [x, y];
+  const smallest = RADII[RADII.length - 1];
+  const sideMargin = smallest + 70;
+  for (const away of from ? [220, 80, 0] : [0]) {
+    for (let i = 0; i < 70; i++) {
+      const x = sideMargin + rnd() * (width - 2 * sideMargin);
+      const y = smallest + 34 + rnd() * (height - 2 * smallest - 76);
+      if (!fits([x, y])) continue;
+      if (from && Math.hypot(x - from[0], y - from[1]) < away) continue;
+      return [x, y];
+    }
   }
   return null;
 }

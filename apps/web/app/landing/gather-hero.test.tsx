@@ -5,6 +5,7 @@ import { crowdFontSize, layoutCrowd } from "./gather";
 import { GatherHero } from "./gather-hero";
 import { heroAvoid, heroGeometry } from "./hero-layout";
 import { heroTeamCopy } from "./hero-team-copy";
+import { chipCentre, fittingRing, pickTeam, roomFits } from "./hero-team";
 import { MOTION_KEY } from "./motion";
 
 let resizeCallbacks: Array<() => void> = [];
@@ -520,4 +521,314 @@ test("blocked storage does not break the page, and the button still works until 
   fireEvent.click(screen.getByRole("button", { name: "Play animation" }));
   expect(section(container).getAttribute("data-drift")).toBe("on");
   setDriftTokens(false);
+});
+
+// ---------- your idea gathers a team ----------
+
+type Drawn = { text: string; x: number; y: number };
+
+// every fillText on every canvas, in order; `clear` forgets what was drawn so far
+function recordText() {
+  const drawn: Drawn[] = [];
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
+    const ctx = fakeContext() as Record<string, unknown>;
+    ctx.fillText = (text: string, x: number, y: number) => drawn.push({ text, x, y });
+    return ctx as unknown as RenderingContext;
+  });
+  return { drawn, clear: () => drawn.splice(0), texts: () => drawn.map((d) => d.text) };
+}
+
+// animation frames by hand: `play` runs the queued frame, 16ms at a time
+function stubFrames() {
+  let queue: FrameRequestCallback[] = [];
+  let now = 1000;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => queue.push(callback));
+  return {
+    play(seconds: number) {
+      for (let t = 0; t < seconds - 1e-9; t += 0.016) {
+        const run = queue;
+        queue = [];
+        now += 16;
+        run.forEach((callback) => callback(now));
+      }
+    },
+  };
+}
+
+// the hero as the tests lay it out: 1440px wide, a 240px text box with no padding
+function zones() {
+  const g = heroGeometry({ width: 1440, viewportHeight: window.innerHeight, navHeight: 0, copyPad: 0, measureCopy: () => 240 });
+  return { g, avoid: heroAvoid(g) };
+}
+const inside = (x: number, y: number, [x0, y0, x1, y1]: readonly [number, number, number, number]) =>
+  x > x0 && x < x1 && y > y0 && y < y1;
+
+// the chip's width with the test's fake 6px letters: "Your idea" plus 12px of padding
+const CHIP_WIDTH = "Your idea".length * 6 + 12;
+
+// where a pointer can rest and the team gathers: clear of the boxes, room for a ring, builders near
+function aRestingSpot() {
+  const { g, avoid } = zones();
+  const fontSize = crowdFontSize(g.cell);
+  const words = layoutCrowd({ width: 1440, height: g.height, centerX: g.x + g.square / 2, centerY: g.y + g.square / 2, square: g.square, fontSize, avoid: [] });
+  for (let y = 40; y < g.height; y += 8) {
+    for (let x = 100; x < 1340; x += 8) {
+      if (avoid.some((a) => inside(x, y, a))) continue;
+      const centre = chipCentre([x, y], CHIP_WIDTH, 1440);
+      const ring = fittingRing(centre, (room) => roomFits(room, 1440, g.height, avoid));
+      if (ring && pickTeam(words, ring.centre, 0, 1440, true, fontSize, avoid).length >= 2) return [x, y] as const;
+    }
+  }
+  throw new Error("no spot");
+}
+
+test("with reduced motion the story is one finished ring in a clear spot: the idea, three names, all signed", () => {
+  setDriftTokens(true);
+  stubMotion(true);
+  const text = recordText();
+  renderHero();
+  setDriftTokens(false);
+  const labels = text.texts();
+  expect(labels).toContain("Your idea");
+  expect(labels.filter((t) => t === "Signed").length).toBeGreaterThanOrEqual(2);
+  // nothing is still suggesting or inviting in the one frame: it is the end of the story
+  expect(labels).not.toContain("Suggested by role");
+  expect(labels).not.toContain("Invitation sent");
+  const { avoid } = zones();
+  const chip = text.drawn.find((d) => d.text === "Your idea")!;
+  expect(avoid.some((a) => inside(chip.x, chip.y, a))).toBe(false);
+  for (const d of text.drawn.filter((x) => x.text === "Signed")) {
+    expect(avoid.some((a) => inside(d.x, d.y, a))).toBe(false);
+  }
+});
+
+test("pausing shows the same finished ring, and playing starts the story again", () => {
+  setDriftTokens(true);
+  const frames = stubFrames();
+  const text = recordText();
+  renderHero();
+  frames.play(0.5);
+  text.clear();
+  fireEvent.click(screen.getByRole("button", { name: "Pause animation" }));
+  frames.play(0.1);
+  expect(text.texts().filter((t) => t === "Signed").length).toBeGreaterThanOrEqual(2);
+  // it stands still: later frames draw nothing more
+  text.clear();
+  frames.play(1);
+  expect(text.texts()).toEqual([]);
+  fireEvent.click(screen.getByRole("button", { name: "Play animation" }));
+  text.clear();
+  frames.play(0.1);
+  expect(text.texts()).not.toContain("Signed");
+  setDriftTokens(false);
+});
+
+test("nothing is drawn in the text box or the square, and the crowd shows in the band between them", () => {
+  setDriftTokens(true);
+  stubMotion(true);
+  const text = recordText();
+  renderHero();
+  setDriftTokens(false);
+  const { g, avoid } = zones();
+  const [copy, square] = avoid;
+  for (const d of text.drawn) {
+    expect(avoid.some((a) => inside(d.x, d.y, a)), d.text).toBe(false);
+  }
+  const band = [copy[2], g.y, square[0], g.y + g.square] as const;
+  expect(text.drawn.filter((d) => inside(d.x, d.y, band)).length).toBeGreaterThan(5);
+});
+
+test("the scrolling crowd's mask clears the text box, the square and the button only: the band stays crowd", () => {
+  setDriftTokens(true);
+  const cleared: Array<[number, number, number, number]> = [];
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
+    const ctx = fakeContext() as Record<string, unknown>;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillRect = (x: number, y: number, w: number, h: number) => {
+      if (ctx.globalCompositeOperation === "destination-out") cleared.push([x, y, x + w, y + h]);
+    };
+    return ctx as unknown as RenderingContext;
+  });
+  renderHero();
+  setDriftTokens(false);
+  const { avoid } = zones();
+  expect(cleared).toHaveLength(3);
+  for (const rect of avoid) expect(cleared).toContainEqual(rect);
+});
+
+test("a pointer that pauses over the crowd gathers a team around the idea, in about 1.6 seconds", () => {
+  setDriftTokens(true);
+  stubMotion(false, true);
+  const frames = stubFrames();
+  const text = recordText();
+  const { container } = renderHero();
+  const hero = container.querySelector("section")!;
+  const [x, y] = aRestingSpot();
+
+  movePointer(hero, x, y);
+  frames.play(0.2);
+  text.clear();
+  frames.play(0.016);
+  // the chip hangs below and to the right of the pointer's tip, and nothing has gathered yet
+  const chip = text.drawn.find((d) => d.text === "Your idea")!;
+  expect(chip.x).toBe(x + 9 + 6);
+  expect(chip.y).toBeCloseTo(y + 15.5, 6);
+  expect(text.texts()).not.toContain("Suggested by role");
+
+  // the pause is 250ms; then the matcher suggests by role and the names spring onto the ring
+  frames.play(0.2);
+  text.clear();
+  frames.play(0.032);
+  expect(text.texts()).toContain("Suggested by role");
+  expect(text.texts().some((t) => ["Backend", "Mobile", "Security"].includes(t))).toBe(true);
+
+  // 0.5s on, the invitations (one asks to join)
+  frames.play(0.6);
+  text.clear();
+  frames.play(0.032);
+  expect(text.texts().some((t) => t === "Invitation sent" || t === "Asks to join")).toBe(true);
+  expect(text.texts()).not.toContain("Suggested by role");
+
+  // 1.6s on, all signed
+  frames.play(1.0);
+  text.clear();
+  frames.play(0.032);
+  expect(text.texts().filter((t) => t === "Signed").length).toBeGreaterThanOrEqual(2);
+  setDriftTokens(false);
+});
+
+test("the labels stay up while the pointer stays, and the team goes home when it moves", () => {
+  setDriftTokens(true);
+  stubMotion(false, true);
+  const frames = stubFrames();
+  const text = recordText();
+  const { container } = renderHero();
+  const hero = container.querySelector("section")!;
+  const [x, y] = aRestingSpot();
+  movePointer(hero, x, y);
+  frames.play(2.6);
+  // 600ms after the ring closed, and long after: still signed
+  text.clear();
+  frames.play(0.032);
+  expect(text.texts().filter((t) => t === "Signed").length).toBeGreaterThanOrEqual(2);
+  frames.play(5);
+  text.clear();
+  frames.play(0.032);
+  expect(text.texts().filter((t) => t === "Signed").length).toBeGreaterThanOrEqual(2);
+
+  // a small shake changes nothing
+  movePointer(hero, x + 3, y + 2);
+  frames.play(0.1);
+  text.clear();
+  frames.play(0.032);
+  expect(text.texts()).toContain("Signed");
+
+  // a real move lets them go within --dur-modal (220ms)
+  movePointer(hero, x + 40, y);
+  frames.play(0.3);
+  text.clear();
+  frames.play(0.032);
+  expect(text.texts()).not.toContain("Signed");
+  expect(text.texts()).toContain("Your idea");
+  setDriftTokens(false);
+});
+
+test("the idea is not drawn over the text box or the square, and nothing gathers there", () => {
+  setDriftTokens(true);
+  stubMotion(false, true);
+  const frames = stubFrames();
+  const text = recordText();
+  const { container } = renderHero();
+  const hero = container.querySelector("section")!;
+  const { g, avoid } = zones();
+  // over the square, then over the text box
+  for (const [px, py] of [
+    [g.x + g.square / 2, g.y + g.square / 2],
+    [(avoid[0][0] + avoid[0][2]) / 2, (avoid[0][1] + avoid[0][3]) / 2],
+  ]) {
+    movePointer(hero, px, py);
+    frames.play(2);
+    text.clear();
+    frames.play(0.032);
+    const chips = text.drawn.filter((d) => d.text === "Your idea" && Math.abs(d.x - (px + 15)) < 1);
+    expect(chips).toEqual([]);
+    expect(text.texts()).not.toContain("Signed");
+  }
+  setDriftTokens(false);
+});
+
+test("a touch screen has no pointer story: the idea does not follow a finger", () => {
+  setDriftTokens(true);
+  stubMotion(false, false);
+  const frames = stubFrames();
+  const text = recordText();
+  const { container } = renderHero();
+  const hero = container.querySelector("section")!;
+  const [x, y] = aRestingSpot();
+  movePointer(hero, x, y);
+  frames.play(0.5);
+  text.clear();
+  frames.play(0.032);
+  expect(text.drawn.filter((d) => d.text === "Your idea" && Math.abs(d.x - (x + 15)) < 1 && Math.abs(d.y - (y + 15.5)) < 1)).toEqual([]);
+  setDriftTokens(false);
+});
+
+test("without a pointer a ghost idea wanders to a clear spot and tells the story, again and again", () => {
+  setDriftTokens(true);
+  stubMotion(false, false);
+  const frames = stubFrames();
+  const text = recordText();
+  renderHero();
+  const seen = new Set<string>();
+  const { avoid } = zones();
+  let rounds = 0;
+  let previous = false;
+  for (let i = 0; i < 40 * 62; i++) {
+    text.clear();
+    frames.play(0.016);
+    for (const t of text.texts()) seen.add(t);
+    for (const d of text.drawn.filter((x) => x.text === "Signed" || x.text === "Your idea")) {
+      expect(avoid.some((a) => inside(d.x, d.y, a))).toBe(false);
+    }
+    const signed = text.texts().includes("Signed");
+    if (signed && !previous) rounds++;
+    previous = signed;
+  }
+  expect(seen.has("Your idea")).toBe(true);
+  expect(seen.has("Suggested by role")).toBe(true);
+  expect(seen.has("Signed")).toBe(true);
+  expect(rounds).toBeGreaterThanOrEqual(2);
+  setDriftTokens(false);
+});
+
+test("nothing the story draws claims a score or a percentage, or reads the idea", () => {
+  setDriftTokens(true);
+  stubMotion(false, false);
+  const frames = stubFrames();
+  const text = recordText();
+  renderHero();
+  const seen = new Set<string>();
+  for (let i = 0; i < 40 * 62; i++) {
+    text.clear();
+    frames.play(0.016);
+    for (const t of text.texts()) seen.add(t);
+  }
+  const story = [...seen].filter((t) => /idea|role|Invitation|Asks|Signed|Backend|Mobile|Security/.test(t));
+  expect(story.length).toBeGreaterThan(3);
+  for (const t of story) expect(t).not.toMatch(/\d|%|score/i);
+  setDriftTokens(false);
+});
+
+test("the French page tells the story in French", () => {
+  setDriftTokens(true);
+  stubMotion(true);
+  const text = recordText();
+  render(
+    <GatherHero labelledBy="title" labels={labels} team={heroTeamCopy.fr}>
+      <h1 id="title">Toute l&apos;Afrique, une seule place.</h1>
+    </GatherHero>,
+  );
+  setDriftTokens(false);
+  expect(text.texts()).toContain("Votre idée");
+  expect(text.texts()).toContain("Signé");
 });

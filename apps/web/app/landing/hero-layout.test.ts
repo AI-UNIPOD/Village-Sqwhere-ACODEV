@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { AVOID_PAD, GAP, STACK_BAND, WIDE_GAP, crowdBand, heroAvoid, heroFrameWidth, heroGeometry } from "./hero-layout";
+import { AVOID_PAD, GAP, STACK_BAND, WIDE_GAP, crowdBand, ghostStage, heroAvoid, heroFrameWidth, heroGeometry } from "./hero-layout";
 
 const COPY_HEIGHT = 240;
 const PAD = 32;
@@ -315,6 +315,18 @@ test("the crowd shows between the two boxes: the clear zones never touch and lea
     expect(heroAvoid(g)).toHaveLength(3);
     expect(crowdBand(g)).toBeGreaterThanOrEqual(GAP);
   }
+});
+
+test("stacked, the band between the text and the square is the ghost idea's stage: all of it, edge to edge", () => {
+  for (const width of [360, 768, 1000]) {
+    const g = layout(width, 800, width < 600 ? 20 : PAD);
+    const stage = ghostStage(g)!;
+    const [copy, square] = heroAvoid(g);
+    expect(stage).toEqual([0, copy[3], width, square[1]]);
+    expect(stage[3] - stage[1]).toBe(STACK_BAND);
+  }
+  // side by side there is no such band
+  expect(ghostStage(layout(1440))).toBeNull();
 });
 
 test("the text box is measured where it will sit, and told whether it is stacked", () => {

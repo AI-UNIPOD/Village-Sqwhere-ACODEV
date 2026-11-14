@@ -117,6 +117,16 @@ export function heroAvoid(g: HeroGeometry): Array<readonly [number, number, numb
   ];
 }
 
+/**
+ * Stacked, the band of crowd between the text and the square is the stage of the ghost idea on a
+ * phone, so the walking names do not start in it. Side by side there is no such band.
+ */
+export function ghostStage(g: HeroGeometry): readonly [number, number, number, number] | null {
+  if (!g.stacked) return null;
+  const [copy, square] = heroAvoid(g);
+  return [0, copy[3], g.width, square[1]];
+}
+
 type HeroInput = {
   width: number;
   viewportHeight: number;
