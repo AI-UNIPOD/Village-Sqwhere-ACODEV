@@ -32,6 +32,7 @@ something simulated, and that the planned way matches show (the "Match score" co
 ## Consequences
 
 - When the real score ships, the demo's scores and the "simulated" line must be replaced by
-  the real ones, and the status lines updated with how it is computed.
+  the real ones, and the status lines updated with how it is computed. How the real score is
+  counted: `2026-11-14-match-score.md`.
 - The demo's order (role, then technologies) and the simulated scores agree: scores fall in the
   order the matcher gives.
