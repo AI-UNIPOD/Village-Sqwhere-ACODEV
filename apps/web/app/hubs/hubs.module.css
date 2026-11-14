@@ -282,7 +282,8 @@
   list-style: none;
 }
 
-@media (min-width: 480px) {
+/* a card's tooltip opens to its left, so a column needs room for it before there are two */
+@media (min-width: 640px) {
   .notes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

@@ -178,6 +178,44 @@ test("an empty or too long note is caught before sending, with an error the fiel
   expect(within(section()).queryByRole("alert")).toBeNull();
 });
 
+test("the limit counts characters as people see them: 200 emoji fit, 281 do not", async () => {
+  const many = "😀".repeat(200);
+  await open(brainstorm, { "POST /v1/hubs/hub-1/notes": new Response(JSON.stringify({ data: note("n-1", many) }), { status: 201 }) });
+  await ready();
+  await waitFor(field);
+  write(many);
+  expect(within(section()).getByText("Characters left: 80")).toBeTruthy();
+  add();
+  expect(within(section()).queryByRole("alert")).toBeNull();
+  await waitFor(() => expect(posted()).toEqual([["/v1/hubs/hub-1/notes", { body: many }]]));
+  await waitFor(() => expect(within(section()).getByRole("status").textContent).toContain("Your note was added."));
+  write("😀".repeat(281));
+  expect(within(section()).getByText("Characters left: -1")).toBeTruthy();
+  add();
+  expect(alertText()).toBe("A note can have at most 280 characters. Shorten it and try again.");
+  expect(posted()).toHaveLength(1);
+});
+
+test("Refresh does nothing while a note is on its way, so the new card shows once", async () => {
+  let finish: (value: Response) => void = () => {};
+  await open(brainstorm);
+  await ready();
+  await waitFor(field);
+  const route = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+    init?.method === "POST" ? new Promise<Response>((resolve) => (finish = resolve)) : route(url, init),
+  );
+  write("One note");
+  add();
+  const refresh = within(section()).getByRole("button", { name: "Refresh" });
+  await waitFor(() => expect(refresh.getAttribute("aria-disabled")).toBe("true"));
+  fireEvent.click(refresh);
+  expect(requests("GET").filter((line) => line.includes("/notes"))).toHaveLength(1);
+  finish(new Response(JSON.stringify({ data: note("n-1", "One note") }), { status: 201 }));
+  await waitFor(() => expect(cards()).toHaveLength(1));
+  expect(refresh.getAttribute("aria-disabled")).toBeNull();
+});
+
 test("while a note is sent the button keeps its label, is busy and a second press sends nothing", async () => {
   let finish: (value: Response) => void = () => {};
   await open(brainstorm);

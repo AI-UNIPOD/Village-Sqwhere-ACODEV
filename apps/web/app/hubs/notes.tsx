@@ -83,7 +83,8 @@ export function Notes({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange:
   }, [hub.id, attempt, n, say]);
 
   function reload(focus: boolean) {
-    if (refreshing) return;
+    // a list read while a note is on its way could miss the note or hold it twice
+    if (refreshing || sending) return;
     moveFocus.current = focus;
     setRefreshing(true);
     setLine(null);
@@ -116,7 +117,7 @@ export function Notes({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange:
 
   async function add(event: FormEvent) {
     event.preventDefault();
-    if (sending) return;
+    if (sending || refreshing) return;
     const found = problem(text);
     setError(found);
     if (found) {
@@ -127,7 +128,7 @@ export function Notes({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange:
     setLine(null);
     try {
       const made = await addNote(hub.id, text.trim());
-      setNotes((have) => have && [...have, made]);
+      setNotes((have) => have && (have.some((note) => note.id === made.id) ? have : [...have, made]));
       setArrived(made.id);
       setText("");
       say({ text: n.write.added });
@@ -212,7 +213,13 @@ export function Notes({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange:
             </ul>
           )}
           <div className={styles.phaseActions}>
-            <button type="button" className={landing.ghost} aria-busy={refreshing || undefined} onClick={() => reload(false)}>
+            <button
+              type="button"
+              className={landing.ghost}
+              aria-busy={refreshing || undefined}
+              aria-disabled={sending || undefined}
+              onClick={() => reload(false)}
+            >
               {n.refresh}
             </button>
           </div>
@@ -245,7 +252,7 @@ export function Notes({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange:
             />
           </Field>
           <div className={styles.phaseActions}>
-            <button type="submit" className={landing.ghost} aria-busy={sending || undefined}>
+            <button type="submit" className={landing.ghost} aria-busy={sending || undefined} aria-disabled={refreshing || undefined}>
               {n.write.add}
             </button>
           </div>
