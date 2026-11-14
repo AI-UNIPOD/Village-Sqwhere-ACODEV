@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- fix(web): show the real match score and live brainstorm notes on the landing page
+- fix(web): show the real score and live brainstorm notes on the landing (#181)
 
 ## 2026-11-14
 
