@@ -21,7 +21,8 @@ Tanny delegated these calls to the product owner on 13 November 2026.
 - A result says why it matched: the matched roles and, for developers, the shared technology
   count. People can then judge the order instead of trusting a black box.
 - People already connected to an idea's hub, in any membership status, are not suggested
-  again, and that idea is left out of their own matches.
+  again, and that idea is left out of their own matches. Changed on 2026-11-14: only people
+  asking, invited or in the hub are left out (`2026-11-14-suggest-again-after-a-no.md`).
 - Matching never loads an idea's `details`. The code defers the column and makes it raise if
   read, and no model sees any idea text.
 - There is no opt-out setting yet. A developer enters matching by verifying a role. A candidate
