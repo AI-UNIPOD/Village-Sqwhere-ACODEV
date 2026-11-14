@@ -35,6 +35,7 @@ const me = (over: Record<string, unknown> = {}) => ({
     { slug: "go", name: "Go" },
     { slug: "python", name: "Python" },
   ],
+  sectors: [{ slug: "fintech", name: "Fintech" }],
   ...over,
 });
 
@@ -324,6 +325,39 @@ test("a failed stack save keeps the selection and says so", async () => {
   expect((await screen.findByRole("alert")).textContent).toContain("Your selection is still here");
   expect(screen.getByRole("button", { name: "Rust" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByText("3 selected")).toBeTruthy();
+});
+
+test("the sectors chosen in onboarding show as pressed, and saving sends the whole list", async () => {
+  await page(me(), { "PUT /v1/me/sectors": { data: [{ slug: "fintech", name: "Fintech" }, { slug: "health", name: "Health" }] } });
+  const sectors = within(screen.getByRole("region", { name: "Sectors" }));
+  expect(sectors.getByRole("button", { name: "Fintech" }).getAttribute("aria-pressed")).toBe("true");
+  expect(sectors.getByRole("button", { name: "Health" }).getAttribute("aria-pressed")).toBe("false");
+  const save = sectors.getByRole("button", { name: "Save sectors" });
+  expect(save.getAttribute("aria-disabled")).toBe("true");
+
+  fireEvent.click(sectors.getByRole("button", { name: "Health" }));
+  expect(sectors.getByText("2 selected")).toBeTruthy();
+  fireEvent.click(save);
+  await sectors.findByText("Saved");
+  expect(sent()).toEqual([["PUT", "/v1/me/sectors", { sectors: ["fintech", "health"] }]]);
+  expect(save.getAttribute("aria-disabled")).toBe("true");
+});
+
+test("a failed sectors save keeps the selection and says so", async () => {
+  await page(me(), { "PUT /v1/me/sectors": refusal(500, "SERVER_ERROR") });
+  const sectors = within(screen.getByRole("region", { name: "Sectors" }));
+  fireEvent.click(sectors.getByRole("button", { name: "Health" }));
+  fireEvent.click(sectors.getByRole("button", { name: "Save sectors" }));
+  expect((await sectors.findByRole("alert")).textContent).toBe(copy.en.sectors.failed);
+  expect(sectors.getByRole("button", { name: "Health" }).getAttribute("aria-pressed")).toBe("true");
+});
+
+test("the sectors section is in French", async () => {
+  api({ "GET /v1/me": { data: me() } });
+  render(<ProfilePage lang="fr" />);
+  const sectors = within(await screen.findByRole("region", { name: "Domaines" }));
+  expect(sectors.getByRole("button", { name: "Santé" })).toBeTruthy();
+  expect(sectors.getByRole("button", { name: "Enregistrer les domaines" })).toBeTruthy();
 });
 
 test("the account part has both languages, marking the current one, and a sign-out button", async () => {
