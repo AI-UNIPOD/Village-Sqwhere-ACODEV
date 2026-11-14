@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-15
+
+- fix(web): show the real score and live brainstorm notes on the landing (#181)
+
 ## 2026-11-14
 
 - feat(api): add the design sketch of pieces and links to a hub (#174)
