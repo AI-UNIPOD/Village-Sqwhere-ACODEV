@@ -19,11 +19,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   developer's country (profiles hold a country, no city).
 - A hub has a real phase: the owner confirms the team (any size), which opens brainstorm, then
   moves it one phase forward or back (`2026-11-14-hub-phases.md`). The hub page shows it.
-- A verification attempt stores a language; the AI interview, the repositories check and the
-  report are written in it, and the web sends the page's language.
-- Posts: create, read, edit, delete, like, save, a filtered list (`GET /v1/posts`), the feed
-  and saved posts. Comments and replies: create, read, edit, delete, lists, threads and likes.
-  Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
+- A verification attempt stores a language (the page's): the AI interview, the repositories
+  check and the report are written in it. Posts, the feed, saved posts, comments, replies and
+  likes are in place. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32+ chars) and keeps sign-in state in memory, so run one
   process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). `POST /v1/auth/demo`
   signs in as a read-only demo account when `DEMO_ENABLED=true` (content: `app.demo_seed`).
