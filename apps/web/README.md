@@ -58,8 +58,8 @@ developer is verified in, never their own, with no AI score shown) and one case 
 `/en/reviews/case?id=`. A case shows the evidence first (repositories, the interview, the
 repositories check), then the AI's report marked as a suggestion, then the decision form: notes
 are required, and pass or fail confirms in a dialog. Everything from `ai_result` is plain text.
-Each queue row and each case names the attempt's language, so a reviewer who cannot read it can
-choose another case.
+Each queue row names the attempt's language, and so does each case's AI report, so a reviewer who
+cannot read it can choose another case.
 
 Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/ideas/compose`
 (new) or `/en/ideas/compose?id=` (existing). The form keeps what everyone sees (title, summary)
