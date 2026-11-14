@@ -20,7 +20,9 @@ Tanny delegated these calls to the product owner on 13 November 2026.
   order is a count of roles then a tie-break, so a number would be made up. The line lets people
   judge the order themselves. The match score component in `components.md` (a number with
   "Strong match" and "Poor match" steps) is not used: it assumes a score the API does not have.
-  The `--ai` colour is not used either, because nothing here is AI.
+  The `--ai` colour is not used either, because nothing here is AI. Changed on 2026-11-14: a
+  match score is being built and will decide the order (`2026-11-14-match-score.md`); the
+  reasons stay on every card and the `--ai` colour stays off these screens.
 - **A developer with no verified role is not shown an empty list.** Matching ignores roles that
   are only claimed, so the page explains that and leads to verification. A developer with no
   role at all is sent to set up their profile first. In both cases the page does not call the
