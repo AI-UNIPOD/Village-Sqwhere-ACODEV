@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-15
+
+- feat(web): turn the theme in a wave of tiles from the centre
+
 ## 2026-11-14
 
 - fix(web): make three French lines on the landing page read plainly (#168)

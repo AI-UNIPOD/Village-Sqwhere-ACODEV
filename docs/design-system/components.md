@@ -43,11 +43,16 @@ Every header ends with the same two switches, in this order (`app/language-switc
   travel. No flags: a flag names a country, and French is spoken in many.
 - **Theme:** a 44px round icon button, the `--icon-toggle` moon on Paper (go dark) and sun on
   Ink (go light), turning into each other over `--dur-icon`. Hover fills with
-  `--surface-sunken`, pressed scales to 0.97. The new theme spreads from the button in a
-  soft-edged circle over `--dur-moment` on `--ease-drawer` (a view transition with a radial
-  mask; the edge feathers over 40% of the radius, at most two `--space-20`). With reduced motion
-  nothing travels: a crossfade over `--dur-modal`. Where view transitions are missing it changes
-  at once. Its label and tooltip say what a tap does
+  `--surface-sunken`, pressed scales to 0.97. The new theme arrives in a wave of square tiles
+  from the centre of the visible screen, not from the button: tiles `--space-20` across
+  (`--space-12` under 600px), each unfolding outward from its edge nearest the middle, over
+  1.5 x `--dur-moment` (about 780 ms; one tile flips over 14% of that), the wave mixing 30%
+  `--ease-strong` with a steady pace (a view transition: a diamond reveals the new page, a canvas
+  draws the tiles still folding in the new `--bg`). The page behind must be `--bg` where the tiles
+  meet it. A press while it runs is queued, never dropped: the running wave speeds up, the way back
+  plays if the last press differs, and the label and icon show the last press at once. With reduced
+  motion nothing travels: a crossfade over `--dur-modal`. Where view transitions or CSS `linear()`
+  easings are missing it changes at once. Its label and tooltip say what a tap does
   ("Switch to dark mode").
 
 The hero's motion button is a pill, not a round button: `--float-size` (36px) high,
