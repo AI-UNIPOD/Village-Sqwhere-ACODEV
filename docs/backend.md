@@ -1356,6 +1356,61 @@ The note's author or the hub's owner removes a note. Answers `204`.
 
 ## 4. Frontend Integration Guide: Authentication
 
+#### Hub chat
+
+A flat chat for the team, in any phase, once someone is an active member (the team need not be
+confirmed). A message is 1 to 10,000 characters, trimmed, and may quote one earlier message in
+the same hub. There are no live updates: the page loads the chat again to see new messages.
+Every route answers `403 NOT_HUB_MEMBER` to anyone who is not an active member, and an
+archived hub's chat is read only (`409 HUB_ARCHIVED`). Why: `docs/decisions/2026-11-14-hub-chat.md`.
+
+The message card:
+
+```json
+{
+  "id": "0193f2e0-4a5c-7f6e-9b54-0000000000d4",
+  "body": "Works for me.",
+  "author": { "id": "...", "username": "kofi-b", "display_name": "Kofi", "avatar_url": null, "is_verified": true },
+  "reply_to": { "id": "...", "author": { "...": "the same author card" }, "body": "Standup at 9, Lagos time?" },
+  "created_at": "2026-11-14T09:00:00Z",
+  "edited_at": null,
+  "can_edit": true,
+  "can_delete": true
+}
+```
+
+`reply_to` is `null` for a message that quotes nothing, and its `body` is `null` once the quoted
+message is deleted. `can_edit` is true for the author, and `can_delete` for the author and the
+hub's owner, while the hub is active.
+
+#### `GET /v1/hubs/{hub_id}/messages`
+
+Live messages, newest first, `{"data": [<message card>], "next_offset": 50}`. Takes `offset`
+(0 or more) and `limit` (1 to 50, default 50).
+
+#### `POST /v1/hubs/{hub_id}/messages`
+
+Body: `{"body": "Works for me.", "reply_to_id": "<message id, optional>"}`. Answers `201` with
+the card.
+
+* **Errors:** `404 MESSAGE_NOT_FOUND` (the quoted message is deleted or in another hub),
+  `409 HUB_ARCHIVED`, `409 HUB_CHANGED` (you were removed, or the hub archived, while sending),
+  `422` (an empty or too long body, or a null character).
+
+#### `PATCH /v1/hubs/{hub_id}/messages/{message_id}`
+
+The author changes the text: `{"body": "..."}`. Answers `200` with the card; `edited_at` is set
+when the text changed.
+
+* **Errors:** `403 NOT_MESSAGE_AUTHOR`, `404 MESSAGE_NOT_FOUND`, `409 HUB_ARCHIVED`, `422`.
+
+#### `DELETE /v1/hubs/{hub_id}/messages/{message_id}`
+
+The author or the hub's owner deletes a message. Answers `204`. The row stays with
+`deleted_at`, and replies that quoted it keep showing who wrote it, without the text.
+
+* **Errors:** `403 NOT_MESSAGE_AUTHOR`, `404 MESSAGE_NOT_FOUND`, `409 HUB_ARCHIVED`.
+
 ### How the Sign-In Flow Works for End Users (100% Automated)
 In production and regular use, **the user never touches or sees a `login_code`**. The frontend coordinates the handshake automatically:
 

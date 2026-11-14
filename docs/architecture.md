@@ -75,6 +75,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   short brainstorm notes: `GET /v1/hubs/{hub_id}/notes` reads them in every phase once the team
   is confirmed, `POST /v1/hubs/{hub_id}/notes` adds one and
   `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm.
+  Active members also chat, in any phase: `GET /v1/hubs/{hub_id}/messages` (newest first),
+  `POST /v1/hubs/{hub_id}/messages` (optionally quoting one),
+  `PATCH /v1/hubs/{hub_id}/messages/{message_id}` (the author) and
+  `DELETE /v1/hubs/{hub_id}/messages/{message_id}` (the author or the owner).
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
   `POST /v1/me/ideas/{idea_id}/publish`, `POST /v1/me/ideas/{idea_id}/close` and
