@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-14
 
-- feat(api): run the AI interview and report in the applicant's language
+- feat(api): run the AI interview and report in the applicant's language (#153)
 - docs: record the match score that decides the order (#150)
 - fix(web): say only what is true today on the landing page (#149)
 - feat(web): edit the hero headline into shape, once, on the landing page (#148)
