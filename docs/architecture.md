@@ -74,8 +74,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm.
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
-  `POST /v1/me/ideas/{idea_id}/publish` and `POST /v1/me/ideas/{idea_id}/close` create and
-  manage the owner's private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
+  `POST /v1/me/ideas/{idea_id}/publish`, `POST /v1/me/ideas/{idea_id}/close` and
+  `DELETE /v1/me/ideas/{idea_id}` (only while it has no hub) create and manage the owner's
+  private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
   open idea cards to signed-in developers. A card has the summary and roles needed, never the
   confidential brief. Guide: `docs/backend.md`.
 - **Matching** (Bearer token): `GET /v1/me/ideas/{idea_id}/matches` ranks developers verified
