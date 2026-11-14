@@ -10,10 +10,33 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from app.schemas.ideas import PublicIdea
-from app.schemas.lookups import RoleRef, TechnologyRef
+from app.schemas.lookups import RoleRef, SectorRef, TechnologyRef
 
 
-class MatchedDeveloper(BaseModel):
+class ScorePart(BaseModel):
+    # the raw points before scaling, so a card can say "30 of 40"; null when not built yet
+    points: int | None
+    max: int
+
+
+class ScoreBreakdown(BaseModel):
+    roles: ScorePart
+    technologies: ScorePart
+    sectors: ScorePart
+    meaning: ScorePart
+
+
+class Scored(BaseModel):
+    """The score every match carries, out of 100, with the parts that earned it."""
+
+    score: int
+    score_version: int
+    # version 1 has no meaning part: the points that exist are scaled to 100
+    partial: bool
+    breakdown: ScoreBreakdown
+
+
+class MatchedDeveloper(Scored):
     id: UUID
     username: str
     display_name: str
@@ -25,6 +48,8 @@ class MatchedDeveloper(BaseModel):
     # technologies the developer shares with the idea's author, and how many
     shared_technologies: list[TechnologyRef]
     shared_technology_count: int
+    # sectors the developer shares with the idea's author
+    shared_sectors: list[SectorRef]
     country_code: str | None = None
 
 
@@ -33,12 +58,14 @@ class DeveloperMatchesResponse(BaseModel):
     next_offset: int | None = None
 
 
-class IdeaMatch(BaseModel):
+class IdeaMatch(Scored):
     idea: PublicIdea
     # the signed-in developer's verified roles that this idea needs
     matched_roles: list[RoleRef]
     # technologies the signed-in developer shares with the idea's author
     shared_technologies: list[TechnologyRef]
+    # sectors the signed-in developer shares with the idea's author
+    shared_sectors: list[SectorRef]
 
 
 class IdeaMatchesResponse(BaseModel):
