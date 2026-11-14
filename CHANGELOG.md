@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-14
 
-- feat(web): show simulated match scores in the landing matcher demo
+- feat(web): show simulated match scores in the landing matcher demo (#147)
 - feat(web): soften the theme switch and fade it with reduced motion (#146)
 - feat(web): warm the landing page colours in both themes (#145)
 - fix(web): say when an idea was published or closed in another tab (#140)
