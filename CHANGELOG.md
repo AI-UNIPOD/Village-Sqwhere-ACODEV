@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- feat(web): turn the theme in a wave of tiles from the centre
+- feat(web): turn the theme in a wave of tiles from the centre (#180)
 
 ## 2026-11-14
 
