@@ -44,17 +44,25 @@ export const loadHub = async (id: string) => (await call<{ data: Hub }>(`/v1/hub
 export const loadMyHubs = (offset = 0) =>
   call<{ data: Hub[]; next_offset: number | null }>(`/v1/me/hubs?offset=${offset}&limit=20`);
 
-// The hub of each idea the developer has a hub for, by the idea's id. The API cannot look a
-// hub up by its idea, so this reads every page of the developer's hubs, 50 at a time.
-export async function loadHubsByIdea(): Promise<Record<string, Hub>> {
-  const found: Record<string, Hub> = {};
+// Every page of the developer's hubs, 50 at a time (the most the API sends at once).
+// `status` keeps only the hubs where the developer's membership has that status.
+async function loadAllMyHubs(status?: "invited" | "requested"): Promise<Hub[]> {
+  const hubs: Hub[] = [];
   let offset: number | null = 0;
   while (offset !== null) {
-    const page: { data: Hub[]; next_offset: number | null } = await call(`/v1/me/hubs?offset=${offset}&limit=50`);
-    for (const hub of page.data) found[hub.idea.id] = hub;
-    offset = page.next_offset;
+    const page: { data: Hub[]; next_offset: number | null } = await call(
+      `/v1/me/hubs?${status ? `status=${status}&` : ""}offset=${offset}&limit=50`,
+    );
+    hubs.push(...page.data);
+    offset = page.next_offset ?? null;
   }
-  return found;
+  return hubs;
+}
+
+// The hub of each idea the developer has a hub for, by the idea's id. The API cannot look a
+// hub up by its idea, so this reads all of the developer's hubs.
+export async function loadHubsByIdea(): Promise<Record<string, Hub>> {
+  return Object.fromEntries((await loadAllMyHubs()).map((hub) => [hub.idea.id, hub]));
 }
 
 // One person's place in a hub. Only an owner is sent the `requested`, `invited` and `declined` ones.
@@ -84,10 +92,10 @@ export const withdrawInvitation = (id: string, userId: string) =>
 export const declineInvitation = async (id: string) =>
   (await call<{ data: Hub }>(`${hubPath(id)}/invitation/decline`, "POST")).data;
 
-export const loadInvitations = async () => (await call<{ data: Hub[] }>("/v1/me/hubs?status=invited&limit=50")).data;
+export const loadInvitations = () => loadAllMyHubs("invited");
 
 // The hubs the developer asked to join and the owner has not answered yet.
-export const loadRequests = async () => (await call<{ data: Hub[] }>("/v1/me/hubs?status=requested&limit=50")).data;
+export const loadRequests = () => loadAllMyHubs("requested");
 
 // Answers with the hub card, whose `viewer.membership_status` is now "requested".
 export const askToJoin = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/join-requests`, "POST")).data;
