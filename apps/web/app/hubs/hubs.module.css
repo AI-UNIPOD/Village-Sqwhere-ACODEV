@@ -207,8 +207,9 @@
   margin-block-start: calc((1lh - var(--space-4)) / 2);
 }
 
-/* the owner's own action: the new row rises into place */
-.member[data-arrived] { animation: arrive var(--dur-reveal) var(--ease-out); }
+/* the owner's own action: the new row rises into place; a note the person just added does too */
+.member[data-arrived],
+.note[data-arrived] { animation: arrive var(--dur-reveal) var(--ease-out); }
 
 /* the "Invited" pill that takes the place of an invite button arrives the same way */
 .sent { animation: arrive var(--dur-reveal) var(--ease-out); }
@@ -238,6 +239,7 @@
 /* Reduced motion: the fade stays, the movement goes. */
 @media (prefers-reduced-motion: reduce) {
   .member[data-arrived],
+  .note[data-arrived],
   .sent,
   .momentBrief { animation-name: fade; }
 }
@@ -269,6 +271,86 @@
   color: var(--text-muted);
   font: var(--type-mono-label);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- brainstorm notes: sticky notes, raised cards in a grid ---------- */
+.notes {
+  display: grid;
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 480px) {
+  .notes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.note {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-s);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+}
+
+/* plain text: its line breaks stay and a long word wraps */
+.noteText {
+  font: var(--type-body-s);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.noteBy {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: var(--space-1) var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-caption);
+  overflow-wrap: anywhere;
+}
+
+/* a 44px tap area in the card's corner, pulled out into its padding */
+.noteRemove {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: var(--tap-min);
+  block-size: var(--tap-min);
+  margin: calc(var(--space-3) * -1) calc(var(--space-3) * -1) 0 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.noteRemove svg {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
+.noteRemove:active { transform: scale(0.97); }
+
+.noteForm { margin-block-start: var(--space-6); }
+
+@media (hover: hover) and (pointer: fine) {
+  .noteRemove:hover {
+    background: var(--surface-sunken);
+    color: var(--text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .noteRemove:active { transform: none; }
 }
 
 /* ---------- on an idea's card ---------- */

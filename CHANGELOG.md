@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(web): add brainstorm notes to the hub page
 - feat(web): show a hub's real phases and let its owner move them (#158)
 - feat(web): start a verification in the page's language (#157)
 - feat(api): write the repositories check in the applicant's language (#156)

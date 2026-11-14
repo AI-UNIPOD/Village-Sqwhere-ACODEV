@@ -127,6 +127,33 @@ export const confirmTeam = async (id: string) => (await call<{ data: Hub }>(`${h
 export const movePhase = async (id: string, phase: Phase) =>
   (await call<{ data: Hub }>(`${hubPath(id)}/phase`, "POST", { phase })).data;
 
+// One sticky note of a hub's brainstorm. `can_delete` is true for its author and the hub's owner.
+export type Note = {
+  id: string;
+  body: string;
+  author: { id: string; username: string; display_name: string; avatar_url: string | null; is_verified: boolean };
+  created_at: string;
+  can_delete: boolean;
+};
+
+export const NOTE_MAX = 280;
+
+// Every note of the hub, oldest first, 50 at a time.
+export async function loadNotes(id: string): Promise<Note[]> {
+  const notes: Note[] = [];
+  let offset: number | null = 0;
+  while (offset !== null) {
+    const page: { data: Note[]; next_offset: number | null } = await call(`${hubPath(id)}/notes?offset=${offset}&limit=50`);
+    notes.push(...page.data);
+    offset = page.next_offset ?? null;
+  }
+  return notes;
+}
+
+export const addNote = async (id: string, body: string) => (await call<{ data: Note }>(`${hubPath(id)}/notes`, "POST", { body })).data;
+
+export const deleteNote = (id: string, noteId: string) => call<null>(`${hubPath(id)}/notes/${encodeURIComponent(noteId)}`, "DELETE");
+
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
 

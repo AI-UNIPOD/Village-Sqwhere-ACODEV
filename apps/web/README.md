@@ -112,8 +112,16 @@ in progress (`hubs/phases.tsx`). The owner of an active hub confirms the team
 (`POST /v1/hubs/{id}/team/confirm`, which opens brainstorm at any team size) and moves the hub one
 phase forward or back (`POST /v1/hubs/{id}/phase`), each behind a confirm dialog, and the page
 shows the card the API answers with. When the API says the hub changed elsewhere, or the action is
-no longer open, the page loads the hub again and says so. The tools for each phase are not built
-yet.
+no longer open, the page loads the hub again and says so.
+
+Under the phases, an active member of a hub whose team is confirmed sees its brainstorm notes
+(`hubs/notes.tsx`, `id="brainstorm"`): sticky-note cards read from `GET /v1/hubs/{id}/notes` (every
+page, oldest first). While the hub is active and in brainstorm, the form adds a note of 1 to 280
+characters (`POST /v1/hubs/{id}/notes`), and the author or the hub's owner can delete one behind a
+confirm dialog (`DELETE /v1/hubs/{id}/notes/{note_id}`). After brainstorm, or in an archived hub, the
+notes are for reading only. There are no live updates: a Refresh button reads the list again. When
+the API says the hub moved on, the page loads the hub again and says so. The tools for the other
+phases are not built yet.
 
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares

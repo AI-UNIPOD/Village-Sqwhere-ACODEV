@@ -75,6 +75,21 @@ type Copy = {
     cancel: string;
     errors: { changed: string; unavailable: string; failed: string };
   };
+  // the brainstorm notes under the phases
+  brainstormNotes: {
+    heading: string;
+    loading: string;
+    loadFailed: string;
+    empty: string;
+    emptyAfter: string;
+    over: string;
+    archived: string;
+    refresh: string;
+    refreshed: string;
+    write: { label: string; help: string; left: string; add: string; added: string };
+    delete: { label: string; title: string; text: string; confirm: string; cancel: string; done: string; gone: string };
+    errors: { empty: string; long: string; changed: string; full: string; notAuthor: string; failed: string };
+  };
   missingHub: Screen;
   // the team and the brief on a hub's page
   team: {
@@ -252,7 +267,7 @@ const en: Copy = {
   phasesNote: {
     toConfirm: "Confirm the team when you are ready to start. Brainstorm opens, and you can still invite people after, up to five.",
     waiting: "The phases open when the owner confirms the team.",
-    confirmed: "The owner moves the hub from one phase to the next. The tools for each phase are still to come.",
+    confirmed: "The owner moves the hub from one phase to the next. Brainstorm has its notes below; the tools for the other phases are still to come.",
     archived: "This hub is archived, so its phases will not start.",
   },
   phaseActions: {
@@ -279,6 +294,41 @@ const en: Copy = {
     errors: {
       changed: "This hub was changed somewhere else. This is where it is now.",
       unavailable: "That action is not available on this hub. This is where it is now.",
+      failed: "We couldn't save that. Nothing changed, so try again.",
+    },
+  },
+  brainstormNotes: {
+    heading: "Brainstorm notes",
+    loading: "Getting the notes",
+    loadFailed: "We couldn't load the notes. Nothing was changed, so check your connection and try again.",
+    empty: "No notes yet. Write the first one.",
+    emptyAfter: "No notes were written during brainstorm.",
+    over: "Brainstorm is over. The notes stay here to read.",
+    archived: "This hub is archived. The notes stay here to read.",
+    refresh: "Refresh",
+    refreshed: "The notes are up to date.",
+    write: {
+      label: "A new note",
+      help: "Plain text. Everyone in the hub can read it.",
+      left: "Characters left: {n}",
+      add: "Add the note",
+      added: "Your note was added.",
+    },
+    delete: {
+      label: "Delete the note by {name}",
+      title: "Delete this note?",
+      text: "The note is removed for everyone in the hub. This cannot be undone.",
+      confirm: "Delete the note",
+      cancel: "Cancel",
+      done: "The note was deleted.",
+      gone: "That note was already deleted.",
+    },
+    errors: {
+      empty: "Write a note before adding it.",
+      long: "A note can have at most {max} characters. Shorten it and try again.",
+      changed: "This hub has moved on, so notes can no longer be changed.",
+      full: "This hub has 200 notes, the most it can hold. Delete one to add another.",
+      notAuthor: "Only the note's author or the hub's owner can delete it.",
       failed: "We couldn't save that. Nothing changed, so try again.",
     },
   },
@@ -505,7 +555,7 @@ const fr: Copy = {
   phasesNote: {
     toConfirm: "Confirmez l'équipe quand vous êtes prêt à commencer. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
     waiting: "Les phases s'ouvrent quand le porteur confirme l'équipe.",
-    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Les outils de chaque phase restent à venir.",
+    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Le brainstorm a ses notes ci-dessous\u202f; les outils des autres phases restent à venir.",
     archived: "Cet espace est archivé, ses phases ne démarreront donc pas.",
   },
   phaseActions: {
@@ -532,6 +582,41 @@ const fr: Copy = {
     errors: {
       changed: "Cet espace a été modifié ailleurs. Voici où il en est maintenant.",
       unavailable: "Cette action n'est pas disponible sur cet espace. Voici où il en est maintenant.",
+      failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
+    },
+  },
+  brainstormNotes: {
+    heading: "Notes de brainstorm",
+    loading: "Chargement des notes",
+    loadFailed: "Nous n'avons pas pu charger les notes. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
+    empty: "Pas encore de notes. Écrivez la première.",
+    emptyAfter: "Aucune note n'a été écrite pendant le brainstorm.",
+    over: "Le brainstorm est terminé. Les notes restent ici à lire.",
+    archived: "Cet espace est archivé. Les notes restent ici à lire.",
+    refresh: "Actualiser",
+    refreshed: "Les notes sont à jour.",
+    write: {
+      label: "Une nouvelle note",
+      help: "Texte simple. Tous les membres de l'espace peuvent la lire.",
+      left: "Caractères restants\u202f: {n}",
+      add: "Ajouter la note",
+      added: "Votre note a été ajoutée.",
+    },
+    delete: {
+      label: "Supprimer la note écrite par {name}",
+      title: "Supprimer cette note\u202f?",
+      text: "La note est supprimée pour tous les membres de l'espace. Cette action est définitive.",
+      confirm: "Supprimer la note",
+      cancel: "Annuler",
+      done: "La note a été supprimée.",
+      gone: "Cette note était déjà supprimée.",
+    },
+    errors: {
+      empty: "Écrivez une note avant de l'ajouter.",
+      long: "Une note peut contenir {max} caractères au maximum. Raccourcissez-la puis réessayez.",
+      changed: "Cet espace a avancé, les notes ne peuvent donc plus être modifiées.",
+      full: "Cet espace compte 200 notes, le maximum possible. Supprimez-en une pour en ajouter une autre.",
+      notAuthor: "Seul l'auteur de la note ou le porteur de l'espace peut la supprimer.",
       failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
     },
   },
