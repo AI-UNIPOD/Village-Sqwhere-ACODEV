@@ -138,9 +138,30 @@ html[lang="fr"] [data-not-found="fr"] {
 }
 
 /* The theme switch (app/landing/theme-toggle.tsx): the new theme spreads from the button in a
-   circle over the old one, so the default crossfade is off while it runs. */
+   soft-edged circle over the old one, so the default crossfade is off while it runs. The script
+   grows --theme-reach from the button (--theme-x, --theme-y); the edge feathers over 40% of the
+   radius, at most two big steps of spacing, so a small circle is soft without turning to blur. */
+@property --theme-reach {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 html[data-theme-spread]::view-transition-old(root),
 html[data-theme-spread]::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+}
+
+html[data-theme-spread]::view-transition-new(root) {
+  mask-image: radial-gradient(
+    circle at var(--theme-x) var(--theme-y),
+    var(--text) calc(var(--theme-reach) - min(var(--theme-reach) * 0.4, var(--space-20) * 2)),
+    transparent var(--theme-reach)
+  );
+}
+
+/* With reduced motion nothing travels: the browser's own crossfade, kept short. */
+html[data-theme-fade]::view-transition-group(root) {
+  animation-duration: var(--dur-modal);
 }

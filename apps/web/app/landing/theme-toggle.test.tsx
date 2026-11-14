@@ -1,5 +1,5 @@
 import { runInNewContext } from "node:vm";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { THEME_INIT_SCRIPT, THEME_KEY } from "./theme";
@@ -71,7 +71,7 @@ test("still switches when the browser refuses to save the choice", () => {
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
 });
 
-test("spreads the new theme from the button through a view transition, unless motion is reduced", () => {
+test("spreads the new theme from the button through a view transition; with reduced motion it fades", () => {
   const start = vi.fn((update: () => void) => {
     update();
     return { ready: new Promise<void>(() => {}), finished: Promise.resolve() };
@@ -82,6 +82,8 @@ test("spreads the new theme from the button through a view transition, unless mo
   fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
   expect(start).toHaveBeenCalledOnce();
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  expect(document.documentElement.hasAttribute("data-theme-spread")).toBe(true);
+  expect(document.documentElement.style.getPropertyValue("--theme-x")).toMatch(/px$/);
   cleanup();
 
   vi.stubGlobal(
@@ -95,9 +97,34 @@ test("spreads the new theme from the button through a view transition, unless mo
   document.documentElement.setAttribute("data-theme", "light");
   render(<ThemeButton {...labels} className="theme" />);
   fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
-  expect(start).toHaveBeenCalledOnce();
+  // a short crossfade, never an instant flip: the transition still runs, with nothing travelling
+  expect(start).toHaveBeenCalledTimes(2);
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  expect(document.documentElement.hasAttribute("data-theme-fade")).toBe(true);
   delete (document as { startViewTransition?: unknown }).startViewTransition;
+  document.documentElement.removeAttribute("data-theme-fade");
+  document.documentElement.removeAttribute("data-theme-spread");
+});
+
+test("the circle grows over --dur-moment, read with its unit as the built CSS writes it", async () => {
+  const root = document.documentElement;
+  root.style.setProperty("--dur-moment", ".52s");
+  const animate = vi.fn();
+  Object.assign(root, { animate });
+  const start = vi.fn((update: () => void) => {
+    update();
+    return { ready: Promise.resolve(), finished: new Promise<void>(() => {}) };
+  });
+  Object.assign(document, { startViewTransition: start });
+  stubSystemTheme(false);
+  render(<ThemeButton {...labels} className="theme" />);
+  fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
+  await waitFor(() => expect(animate).toHaveBeenCalledOnce());
+  expect(animate.mock.calls[0][1]).toMatchObject({ duration: 520, pseudoElement: "::view-transition-new(root)" });
+  delete (document as { startViewTransition?: unknown }).startViewTransition;
+  delete (root as { animate?: unknown }).animate;
+  root.style.removeProperty("--dur-moment");
+  root.removeAttribute("data-theme-spread");
 });
 
 test("keeps both icons hidden from screen readers", () => {
