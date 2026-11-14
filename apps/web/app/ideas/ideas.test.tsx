@@ -191,6 +191,39 @@ test("an open idea can be changed or closed, and closing asks first", async () =
   expect(sent()).toEqual([["POST", "/v1/me/ideas/idea-1/close", undefined]]);
 });
 
+test("publishing an idea another tab already published says so and shows it as it is now", async () => {
+  nav.search = "id=idea-1";
+  fetchMock
+    .mockResolvedValueOnce(reply(200, { data: idea() }))
+    .mockResolvedValueOnce(reply(409, { detail: { code: "IDEA_NOT_DRAFT", message: "Only a draft idea can be published." } }))
+    .mockResolvedValueOnce(reply(200, { data: idea({ status: "open" }) }));
+  render(<IdeaComposer lang="en" />);
+  await screen.findByLabelText("Title");
+  press("Publish");
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Publish this idea?" })).getByRole("button", { name: "Publish the idea" }));
+
+  expect((await screen.findByRole("alert")).textContent).toBe(copy.en.errors.changed);
+  expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+  expect(screen.queryByText(/We couldn't save your idea/)).toBeNull();
+  expect(nav.push).not.toHaveBeenCalled();
+});
+
+test("closing an idea another tab already closed shows it closed, with the reason", async () => {
+  nav.search = "id=idea-1";
+  fetchMock
+    .mockResolvedValueOnce(reply(200, { data: idea({ status: "open" }) }))
+    .mockResolvedValueOnce(reply(409, { detail: { code: "IDEA_NOT_OPEN", message: "Only an open idea can be closed." } }))
+    .mockResolvedValueOnce(reply(200, { data: idea({ status: "closed" }) }));
+  render(<IdeaComposer lang="fr" />);
+  await screen.findByLabelText("Titre");
+  press("Fermer cette idée");
+  fireEvent.click(within(screen.getByRole("dialog", { name: copy.fr.closeConfirm.title })).getByRole("button", { name: copy.fr.closeConfirm.confirm }));
+
+  expect((await screen.findByRole("alert")).textContent).toBe(copy.fr.errors.changed);
+  expect(screen.getByText("Cette idée est fermée. Elle ne peut plus être modifiée ni rouverte.")).toBeTruthy();
+  expect(nav.push).not.toHaveBeenCalled();
+});
+
 test("a closed idea can be read but not changed", async () => {
   nav.search = "id=idea-1";
   fetchMock.mockResolvedValue(reply(200, { data: idea({ status: "closed" }) }));

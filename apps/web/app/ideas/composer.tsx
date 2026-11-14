@@ -99,6 +99,8 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  // the idea was published or closed elsewhere: it is loaded again and the page says why
+  const [changed, setChanged] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [asking, setAsking] = useState<"publish" | "close" | null>(null);
 
@@ -155,7 +157,10 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
     if (error instanceof SignedOutError) return;
     if (error instanceof IdeaError && error.code === "UNKNOWN_ROLE") setErrors({ roles: t.errors.roles });
     else if (error instanceof IdeaError && error.status === 404) setMissing(true);
-    else setFailed(true);
+    else if (id && error instanceof IdeaError && (error.code === "IDEA_NOT_DRAFT" || error.code === "IDEA_NOT_OPEN")) {
+      setChanged(true);
+      setSaved(undefined);
+    } else setFailed(true);
   }
 
   // Runs one action at a time. A second press while it is sending does nothing.
@@ -163,6 +168,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
     if (busy) return;
     setBusy(true);
     setFailed(false);
+    setChanged(false);
     try {
       await action();
     } catch (error) {
@@ -229,6 +235,11 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
       </Link>
       <h1 className={styles.title}>{closed ? t.closedTitle : saved ? t.editTitle : t.newTitle}</h1>
       {closed && <p className={styles.note}>{t.closedNote}</p>}
+      {changed && (
+        <p className={styles.note} role="alert">
+          {t.errors.changed}
+        </p>
+      )}
 
       <form
         noValidate
