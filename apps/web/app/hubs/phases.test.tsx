@@ -103,6 +103,19 @@ test.each([
   expect(phases().textContent).not.toContain("notes below");
 });
 
+test.each([
+  ["a member", asMember, "Le porteur fait passer l'espace d'une phase à la suivante. Le brainstorm a ses notes et la conception son schéma ci-dessous\u202f; les outils des autres phases restent à venir."],
+  [
+    "someone outside the hub",
+    asOutsider,
+    "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm et le schéma de conception sont réservés aux membres de l'espace\u202f; les outils des autres phases restent à venir.",
+  ],
+])("in French, once the team is confirmed, %s reads the sketch too", async (_who, viewer, line) => {
+  await open({ ...viewer, ...at("brainstorm") }, {}, "fr");
+  // the text itself, not the page's normalised copy of it: the narrow no-break space before the semicolon is checked
+  expect(phases().textContent).toContain(line);
+});
+
 test("the owner confirms the team after a dialog, and the page shows the card the API sent, with a status line", async () => {
   await open(asOwner, { "POST /v1/hubs/hub-1/team/confirm": { data: hub({ ...asOwner, ...at("brainstorm") }) } });
   press("Confirm the team");
@@ -248,6 +261,7 @@ test("showing the page again drops the status line from the last visit", async (
     "GET /v1/hubs/hub-1": [{ data: hub(asOwner) }, { data: hub({ ...asOwner, ...at("build") }) }],
     "GET /v1/hubs/hub-1/members": { data: [owner()] },
     "GET /v1/hubs/hub-1/idea": { data: idea() },
+    "GET /v1/hubs/hub-1/design": { data: { pieces: [], links: [] } },
     "POST /v1/hubs/hub-1/team/confirm": { data: hub({ ...asOwner, ...at("brainstorm") }) },
   });
   const page = (mode: "visible" | "hidden") => (

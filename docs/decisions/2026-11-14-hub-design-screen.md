@@ -22,7 +22,14 @@ live co-editing. We settled the rest:
   right of every piece that points to it. A link that would close a circle is not counted, and the
   piece made first stays on the left. Nothing is saved, so the same sketch always draws the same.
 - **An arrow that crosses a column passes through an empty line in it,** so it never goes over a
-  box. The labels are cut by counting characters, because the text is measured nowhere.
+  box. Text is cut by an estimate of each letter's width in the page font (measured once in the
+  browser, with some room to spare), because the layout is a pure function and nothing measures the
+  real text. A name of wide letters ("WWWWWWWWWWWW") or of digits therefore stays inside its box.
+- **A label goes beside its own arrow, away from the lines of the other arrows.** The layout tries
+  the middle of the last stretch, then other places along it and the other side. In a gutter too
+  busy for that, the label sits on its own arrow, on a patch that hides the line behind it.
+- **The drawing is wider than the text column.** It is centred on the column and may use up to
+  64rem, never more than the page margins allow, so its writing stays close to full size.
 - **No drawing library.** The layout is one small function for at most 30 pieces and 60 links, and a
   library would be a new dependency to keep up to date for a drawing nobody can edit yet.
 - **No live updates.** The sketch is read when the section shows and on Refresh, as for the notes.
@@ -41,8 +48,8 @@ live co-editing. We settled the rest:
 
 ## Consequences
 
-- The drawing shrinks to the page column (40rem), so a sketch of four or more columns has small
-  text. The list holds everything, and the drawing is for the overall shape.
+- The drawing shrinks to fit the page, so a sketch of six or seven columns has small text. The list
+  holds everything, and the drawing is for the overall shape.
 - When a team edits the sketch (the next pull request), the section keeps the same list and
   drawing and adds the forms around them.
 - Revisit this when the sketch grows past its caps or when teams ask to place boxes by hand.

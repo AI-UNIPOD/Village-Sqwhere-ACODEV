@@ -187,10 +187,11 @@ test("from 768px the pieces and links are also drawn, hidden from assistive tech
   await waitFor(() => expect(drawing()).not.toBeNull());
   const picture = drawing()!;
   expect(picture.getAttribute("aria-hidden")).toBe("true");
-  expect(picture.querySelectorAll("rect")).toHaveLength(3);
-  // one path for each link, with its label near it on two short lines
+  // a box for each piece and a patch behind each label
+  expect(picture.querySelectorAll("rect")).toHaveLength(5);
+  // one path for each link, with its label near it
   expect(picture.querySelectorAll("path")).toHaveLength(2);
-  expect([...picture.querySelectorAll("text")].map((text) => text.textContent)).toEqual(["Mobile app", "Payouts API", "SMS gateway", "approves a", "batch", "returns the", "status"]);
+  expect([...picture.querySelectorAll("text")].map((text) => text.textContent)).toEqual(["Mobile app", "Payouts API", "SMS gateway", "approves a batch", "returns the status"]);
   // the list is still there
   expect(cards()).toHaveLength(3);
 });
@@ -312,7 +313,8 @@ test("in French the heading, the lines and the links are French", async () => {
   await open(inDesign, { [DESIGN]: payoutsSketch }, "fr");
   await ready();
   await waitFor(() => expect(cards()).toHaveLength(3));
-  expect(within(section()).getByText(/^Voici le schéma du système réalisé par l'équipe\s: ses composants et la façon dont ils communiquent\.$/)).toBeTruthy();
+  // the text as the page holds it, so the narrow no-break space before the colon is checked
+  expect(section().textContent).toContain("Voici le schéma du système réalisé par l'équipe\u202f: ses composants et la façon dont ils communiquent.");
   expect(within(cards()[0]).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
     "Vers Payouts API\u202f: approves a batch",
     "Depuis Payouts API\u202f: returns the status",

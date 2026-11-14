@@ -586,8 +586,8 @@ const fr: Copy = {
   phasesNote: {
     toConfirm: "Confirmez l'équipe quand vous êtes prêt à commencer. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
     waiting: "Les phases s'ouvrent quand le porteur confirme l'équipe.",
-    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Le brainstorm a ses notes ci-dessous\u202f; les outils des autres phases restent à venir.",
-    confirmedOutside: "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm sont réservées aux membres de l'espace\u202f; les outils des autres phases restent à venir.",
+    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Le brainstorm a ses notes et la conception son schéma ci-dessous\u202f; les outils des autres phases restent à venir.",
+    confirmedOutside: "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm et le schéma de conception sont réservés aux membres de l'espace\u202f; les outils des autres phases restent à venir.",
     archived: "Cet espace est archivé, ses phases ne démarreront donc pas.",
   },
   phaseActions: {

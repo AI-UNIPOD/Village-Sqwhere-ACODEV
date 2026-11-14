@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { BOX_H, BOX_W, CHAR_W, fitText, GUTTER, LABEL_LINE, layoutDesign, type Box, type Layout } from "./design-layout";
+import { BOX_H, BOX_W, fitText, GUTTER, LABEL_LINE, LABEL_SIZE, layoutDesign, NAME_SIZE, textWidth, type Box, type Layout } from "./design-layout";
 
 const pieces = (...names: string[]) => names.map((name) => ({ id: name, name }));
 const link = (from: string, to: string, label = "talks to") => ({ id: `${from}-${to}`, from_piece_id: from, to_piece_id: to, label });
@@ -16,6 +16,27 @@ const start = (layout: Layout, id: string) => line(arrow(layout, id).d)[0];
 const end = (layout: Layout, id: string) => line(arrow(layout, id).d).at(-1)!;
 
 const overlap = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+// the room a label takes, and the places a line of any arrow other than `id` passes through it
+const room = (label: Layout["arrows"][number]["label"]) => {
+  const w = Math.max(...label.lines.map((found) => textWidth(found.text, LABEL_SIZE)));
+  return { x0: label.x - w / 2, x1: label.x + w / 2, y0: label.lines[0].y - LABEL_LINE / 2, y1: label.lines.at(-1)!.y + LABEL_LINE / 2 };
+};
+function struckBy(layout: Layout, id: string) {
+  const area = room(arrow(layout, id).label);
+  return layout.arrows
+    .filter((other) => other.id !== id)
+    .filter((other) => {
+      const points = line(other.d);
+      return points.slice(1).some((to, i) =>
+        Array.from({ length: 81 }, (_, step) => step / 80).some((t) => {
+          const x = points[i].x + (to.x - points[i].x) * t;
+          const y = points[i].y + (to.y - points[i].y) * t;
+          return x > area.x0 && x < area.x1 && y > area.y0 && y < area.y1;
+        }),
+      );
+    })
+    .map((other) => other.id);
+}
 const inside = (found: Box, x: number, y: number) => x > found.x && x < found.x + found.w && y > found.y && y < found.y + found.h;
 
 // every invariant a drawing needs, for any pieces and links
@@ -53,12 +74,14 @@ function expectSound(layout: Layout, links: ReturnType<typeof link>[]) {
     );
     expect(over.map((other) => other.id), `${id} goes over`).toEqual([]);
     // the label sits in the gutter, clear of every box
-    const { x, lines } = arrow(layout, id).label;
-    const reach = (Math.max(...lines.map((found) => found.text.length)) * CHAR_W.label) / 2;
+    const { lines } = arrow(layout, id).label;
+    const reach = room(arrow(layout, id).label);
     expect(lines[0].y - LABEL_LINE / 2, `${id} label is inside the picture`).toBeGreaterThanOrEqual(0);
     expect(lines.at(-1)!.y + LABEL_LINE / 2).toBeLessThanOrEqual(layout.height);
+    // and no wider than the gutter it is in
+    expect(reach.x1 - reach.x0, `${id} label is as wide as its gutter`).toBeLessThanOrEqual(GUTTER);
     for (const other of layout.boxes) {
-      const clear = x + reach <= other.x || x - reach >= other.x + other.w || lines[0].y - LABEL_LINE / 2 >= other.y + other.h || lines.at(-1)!.y + LABEL_LINE / 2 <= other.y;
+      const clear = reach.x1 <= other.x || reach.x0 >= other.x + other.w || lines[0].y - LABEL_LINE / 2 >= other.y + other.h || lines.at(-1)!.y + LABEL_LINE / 2 <= other.y;
       expect(clear, `${id} label over ${other.id}`).toBe(true);
     }
   }
@@ -171,13 +194,68 @@ test("a name is wrapped onto two lines at most, a long word is broken and the re
   expect(long.lines[0].y).toBeLessThan(long.lines[1].y);
   const word = box(layout, "A".repeat(80));
   expect(word.lines).toHaveLength(2);
-  for (const { text } of [...long.lines, ...word.lines]) expect(text.length * CHAR_W.name).toBeLessThanOrEqual(BOX_W);
+  for (const { text } of [...long.lines, ...word.lines]) expect(textWidth(text, NAME_SIZE)).toBeLessThanOrEqual(BOX_W);
+});
+
+// the widest glyphs of the font are measured in the browser: 12 W take 182 units at 15px, 12 M 159
+test("names of wide letters, capitals and digits are cut by their width, so they stay inside the box", () => {
+  const names = ["W".repeat(12), "M".repeat(12), "m".repeat(14), "INFRASTRUCTURE", "ABCDEFGHIJKL", "0123456789012", "@@@@@@@@@@@@", "日本語日本語日本語", "Wide words WWWW MMMM"];
+  const layout = layoutDesign(pieces(...names), []);
+  for (const name of names) {
+    const lines = box(layout, name).lines;
+    expect(lines.length).toBeLessThanOrEqual(2);
+    for (const { text } of lines) expect(textWidth(text, NAME_SIZE), `${name}: ${text}`).toBeLessThanOrEqual(BOX_W - 12);
+  }
+  // 12 W would be 182 units wide at 15px: the estimate is at least that
+  expect(textWidth("W".repeat(12), NAME_SIZE)).toBeGreaterThanOrEqual(182);
+  expect(textWidth("M".repeat(12), NAME_SIZE)).toBeGreaterThanOrEqual(159);
+  expect(textWidth("0123456789012", NAME_SIZE)).toBeGreaterThanOrEqual(129);
+});
+
+test("arrow labels of wide letters stay inside their gutter", () => {
+  const labels = ["W".repeat(14), "MMMMMMMMMMMMMM", "a very long label made of many words that go on", "0123456789012345"];
+  const links = labels.map((label, i) => ({ ...link("A", "B", label), id: `l${i}` }));
+  const layout = layoutDesign(pieces("A", "B"), links);
+  for (const { label } of layout.arrows) {
+    for (const { text } of label.lines) expect(textWidth(text, LABEL_SIZE), text).toBeLessThanOrEqual(GUTTER - 8);
+    expect(label.lines.length).toBeLessThanOrEqual(2);
+  }
+  expectSound(layout, links);
+});
+
+test("a label is clear of the lines of the other arrows when there is room, and of its own", () => {
+  const links = [link("A", "B", "approves a batch"), link("B", "A", "returns the status"), link("B", "C", "queues transfers"), link("C", "D", "writes each result"), link("A", "D", "records the batch")];
+  const layout = layoutDesign(pieces("A", "B", "C", "D"), links);
+  expectSound(layout, links);
+  for (const { id } of links) expect(struckBy(layout, id), `${id} is struck by`).toEqual([]);
+});
+
+test("the demo's sketch: five pieces, six links and a link back, with every text in place", () => {
+  const names = ["Mobile app", "Payouts API", "Payouts worker", "Ledger database", "SMS gateway"];
+  const links = [
+    link("Mobile app", "Payouts API", "approves a batch"),
+    link("Payouts API", "Ledger database", "records the batch"),
+    link("Payouts API", "Payouts worker", "queues transfers"),
+    link("Payouts worker", "Ledger database", "writes each result"),
+    link("Payouts worker", "SMS gateway", "asks for a receipt"),
+    link("Payouts API", "Mobile app", "returns the status"),
+  ];
+  const layout = layoutDesign(pieces(...names), links);
+  expectSound(layout, links);
+  // four columns, and the picture is not wider than a page can show at a readable size
+  expect(new Set(layout.boxes.map((found) => found.x)).size).toBe(4);
+  expect(layout.width).toBeLessThanOrEqual(900);
+  // the busiest gutter may leave one label on a crossing, never more
+  expect(links.filter(({ id }) => struckBy(layout, id).length > 0).length).toBeLessThanOrEqual(1);
 });
 
 test("fitText keeps short text as it is, wraps at spaces and cuts what does not fit", () => {
-  expect(fitText("approves a batch", 21, 1)).toEqual(["approves a batch"]);
-  expect(fitText("  spaced   out  ", 21, 1)).toEqual(["spaced out"]);
-  expect(fitText("returns the status of every batch", 21, 1)).toEqual(["returns the status o…"]);
-  expect(fitText("approves a batch", 12, 2)).toEqual(["approves a", "batch"]);
-  expect(fitText("", 21, 1)).toEqual([]);
+  expect(fitText("approves a batch", 120, LABEL_SIZE, 1)).toEqual(["approves a batch"]);
+  expect(fitText("  spaced   out  ", 120, LABEL_SIZE, 1)).toEqual(["spaced out"]);
+  const cut = fitText("returns the status of every batch", 120, LABEL_SIZE, 1);
+  expect(cut).toHaveLength(1);
+  expect(cut[0].endsWith("…")).toBe(true);
+  expect(textWidth(cut[0], LABEL_SIZE)).toBeLessThanOrEqual(120);
+  expect(fitText("approves a batch", 70, LABEL_SIZE, 2)).toEqual(["approves a", "batch"]);
+  expect(fitText("", 120, LABEL_SIZE, 1)).toEqual([]);
 });

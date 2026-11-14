@@ -355,13 +355,24 @@
 }
 
 /* ---------- design sketch: the pieces as cards and, on a wide screen, a drawing of them ---------- */
-/* The picture keeps its own proportions and shrinks to the column, so it never scrolls sideways.
-   The text in it is cut to fit by the layout, so nothing leaves its box. */
+/* The picture is wider than the text column, so its writing stays readable: it is centred on the
+   column and takes the room the page has, up to its own size. It keeps its proportions and never
+   goes past the page margins, so it does not scroll sideways. The text in it is cut to fit by the
+   layout, so nothing leaves its box. */
+.figure {
+  position: relative;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  display: flex;
+  justify-content: center;
+  inline-size: min(64rem, calc(100vw - 2 * var(--gutter)));
+  margin-block-start: var(--space-4);
+}
+
 .drawing {
   display: block;
   max-inline-size: 100%;
   block-size: auto;
-  margin-block-start: var(--space-4);
 }
 
 .box {
@@ -385,16 +396,17 @@
   dominant-baseline: central;
 }
 
-/* the halo keeps a label readable where an arrow runs behind it */
+/* the patch hides the line of the arrow behind a label that had to sit on it */
+.labelPatch {
+  fill: var(--bg);
+  rx: var(--radius-s);
+}
+
 .arrowLabel {
   fill: var(--text-muted);
   font: var(--type-caption);
   text-anchor: middle;
   dominant-baseline: central;
-  paint-order: stroke;
-  stroke: var(--bg);
-  stroke-width: var(--space-1);
-  stroke-linejoin: round;
 }
 
 .pieces {

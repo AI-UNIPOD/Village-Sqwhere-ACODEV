@@ -38,28 +38,33 @@ const useWide = () =>
 function Drawing({ sketch }: { sketch: Sketch }) {
   const { width, height, boxes, arrows } = useMemo(() => layoutDesign(sketch.pieces, sketch.links), [sketch]);
   return (
-    <svg className={styles.drawing} width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false">
-      {arrows.map((arrow) => (
-        <path key={arrow.id} className={styles.arrow} d={arrow.d} />
-      ))}
-      {boxes.map((box) => (
-        <g key={box.id}>
-          <rect className={styles.box} x={box.x} y={box.y} width={box.w} height={box.h} />
-          {box.lines.map((line, i) => (
-            <text key={i} className={styles.boxName} x={box.x + box.w / 2} y={line.y}>
+    <div className={styles.figure}>
+      <svg className={styles.drawing} width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false">
+        {arrows.map((arrow) => (
+          <path key={arrow.id} className={styles.arrow} d={arrow.d} />
+        ))}
+        {boxes.map((box) => (
+          <g key={box.id}>
+            <rect className={styles.box} x={box.x} y={box.y} width={box.w} height={box.h} />
+            {box.lines.map((line, i) => (
+              <text key={i} className={styles.boxName} x={box.x + box.w / 2} y={line.y}>
+                {line.text}
+              </text>
+            ))}
+          </g>
+        ))}
+        {arrows.map(({ id, label }) => (
+          <rect key={id} className={styles.labelPatch} x={label.patch.x} y={label.patch.y} width={label.patch.w} height={label.patch.h} />
+        ))}
+        {arrows.map(({ id, label }) =>
+          label.lines.map((line, i) => (
+            <text key={`${id}-${i}`} className={styles.arrowLabel} x={label.x} y={line.y}>
               {line.text}
             </text>
-          ))}
-        </g>
-      ))}
-      {arrows.map((arrow) =>
-        arrow.label.lines.map((line, i) => (
-          <text key={`${arrow.id}-${i}`} className={styles.arrowLabel} x={arrow.label.x} y={line.y}>
-            {line.text}
-          </text>
-        )),
-      )}
-    </svg>
+          )),
+        )}
+      </svg>
+    </div>
   );
 }
 

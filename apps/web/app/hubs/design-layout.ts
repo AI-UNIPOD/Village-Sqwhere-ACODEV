@@ -4,43 +4,82 @@
 export const BOX_W = 120;
 export const BOX_H = 60;
 export const GAP = 24;
-export const GUTTER = 100;
+export const GUTTER = 120;
 // room around the drawing for the heads of arrows and the labels
 export const MARGIN = 20;
 export const NAME_LINE = 20;
 export const LABEL_LINE = 14;
-// What a character of the box names (15px) and of the arrow labels (12px) takes at most. The
-// text is cut by counting characters, so it is never wider than its box or its gutter.
-export const CHAR_W = { name: 8.5, label: 6.8 };
-const TEXT_PAD = 8;
+// the font sizes of the box names and the arrow labels, in the drawing's own units
+export const NAME_SIZE = 15;
+export const LABEL_SIZE = 12;
+const TEXT_PAD = 6;
 const HEAD = 8;
 const HEAD_SPREAD = 0.5;
-const LABEL_SPACE = 4;
+const LABEL_GAP = 5;
+// what a label leaves free of the gutter it sits in, across both sides
+const LABEL_ROOM = 8;
+// how far from a label an arrow may run before the two could be taken for one another
+const LABEL_CLEAR = 1.5;
 
 export type Point = { x: number; y: number };
 export type Box = { id: string; x: number; y: number; w: number; h: number; lines: { text: string; y: number }[] };
-export type Arrow = { id: string; d: string; label: { x: number; lines: { text: string; y: number }[] } };
+export type Arrow = { id: string; d: string; label: { x: number; patch: { x: number; y: number; w: number; h: number }; lines: { text: string; y: number }[] } };
 export type Layout = { width: number; height: number; boxes: Box[]; arrows: Arrow[] };
 
-// `text` on at most `maxLines` lines of `perLine` characters: broken at spaces, a word longer
-// than a line broken in the word, and the last line ended with an ellipsis when the text is longer.
-export function fitText(text: string, perLine: number, maxLines: number): string[] {
+// The width of each letter of the drawing's font (Onest) in em, as Chrome draws it: a to z, then
+// A to Z. Digits and punctuation are in OTHER; any other character is treated as a wide one.
+const LOWER = [0.56, 0.62, 0.56, 0.62, 0.57, 0.38, 0.62, 0.6, 0.24, 0.26, 0.55, 0.24, 0.84, 0.6, 0.6, 0.62, 0.62, 0.39, 0.51, 0.37, 0.58, 0.55, 0.86, 0.55, 0.61, 0.51];
+const UPPER = [0.7, 0.67, 0.71, 0.73, 0.62, 0.6, 0.73, 0.74, 0.28, 0.58, 0.66, 0.59, 0.89, 0.76, 0.77, 0.65, 0.77, 0.68, 0.66, 0.59, 0.73, 0.7, 1, 0.64, 0.66, 0.61];
+const OTHER: Record<string, number> = { " ": 0.28, ".": 0.27, ",": 0.29, ":": 0.28, ";": 0.29, "'": 0.24, "(": 0.34, ")": 0.34, "-": 0.46, "/": 0.5, "&": 0.7, "@": 0.99, "%": 0.86, "…": 0.74 };
+// a fallback font or another rendering is a little wider, so the estimate keeps some room
+const SPARE = 1.06;
+
+// How wide `text` is at `size`. Nothing here can measure the real text, so the text is cut by this
+// estimate to keep it inside its box.
+export function textWidth(text: string, size: number): number {
+  let em = 0;
+  for (const letter of text) {
+    const code = letter.codePointAt(0)!;
+    if (code >= 97 && code <= 122) em += LOWER[code - 97];
+    else if (code >= 65 && code <= 90) em += UPPER[code - 65];
+    else if (code >= 48 && code <= 57) em += 0.66;
+    else if (letter in OTHER) em += OTHER[letter];
+    else if (code > 0x24f) em += 1.2;
+    else em += letter === letter.toUpperCase() ? 0.8 : 0.62;
+  }
+  return em * size * SPARE;
+}
+
+// `text` on at most `maxLines` lines no wider than `width` at `size`: broken at spaces, a word
+// longer than a line broken in the word, and the last line ended with an ellipsis when the text is longer.
+export function fitText(text: string, width: number, size: number, maxLines: number): string[] {
+  const wide = (line: string) => textWidth(line, size);
   const chunks = text
     .split(/\s+/)
     .filter(Boolean)
     .flatMap((word) => {
-      const letters = [...word];
-      return Array.from({ length: Math.ceil(letters.length / perLine) }, (_, i) => letters.slice(i * perLine, (i + 1) * perLine).join(""));
+      const pieces: string[] = [];
+      let piece = "";
+      for (const letter of word) {
+        if (piece && wide(piece + letter) > width) {
+          pieces.push(piece);
+          piece = "";
+        }
+        piece += letter;
+      }
+      return [...pieces, piece];
     });
   const lines: string[] = [];
   for (const chunk of chunks) {
     const last = lines.length - 1;
-    if (last >= 0 && [...lines[last]].length + 1 + [...chunk].length <= perLine) lines[last] += ` ${chunk}`;
+    if (last >= 0 && wide(`${lines[last]} ${chunk}`) <= width) lines[last] += ` ${chunk}`;
     else lines.push(chunk);
   }
   if (lines.length <= maxLines) return lines;
   const kept = lines.slice(0, maxLines);
-  kept[maxLines - 1] = `${[...kept[maxLines - 1]].slice(0, perLine - 1).join("").trimEnd()}…`;
+  const line = [...kept[maxLines - 1]];
+  while (line.length > 1 && wide(`${line.join("")}…`) > width) line.pop();
+  kept[maxLines - 1] = `${line.join("").trimEnd()}…`;
   return kept;
 }
 
@@ -147,7 +186,8 @@ export function layoutDesign(
       .forEach(({ piece, arrow, end }, i) => meetingY.set(`${arrow}${end}`, top[piece] + (BOX_H * (i + 1)) / (found.length + 1)));
   }
 
-  const arrows = edges.map((edge, k): Arrow => {
+  // the lines first: each arrow's path, and its head
+  const paths = edges.map((edge, k) => {
     const { dir, across } = routes[k];
     const points: Point[] = [{ x: left(column[edge.from]) + (dir > 0 ? BOX_W : 0), y: meetingY.get(`${k}from`)! }];
     for (const c of across) {
@@ -155,37 +195,74 @@ export function layoutDesign(
       for (const x of dir > 0 ? sides : sides.reverse()) points.push({ x, y: lane.get(`${k}/${c}`)! });
     }
     points.push({ x: left(column[edge.to]) + (dir > 0 ? 0 : BOX_W), y: meetingY.get(`${k}to`)! });
-
     const [from, to] = points.slice(-2);
     const angle = Math.atan2(to.y - from.y, to.x - from.x);
-    const wing = (turn: number) => at({ x: to.x - HEAD * Math.cos(angle + turn), y: to.y - HEAD * Math.sin(angle + turn) });
-    const line = `M${points.map(at).join("L")}`;
-    // The label sits beside the middle of the last stretch, in the gutter: above the line for an
-    // arrow going right and below it for one coming back, so a pair of links do not share a place.
-    const words = fitText(edge.label, Math.floor((GUTTER - 2 * TEXT_PAD) / CHAR_W.label), 2);
-    const middle = (from.y + to.y) / 2;
-    const first = (dir > 0 ? middle - LABEL_SPACE - words.length * LABEL_LINE : middle + LABEL_SPACE) + LABEL_LINE / 2;
-    const label = { x: round((from.x + to.x) / 2), lines: words.map((text, n) => ({ text, y: round(first + n * LABEL_LINE) })) };
-    return { id: edge.id, d: `${line}M${wing(HEAD_SPREAD)}L${at(to)}L${wing(-HEAD_SPREAD)}`, label };
+    const wing = (turn: number): Point => ({ x: to.x - HEAD * Math.cos(angle + turn), y: to.y - HEAD * Math.sin(angle + turn) });
+    return { points, head: [wing(HEAD_SPREAD), to, wing(-HEAD_SPREAD)], from, to, dir };
   });
 
-  // Labels in one gutter that would overlap are moved down, in their order, until they do not.
-  const gutters = new Map<number, Arrow[]>();
-  for (const arrow of arrows) gutters.set(arrow.label.x, [...(gutters.get(arrow.label.x) ?? []), arrow]);
-  let lowest = 0;
-  for (const found of gutters.values()) {
-    let free = -Infinity;
-    for (const { label } of found.sort((a, b) => a.label.lines[0].y - b.label.lines[0].y)) {
-      const shift = Math.max(0, free - (label.lines[0].y - LABEL_LINE / 2));
-      for (const line of label.lines) line.y = round(line.y + shift);
-      free = label.lines.at(-1)!.y + LABEL_LINE / 2 + LABEL_SPACE;
-      lowest = Math.max(lowest, free);
+  // Every place a line of any arrow passes, to keep the labels off them: a label goes beside its
+  // own arrow, where no other arrow, label or edge of the picture comes near it. When the gutter
+  // is too busy for that, it sits on its own arrow, on a patch that hides the line behind it.
+  const height = tallest + 2 * MARGIN;
+  const spots: (Point & { arrow: number })[] = [];
+  paths.forEach(({ points, head }, arrow) => {
+    for (const run of [points, head]) {
+      run.slice(1).forEach((to, i) => {
+        const from = run[i];
+        const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / 3));
+        for (let step = 0; step <= steps; step++) spots.push({ arrow, x: from.x + ((to.x - from.x) * step) / steps, y: from.y + ((to.y - from.y) * step) / steps });
+      });
     }
-  }
+  });
+  type Area = { x0: number; x1: number; y0: number; y1: number };
+  const placed: Area[] = [];
+  const arrows = edges.map((edge, k): Arrow => {
+    const { points, head, from, to, dir } = paths[k];
+    const words = fitText(edge.label, GUTTER - LABEL_ROOM, LABEL_SIZE, 2);
+    const w = Math.max(0, ...words.map((text) => textWidth(text, LABEL_SIZE)));
+    const h = words.length * LABEL_LINE;
+    const lineAt = (x: number) => from.y + ((x - from.x) * (to.y - from.y)) / (to.x - from.x);
+    const gutterLeft = Math.min(from.x, to.x) + 2 + w / 2;
+    const gutterRight = Math.max(gutterLeft, Math.max(from.x, to.x) - 2 - w / 2);
+    // beside the middle of the last stretch (above it for an arrow going right, below it for one
+    // coming back), else further along it or on its other side, else on it: the first clear spot
+    let best: { area: Area; x: number; bad: number } | undefined;
+    search: for (const place of ["beside", "on"] as const) {
+      for (const t of [0.5, 0.38, 0.62, 0.25, 0.75, 0.12, 0.88]) {
+        for (const above of dir > 0 ? [true, false] : [false, true]) {
+          if (place === "on" && !above) continue;
+          const x = Math.min(Math.max(from.x + t * (to.x - from.x), gutterLeft), gutterRight);
+          const near = [lineAt(x - w / 2), lineAt(x + w / 2)];
+          const y0 = place === "on" ? lineAt(x) - h / 2 : above ? Math.min(...near) - LABEL_GAP - h : Math.max(...near) + LABEL_GAP;
+          const area = { x0: x - w / 2, x1: x + w / 2, y0, y1: y0 + h };
+          const touching = spots.filter(
+            (spot) =>
+              (place === "beside" || spot.arrow !== k) &&
+              spot.x > area.x0 - LABEL_CLEAR &&
+              spot.x < area.x1 + LABEL_CLEAR &&
+              spot.y > area.y0 - LABEL_CLEAR &&
+              spot.y < area.y1 + LABEL_CLEAR,
+          ).length;
+          const crowding = placed.filter((other) => area.x0 < other.x1 && other.x0 < area.x1 && area.y0 < other.y1 && other.y0 < area.y1).length;
+          const bad = touching + 1000 * crowding + (area.y0 < 0 || area.y1 > height ? 1000 : 0) + (place === "on" ? 0.5 : 0);
+          if (!best || bad < best.bad) best = { area, x, bad };
+          if (bad < 1) break search;
+        }
+      }
+    }
+    const { area, x } = best!;
+    placed.push(area);
+    const label = {
+      x: round(x),
+      patch: { x: round(area.x0 - LABEL_CLEAR), y: round(area.y0 - 1), w: round(area.x1 - area.x0 + 2 * LABEL_CLEAR), h: h + 2 },
+      lines: words.map((text, n) => ({ text, y: round(area.y0 + LABEL_LINE / 2 + n * LABEL_LINE) })),
+    };
+    return { id: edge.id, d: `M${points.map(at).join("L")}M${at(head[0])}L${at(head[1])}L${at(head[2])}`, label };
+  });
 
-  const perLine = Math.floor((BOX_W - 2 * TEXT_PAD) / CHAR_W.name);
   const boxes = pieces.map((piece, i): Box => {
-    const lines = fitText(piece.name, perLine, 2);
+    const lines = fitText(piece.name, BOX_W - 2 * TEXT_PAD, NAME_SIZE, 2);
     return {
       id: piece.id,
       x: left(column[i]),
@@ -196,5 +273,5 @@ export function layoutDesign(
     };
   });
 
-  return { width: left(columns - 1) + BOX_W + MARGIN, height: Math.max(tallest + MARGIN, lowest) + MARGIN, boxes, arrows };
+  return { width: left(columns - 1) + BOX_W + MARGIN, height, boxes, arrows };
 }

@@ -132,8 +132,10 @@ labelled links between them. The content is a list of cards, one for each piece,
 its links in words ("To Payouts API: approves a batch", "From Mobile app: returns the status"). From
 768px wide the same pieces and links are also drawn as boxes and arrows in one SVG, hidden from
 assistive technology. The page lays the drawing out itself from the links (`hubs/design-layout.ts`, a
-pure function): columns from the direction of the links, boxes stacked in each column, no saved
-positions, no drawing library. The sketch is read only here, and there are no live updates: a Refresh
+pure function): columns from the direction of the links, boxes stacked in each column, text cut by the
+estimated width of its letters so it stays in its box, each arrow label put beside its own arrow and
+clear of the others where there is room, no saved positions, no drawing library. The drawing is wider
+than the text column (up to 64rem, never past the page margins) so its writing stays readable. The sketch is read only here, and there are no live updates: a Refresh
 button reads it again. When the API says the hub changed (`PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`,
 `NOT_HUB_MEMBER`), the page loads the hub again and the section follows it. The tools for build and
 review are not built yet.
