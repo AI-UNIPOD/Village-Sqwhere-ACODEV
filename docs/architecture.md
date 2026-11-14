@@ -77,7 +77,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   confidential brief. Guide: `docs/backend.md`.
 - **Matching** (Bearer token): `GET /v1/me/ideas/{idea_id}/matches` ranks developers verified
   in the roles one of my open ideas needs, and `GET /v1/me/matches` ranks open ideas that need
-  my verified roles. No AI model and no idea details are involved.
+  my verified roles. Every match has a score out of 100, counted from roles, shared technologies
+  and shared sectors, and both lists are ordered by it. No AI model and no idea details are
+  involved.
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
   `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
   `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics
