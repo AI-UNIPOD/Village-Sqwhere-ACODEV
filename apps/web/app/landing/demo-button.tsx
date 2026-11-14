@@ -4,23 +4,20 @@ import type { ReactNode } from "react";
 
 import type { Lang } from "../locales";
 import { openDemo, useDemoOpening } from "../session/demo";
-import { startTour } from "../tour/tour";
 import { copy } from "./copy";
 
 // "Try the demo": signs in as the shared demo account, with no GitHub, and opens the village.
-// With `tour` the guided tour is on when the village opens. `note` is the id of the line that
-// reports on it; the hero places that line under this button.
+// `note` is the id of the line that reports on it; the hero places that line under this button.
+// The guided tour starts from the demo's own bar, inside.
 export function DemoButton({
   lang,
   className,
   note,
-  tour,
   children,
 }: {
   lang: Lang;
   className: string;
   note?: string;
-  tour?: boolean;
   children: ReactNode;
 }) {
   const opening = useDemoOpening() === "opening";
@@ -34,7 +31,6 @@ export function DemoButton({
       onClick={async () => {
         // a whole new page, as after signing in with GitHub: nothing kept from the visitor's page applies
         if (!(await openDemo())) return;
-        if (tour) startTour();
         window.location.replace(`/${lang}/village`);
       }}
     >

@@ -79,21 +79,6 @@ afterEach(() => {
 
 // ---------- starting ----------
 
-test("'Start the tour' opens the demo once, turns the tour on at the start and opens the village", async () => {
-  fetchMock.mockImplementation(() => answer({ data: tokens }));
-  render(
-    <DemoButton lang="fr" className="ghost" tour>
-      Commencer la visite
-    </DemoButton>,
-  );
-  const start = button("Commencer la visite");
-  fireEvent.click(start);
-  fireEvent.click(start);
-  await waitFor(() => expect(window.location.replace).toHaveBeenCalledExactlyOnceWith("/fr/village"));
-  expect(fetchMock).toHaveBeenCalledOnce();
-  expect(JSON.parse(sessionStorage.getItem("vs_tour")!)).toEqual({ step: 0, route: null });
-});
-
 test("'Try the demo' does not start the tour", async () => {
   fetchMock.mockImplementation(() => answer({ data: tokens }));
   render(<DemoButton lang="en" className="ghost">Try the demo</DemoButton>);

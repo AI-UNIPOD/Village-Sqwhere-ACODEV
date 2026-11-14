@@ -1,0 +1,66 @@
+.list {
+  display: grid;
+  gap: var(--space-10);
+  margin-block-start: var(--space-10);
+}
+
+@media (min-width: 768px) {
+  .list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-12) var(--space-16);
+    margin-block-start: var(--space-12);
+  }
+}
+
+/* A rule on top and room to breathe, not a box: the four read as one ledger of promises. */
+.item {
+  padding-block-start: var(--space-6);
+  border-top: 1px solid var(--line);
+}
+
+.icon {
+  display: block;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.item[data-draw="waiting"] .icon path {
+  stroke-dashoffset: 1;
+}
+
+.item[data-draw="drawn"] .icon path {
+  transition: stroke-dashoffset var(--dur-moment) var(--ease-out);
+  transition-delay: calc(var(--delay-stagger) * (var(--i, 0) + 1));
+}
+
+.title {
+  margin: var(--space-4) 0 0;
+  font: var(--type-title);
+  text-wrap: balance;
+}
+
+.text {
+  max-inline-size: 44ch;
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font: var(--type-body);
+  text-wrap: pretty;
+}
+
+/* Reduced motion: the lines are simply there. */
+@media (prefers-reduced-motion: reduce) {
+  .item[data-draw] .icon path {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+}
