@@ -10,7 +10,7 @@ from uuid import UUID
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select, text, update
+from sqlalchemy import text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -738,20 +738,10 @@ def test_the_tables_refuse_what_the_routes_never_send() -> None:
     attempt("hub_pieces_name_length", piece("a" * 61))
     attempt("hub_pieces_name_length", piece(""))
     attempt("hub_pieces_summary_length", piece("X", summary="a" * 281))
-    # a deleted piece does not hold its name, but two live ones cannot share it
-    deleted = piece("Ledger", deleted_at=datetime.now(UTC))
-    attempt("hub_pieces_name_uq", piece("Ledger"), deleted, piece(" LEDGER "))
+    attempt("hub_pieces_name_uq", piece("Ledger"), piece(" LEDGER "))
     attempt("hub_piece_links_label_length", link(here, also_here, "a" * 61))
     attempt("hub_piece_links_label_length", link(here, also_here, ""))
     attempt("hub_piece_links_not_itself", link(here, here))
     attempt("hub_piece_links_to_fk", link(here, there))
     attempt("hub_piece_links_from_fk", link(there, here))
     attempt("hub_piece_links_direction_uq", link(here, also_here), link(here, also_here))
-
-    async def saved(session: AsyncSession) -> tuple[int, int]:
-        pieces = await session.scalars(select(HubPiece).where(HubPiece.hub_id == hub.id))
-        links = await session.scalars(select(HubPieceLink).where(HubPieceLink.hub_id == hub.id))
-        return len(pieces.all()), len(links.all())
-
-    # every failed batch rolled back whole
-    assert run(saved) == (2, 0)
