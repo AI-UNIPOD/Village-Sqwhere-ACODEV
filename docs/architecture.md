@@ -71,7 +71,12 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/phase`; the hub card says which phase it is in. Active members write
   short brainstorm notes: `GET /v1/hubs/{hub_id}/notes` reads them in every phase once the team
   is confirmed, `POST /v1/hubs/{hub_id}/notes` adds one and
-  `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm.
+  `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm. In the
+  design phase they sketch the system: `GET /v1/hubs/{hub_id}/design` reads the pieces and the
+  labelled links between them in design, build and review, `POST /v1/hubs/{hub_id}/pieces`,
+  `PATCH /v1/hubs/{hub_id}/pieces/{piece_id}` and `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}`
+  change the pieces, and `POST /v1/hubs/{hub_id}/links` and
+  `DELETE /v1/hubs/{hub_id}/links/{link_id}` change the links, all only during design.
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
   `POST /v1/me/ideas/{idea_id}/publish` and `POST /v1/me/ideas/{idea_id}/close` create and
