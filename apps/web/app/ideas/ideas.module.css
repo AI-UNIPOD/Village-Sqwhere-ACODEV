@@ -328,13 +328,6 @@ p.verified { margin-inline-start: 0; }
   gap: var(--space-3) var(--space-4);
 }
 
-/* why they matched: plain lines in the text colour, since they are the point of the card */
-.why {
-  display: grid;
-  gap: var(--space-1);
-  font: var(--type-body-s);
-}
-
 /* a technology the developer shares with the owner: a tick and a darker line, so it is not colour alone */
 li.sharedTag {
   display: inline-flex;

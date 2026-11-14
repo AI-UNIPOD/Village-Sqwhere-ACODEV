@@ -7,6 +7,7 @@ import { api, asked, fetchMock, hub, idea, posted, refusal, reply } from "../hub
 import { forgetMe, keepMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { IdeaMatches } from "./idea-matches";
+import { agritech, fintech, scored, stillMotion } from "./match-fixtures";
 
 const nav = vi.hoisted(() => ({ search: "id=idea-1" }));
 
@@ -33,6 +34,7 @@ const person = (username: string, display_name: string, over: Record<string, unk
   technologies: [],
   shared_technologies: [],
   country_code: null,
+  ...scored(43, [30, 0, 0]),
   ...over,
 });
 
@@ -42,8 +44,14 @@ const wanjiru = person("wanjiru-kamau", "Wanjiru Kamau", {
   technologies: [flutter, go, react],
   shared_technologies: [go, react],
   country_code: "KE",
+  ...scored(69, [30, 8, 10], [fintech, agritech]),
 });
-const danladi = person("danladi", "danladi", { matched_roles: [backend, mobile], technologies: [react], shared_technologies: [react] });
+const danladi = person("danladi", "danladi", {
+  matched_roles: [backend, mobile],
+  technologies: [react],
+  shared_technologies: [react],
+  ...scored(63, [40, 4, 0]),
+});
 const fatou = person("fatou-sow", "Fatou Sow");
 
 const open = (over: Record<string, unknown> = {}) => idea({ roles_needed: [backend, mobile], ...over });
@@ -64,6 +72,7 @@ const cardOf = (name: string) => within(screen.getByText(name, { selector: "p, a
 const title = (text: string) => screen.findByRole("heading", { level: 1, name: text });
 
 beforeEach(() => {
+  stillMotion();
   // the frame already knows who is signed in, as it does after the first screen of a visit
   keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, country_code: null, roles: [], technologies: [], feed_topics: [], sectors: [] });
   nav.search = "id=idea-1";
@@ -95,18 +104,60 @@ test("the page names the idea, leads back to Your ideas, and shows each develope
   expect(github.getAttribute("target")).toBe("_blank");
   expect(github.getAttribute("rel")).toBe("noopener noreferrer");
   expect(first.getByText("Verified")).toBeTruthy();
-  expect(first.getByText("Verified in: Backend and Systems Engineer")).toBeTruthy();
+  expect(first.getByText("Verified in Backend and Systems Engineer")).toBeTruthy();
   expect(first.getByText("Kenya")).toBeTruthy();
   expect(first.getByText("In common with you: Go, React")).toBeTruthy();
 
   // several roles, one shared technology, and a GitHub account with no name
   const second = cardOf("danladi");
-  expect(second.getByText("Verified in: Backend and Systems Engineer, Mobile Engineer")).toBeTruthy();
+  expect(second.getByText("Verified in Backend and Systems Engineer and Mobile Engineer")).toBeTruthy();
   expect(second.getByText("In common with you: React")).toBeTruthy();
   expect(second.getByRole("link", { name: "danladi (GitHub profile, opens in a new tab)" })).toBeTruthy();
   expect(second.queryByText("Verified")).toBeNull();
-  // no score, no percentage
-  expect(screen.queryByText(/\d%|\bscore\b|\bAI\b/)).toBeNull();
+  // no percentage, and no claim to be AI
+  expect(screen.queryByText(/\d%|\bAI\b/)).toBeNull();
+});
+
+test("each card shows its score and step, then the parts that earned it, in the order the API sent", async () => {
+  await show();
+  await screen.findByText("Wanjiru Kamau");
+  const first = cardOf("Wanjiru Kamau");
+  expect(first.getByText("69")).toBeTruthy();
+  expect(first.getByText("Possible match")).toBeTruthy();
+  expect(first.getByText("Match score: 69 out of 100, Possible match. Partial score.")).toBeTruthy();
+  const parts = within(first.getByRole("list", { name: "Why this score" })).getAllByRole("listitem");
+  expect(parts.map((part) => part.textContent)).toEqual([
+    "Roles30 of 40Verified in Backend and Systems Engineer",
+    "Technologies8 of 20In common with you: Go, React",
+    "Sectors10 of 10You both build for Fintech and Agritech",
+    "MeaningNot compared yet",
+  ]);
+  expect(first.getByText(/^Partial score: it counts roles, technologies and sectors/)).toBeTruthy();
+  expect(cardOf("danladi").getByText("63")).toBeTruthy();
+  expect(screen.getByText("Developers verified in a role your idea needs, best score first. Each card says how its score was counted.")).toBeTruthy();
+});
+
+test("a developer card with no score fields shows its reasons and no score, and does not crash", async () => {
+  const old = { id: "id-old", username: "old", display_name: "Old Api", avatar_url: null, is_verified: false, matched_roles: [backend], technologies: [], shared_technologies: [go], country_code: null };
+  await show({ "GET /v1/me/ideas/idea-1/matches": { data: [old], next_offset: null } });
+  await screen.findByText("Old Api");
+  const card = cardOf("Old Api");
+  expect(card.queryByText(/Match score/)).toBeNull();
+  expect(card.getByText("In common with you: Go")).toBeTruthy();
+  expect(card.getByText("Verified in Backend and Systems Engineer")).toBeTruthy();
+  expect(card.queryByText("Meaning")).toBeNull();
+});
+
+test("the country sits under the name, before the invite button", async () => {
+  await show();
+  await screen.findByText("Wanjiru Kamau");
+  const card = cardOf("Wanjiru Kamau");
+  const country = card.getByText("Kenya");
+  const name = screen.getByText("Wanjiru Kamau", { selector: "p" });
+  expect(name.parentElement!.contains(country)).toBe(true);
+  const invite = card.getByRole("button", { name: /^Invite to the hub/ });
+  expect(country.compareDocumentPosition(invite) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(card.getByText("Possible match").compareDocumentPosition(country) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
 });
 
 test("the shared technologies come first in the tags, each marked with a tick and words for a screen reader", async () => {
@@ -123,12 +174,13 @@ test("a developer who shares no technology has no line about it, no marked tag, 
   await show({ "GET /v1/me/ideas/idea-1/matches": { data: [fatou, person("tendai-moyo", "Tendai Moyo", { technologies: [react] })], next_offset: null } });
   await screen.findByText("Fatou Sow");
   const row = cardOf("Fatou Sow");
-  expect(row.getByText("Verified in: Backend and Systems Engineer")).toBeTruthy();
-  expect(row.queryByText(/in common/)).toBeNull();
-  expect(row.queryByRole("list")).toBeNull();
+  expect(row.getByText("Verified in Backend and Systems Engineer")).toBeTruthy();
+  expect(row.queryByText(/In common with you/)).toBeNull();
+  expect(row.getByText("No technologies in common")).toBeTruthy();
+  expect(row.queryByRole("list", { name: "Technologies" })).toBeNull();
   const other = cardOf("Tendai Moyo");
-  expect(other.queryByText(/in common/)).toBeNull();
-  expect(other.getAllByRole("listitem").map((tag) => tag.textContent)).toEqual(["React"]);
+  expect(other.queryByText(/In common with you/)).toBeNull();
+  expect(within(other.getByRole("list", { name: "Technologies" })).getAllByRole("listitem").map((tag) => tag.textContent)).toEqual(["React"]);
   expect(other.getByRole("list", { name: "Technologies" }).querySelector("svg")).toBeNull();
 });
 
@@ -162,8 +214,13 @@ test("the same page in French, with the roles and the invite in French", async (
   await title("Qui correspond à Borehole map for Kaduna");
   const first = cardOf("Wanjiru Kamau");
   // Testing Library reads the narrow no-break space as a plain one
-  expect(first.getByText("Vérifié dans : Ingénieur backend et systèmes")).toBeTruthy();
+  expect(first.getByText("Vérifié dans Ingénieur backend et systèmes")).toBeTruthy();
   expect(first.getByText("Kenya")).toBeTruthy();
+  expect(first.getByText("Correspondance possible")).toBeTruthy();
+  expect(first.getByText("Score de correspondance : 69 sur 100, correspondance possible. Score partiel.")).toBeTruthy();
+  expect(first.getByText("Vous construisez tous deux pour Fintech et Agritech")).toBeTruthy();
+  expect(first.getByRole("list", { name: "Pourquoi ce score" })).toBeTruthy();
+  expect(first.getByText("30 sur 40")).toBeTruthy();
   expect(first.getByText("En commun avec vous : Go, React").textContent).toContain("vous\u202f: Go, React");
   expect(within(first.getByRole("list", { name: "Technologies" })).getAllByRole("listitem")[0].textContent).toBe("Go (en commun)");
   expect(cardOf("danladi").getByText("En commun avec vous : React")).toBeTruthy();
@@ -229,7 +286,7 @@ test("a sent invitation becomes an Invited pill and a status line, and the row s
   expect(await row.findByText("Invited")).toBeTruthy();
   expect(row.queryByRole("button")).toBeNull();
   expect(row.getByRole("status").textContent).toBe("Invitation sent to Wanjiru Kamau.");
-  expect(row.getByText("Verified in: Backend and Systems Engineer")).toBeTruthy();
+  expect(row.getByText("Verified in Backend and Systems Engineer")).toBeTruthy();
   expect(posted()).toEqual([["/v1/hubs/hub-1/invitations", { username: "wanjiru-kamau" }]]);
   // the button left, so focus moved to the person
   await waitFor(() => expect(document.activeElement).toBe(row.getByRole("link", { name: /@wanjiru-kamau/ })));
