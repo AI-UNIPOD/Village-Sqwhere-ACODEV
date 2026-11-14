@@ -86,9 +86,11 @@ async def find_membership(db: AsyncSession, hub_id: UUID, user_id: UUID) -> HubM
     return result.scalar_one_or_none()
 
 
-async def require_active_member(db: AsyncSession, hub_id: UUID, user: User) -> Hub:
+async def require_active_member(
+    db: AsyncSession, hub_id: UUID, user: User, *, lock: bool = False
+) -> Hub:
     """The hub, if this person signed its agreement and is an active member."""
-    hub = await find_hub(db, hub_id, user)
+    hub = await find_hub(db, hub_id, user, lock=lock)
     membership = await find_membership(db, hub_id, user.id)
     if membership is None or membership.status != HubMemberStatus.ACTIVE:
         raise hub_error(

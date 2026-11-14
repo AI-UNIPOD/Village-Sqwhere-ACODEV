@@ -81,13 +81,15 @@ button, read from the hub's card (`viewer.can_ask_again_at`) or from a press tha
 (409 `REQUEST_COOLING_DOWN`).
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
-developer is verified in (`GET /v1/me/matches`), each with the roles that matched. Matching goes
-by verified roles, so a developer without one is sent to verify, and the page does not call the
-API for them.
+developer is verified in (`GET /v1/me/matches`), each with the roles that matched and, when there
+are any, the technologies shared with the idea's author. Matching goes by verified roles, so a
+developer without one is sent to verify, and the page does not call the API for them.
 
 The owner's side is `/en/ideas/matches?id=`: developers verified in a role the idea needs
-(`GET /v1/me/ideas/{id}/matches`), each with the roles that matched and the technologies shared
-with the owner. With a hub, "Invite to the hub" sends the invitation from the row
+(`GET /v1/me/ideas/{id}/matches`), each with the roles that matched, their country (named in the
+page's language, nothing when they gave none) and the technologies shared with the owner. The
+shared ones are named in a line and come first in the tags, marked with a tick and, for a screen
+reader, "in common". With a hub, "Invite to the hub" sends the invitation from the row
 (`inviteMember`, the same call and refusal sentences as the hub's invite form); without one the
 page says a hub comes first. "See who matches" on Your ideas and a link under the hub's invite
 form lead here.
@@ -114,8 +116,16 @@ in progress (`hubs/phases.tsx`). The owner of an active hub confirms the team
 (`POST /v1/hubs/{id}/team/confirm`, which opens brainstorm at any team size) and moves the hub one
 phase forward or back (`POST /v1/hubs/{id}/phase`), each behind a confirm dialog, and the page
 shows the card the API answers with. When the API says the hub changed elsewhere, or the action is
-no longer open, the page loads the hub again and says so. The tools for each phase are not built
-yet.
+no longer open, the page loads the hub again and says so.
+
+Under the phases, an active member of a hub whose team is confirmed sees its brainstorm notes
+(`hubs/notes.tsx`, `id="brainstorm"`): sticky-note cards read from `GET /v1/hubs/{id}/notes` (every
+page, oldest first). While the hub is active and in brainstorm, the form adds a note of 1 to 280
+characters (`POST /v1/hubs/{id}/notes`), and the author or the hub's owner can delete one behind a
+confirm dialog (`DELETE /v1/hubs/{id}/notes/{note_id}`). After brainstorm, or in an archived hub, the
+notes are for reading only. There are no live updates: a Refresh button reads the list again. When
+the API says the hub moved on, the page loads the hub again and says so. The tools for the other
+phases are not built yet.
 
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares

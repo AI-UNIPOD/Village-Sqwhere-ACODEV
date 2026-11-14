@@ -36,7 +36,9 @@ The header links are Matcher, Hub and FAQ, short enough for the French pill at 3
 developers verified in the roles an idea needs, then by technologies in common, and never
 reads the idea's text. So the demo's match scores are labelled simulated (scores are planned,
 see `2026-11-14-simulated-match-score-in-demo.md`), it never says the matcher "reads your idea", and uses the product's own steps (invite, read the agreement,
-sign). The hub's phase tools are not built, so that section is labelled a sample. Every person
+sign). The hub's phases are real (the owner confirms the team and moves the hub, see
+`2026-11-14-hub-phases.md`) but their tools are not built, so the views in that section are labelled a
+sample. People are placed by country, because the product stores no city. Every person
 and idea on the page is made up, and the page says so.
 
 **Motion:** one moment per section, started by the visitor or by the section's first scroll
