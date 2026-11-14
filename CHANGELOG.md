@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(web): show the product on a longer landing page (#138)
 - feat(web): put one language and theme switch in every header (#137)
 - feat(api): say which no ended a declined hub membership (#136)
 
