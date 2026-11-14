@@ -182,7 +182,7 @@ test("the demo account sees, on every screen, that nothing is saved and the way 
   expect(screen.queryByText(/You are in the demo/)).toBeNull();
   // Your hubs never asks for the profile: the frame does
   await screen.findByText(/You are in the demo/);
-  expect(screen.getByRole("status").textContent).toBe("You are in the demo. Look at everything: nothing you change is saved.");
+  expect(screen.getByRole("status").textContent).toBe("You are in the demo. The people and ideas here are made up, and nothing can be changed.");
   expect(screen.getByRole("button", { name: "Leave the demo" })).toBeTruthy();
 });
 

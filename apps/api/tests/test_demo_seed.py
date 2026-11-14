@@ -2,9 +2,11 @@ import asyncio
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select, update
 
 from app import config, database
 from app.demo_seed import PEOPLE, main, seed
+from app.models import User
 from tests.conftest import test_async_session as db_session
 
 
@@ -84,6 +86,49 @@ def test_running_the_seed_again_rewrites_only_the_feed(client: TestClient, visit
     after = seeded_posts()
     assert len(after) == len(before) == 12
     assert after.isdisjoint(before)
+
+
+def _countries() -> dict[str, str | None]:
+    async def go() -> dict[str, str | None]:
+        async with db_session() as session:
+            rows = await session.execute(
+                select(User.username, User.country_code).where(
+                    User.username.in_([username for username, _, _ in PEOPLE.values()])
+                )
+            )
+            return dict(rows.all())
+
+    return asyncio.run(go())
+
+
+def test_the_seed_gives_each_person_the_country_in_their_bio(
+    client: TestClient, visitor: dict
+) -> None:
+    assert client.get("/v1/me", headers=visitor).json()["data"]["country_code"] == "NG"
+    assert _countries() == {
+        "olaoluwa_demo": "NG",
+        "aminata_ndiaye": "SN",
+        "kwabena_owusu": "GH",
+        "danladi_kabir": "NG",
+        "wanjiru_kamau": "KE",
+        "tendai_moyo": "ZW",
+    }
+
+
+def test_running_the_seed_again_sets_countries_a_world_made_without_them_lacks(
+    visitor: dict,
+) -> None:
+    async def clear() -> None:
+        async with db_session() as session:
+            await session.execute(update(User).where(User.is_demo).values(country_code=None))
+            await session.commit()
+
+    asyncio.run(clear())
+    assert set(_countries().values()) == {None}
+
+    assert _seed() is False
+
+    assert _countries()["aminata_ndiaye"] == "SN" and None not in _countries().values()
 
 
 def test_the_script_writes_nothing_where_the_demo_is_off(
