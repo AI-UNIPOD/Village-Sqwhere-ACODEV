@@ -14,9 +14,13 @@ Tanny chose, on 14 November 2026:
 - **The owner starts the work with an explicit step, "Confirm the team"**
   (`POST /v1/hubs/{hub_id}/team/confirm`). It is allowed at any team size, with no minimum: the
   owner alone may confirm. Confirming opens brainstorm.
-- **Only the owner moves the phase** (`POST /v1/hubs/{hub_id}/phase`). One phase forward at a
-  time, never skipping, and one phase back is allowed too. Going back from brainstorm is not
-  possible: the team stays confirmed.
+- **Only the owner moves the phase** (`POST /v1/hubs/{hub_id}/phase`), one phase at a time,
+  never skipping.
+
+The build plan's default, which Tanny read and did not change:
+
+- **The owner can go back one phase.** Going back from brainstorm is not possible: the team
+  stays confirmed.
 
 We added, on the same day, for Tanny to review:
 
