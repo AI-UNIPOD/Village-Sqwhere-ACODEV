@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- docs: bring the progress file up to date after phase one (#163)
 - feat(api): add brainstorm notes to a hub (#162)
 - feat(web): show the country and shared technologies on match cards (#161)
 - feat(api): score every match and order both lists by it (#160)
