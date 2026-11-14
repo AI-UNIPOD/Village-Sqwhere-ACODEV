@@ -414,15 +414,15 @@ def test_default_agent_speaks_the_stored_language() -> None:
         assert continuation.question != opening.question
 
     french = asyncio.run(agent.opening("backend-engineer", {}, "fr"))
-    assert french.question.startswith("Pour le rôle backend engineer : Décrivez")
+    assert french.question.startswith("Pour le rôle backend engineer\u202f: Décrivez")
 
 
 def test_french_text_puts_a_narrow_no_break_space_before_high_punctuation() -> None:
     texts = [*DEFAULT_QUESTIONS["fr"], *DEFAULT_MESSAGES["fr"].values()]
 
-    assert any(" " in text for text in texts)
+    assert any("\u202f" in text for text in texts)
     for text in texts:
-        assert re.search(r"(?<! )[:;?!]", text) is None, text
+        assert re.search(r"(?<!\u202f)[:;?!]", text) is None, text
 
 
 def test_fallback_agent_hands_the_language_to_the_local_interviewer() -> None:
