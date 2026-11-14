@@ -1,4 +1,5 @@
 import type { Lang } from "../locales";
+import type { Phase, PhaseState } from "./hubs-api";
 
 type Field = { label: string; help: string };
 type Screen = { title: string; text: string };
@@ -63,9 +64,17 @@ type Copy = {
   termsFrozen: string;
   agreementVersion: string;
   phasesHeading: string;
-  phases: string[];
-  phasesNote: string;
-  notStarted: string;
+  phases: Record<Phase, string>;
+  phaseStates: Record<PhaseState, string>;
+  // where things stand, under the list
+  phasesNote: { toConfirm: string; waiting: string; confirmed: string };
+  phaseActions: {
+    confirm: { button: string; title: string; text: string; alone: string; done: string };
+    forward: { button: string; title: string; text: string; done: string };
+    back: { button: string; title: string; text: string; done: string };
+    cancel: string;
+    errors: { changed: string; unavailable: string; failed: string };
+  };
   missingHub: Screen;
   // the team and the brief on a hub's page
   team: {
@@ -238,9 +247,40 @@ const en: Copy = {
   termsFrozen: "Signed by every member. These cannot be changed.",
   agreementVersion: "Version {n} of the hub agreement",
   phasesHeading: "Phases",
-  phases: ["Brainstorm", "Design and architecture", "Build", "Review and test"],
-  phasesNote: "The hub lists its four phases. Their tools are still to come, so each one reads Not started.",
-  notStarted: "Not started",
+  phases: { brainstorm: "Brainstorm", design: "Design and architecture", build: "Build", review: "Review and test" },
+  phaseStates: { done: "Done", in_progress: "In progress", not_started: "Not started" },
+  phasesNote: {
+    toConfirm: "Confirm the team when you are ready to start. Brainstorm opens, and you can still invite people after, up to five.",
+    waiting: "The phases open when the owner confirms the team.",
+    confirmed: "The owner moves the hub from one phase to the next. The tools for each phase are still to come.",
+  },
+  phaseActions: {
+    confirm: {
+      button: "Confirm the team",
+      title: "Confirm the team?",
+      text: "{n} people are in the team now. Brainstorm opens, and you can still invite people after, up to five.",
+      alone: "You are the only member for now. Brainstorm opens, and you can still invite people after, up to five.",
+      done: "The team is confirmed. Brainstorm is open.",
+    },
+    forward: {
+      button: "Move to {phase}",
+      title: "Move to {phase}?",
+      text: "The hub moves on to {phase}. You can move it back.",
+      done: "The hub is now in {phase}.",
+    },
+    back: {
+      button: "Back to {phase}",
+      title: "Go back to {phase}?",
+      text: "The hub returns to {phase}. Nothing is deleted.",
+      done: "The hub is back in {phase}.",
+    },
+    cancel: "Cancel",
+    errors: {
+      changed: "This hub was changed somewhere else. This is where it is now.",
+      unavailable: "That action is not available on this hub. This is where it is now.",
+      failed: "We couldn't save that. Nothing changed, so try again.",
+    },
+  },
   missingHub: { title: "We couldn't find this hub", text: "It may have been removed, or the address is wrong." },
   team: {
     requested: "Asked to join",
@@ -459,9 +499,40 @@ const fr: Copy = {
   termsFrozen: "Signées par chaque membre. Elles ne peuvent pas être modifiées.",
   agreementVersion: "Version {n} de l'accord de l'espace",
   phasesHeading: "Phases",
-  phases: ["Brainstorm", "Conception et architecture", "Construction", "Revue et tests"],
-  phasesNote: "L'espace liste ses quatre phases. Leurs outils restent à venir\u202f: chacune indique Pas commencée.",
-  notStarted: "Pas commencée",
+  phases: { brainstorm: "Brainstorm", design: "Conception et architecture", build: "Construction", review: "Revue et tests" },
+  phaseStates: { done: "Terminée", in_progress: "En cours", not_started: "Pas commencée" },
+  phasesNote: {
+    toConfirm: "Confirmez l'équipe quand vous êtes prêt à commencer. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
+    waiting: "Les phases s'ouvrent quand le porteur confirme l'équipe.",
+    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Les outils de chaque phase restent à venir.",
+  },
+  phaseActions: {
+    confirm: {
+      button: "Confirmer l'équipe",
+      title: "Confirmer l'équipe\u202f?",
+      text: "{n} personnes font partie de l'équipe pour le moment. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
+      alone: "Vous êtes le seul membre pour le moment. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
+      done: "L'équipe est confirmée. Le brainstorm est ouvert.",
+    },
+    forward: {
+      button: "Passer à {phase}",
+      title: "Passer à {phase}\u202f?",
+      text: "L'espace passe à {phase}. Vous pourrez revenir en arrière.",
+      done: "L'espace est maintenant en {phase}.",
+    },
+    back: {
+      button: "Revenir à {phase}",
+      title: "Revenir à {phase}\u202f?",
+      text: "L'espace revient à {phase}. Rien n'est supprimé.",
+      done: "L'espace est revenu à {phase}.",
+    },
+    cancel: "Annuler",
+    errors: {
+      changed: "Cet espace a été modifié ailleurs. Voici où il en est maintenant.",
+      unavailable: "Cette action n'est pas disponible sur cet espace. Voici où il en est maintenant.",
+      failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
+    },
+  },
   missingHub: {
     title: "Nous n'avons pas trouvé cet espace",
     text: "Il a peut-être été supprimé, ou l'adresse est incorrecte.",
