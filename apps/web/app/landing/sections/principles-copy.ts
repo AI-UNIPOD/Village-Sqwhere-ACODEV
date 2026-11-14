@@ -44,7 +44,7 @@ const fr: Copy = {
     },
     {
       key: "owner",
-      title: "Le porteur décide, le matcher propose",
+      title: "Le porteur de l'idée décide, le matcher propose",
       text: "Le matcher classe les développeurs et dit pourquoi. Vous choisissez qui inviter.",
     },
     {

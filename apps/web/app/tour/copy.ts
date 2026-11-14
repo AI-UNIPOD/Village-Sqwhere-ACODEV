@@ -34,7 +34,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "See who the matcher suggests",
-        text: "The matcher suggests verified developers whose role the idea needs. It says why each one matched.",
+        text: "The matcher suggests verified developers whose role the idea needs. It gives each one a score and says how it was counted.",
       },
       {
         name: "Invite your team",
@@ -42,7 +42,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Follow the hub's four phases",
-        text: "A hub moves through four phases: brainstorm, design and architecture, build, then review and test. Its owner moves it from one to the next. This hub is in Build; the tools for each phase are still to come.",
+        text: "A hub moves through four phases: brainstorm, design and architecture, build, then review and test. Its owner moves it from one to the next. This hub is in Build; the brainstorm notes are below it, and the tools for the other phases are still to come.",
       },
     ],
     start: "Start the route",
@@ -69,7 +69,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Voir qui le matcher propose",
-        text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il dit pourquoi chacun correspond.",
+        text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il donne à chacun un score et dit comment il a été compté.",
       },
       {
         name: "Inviter votre équipe",
@@ -77,7 +77,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Suivre les quatre phases de l'espace",
-        text: "Un espace traverse quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Son porteur le fait passer de l'une à l'autre. Cet espace est en Construction\u202f; les outils de chaque phase restent à venir.",
+        text: "Un espace traverse quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Son porteur le fait passer de l'une à l'autre. Cet espace est en Construction\u202f; les notes du brainstorm sont en dessous, et les outils des autres phases restent à venir.",
       },
     ],
     start: "Commencer le parcours",

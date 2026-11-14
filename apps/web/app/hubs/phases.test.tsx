@@ -17,6 +17,7 @@ vi.mock("next/navigation", () => ({
 const asOwner = { viewer: { membership_status: "active", member_role: "owner" } };
 const asMember = { viewer: { membership_status: "active", member_role: "member" } };
 const asOutsider = { viewer: { membership_status: null, member_role: null } };
+const asInvited = { viewer: { membership_status: "invited", member_role: "member" } };
 // a hub the owner has confirmed, now at `phase`
 const at = (phase: string, over: Record<string, unknown> = {}) => ({
   phase,
@@ -87,7 +88,18 @@ test.each([
 
 test("once the team is confirmed, everyone reads that the owner moves the hub", async () => {
   await open({ ...asMember, ...at("brainstorm") });
-  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. The tools for each phase are still to come.")).toBeTruthy();
+  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. Brainstorm has its notes below; the tools for the other phases are still to come.")).toBeTruthy();
+});
+
+test.each([
+  ["someone outside the hub", asOutsider],
+  ["someone invited", asInvited],
+])("once the team is confirmed, %s is not pointed to notes they cannot see", async (_who, viewer) => {
+  await open({ ...viewer, ...at("brainstorm") });
+  expect(
+    within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes are for the hub's members; the tools for the other phases are still to come."),
+  ).toBeTruthy();
+  expect(phases().textContent).not.toContain("notes below");
 });
 
 test("the owner confirms the team after a dialog, and the page shows the card the API sent, with a status line", async () => {

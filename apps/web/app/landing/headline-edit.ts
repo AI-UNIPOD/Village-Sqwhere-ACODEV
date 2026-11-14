@@ -202,10 +202,10 @@ export function createEdit(
     p.tag.style.transform = tagShift(p, x);
   };
 
-  function arrive(step: { name: string; city: string }): Caret {
+  function arrive(step: { name: string; country: string }): Caret {
     const el = part("caret");
     const tag = part("tag");
-    tag.textContent = `${step.name} · ${step.city}`;
+    tag.textContent = `${step.name} · ${step.country}`;
     el.append(part("bar"), tag);
     carets.append(el);
     return { el, tag };

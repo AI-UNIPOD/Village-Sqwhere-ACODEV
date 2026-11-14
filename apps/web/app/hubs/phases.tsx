@@ -44,8 +44,11 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
   const next = hub.phase ? PHASES[at + 1] : undefined;
   const previous = at > 0 ? PHASES[at - 1] : undefined;
   const canAct = hub.viewer.member_role === "owner" && hub.status === "active";
+  // the notes below the phases are for active members only, so the others are not pointed to them
   const note = hub.phase
-    ? t.phasesNote.confirmed
+    ? hub.viewer.membership_status === "active"
+      ? t.phasesNote.confirmed
+      : t.phasesNote.confirmedOutside
     : hub.status !== "active"
       ? t.phasesNote.archived
       : hub.viewer.member_role === "owner"

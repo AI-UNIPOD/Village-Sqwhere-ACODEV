@@ -14,7 +14,7 @@ test.each([
   [
     "fr",
     "Comment fonctionne le village",
-    ["Construire ensemble, pas recruter", "Le porteur décide, le matcher propose", "Votre dossier reste privé", "Seuls les rôles vérifiés comptent"],
+    ["Construire ensemble, pas recruter", "Le porteur de l'idée décide, le matcher propose", "Votre dossier reste privé", "Seuls les rôles vérifiés comptent"],
   ],
 ] as const)("the %s section names itself and shows four principles", (lang, title, principles) => {
   render(<Principles lang={lang} />);

@@ -31,9 +31,10 @@ export const COMMITS = [
 const en: Copy = {
   title: "Your hub has four phases.",
   lead:
-    "The hub page lists four phases: brainstorm, design and architecture, build, then review and test. Their tools are not built yet, so what you see below is a made-up sample.",
-  sampleTag: "Sample, not built yet",
-  closing: "Today the hub only lists the phases. Each one reads Not started.",
+    "The owner confirms the team, Brainstorm opens, and the hub moves through four phases one at a time: brainstorm, design and architecture, build, then review and test. The tools for each phase are still to come, so the views below are a made-up sample.",
+  sampleTag: "Sample views, tools still to come",
+  closing:
+    "Today the hub page shows each phase as Done, In progress or Not started, and the owner moves the hub from one phase to the next. The tools are not built yet.",
   tablist: "Phases",
   done: "Done",
   phases: [
@@ -70,9 +71,10 @@ const en: Copy = {
 const fr: Copy = {
   title: "Votre espace compte quatre phases.",
   lead:
-    "La page de l'espace liste quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Leurs outils ne sont pas encore construits\u202f: ce qui suit est un exemple inventé.",
-  sampleTag: "Exemple, pas encore construit",
-  closing: "Aujourd'hui, l'espace se contente de lister les phases. Chacune indique Pas commencée.",
+    "Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis l'espace traverse quatre phases, une à la fois\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Les outils de chaque phase restent à venir\u202f: les vues ci-dessous sont un exemple inventé.",
+  sampleTag: "Vues d'exemple, outils à venir",
+  closing:
+    "Aujourd'hui, la page de l'espace indique chaque phase comme Terminée, En cours ou Pas commencée, et le porteur de l'idée fait passer l'espace d'une phase à la suivante. Les outils ne sont pas encore construits.",
   tablist: "Phases",
   done: "Fait",
   phases: [
