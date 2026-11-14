@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-15
+
+- fix(web): show the real match score and live brainstorm notes on the landing page
+
 ## 2026-11-14
 
 - feat(api): show another developer's public profile (#175)
