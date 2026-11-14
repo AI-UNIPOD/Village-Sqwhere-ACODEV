@@ -46,6 +46,7 @@ async function open(over: Record<string, unknown>, routes: Record<string, unknow
     "GET /v1/hubs/hub-1/members": { data: [owner()] },
     "GET /v1/hubs/hub-1/idea": { data: idea() },
     [NOTES]: list(),
+    "GET /v1/hubs/hub-1/design": { data: { pieces: [], links: [] } },
     ...routes,
   });
   render(<HubPage lang={lang} />);
