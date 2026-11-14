@@ -335,6 +335,20 @@ p.verified { margin-inline-start: 0; }
   font: var(--type-body-s);
 }
 
+/* a technology the developer shares with the owner: a tick and a darker line, so it is not colour alone */
+.sharedTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-color: var(--text);
+}
+
+.sharedTag svg {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+
 /* what stands in the way of inviting, above the list: not an error, so no alarm colours */
 .notice {
   display: grid;

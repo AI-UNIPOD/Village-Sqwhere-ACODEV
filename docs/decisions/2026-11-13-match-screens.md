@@ -35,7 +35,9 @@ Tanny delegated these calls to the product owner on 13 November 2026.
 - **Each developer card says why they matched, with no score.** "Verified in: <roles>" comes
   from `matched_roles`, and "<n> technologies in common with you" from `shared_technology_count`
   (shown only above zero). The technology tags are the developer's own list, without saying which
-  are shared, because the API gives only the count.
+  are shared, because the API gives only the count. Changed on 2026-11-14: the API names the shared
+  technologies and carries the developer's country, so the card names them, marks them in the tags
+  and shows the country (`2026-11-14-profile-country.md`).
 - **Inviting needs a hub first.** An invitation belongs to a hub (`POST /v1/hubs/{id}/invitations`),
   so an idea with no hub shows the developers with no invite buttons and one notice with
   "Create the hub". The hub is found by reading every page of `GET /v1/me/hubs`, as on Your

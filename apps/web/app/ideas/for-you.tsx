@@ -7,26 +7,38 @@ import { AppFrame } from "../app-frame";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { Lightbulb, ShieldCheck, Users } from "../onboarding/icons";
+import { Check, Lightbulb, ShieldCheck, Users } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
-import { OpenIdeaCard, roleName } from "./browse";
+import { OpenIdeaCard, authorName, roleName, technologyName } from "./browse";
 import { copy } from "./copy";
 import { loadIdeasForMe, type IdeaMatch } from "./ideas-api";
 import styles from "./ideas.module.css";
 import { IdeasTabs } from "./ideas-tabs";
 import { IdeasSkeleton } from "./my-ideas";
 
-// Why the idea is here: the developer's verified roles that it needs, by name.
-function WhyLine({ lang, roles }: { lang: Lang; roles: IdeaMatch["matched_roles"] }) {
+// Why the idea is here: the developer's verified roles that it needs, by name, and the
+// technologies they share with its author.
+function WhyLine({ lang, match }: { lang: Lang; match: IdeaMatch }) {
   const t = copy[lang].forYou;
+  const { matched_roles: roles, shared_technologies: shared, idea } = match;
   return (
-    <p className={styles.fit}>
-      <Users />
-      <span>{fill(roles.length === 1 ? t.whyOne : t.whyMany, { roles: roles.map((role) => roleName(lang, role)).join(", ") })}</span>
-    </p>
+    <>
+      <p className={styles.fit}>
+        <Users />
+        <span>{fill(roles.length === 1 ? t.whyOne : t.whyMany, { roles: roles.map((role) => roleName(lang, role)).join(", ") })}</span>
+      </p>
+      {shared.length > 0 && (
+        <p className={styles.fit}>
+          <Check />
+          <span>
+            {fill(t.inCommon, { name: authorName(idea.author), technologies: shared.map((tech) => technologyName(lang, tech)).join(", ") })}
+          </span>
+        </p>
+      )}
+    </>
   );
 }
 
@@ -93,8 +105,8 @@ function ForYouList({ lang }: { lang: Lang }) {
       ) : (
         <>
           <ul className={styles.list}>
-            {matches!.map(({ idea, matched_roles }) => (
-              <OpenIdeaCard key={idea.id} lang={lang} idea={idea} me={me} why={<WhyLine lang={lang} roles={matched_roles} />} />
+            {matches!.map((match) => (
+              <OpenIdeaCard key={match.idea.id} lang={lang} idea={match.idea} me={me} why={<WhyLine lang={lang} match={match} />} />
             ))}
           </ul>
           {more === "failed" && (
