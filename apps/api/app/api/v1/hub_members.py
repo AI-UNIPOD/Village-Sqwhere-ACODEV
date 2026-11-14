@@ -541,3 +541,56 @@ async def decline_request(
     await db.commit()
     await db.refresh(member)
     return HubMemberResponse(data=member_card(member, requester))
+
+
+# --- leaving and removal: docs/decisions/2026-11-14-leaving-and-removing-members.md ----------
+
+
+@router.post("/hubs/{hub_id}/membership/leave", response_model=HubResponse)
+async def leave_hub(hub_id: UUID, current_user: CurrentUser, db: DbSession) -> HubResponse:
+    hub = await find_hub(db, hub_id, current_user, lock=True)
+    member = await find_membership(db, hub.id, current_user.id)
+    if member is None or member.status != HubMemberStatus.ACTIVE:
+        raise hub_error(
+            status.HTTP_404_NOT_FOUND, "MEMBERSHIP_NOT_FOUND", "You are not a member of this hub."
+        )
+    if member.member_role == HubMemberRole.OWNER:
+        # the hub belongs to the idea's author (hubs_idea_owner_fk), so the owner cannot go
+        raise hub_error(
+            status.HTTP_409_CONFLICT,
+            "OWNER_CANNOT_LEAVE",
+            "The owner cannot leave their own hub: it stays with the idea's author.",
+        )
+    # The row and its signature stay: the agreement still binds what the person saw.
+    member.status, member.left_at = HubMemberStatus.LEFT, _now()
+    await db.commit()
+
+    left = await load_hub(db, hub.id)
+    assert left is not None
+    return HubResponse(data=await hub_card(db, left, current_user.id))
+
+
+@router.post("/hubs/{hub_id}/members/{user_id}/remove", response_model=HubMemberResponse)
+async def remove_member(
+    hub_id: UUID, user_id: UUID, current_user: CurrentUser, db: DbSession
+) -> HubMemberResponse:
+    hub = await find_hub(db, hub_id, current_user, lock=True)
+    require_owner(hub, current_user.id, "Only the hub's owner can remove members.")
+    require_active_hub(hub, "This hub is archived, so its team cannot change.")
+    if user_id == hub.owner_id:
+        raise hub_error(
+            status.HTTP_409_CONFLICT, "CANNOT_REMOVE_OWNER", "The owner cannot remove themselves."
+        )
+    member = await find_membership(db, hub.id, user_id)
+    if member is None or member.status != HubMemberStatus.ACTIVE:
+        raise hub_error(
+            status.HTTP_404_NOT_FOUND,
+            "MEMBER_NOT_FOUND",
+            "This developer is not an active member of this hub.",
+        )
+    member.status, member.left_at = HubMemberStatus.REMOVED, _now()
+    await db.commit()
+    await db.refresh(member)
+    removed = await db.scalar(select(User).options(raiseload("*")).where(User.id == user_id))
+    assert removed is not None  # the membership's foreign key keeps the user
+    return HubMemberResponse(data=member_card(member, removed))
