@@ -52,12 +52,13 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
         ? t.phasesNote.toConfirm
         : t.phasesNote.waiting;
 
-  // The button that was pressed can vanish with the change (confirming, or reaching the first or
-  // last phase), and so does the open dialog: the status line takes the person's place.
-  const status = useRef<HTMLParagraphElement>(null);
+  // The button that was pressed can vanish with the change (confirming, reaching the first or
+  // last phase, or a hub that had moved elsewhere), and so does the open dialog: the line that
+  // says what happened takes the person's place. Only one of the two lines shows at a time.
+  const said = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    if (notice) status.current?.focus();
-  }, [notice]);
+    if (notice || problem) said.current?.focus();
+  }, [notice, problem]);
 
   async function run(action: Action) {
     if (busy) return;
@@ -137,13 +138,13 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
       </ol>
       <p className={ideas.lead}>{note}</p>
       {notice && (
-        <p ref={status} tabIndex={-1} className={ideas.done} role="status">
+        <p ref={said} tabIndex={-1} className={ideas.done} role="status">
           <Check />
           {notice}
         </p>
       )}
       {problem && (
-        <p className={`${onboarding.error} ${styles.problem}`} role="alert">
+        <p ref={said} tabIndex={-1} className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
           {problem}
         </p>

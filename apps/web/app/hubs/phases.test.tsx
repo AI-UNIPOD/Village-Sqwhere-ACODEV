@@ -171,6 +171,8 @@ test.each(["TEAM_ALREADY_CONFIRMED", "PHASE_NOT_ADJACENT", "TEAM_NOT_CONFIRMED"]
     await waitFor(() => expect(within(phases()).getByRole("alert").textContent).toContain("This hub was changed somewhere else. This is where it is now."));
     expect(phases().querySelector("[aria-current='step']")?.textContent).toContain("Design and architecture");
     expect(within(phases()).queryByText("English text from the API")).toBeNull();
+    // the button that was pressed is gone with the reload, so the line takes the focus
+    await waitFor(() => expect(document.activeElement).toBe(within(phases()).getByRole("alert")));
   },
 );
 
