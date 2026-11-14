@@ -11,6 +11,7 @@ its number:
 ## 2026-11-14
 
 - feat(web): let a developer change their sectors on the profile (#143)
+- fix(web): read the review criteria the API sends (#139)
 - feat(web): show the product on a longer landing page (#138)
 - feat(web): put one language and theme switch in every header (#137)
 - feat(api): say which no ended a declined hub membership (#136)
