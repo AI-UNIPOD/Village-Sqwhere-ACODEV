@@ -89,16 +89,16 @@ test("picking an idea runs the matcher line by line, then suggests three develop
   expect(section().getByText("The matcher suggests. The owner decides.")).toBeTruthy();
 });
 
-test("inviting the three shows each signature, then the team formed", () => {
+test("inviting the three shows each signature, then the closing line", () => {
   vi.useFakeTimers();
   render(<MatcherDemo lang="en" />);
-  fireEvent.click(section().getByRole("button", { name: "Invite the three to the hub" }));
+  fireEvent.click(section().getByRole("button", { name: "Send three invitations" }));
   expect(section().getByRole("button", { name: "Sending invitations" }).hasAttribute("disabled")).toBe(true);
   act(() => vi.advanceTimersByTime(500));
   expect(section().getByText("Hamza Benali read the agreement and signed.")).toBeTruthy();
   expect(section().queryByText("Kidist Alemayehu read the agreement and signed.")).toBeNull();
   beats(3, 500);
-  const win = "Team formed. Four builders in Lagos, Casablanca, Johannesburg and Addis Ababa. The hub is open.";
+  const win = "All three read the agreement and signed. Four builders in Lagos, Casablanca, Johannesburg and Addis Ababa.";
   expect(section().getByText(win, shown)).toBeTruthy();
   expect(live()).toBe(win);
   fireEvent.click(section().getByRole("button", { name: "Try another idea" }));
@@ -110,8 +110,8 @@ test("with reduced motion a pick and an invite land at once, with no steps", () 
   render(<MatcherDemo lang="fr" />);
   fireEvent.click(section().getByRole("radio", { name: /prix du marché/ }));
   expect(section().getByText("Yannick Mbarga")).toBeTruthy();
-  fireEvent.click(section().getByRole("button", { name: "Inviter les trois dans l'espace" }));
-  expect(section().getByText(/^Équipe formée\. Quatre développeurs, quatre pays/, shown)).toBeTruthy();
+  fireEvent.click(section().getByRole("button", { name: "Envoyer trois invitations" }));
+  expect(section().getByText(/^Les trois ont lu l'accord et signé\. Quatre développeurs, quatre pays/, shown)).toBeTruthy();
   expect(section().getByText("Joaquim Fortes a lu l'accord et signé.")).toBeTruthy();
 });
 

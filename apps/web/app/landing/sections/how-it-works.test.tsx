@@ -100,7 +100,9 @@ test.each(["en", "fr"] as const)("each step's view shows its key text in %s", (l
 
   expect(hub.getByText(t.hub.sample)).toBeTruthy();
   for (const phase of t.hub.phases) expect(hub.getByText(phase)).toBeTruthy();
-  expect(hub.getByText(t.hub.inProgress)).toBeTruthy();
+  // nothing has started: every phase reads Not started
+  expect(hub.getAllByText(t.hub.notStarted)).toHaveLength(4);
+  expect(hub.queryByText(/in progress|en cours/i)).toBeNull();
 });
 
 test("the Lagoon tag appears once in the views of a step, and the people are made up", () => {
