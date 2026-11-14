@@ -60,7 +60,7 @@ from app.services.hubs import current_agreement_template
 # meets one of these names. The first person is the account visitors sign in as.
 PEOPLE = {
     "you": ("olaoluwa_demo", "Ọláolúwa Adébáyọ̀", "Backend engineer in Lagos, building payments."),
-    "aminata": ("aminata_ndiaye", "Aminata Ndiaye", "Développeuse mobile à Dakar."),
+    "aminata": ("aminata_ndiaye", "Aminata Ndiaye", "Développeuse mobile et frontend à Dakar."),
     "kwabena": ("kwabena_owusu", "Kwabena Ɔwusu", "Frontend and design systems, Kumasi."),
     "danladi": ("danladi_kabir", "Ɗanladi Ƙabir", "Embedded and IoT for farms in Kano."),
     "wanjiru": ("wanjiru_kamau", "Wanjiru Kamau", "ML engineer in Nairobi, mostly Swahili NLP."),
@@ -154,7 +154,7 @@ async def seed(db: AsyncSession) -> bool:
         # users.is_verified follows verified_at; every person here has a verified role, so the
         # Green Tick shows on their cards. Set on a rerun too, for worlds seeded before this.
         user.verified_at = user.verified_at or ago(days=20)
-        user.bio = PEOPLE[key][2]  # on a rerun too: Aminata's bio now carries her second role
+        user.bio = PEOPLE[key][2]  # on a rerun too: Aminata's bio was mobile only
         user.country_code = COUNTRIES[key]  # also on a rerun, for worlds seeded before countries
     await _write_profiles(db, people)
     if created:
@@ -533,7 +533,8 @@ async def main() -> int:
     print(
         "Demo content created."
         if made
-        else "Demo posts and comments rewritten with fresh times; the rest was already there."
+        else "Demo posts and comments rewritten with fresh times; any missing people, roles, "
+        "technologies, sectors and ideas added; the rest left as it was."
     )
     return 0
 
