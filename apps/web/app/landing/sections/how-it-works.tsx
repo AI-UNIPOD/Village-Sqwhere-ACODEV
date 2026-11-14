@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { Lang } from "../../locales";
+import { HeadingText } from "../heading-text";
 import { copy, type Copy } from "./how-it-works-copy";
 import s from "./how-it-works.module.css";
 import styles from "../landing-page.module.css";
@@ -179,7 +180,9 @@ export function HowItWorks({ lang }: { lang: Lang }) {
   return (
     <section className={styles.block} id="how" aria-labelledby="how-title">
       <div className={styles.wrap}>
-        <h2 id="how-title">{t.title}</h2>
+        <h2 id="how-title">
+          <HeadingText text={t.title} />
+        </h2>
         <p className={styles.lead}>{t.lead}</p>
 
         <div className={s.story}>

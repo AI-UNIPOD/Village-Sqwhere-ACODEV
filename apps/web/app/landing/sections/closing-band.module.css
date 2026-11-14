@@ -1,7 +1,10 @@
 .band {
   --logo: var(--action);
   padding-block: var(--space-16);
-  background: var(--text);
+  /* a low sun of Laterite behind the logo */
+  background:
+    radial-gradient(60% 55% at 50% 0%, color-mix(in srgb, var(--action) 24%, transparent), transparent 70%),
+    var(--text);
   color: var(--bg);
   scroll-margin-top: var(--space-4);
 }

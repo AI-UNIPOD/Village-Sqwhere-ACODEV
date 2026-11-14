@@ -3,6 +3,7 @@
 import { type CSSProperties, type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 
 import type { Lang } from "../../locales";
+import { HeadingText } from "../heading-text";
 import styles from "../landing-page.module.css";
 import { COMMITS, copy, NOTE_AUTHORS, type Copy } from "./hub-phases-copy";
 import s from "./hub-phases.module.css";
@@ -154,9 +155,11 @@ export function HubPhases({ lang }: { lang: Lang }) {
   ];
 
   return (
-    <section className={styles.block} id="hub" aria-labelledby="hub-title">
+    <section className={`${styles.block} ${styles.warm}`} id="hub" aria-labelledby="hub-title">
       <div className={styles.wrap}>
-        <h2 id="hub-title">{t.title}</h2>
+        <h2 id="hub-title">
+          <HeadingText text={t.title} />
+        </h2>
         <p className={styles.lead}>{t.lead}</p>
 
         <div className={s.demo} ref={demoRef} data-waiting={waiting}>

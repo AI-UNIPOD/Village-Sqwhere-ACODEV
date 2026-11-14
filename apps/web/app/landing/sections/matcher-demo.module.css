@@ -12,7 +12,7 @@
   .stage {
     padding: var(--space-4);
     border-radius: var(--radius-l);
-    background: var(--surface-sunken);
+    background: var(--landing-stage);
   }
 }
 
@@ -58,6 +58,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-m);
   background: var(--surface-raised);
+  box-shadow: var(--shadow-1), var(--card-lift);
   cursor: pointer;
   transition:
     border-color var(--dur-press) var(--ease-out),
@@ -133,7 +134,17 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-l);
   background: var(--surface-raised);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2), var(--card-lift);
+  transition: box-shadow var(--dur-modal) var(--ease-out);
+}
+
+/* while the suggestions are the matcher's own, a Lagoon ring holds them; once the owner acts it
+   goes quiet, like the matcher's line */
+.panel:is([data-phase="running"], [data-phase="results"]) {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ai) 45%, transparent),
+    0 18px 48px -18px color-mix(in srgb, var(--ai) 55%, transparent),
+    var(--card-lift);
 }
 
 /* on wide screens the screen keeps its height, so the page does not jump as a run starts */

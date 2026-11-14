@@ -475,6 +475,25 @@
 }
 
 /* ---------- sections ---------- */
+/* The landing page's tints, mixed from the brand's own colours (docs/design-system/colour.md):
+   a warm band for every other section, warm stages under the product views, and on Ink a
+   hairline of light along the top of each card so it lifts off its stage. */
+.landing {
+  --landing-band: color-mix(in srgb, var(--action) 5%, var(--bg));
+  --landing-stage: color-mix(in srgb, var(--action) 5%, var(--surface-sunken));
+  --card-lift: 0 0 0 0 transparent;
+}
+
+:global([data-theme="dark"]) .landing {
+  --card-lift: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .landing {
+    --card-lift: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
+  }
+}
+
 .block {
   padding-block: var(--section-block);
   border-top: 1px solid var(--line);
@@ -493,6 +512,18 @@
   html:has(.nav[data-pinned]) .block {
     scroll-margin-top: 0;
   }
+}
+
+/* every other section sits on the warm band, so the page has a rhythm; the band's edge is the
+   divider */
+.warm {
+  background: var(--landing-band);
+  border-top-color: transparent;
+}
+
+/* a section title ends on a full stop in the logo colour (HeadingText) */
+.stop {
+  color: var(--logo);
 }
 
 /* after a jump from a link, the section you landed on is marked by its top line */

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 
 import type { Lang } from "../../locales";
+import { HeadingText } from "../heading-text";
 import page from "../landing-page.module.css";
 import { copy } from "./matcher-demo-copy";
 import styles from "./matcher-demo.module.css";
@@ -111,9 +112,11 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
     phase === "won" ? idea.win : phase === "results" ? t.done : phase === "running" ? t.run[step] : "";
 
   return (
-    <section ref={section} className={page.block} id="matcher" aria-labelledby={`${id}-title`}>
+    <section ref={section} className={`${page.block} ${page.warm}`} id="matcher" aria-labelledby={`${id}-title`}>
       <div className={page.wrap}>
-        <h2 id={`${id}-title`}>{t.title}</h2>
+        <h2 id={`${id}-title`}>
+          <HeadingText text={t.title} />
+        </h2>
         <p className={page.lead}>{t.lead}</p>
 
         <div className={styles.stage}>
