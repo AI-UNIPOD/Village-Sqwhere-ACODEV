@@ -2,6 +2,16 @@ import type { Lang } from "../locales";
 
 type Field = { label: string; help: string };
 
+// A section of chips saved as one list: the stack and the sectors.
+export type Choices = {
+  heading: string;
+  lead: string;
+  selected: string;
+  save: string;
+  saved: string;
+  failed: string;
+};
+
 type Copy = {
   pageTitle: string;
   title: string;
@@ -38,14 +48,8 @@ type Copy = {
     confirm: { title: string; text: string; confirm: string; cancel: string };
     errors: { history: string; change: string; add: string };
   };
-  stack: {
-    heading: string;
-    lead: string;
-    selected: string;
-    save: string;
-    saved: string;
-    failed: string;
-  };
+  stack: Choices;
+  sectors: Choices;
   account: { heading: string; language: string };
 };
 
@@ -109,6 +113,14 @@ const en: Copy = {
     save: "Save stack",
     saved: "Saved",
     failed: "We couldn't save your stack. Your selection is still here, so check your connection and try again.",
+  },
+  sectors: {
+    heading: "Sectors",
+    lead: "The areas you want to build ideas in, the ones you chose when you joined.",
+    selected: "{n} selected",
+    save: "Save sectors",
+    saved: "Saved",
+    failed: "We couldn't save your sectors. Your selection is still here, so check your connection and try again.",
   },
   account: { heading: "Account", language: "Language" },
 };
@@ -178,6 +190,15 @@ const fr: Copy = {
     saved: "Enregistré",
     failed:
       "Nous n'avons pas pu enregistrer vos technologies. Votre sélection est toujours là, vérifiez donc votre connexion et réessayez.",
+  },
+  sectors: {
+    heading: "Domaines",
+    lead: "Les domaines dans lesquels vous voulez construire des idées, ceux que vous avez choisis à votre arrivée.",
+    selected: "Sélection : {n}",
+    save: "Enregistrer les domaines",
+    saved: "Enregistré",
+    failed:
+      "Nous n'avons pas pu enregistrer vos domaines. Votre sélection est toujours là, vérifiez donc votre connexion et réessayez.",
   },
   account: { heading: "Compte", language: "Langue" },
 };

@@ -371,6 +371,19 @@ test("your hubs list the requests waiting on an owner, each leading to its hub, 
   expect(screen.getByRole("heading", { level: 2, name: "Your hubs" })).toBeTruthy();
 });
 
+test("requests past the first 50 are listed too", async () => {
+  const later = { ...pending, id: "hub-8", name: "Market prices hub" };
+  api({
+    "GET /v1/me/hubs": { data: [], next_offset: null },
+    "GET /v1/me/hubs?status=invited": { data: [], next_offset: null },
+    "GET /v1/me/hubs?status=requested&offset=0": { data: [pending], next_offset: 50 },
+    "GET /v1/me/hubs?status=requested&offset=50": { data: [later], next_offset: null },
+  });
+  render(<MyHubs lang="en" />);
+  expect(await screen.findByRole("link", { name: "Market prices hub" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Clinic queue hub" })).toBeTruthy();
+});
+
 test("your hubs still list when the requests cannot be read, and show no Waiting section", async () => {
   api({
     "GET /v1/me/hubs": { data: [hub()], next_offset: null },

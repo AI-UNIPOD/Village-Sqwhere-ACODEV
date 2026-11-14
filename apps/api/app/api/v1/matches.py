@@ -16,6 +16,7 @@ from app.api.v1.ideas import get_owned_idea, idea_error, idea_options, public_id
 from app.models import (
     Hub,
     HubMember,
+    HubMemberStatus,
     Idea,
     IdeaRoleNeed,
     IdeaStatus,
@@ -35,6 +36,9 @@ router = APIRouter()
 
 Offset = Annotated[int, Query(ge=0)]
 Limit = Annotated[int, Query(ge=1, le=50)]
+
+# A membership that still binds: the person is asking, invited or in the team.
+LIVE_STATUSES = (HubMemberStatus.REQUESTED, HubMemberStatus.INVITED, HubMemberStatus.ACTIVE)
 
 
 @router.get("/me/ideas/{idea_id}/matches", response_model=DeveloperMatchesResponse)
@@ -76,11 +80,12 @@ async def match_developers_to_my_idea(
         .subquery()
     )
     shared_count = func.coalesce(shared.c.shared_count, 0)
-    # anyone with a membership row in this idea's hub, in any status, is already known
+    # anyone asking, invited or in this idea's hub is already known; after a no, a leave or a
+    # removal they may be suggested again (asking again still waits out any cool-down)
     connected = (
         select(HubMember.user_id)
         .join(Hub, Hub.id == HubMember.hub_id)
-        .where(Hub.idea_id == idea.id)
+        .where(Hub.idea_id == idea.id, HubMember.status.in_(LIVE_STATUSES))
     )
     result = await db.execute(
         select(User, shared_count)
@@ -157,11 +162,11 @@ async def match_ideas_to_me(
         .group_by(IdeaRoleNeed.idea_id)
         .subquery()
     )
-    # ideas whose hub I already have a membership row in, in any status
+    # ideas whose hub I am asking to join, invited to or in
     connected = (
         select(Hub.idea_id)
         .join(HubMember, HubMember.hub_id == Hub.id)
-        .where(HubMember.user_id == current_user.id)
+        .where(HubMember.user_id == current_user.id, HubMember.status.in_(LIVE_STATUSES))
     )
     result = await db.execute(
         select(Idea)

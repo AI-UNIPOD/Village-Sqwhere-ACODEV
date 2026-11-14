@@ -229,7 +229,7 @@ def test_only_other_live_developers_with_a_verified_needed_role_match(
     assert usernames(developer_matches(client, owner, idea_id)) == [matched.username]
 
 
-def test_people_already_connected_to_the_ideas_hub_are_not_suggested(
+def test_people_asking_invited_or_in_the_ideas_hub_are_not_suggested(
     client: TestClient, new_role: Callable[[], Role]
 ) -> None:
     needed = new_role()
@@ -237,7 +237,7 @@ def test_people_already_connected_to_the_ideas_hub_are_not_suggested(
     idea_id = new_idea(client, owner, needed)
     hub = hub_for(client, owner, idea_id)
     connected = {}
-    for status in (HubMemberStatus.ACTIVE, HubMemberStatus.INVITED, HubMemberStatus.DECLINED):
+    for status in (HubMemberStatus.ACTIVE, HubMemberStatus.INVITED, HubMemberStatus.REQUESTED):
         member = make_user()
         verify(member, needed)
         add_member(hub, member, status)
@@ -249,6 +249,28 @@ def test_people_already_connected_to_the_ideas_hub_are_not_suggested(
     for member in connected.values():
         assert client.get(MY_MATCHES, headers=auth(member)).json()["data"] == []
     assert len(client.get(MY_MATCHES, headers=auth(stranger)).json()["data"]) == 1
+
+
+def test_people_whose_membership_ended_are_suggested_again(
+    client: TestClient, new_role: Callable[[], Role]
+) -> None:
+    needed = new_role()
+    owner = make_user()
+    idea_id = new_idea(client, owner, needed)
+    hub = hub_for(client, owner, idea_id)
+    ended = []
+    for status in (HubMemberStatus.DECLINED, HubMemberStatus.LEFT, HubMemberStatus.REMOVED):
+        member = make_user()
+        verify(member, needed)
+        add_member(hub, member, status)
+        ended.append(member)
+
+    assert sorted(usernames(developer_matches(client, owner, idea_id))) == sorted(
+        member.username for member in ended
+    )
+    for member in ended:
+        page = client.get(MY_MATCHES, headers=auth(member)).json()
+        assert [match["idea"]["id"] for match in page["data"]] == [idea_id]
 
 
 def test_a_role_that_is_no_longer_active_stops_matching(

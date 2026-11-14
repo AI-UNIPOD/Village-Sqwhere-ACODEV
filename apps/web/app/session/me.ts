@@ -21,6 +21,7 @@ export type Me = {
   roles: MeRole[];
   technologies: { slug: string; name: string }[];
   feed_topics: { slug: string; name: string }[];
+  sectors: { slug: string; name: string }[];
 };
 
 // The last profile the API answered with, kept for the visit. Every screen asks for the
