@@ -180,7 +180,7 @@ const fr: Copy = {
   criterionScore: "{n} sur 25",
   aiTitle: "Le rapport de l'IA",
   aiLabel: "Rédigé par l'IA de vérification. Une suggestion, pas une décision.",
-  reportLanguage: "Langue du rapport : {language}",
+  reportLanguage: "Langue du rapport\u202f: {language}",
   aiMissing: "Le rapport de l'IA est absent pour cette tentative.",
   codeShows: "Ce que montre le code",
   interviewShows: "Ce que montre l'entretien",

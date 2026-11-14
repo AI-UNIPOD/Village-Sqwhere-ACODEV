@@ -169,8 +169,8 @@ test("the AI's report comes after the transcript, is labelled a suggestion and d
 test.each([
   ["en", "fr", "Report language: French"],
   ["en", "en", "Report language: English"],
-  ["fr", "fr", "Langue du rapport : français"],
-  ["fr", "en", "Langue du rapport : anglais"],
+  ["fr", "fr", "Langue du rapport\u202f: français"],
+  ["fr", "en", "Langue du rapport\u202f: anglais"],
 ] as const)("on the %s page, the report of a %s attempt says %s", async (lang, language, text) => {
   api(json({ data: { ...attempt(), language } }));
   render(<ReviewCase lang={lang} />);
@@ -327,7 +327,7 @@ test("the case is written in French, the language switch keeps the case", async 
   api(json({ data: attempt() }));
   render(<ReviewCase lang="fr" />);
   expect((await screen.findByRole("heading", { level: 1 })).textContent).toBe(
-    "Revue : Ingénieur backend et systèmes, tentative 2",
+    "Revue\u202f: Ingénieur backend et systèmes, tentative 2",
   );
   expect(screen.getAllByText("Sa réponse")).toHaveLength(3);
   expect(screen.getByRole("link", { name: "English" }).getAttribute("href")).toBe("/en/reviews/case?id=case-1");

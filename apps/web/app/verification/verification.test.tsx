@@ -242,7 +242,7 @@ test("awaiting review is waiting on a person, not on the AI", async () => {
 
 test.each([
   ["en", "fr", "This attempt is in French: the interview and the AI's report use French."],
-  ["fr", "en", "Cette tentative est en anglais : l'entretien et le rapport de l'IA sont en anglais."],
+  ["fr", "en", "Cette tentative est en anglais\u202f: l'entretien et le rapport de l'IA sont en anglais."],
 ] as const)("an attempt in another language than the %s page says so", async (lang, language, note) => {
   route.lang = lang;
   signedInWith([role()], [attempt({ language, status: "in_progress", current_phase: "technical_defence" })]);

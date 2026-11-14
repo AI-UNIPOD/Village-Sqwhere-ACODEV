@@ -208,7 +208,7 @@ const fr: Copy = {
   },
   reassure:
     "Vous pouvez quitter cette page. Nous continuons le travail, et cette page montre où en sont les choses à votre retour.",
-  otherLanguage: "Cette tentative est en anglais : l'entretien et le rapport de l'IA sont en anglais.",
+  otherLanguage: "Cette tentative est en anglais\u202f: l'entretien et le rapport de l'IA sont en anglais.",
   submitted: "Dépôts envoyés",
   newTab: "s'ouvre dans un nouvel onglet",
   stop: {
