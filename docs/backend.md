@@ -457,6 +457,37 @@ Removes a claimed role from the user's profile.
     `409 Conflict`: `{"detail": {"code": "ROLE_HAS_VERIFICATION_HISTORY", "message": "A role with verification attempts can't be removed (it would reset the 3-attempt limit)."}}`
   * `404 Not Found`: `{"detail": {"code": "NOT_FOUND", "message": "Role '...' is not claimed."}}`
 
+#### `GET /v1/users/{username}`
+
+Another developer's profile, for any signed-in developer. The username matches without regard
+to capital letters.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "id": "0193f2e0-4a5c-7f6e-9b54-0000000000c3",
+      "username": "adaeze-o",
+      "display_name": "Adaeze Okafor",
+      "avatar_url": null,
+      "bio": "I build payment tools for market traders in Ibadan.",
+      "country_code": "NG",
+      "is_verified": true,
+      "verified_roles": [{ "slug": "backend-engineer", "name": "Backend & Systems Engineer" }],
+      "technologies": [{ "slug": "python", "name": "Python" }],
+      "sectors": [{ "slug": "fintech", "name": "Fintech" }]
+    }
+  }
+  ```
+  `verified_roles` holds only roles the developer passed verification in that are still
+  offered, earliest first. Never sent: email, first and last name, sign-in accounts, claimed
+  but unverified roles, verification attempts, feed topics. A developer's posts are at
+  `GET /v1/posts?author={username}`.
+* **Errors:** `401`, `404 USER_NOT_FOUND` (no such developer, a deleted account, or a made-up
+  demo developer seen from outside the demo).
+* Why: `docs/decisions/2026-11-14-public-profile.md`.
+
 #### `PUT /v1/me/technologies`
 Full replacement of the developer's tech stack (skills and tools).
 
