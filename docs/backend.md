@@ -741,15 +741,19 @@ deterministic: no AI model is called and an idea's `details` are never read. Bot
 `offset` (0 or more) and `limit` (1 to 50, default 20) and return `next_offset` when another
 page exists. Why: `docs/decisions/2026-11-13-role-based-idea-matching.md`.
 
-People with any membership row in an idea's hub (active, invited, declined and so on) are not
-suggested for that idea, and that idea is left out of their own matches.
+People asking to join an idea's hub, invited to it or in it are not suggested for that idea,
+and that idea is left out of their own matches. After a decline, a withdrawn request, leaving
+or a removal, both can be suggested again. Why:
+`docs/decisions/2026-11-14-suggest-again-after-a-no.md`.
 
 #### `GET /v1/me/ideas/{idea_id}/matches`
 
 Developers who fit one of the caller's open ideas. The order is: more of the idea's needed
 roles covered, then more technologies shared with the author, then earliest verification.
-The author and deleted accounts never appear. An idea with no roles needed returns an empty
-list, so the page should prompt the owner to add roles.
+The author and deleted accounts never appear, nor does anyone who is asking to join the
+idea's hub, invited to it or in it. After a decline, a withdrawn request, leaving or a removal,
+the person can be suggested again. An idea with no roles needed returns an empty list, so the
+page should prompt the owner to add roles.
 
 * **Authentication:** Bearer token required. Only the idea's author.
 * **Success Response (200 OK):**
@@ -776,8 +780,9 @@ list, so the page should prompt the owner to add roles.
 
 #### `GET /v1/me/matches`
 
-Open ideas, by other authors, that need a role the caller is verified in. The order is: more
-of the caller's roles needed, then newest publication. A caller with no verified role gets an
+Open ideas, by other authors, that need a role the caller is verified in, leaving out ideas
+whose hub the caller is asking to join, invited to or in. The order is: more of the caller's
+roles needed, then newest publication. A caller with no verified role gets an
 empty list, so the page should point them to role verification.
 
 * **Authentication:** Bearer token required.
