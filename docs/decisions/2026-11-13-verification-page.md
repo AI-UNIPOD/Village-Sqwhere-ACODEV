@@ -22,7 +22,9 @@ The web frontend's owner chose, on 13 November 2026:
   A peer review can take days, so it is not polled.
 - **Consent before anything is read.** The form needs a ticked box that says public code is
   read by an AI checker and that interview answers are kept. Private repositories are never
-  read.
+  read. Changed on 2026-11-14: the box and the page now say what the checker really looks
+  at (file names, languages, tests and recent commit messages, not the code itself), and that
+  only public repositories can be checked.
 - **Repositories go in one text box, one address per line,** checked in the browser by the
   API's own rule (`https://github.com/owner/repo`, 1 to 10, no duplicates), with the error
   naming the first bad line.
