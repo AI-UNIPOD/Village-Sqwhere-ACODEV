@@ -35,7 +35,8 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `JWT_SECRET_KEY`. Bitbucket is not built and returns `503`. A new account also gets a
   verified email from GitHub when there is one (`apps/api/app/services/provider_emails.py`).
   A missing, clashing or unreadable email never blocks sign-in.
-- **Profile** (Bearer token): `GET /v1/me` and `PATCH /v1/me`.
+- **Profile** (Bearer token): `GET /v1/me` and `PATCH /v1/me`. Another developer's public
+  profile (card fields and bio, never email or names) is `GET /v1/users/{username}`.
 - **Roles, technologies, feed topics and sectors** (Bearer token): `POST /v1/me/roles`,
   `PATCH /v1/me/roles/{role_slug}` (make it the primary role), `DELETE /v1/me/roles/{role_slug}`
   (refused with `409` once the role has verification attempts), `PUT /v1/me/technologies`
@@ -76,8 +77,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm.
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
-  `POST /v1/me/ideas/{idea_id}/publish` and `POST /v1/me/ideas/{idea_id}/close` create and
-  manage the owner's private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
+  `POST /v1/me/ideas/{idea_id}/publish`, `POST /v1/me/ideas/{idea_id}/close` and
+  `DELETE /v1/me/ideas/{idea_id}` (only while it has no hub) create and manage the owner's
+  private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
   open idea cards to signed-in developers. A card has the summary and roles needed, never the
   confidential brief. Guide: `docs/backend.md`.
 - **Matching** (Bearer token): `GET /v1/me/ideas/{idea_id}/matches` ranks developers verified

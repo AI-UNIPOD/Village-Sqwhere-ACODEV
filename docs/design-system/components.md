@@ -186,8 +186,8 @@ gets a small bulge. With reduced motion it appears without counting.
 A score never shows without its reasons: the parts that earned the points are listed under it.
 How it is counted: `docs/decisions/2026-11-14-match-score.md`.
 
-The matcher has no score yet: it is being built. Until then the component appears only in the
-landing page's matcher demo, with simulated scores and a line under the suggestions saying so.
+The component is used on the match cards of both lists (`app/ideas/match-score.tsx`); the
+landing demo still draws its own simulated one until it is switched over.
 
 ## Messages
 
