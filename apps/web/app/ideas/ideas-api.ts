@@ -111,9 +111,22 @@ export const loadOpenIdeas = (offset = 0) =>
 export const loadOpenIdea = async (id: string) =>
   (await call<{ data: PublicIdea }>(`/v1/ideas/${encodeURIComponent(id)}`)).data;
 
+// One part of a match score: raw points out of `max`. `points` is null while the part is not
+// counted yet (the meaning part, in version 1).
+export type ScorePart = { points: number | null; max: number };
+
+// What both match lists say about a score. An older API sends none of it, and a card then shows
+// its reasons without a number.
+type Scored = {
+  score?: number;
+  partial?: boolean;
+  breakdown?: Partial<Record<"roles" | "technologies" | "sectors" | "meaning", ScorePart>>;
+  shared_sectors?: { slug: string; name: string }[];
+};
+
 // An open idea that needs the signed-in developer, with the verified roles of theirs it needs
-// and the technologies they share with the idea's author.
-export type IdeaMatch = {
+// and the technologies and sectors they share with the idea's author.
+export type IdeaMatch = Scored & {
   idea: PublicIdea;
   matched_roles: { slug: string; name: string }[];
   shared_technologies: { slug: string; name: string }[];
@@ -122,9 +135,10 @@ export type IdeaMatch = {
 export const loadIdeasForMe = (offset = 0) =>
   call<{ data: IdeaMatch[]; next_offset: number | null }>(`/v1/me/matches?offset=${offset}&limit=20`);
 
-// A developer verified in a role an idea needs, with why: `shared_technologies` are the ones they
-// share with the idea's owner. `country_code` is null when they named no country.
-export type Developer = {
+// A developer verified in a role an idea needs, with why: `shared_technologies` and
+// `shared_sectors` are the ones they share with the idea's owner. `country_code` is null when
+// they named no country.
+export type Developer = Scored & {
   id: string;
   username: string;
   display_name: string;

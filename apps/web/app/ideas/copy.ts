@@ -79,6 +79,19 @@ type Copy = {
     emptyTitle: string;
     emptyText: string;
   };
+  score: {
+    why: string;
+    parts: { roles: string; technologies: string; sectors: string; meaning: string };
+    points: string;
+    notCompared: string;
+    noTechnologies: string;
+    noSectors: string;
+    partial: string;
+    steps: { strong: string; possible: string; weak: string; poor: string };
+    // what a screen reader says in place of the number and its step, once
+    heard: { strong: string; possible: string; weak: string; poor: string };
+    heardPartial: string;
+  };
   seeMatches: string;
   matches: {
     pageTitle: string;
@@ -86,6 +99,7 @@ type Copy = {
     lead: string;
     verifiedIn: string;
     inCommon: string;
+    sectors: string;
     inCommonTag: string;
     technologies: string;
     invite: string;
@@ -111,6 +125,7 @@ type Copy = {
     whyOne: string;
     whyMany: string;
     inCommon: string;
+    sectors: string;
     emptyTitle: string;
     emptyText: string;
     emptyAction: string;
@@ -234,13 +249,32 @@ const en: Copy = {
     emptyTitle: "No open ideas yet",
     emptyText: "Be the first: share what you want to build.",
   },
+  score: {
+    why: "Why this score",
+    parts: { roles: "Roles", technologies: "Technologies", sectors: "Sectors", meaning: "Meaning" },
+    points: "{points} of {max}",
+    notCompared: "Not compared yet",
+    noTechnologies: "No technologies in common",
+    noSectors: "No sectors in common",
+    partial:
+      "Partial score: it counts roles, technologies and sectors. It does not yet compare what the idea and the profile say.",
+    steps: { strong: "Strong match", possible: "Possible match", weak: "Weak match", poor: "Poor match" },
+    heard: {
+      strong: "Match score: {score} out of 100, Strong match.",
+      possible: "Match score: {score} out of 100, Possible match.",
+      weak: "Match score: {score} out of 100, Weak match.",
+      poor: "Match score: {score} out of 100, Poor match.",
+    },
+    heardPartial: "Partial score.",
+  },
   seeMatches: "See who matches",
   matches: {
     pageTitle: "Developers who match your idea | Village Sqwhere",
     title: "Who matches {title}",
-    lead: "Developers verified in a role your idea needs. Each one shows why they matched.",
-    verifiedIn: "Verified in: {roles}",
+    lead: "Developers verified in a role your idea needs, best score first. Each card says how its score was counted.",
+    verifiedIn: "Verified in {roles}",
     inCommon: "In common with you: {technologies}",
+    sectors: "You both build for {sectors}",
     inCommonTag: "in common",
     technologies: "Technologies",
     invite: "Invite to the hub",
@@ -266,10 +300,11 @@ const en: Copy = {
   forYou: {
     pageTitle: "Ideas that need you | Village Sqwhere",
     title: "Ideas that need you",
-    lead: "Open ideas that need a role you are verified in. Each one says which role.",
+    lead: "Open ideas that need a role you are verified in, best score first. Each one says which role.",
     whyOne: "Needs your verified role: {roles}",
     whyMany: "Needs your verified roles: {roles}",
     inCommon: "In common with {name}: {technologies}",
+    sectors: "You and {name} both build for {sectors}",
     emptyTitle: "No open idea needs your role yet",
     emptyText:
       "New ideas show up here when their owners say they need a role you are verified in. Until then, you can read every open idea.",
@@ -405,13 +440,37 @@ const fr: Copy = {
     emptyTitle: "Pas encore d'idée ouverte",
     emptyText: "Lancez-vous en premier\u202f: partagez ce que vous voulez construire.",
   },
+  score: {
+    why: "Pourquoi ce score",
+    parts: { roles: "Rôles", technologies: "Technologies", sectors: "Domaines", meaning: "Sens" },
+    points: "{points} sur {max}",
+    notCompared: "Pas encore comparé",
+    noTechnologies: "Aucune technologie en commun",
+    noSectors: "Aucun domaine en commun",
+    partial:
+      "Score partiel\u202f: il compte les rôles, les technologies et les domaines. Il ne compare pas encore ce que disent l'idée et le profil.",
+    steps: {
+      strong: "Très bonne correspondance",
+      possible: "Correspondance possible",
+      weak: "Correspondance faible",
+      poor: "Correspondance insuffisante",
+    },
+    heard: {
+      strong: "Score de correspondance\u202f: {score} sur 100, très bonne correspondance.",
+      possible: "Score de correspondance\u202f: {score} sur 100, correspondance possible.",
+      weak: "Score de correspondance\u202f: {score} sur 100, correspondance faible.",
+      poor: "Score de correspondance\u202f: {score} sur 100, correspondance insuffisante.",
+    },
+    heardPartial: "Score partiel.",
+  },
   seeMatches: "Voir qui correspond",
   matches: {
     pageTitle: "Développeurs qui correspondent à votre idée | Village Sqwhere",
     title: "Qui correspond à {title}",
-    lead: "Des développeurs vérifiés dans un rôle que votre idée recherche. Chacun montre pourquoi il correspond.",
-    verifiedIn: "Vérifié dans\u202f: {roles}",
+    lead: "Des développeurs vérifiés dans un rôle que votre idée recherche, meilleur score d'abord. Chaque carte dit comment son score a été compté.",
+    verifiedIn: "Vérifié dans {roles}",
     inCommon: "En commun avec vous\u202f: {technologies}",
+    sectors: "Vous construisez tous deux dans les domaines suivants\u202f: {sectors}",
     inCommonTag: "en commun",
     technologies: "Technologies",
     invite: "Inviter dans l'espace",
@@ -437,10 +496,11 @@ const fr: Copy = {
   forYou: {
     pageTitle: "Idées qui ont besoin de vous | Village Sqwhere",
     title: "Idées qui ont besoin de vous",
-    lead: "Des idées ouvertes qui recherchent un rôle dans lequel vous êtes vérifié. Chacune dit lequel.",
+    lead: "Des idées ouvertes qui recherchent un rôle dans lequel vous êtes vérifié, meilleur score d'abord. Chacune dit lequel.",
     whyOne: "Recherche votre rôle vérifié\u202f: {roles}",
     whyMany: "Recherche vos rôles vérifiés\u202f: {roles}",
     inCommon: "En commun avec {name}\u202f: {technologies}",
+    sectors: "Vous et {name} construisez tous deux dans les domaines suivants\u202f: {sectors}",
     emptyTitle: "Aucune idée ouverte ne recherche encore votre rôle",
     emptyText:
       "Les nouvelles idées apparaissent ici quand leurs porteurs disent chercher un rôle dans lequel vous êtes vérifié. En attendant, vous pouvez lire toutes les idées ouvertes.",
