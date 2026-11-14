@@ -37,7 +37,9 @@ DEVELOPER_CARD = {
     "is_verified",
     "matched_roles",
     "technologies",
+    "shared_technologies",
     "shared_technology_count",
+    "country_code",
 }
 
 
@@ -87,6 +89,14 @@ def use_technologies(user: User, *slugs: str) -> None:
         found = await session.execute(select(Technology).where(Technology.slug.in_(slugs)))
         for technology in found.scalars():
             session.add(UserTechnology(user_id=user.id, technology_id=technology.id))
+        await session.commit()
+
+    run(work)
+
+
+def set_country(user: User, code: str) -> None:
+    async def work(session):
+        await session.execute(update(User).where(User.id == user.id).values(country_code=code))
         await session.commit()
 
     run(work)
@@ -206,6 +216,49 @@ def test_developers_rank_by_roles_then_shared_technologies_then_earliest_verific
     assert second["shared_technology_count"] == 2
     assert [tech["name"] for tech in second["technologies"]] == ["Python", "React", "Rust"]
     assert [match["shared_technology_count"] for match in page["data"][2:]] == [1, 1]
+
+
+def test_developer_cards_name_the_shared_technologies_and_count_them(
+    client: TestClient, new_role: Callable[[], Role]
+) -> None:
+    needed = new_role()
+    owner = make_user()
+    use_technologies(owner, "python", "react")
+    idea_id = new_idea(client, owner, needed)
+    some = make_user()
+    verify(some, needed)
+    use_technologies(some, "rust", "react", "python")
+    none = make_user()
+    verify(none, needed)
+    use_technologies(none, "rust")
+
+    cards = {card["username"]: card for card in developer_matches(client, owner, idea_id)["data"]}
+
+    named = cards[some.username]
+    assert [tech["name"] for tech in named["shared_technologies"]] == ["Python", "React"]
+    assert [tech["name"] for tech in named["technologies"]] == ["Python", "React", "Rust"]
+    unshared = cards[none.username]
+    assert unshared["shared_technologies"] == []
+    assert [tech["name"] for tech in unshared["technologies"]] == ["Rust"]
+    for card in cards.values():
+        assert card["shared_technology_count"] == len(card["shared_technologies"])
+
+
+def test_developer_cards_carry_the_country_only_when_one_was_named(
+    client: TestClient, new_role: Callable[[], Role]
+) -> None:
+    needed = new_role()
+    owner = make_user()
+    idea_id = new_idea(client, owner, needed)
+    named, unnamed = make_user(), make_user()
+    for developer in (named, unnamed):
+        verify(developer, needed)
+    set_country(named, "KE")
+
+    cards = {card["username"]: card for card in developer_matches(client, owner, idea_id)["data"]}
+
+    assert cards[named.username]["country_code"] == "KE"
+    assert cards[unnamed.username]["country_code"] is None
 
 
 def test_only_other_live_developers_with_a_verified_needed_role_match(
@@ -365,7 +418,7 @@ def test_ideas_match_a_developer_by_verified_roles_needed(
     ]
     assert page["next_offset"] is None
     best = page["data"][0]
-    assert set(best) == {"idea", "matched_roles"}
+    assert set(best) == {"idea", "matched_roles", "shared_technologies"}
     assert [role["slug"] for role in best["matched_roles"]] == [backend.slug, design.slug]
     assert [role["slug"] for role in best["idea"]["roles_needed"]] == [
         backend.slug,
@@ -373,6 +426,32 @@ def test_ideas_match_a_developer_by_verified_roles_needed(
         unclaimed.slug,
     ]
     assert best["idea"]["author"]["id"] == str(author.id)
+
+
+def test_ideas_name_the_technologies_i_share_with_each_author(
+    client: TestClient, new_role: Callable[[], Role]
+) -> None:
+    needed = new_role()
+    me = make_user()
+    verify(me, needed)
+    use_technologies(me, "python", "react")
+    ideas = {}
+    for label, technologies in {
+        "both": ("react", "rust", "python"),
+        "one": ("rust", "react"),
+        "none": ("rust",),
+    }.items():
+        author = make_user()
+        use_technologies(author, *technologies)
+        ideas[new_idea(client, author, needed)] = label
+
+    page = client.get(MY_MATCHES, headers=auth(me)).json()
+
+    shared = {
+        ideas[match["idea"]["id"]]: [tech["name"] for tech in match["shared_technologies"]]
+        for match in page["data"]
+    }
+    assert shared == {"both": ["Python", "React"], "one": ["React"], "none": []}
 
 
 def test_a_developer_without_a_verified_role_has_no_idea_matches(

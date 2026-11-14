@@ -394,7 +394,7 @@ Updates editable fields on the user's profile.
     "country_code": "NG"
   }
   ```
-* **Country:** `country_code` is optional and has no city beside it. It is a two-letter ISO code (capital letters) of one of the 54 African countries, such as `NG`, `SN` or `KE`; the list is `AFRICAN_COUNTRY_CODES` in `apps/api/app/countries.py`. It is `null` until a developer sets it. Send a code to set or change it, send `"country_code": null` to clear it, and leave the key out to keep it as it is. Any other value (a code from outside Africa, lowercase, three letters) gets a `422` that names `country_code`. Later it will show to other signed-in developers on match cards.
+* **Country:** `country_code` is optional and has no city beside it. It is a two-letter ISO code (capital letters) of one of the 54 African countries, such as `NG`, `SN` or `KE`; the list is `AFRICAN_COUNTRY_CODES` in `apps/api/app/countries.py`. It is `null` until a developer sets it. Send a code to set or change it, send `"country_code": null` to clear it, and leave the key out to keep it as it is. Any other value (a code from outside Africa, lowercase, three letters) gets a `422` that names `country_code`. It shows to other signed-in developers on the match cards of `GET /v1/me/ideas/{idea_id}/matches`.
 * **Limits:** `display_name` 1 to 80 characters, `first_name` and `last_name` 1 to 100, after spaces at the start and end are removed. `bio` up to 1000 characters. `email` must look like `name@example.com`. A new email is saved as not verified.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
 * **Error Responses:** `422` when a field breaks a limit (the error names the field). `409` `EMAIL_TAKEN` when another account already uses the email, in any mix of upper and lower case.
@@ -783,13 +783,18 @@ page should prompt the owner to add roles.
         "is_verified": true,
         "matched_roles": [{ "slug": "backend-engineer", "name": "Backend & Systems Engineer" }],
         "technologies": [{ "slug": "python", "name": "Python" }],
-        "shared_technology_count": 1
+        "shared_technologies": [{ "slug": "python", "name": "Python" }],
+        "shared_technology_count": 1,
+        "country_code": "GH"
       }
     ],
     "next_offset": null
   }
   ```
-  A card never has an email, first or last name, or bio.
+  `shared_technologies` names the developer's technologies that the idea's author also has,
+  sorted by name like `technologies`. `shared_technology_count` is always its length.
+  `country_code` is the developer's country (two capital letters) and `null` when they have not
+  named one. A card never has an email, first or last name, or bio.
 * **Errors:** `404 NOT_FOUND` when the idea is not the caller's, does not exist or is deleted.
   `409 IDEA_NOT_OPEN` for a draft or closed idea: publish it first.
 
@@ -802,7 +807,10 @@ empty list, so the page should point them to role verification.
 
 * **Authentication:** Bearer token required.
 * **Success Response (200 OK):** `{"data": [{"idea": <public idea card>, "matched_roles":
-  [<role>]}], "next_offset": null}`. The idea card is the same as `GET /v1/ideas/{idea_id}`.
+  [<role>], "shared_technologies": [<technology>]}], "next_offset": null}`. The idea card is
+  the same as `GET /v1/ideas/{idea_id}`. `shared_technologies` names the technologies the caller
+  shares with the idea's author, sorted by name. It is empty when none are shared. The card has
+  no author country.
 
 ### Hubs
 
