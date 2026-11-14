@@ -743,6 +743,16 @@ in this first version.
 Moves an open idea to `closed`. The owner retains the full record, but it no longer appears in
 discovery or matching candidates.
 
+#### `DELETE /v1/me/ideas/{idea_id}`
+
+The author deletes an idea in any status, as long as it has no hub. Answers `204` with no body.
+The idea leaves every list, read and match at once, and its confidential brief (`details`) is
+erased. The row is kept with `deleted_at`, like all user content.
+
+* **Errors:** `404 NOT_FOUND` (no such idea of yours, or already deleted), `409 IDEA_HAS_HUB`
+  (its hub's members signed an agreement about it: close the idea instead).
+* Why: `docs/decisions/2026-11-14-deleting-an-idea.md`.
+
 #### `GET /v1/ideas` and `GET /v1/ideas/{idea_id}`
 
 Returns only open idea cards to signed-in developers. A card contains title, summary, stage,
