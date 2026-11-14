@@ -117,7 +117,7 @@ export type ScorePart = { points: number | null; max: number };
 
 // What both match lists say about a score. An older API sends none of it, and a card then shows
 // its reasons without a number.
-type Scored = {
+export type Scored = {
   score?: number;
   partial?: boolean;
   breakdown?: Partial<Record<"roles" | "technologies" | "sectors" | "meaning", ScorePart>>;

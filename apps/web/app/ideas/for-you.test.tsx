@@ -7,6 +7,7 @@ import { forgetMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { BrowseIdeas } from "./browse";
 import { ForYouIdeas } from "./for-you";
+import { agritech, fintech, scored, stillMotion } from "./match-fixtures";
 import { MyIdeas } from "./my-ideas";
 
 vi.mock("next/navigation", () => ({
@@ -33,10 +34,11 @@ const idea = (over: Record<string, unknown> = {}) => ({
 });
 const go = { slug: "go", name: "Go" };
 const postgres = { slug: "postgresql", name: "PostgreSQL" };
-const match = (over: Record<string, unknown> = {}, roles = [backend], shared: unknown[] = []) => ({
+const match = (over: Record<string, unknown> = {}, roles = [backend], shared: unknown[] = [], score: Record<string, unknown> = scored(43, [30, 0, 0])) => ({
   idea: idea(over),
   matched_roles: roles,
   shared_technologies: shared,
+  ...score,
 });
 
 const role = (slug: string, verified = false) => ({
@@ -64,6 +66,7 @@ const asked = () => fetchMock.mock.calls.map(([url]) => String(url).replace("htt
 const verifiedMe = { data: me([role("backend-engineer", true)]) };
 
 beforeEach(() => {
+  stillMotion();
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem(
     SESSION_KEY,
@@ -89,8 +92,8 @@ test("each idea says which of your verified roles it needs, and opens its page",
   // the card is the one the open ideas list draws
   expect(within(shown).getByText(/Patients wait for hours/)).toBeTruthy();
   expect(shown.textContent).toContain("by Ama Mensah");
-  // no score and no claim to be AI
-  expect(screen.queryByText(/\d%|\bscore\b|\bAI\b/)).toBeNull();
+  // no percentage, and no claim to be AI
+  expect(screen.queryByText(/\d%|\bAI\b/)).toBeNull();
 });
 
 test("an idea that shares technologies with its author names them, with the author's name", async () => {
@@ -98,9 +101,10 @@ test("an idea that shares technologies with its author names them, with the auth
   render(<ForYouIdeas lang="en" />);
   const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
   expect(within(shown).getByText("In common with Ama Mensah: Go, PostgreSQL")).toBeTruthy();
-  // nothing shared, no line
+  // nothing shared, no line about it
   const other = screen.getByRole("link", { name: "Water points" }).closest("li")!;
-  expect(within(other).queryByText(/In common/)).toBeNull();
+  expect(within(other).queryByText(/In common with/)).toBeNull();
+  expect(within(other).getByText("No technologies in common")).toBeTruthy();
 });
 
 test("the shared technologies line is in French, and names an author without a name by their username", async () => {
