@@ -183,7 +183,7 @@ test("the last two stops are one screen: Next and Back scroll to the phases and 
   fireEvent.click(button("Next"));
   expect(nav.push).toHaveBeenLastCalledWith("/en/hubs/view?id=hub-1#phases", { scroll: false });
   expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 1400 - 180, behavior: "smooth" });
-  expect((await panel()).querySelector("h2")?.textContent).toBe("See the hub's four phases");
+  expect((await panel()).querySelector("h2")?.textContent).toBe("Follow the hub's four phases");
 
   (await panel()).getBoundingClientRect = () => ({ height: 180 }) as DOMRect;
   fireEvent.click(button("Back"));
@@ -216,11 +216,11 @@ test.each([
   ["en", 1, "Share an idea", "Stop 1 of 4"],
   ["en", 2, "See who the matcher suggests", "Stop 2 of 4"],
   ["en", 3, "Invite your team", "Stop 3 of 4"],
-  ["en", 4, "See the hub's four phases", "Stop 4 of 4"],
+  ["en", 4, "Follow the hub's four phases", "Stop 4 of 4"],
   ["fr", 0, "Le village de démo", null],
   ["fr", 2, "Voir qui le matcher propose", "Étape 2 sur 4"],
   ["fr", 3, "Inviter votre équipe", "Étape 3 sur 4"],
-  ["fr", 4, "Voir les quatre phases de l'espace", "Étape 4 sur 4"],
+  ["fr", 4, "Suivre les quatre phases de l'espace", "Étape 4 sur 4"],
 ] as const)("the %s panel at step %i says its name, its count and the progress", async (lang, step, name, count) => {
   atStop(step);
   render(frame(stopAddress(step, route).split("#")[0], lang));

@@ -61,7 +61,8 @@ export function StartForm({ lang, slug, attemptNumber, actions }: Props) {
       const response = await apiFetch(`/v1/me/verifications/${encodeURIComponent(slug)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repositories }),
+        // the interview and the AI report are written in this language and it never changes
+        body: JSON.stringify({ repositories, language: lang }),
       });
       if (response.status === 201) {
         actions.accept((await response.json()).data);
@@ -127,7 +128,7 @@ export function StartForm({ lang, slug, attemptNumber, actions }: Props) {
             type="checkbox"
             checked={agreed}
             aria-invalid={!!errors.consent}
-            aria-describedby={errors.consent ? "verify-consent-error" : undefined}
+            aria-describedby={["verify-language", errors.consent && "verify-consent-error"].filter(Boolean).join(" ")}
             onChange={(event) => {
               setAgreed(event.target.checked);
               if (event.target.checked) setErrors((c) => ({ ...c, consent: undefined }));
@@ -135,6 +136,9 @@ export function StartForm({ lang, slug, attemptNumber, actions }: Props) {
           />
           <span>{t.consent}</span>
         </label>
+        <p id="verify-language" className={styles.help}>
+          {t.language}
+        </p>
         {errors.consent && (
           <p id="verify-consent-error" className={onboarding.error} role="alert">
             <AlertCircle />

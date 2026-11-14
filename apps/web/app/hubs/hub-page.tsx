@@ -21,6 +21,7 @@ import { loadHub, type Hub } from "./hubs-api";
 import { WithdrawRequest, WithdrawnLine, type WithdrawOutcome } from "./withdraw-request";
 import styles from "./hubs.module.css";
 import { HubsSkeleton, MissingHub } from "./my-hubs";
+import { Phases } from "./phases";
 import { InvitationCard, Person, Team } from "./team";
 
 function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null; created: boolean; joined: boolean }) {
@@ -30,6 +31,8 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
   const [failure, setFailure] = useState<Error | null>(null);
   // the developer took their request back on this page, or tried to after the owner answered
   const [withdrawal, setWithdrawal] = useState<WithdrawOutcome | null>(null);
+  // counts the loads, so the phases drop their last status or error line when the page is shown again
+  const [loads, setLoads] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -40,6 +43,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
         setHub(found);
         // the page was left and shown again: what happened on the last visit is no longer news
         setWithdrawal(null);
+        setLoads((n) => n + 1);
       },
       (error: unknown) => {
         if (!live || error instanceof SignedOutError) return;
@@ -151,21 +155,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       <p className={`${ideas.meta} ${styles.line}`}>{t.termsFrozen}</p>
       <p className={`${ideas.meta} ${styles.line}`}>{fill(t.agreementVersion, { n: hub.agreement.version })}</p>
 
-      <section id="phases" className={styles.part}>
-        <h2 className={`${ideas.heading} ${styles.heading}`}>{t.phasesHeading}</h2>
-        <ol className={styles.phases}>
-          {t.phases.map((phase, at) => (
-            <li key={phase}>
-              <span className={styles.num} aria-hidden="true">
-                {String(at + 1).padStart(2, "0")}
-              </span>
-              <span className={styles.strong}>{phase}</span>
-              <span className={ideas.meta}>{t.notStarted}</span>
-            </li>
-          ))}
-        </ol>
-        <p className={ideas.lead}>{t.phasesNote}</p>
-      </section>
+      <Phases key={loads} lang={lang} hub={hub} onChange={setHub} />
     </main>
   );
 }

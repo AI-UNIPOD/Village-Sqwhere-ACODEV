@@ -106,9 +106,21 @@ export const TOPICS: ReadonlyArray<{ slug: string; name: Text }> = [
   { slug: "developer-tools", name: { en: "Developer tools", fr: "Outils pour développeurs" } },
 ];
 
+// The API stores a country as two letters. The page lists them under the three-letter codes
+// of landing/gather.ts, so this is the way across (the test checks it against the API's list).
+export const ALPHA2: Record<string, string> = {
+  DZA: "DZ", AGO: "AO", BEN: "BJ", BWA: "BW", BFA: "BF", BDI: "BI", CPV: "CV", CMR: "CM", CAF: "CF",
+  TCD: "TD", COM: "KM", COG: "CG", COD: "CD", DJI: "DJ", EGY: "EG", GNQ: "GQ", ERI: "ER", SWZ: "SZ",
+  ETH: "ET", GAB: "GA", GMB: "GM", GHA: "GH", GIN: "GN", GNB: "GW", CIV: "CI", KEN: "KE", LSO: "LS",
+  LBR: "LR", LBY: "LY", MDG: "MG", MWI: "MW", MLI: "ML", MRT: "MR", MUS: "MU", MAR: "MA", MOZ: "MZ",
+  NAM: "NA", NER: "NE", NGA: "NG", RWA: "RW", STP: "ST", SEN: "SN", SYC: "SC", SLE: "SL", SOM: "SO",
+  ZAF: "ZA", SSD: "SS", SDN: "SD", TZA: "TZ", TGO: "TG", TUN: "TN", UGA: "UG", ZMB: "ZM", ZWE: "ZW",
+};
+
 // The 54 countries named in the page language and sorted for it ("Égypte" sits with the Es).
+// `code` is the three-letter code onboarding keeps its answer under, `alpha2` the API's.
 export function countriesFor(lang: Lang) {
-  return COUNTRIES.map(([en, fr, code]) => ({ code, name: lang === "en" ? en : fr })).sort((a, b) =>
+  return COUNTRIES.map(([en, fr, code]) => ({ code, alpha2: ALPHA2[code], name: lang === "en" ? en : fr })).sort((a, b) =>
     a.name.localeCompare(b.name, lang),
   );
 }

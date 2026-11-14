@@ -85,8 +85,8 @@ type Copy = {
     title: string;
     lead: string;
     verifiedIn: string;
-    techOne: string;
-    techMany: string;
+    inCommon: string;
+    inCommonTag: string;
     technologies: string;
     invite: string;
     noHubTitle: string;
@@ -110,6 +110,7 @@ type Copy = {
     lead: string;
     whyOne: string;
     whyMany: string;
+    inCommon: string;
     emptyTitle: string;
     emptyText: string;
     emptyAction: string;
@@ -239,8 +240,8 @@ const en: Copy = {
     title: "Who matches {title}",
     lead: "Developers verified in a role your idea needs. Each one shows why they matched.",
     verifiedIn: "Verified in: {roles}",
-    techOne: "1 technology in common with you",
-    techMany: "{n} technologies in common with you",
+    inCommon: "In common with you: {technologies}",
+    inCommonTag: "in common",
     technologies: "Technologies",
     invite: "Invite to the hub",
     noHubTitle: "You need a hub to invite",
@@ -268,6 +269,7 @@ const en: Copy = {
     lead: "Open ideas that need a role you are verified in. Each one says which role.",
     whyOne: "Needs your verified role: {roles}",
     whyMany: "Needs your verified roles: {roles}",
+    inCommon: "In common with {name}: {technologies}",
     emptyTitle: "No open idea needs your role yet",
     emptyText:
       "New ideas show up here when their owners say they need a role you are verified in. Until then, you can read every open idea.",
@@ -409,8 +411,8 @@ const fr: Copy = {
     title: "Qui correspond à {title}",
     lead: "Des développeurs vérifiés dans un rôle que votre idée recherche. Chacun montre pourquoi il correspond.",
     verifiedIn: "Vérifié dans\u202f: {roles}",
-    techOne: "1 technologie en commun avec vous",
-    techMany: "{n} technologies en commun avec vous",
+    inCommon: "En commun avec vous\u202f: {technologies}",
+    inCommonTag: "en commun",
     technologies: "Technologies",
     invite: "Inviter dans l'espace",
     noHubTitle: "Il faut un espace pour inviter",
@@ -438,6 +440,7 @@ const fr: Copy = {
     lead: "Des idées ouvertes qui recherchent un rôle dans lequel vous êtes vérifié. Chacune dit lequel.",
     whyOne: "Recherche votre rôle vérifié\u202f: {roles}",
     whyMany: "Recherche vos rôles vérifiés\u202f: {roles}",
+    inCommon: "En commun avec {name}\u202f: {technologies}",
     emptyTitle: "Aucune idée ouverte ne recherche encore votre rôle",
     emptyText:
       "Les nouvelles idées apparaissent ici quand leurs porteurs disent chercher un rôle dans lequel vous êtes vérifié. En attendant, vous pouvez lire toutes les idées ouvertes.",

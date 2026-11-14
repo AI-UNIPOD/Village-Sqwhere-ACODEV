@@ -25,6 +25,7 @@ const role = (over: object = {}) => ({
 const attempt = (over: object = {}) => ({
   id: ATTEMPT_ID,
   attempt_number: 1,
+  language: "en",
   status: "pending",
   current_phase: "codebase_analysis",
   last_error: null,
@@ -239,6 +240,25 @@ test("awaiting review is waiting on a person, not on the AI", async () => {
   expect(within(stage("Entretien")).getByText("Fait")).toBeTruthy();
 });
 
+test.each([
+  ["en", "fr", "This attempt is in French: the interview and the AI's report use French."],
+  ["fr", "en", "Cette tentative est en anglais\u202f: l'entretien et le rapport de l'IA sont en anglais."],
+] as const)("an attempt in another language than the %s page says so", async (lang, language, note) => {
+  route.lang = lang;
+  signedInWith([role()], [attempt({ language, status: "in_progress", current_phase: "technical_defence" })]);
+  render(<Verification lang={lang} />);
+  // the text matcher folds the no-break space, so the exact text is read from the node
+  expect((await screen.findByText(/^(This attempt is in|Cette tentative est en)/)).textContent).toBe(note);
+});
+
+test.each(["en", "fr"] as const)("an attempt in the language of the %s page shows no language note", async (lang) => {
+  route.lang = lang;
+  signedInWith([role()], [attempt({ language: lang, status: "in_progress", current_phase: "technical_defence" })]);
+  render(<Verification lang={lang} />);
+  await screen.findByRole("heading", { level: 3, name: copy[lang].stages.interview.title });
+  expect(screen.queryByText(copy[lang].otherLanguage)).toBeNull();
+});
+
 // the page asks again every five seconds, as the fake clock moves
 async function pass(ms: number) {
   await act(async () => {
@@ -422,8 +442,41 @@ test("a valid form sends the cleaned list, then shows the attempt under way", as
   submitWith(`  ${REPOS}/  \n\n https://github.com/ama-mensah/ui `);
   expect(await screen.findByRole("heading", { level: 3, name: "Repositories check" })).toBeTruthy();
   const [, init] = callsTo(START)[0];
-  expect(JSON.parse((init as RequestInit).body as string)).toEqual({ repositories: [REPOS, "https://github.com/ama-mensah/ui"] });
+  expect(JSON.parse((init as RequestInit).body as string)).toEqual({ repositories: [REPOS, "https://github.com/ama-mensah/ui"], language: "en" });
   expect(screen.queryByRole("textbox")).toBeNull();
+});
+
+test("the form says which language the interview and report will use, before the button", async () => {
+  await openForm();
+  expect(screen.getByText(copy.en.form.language)).toBeTruthy();
+  expect(screen.getByRole("checkbox").getAttribute("aria-describedby")).toContain("verify-language");
+  cleanup();
+  route.lang = "fr";
+  signedInWith([role()]);
+  render(<Verification lang="fr" />);
+  expect(await screen.findByText(copy.fr.form.language)).toBeTruthy();
+  expect(copy.fr.form.language).toMatch(/seront en français, la langue de cette page/);
+});
+
+test.each([
+  ["en", "Start verification", "en"],
+  ["fr", "Lancer la vérification", "fr"],
+] as const)("starting on the %s page sends language %s", async (lang, button, sent) => {
+  route.lang = lang;
+  signedInWith([role()]);
+  render(<Verification lang={lang} />);
+  await screen.findByRole("textbox");
+  const started = attempt({ language: sent });
+  overrides.set(START, () => {
+    world.attempts = [started];
+    return json({ data: started }, 201);
+  });
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: REPOS } });
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: button }));
+  await waitFor(() => expect(callsTo(START)).toHaveLength(1));
+  const [, init] = callsTo(START)[0];
+  expect(JSON.parse((init as RequestInit).body as string).language).toBe(sent);
 });
 
 test("while sending, the label stays, the button is busy and a second press is ignored", async () => {

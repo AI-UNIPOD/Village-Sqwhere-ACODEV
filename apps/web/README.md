@@ -22,8 +22,10 @@ the real text: `hero-headline.tsx`, words in `hero-headline-copy.ts`), then one 
 `app/landing/sections/` (each with its own copy, styles and tests), and the onboarding page shown after the first sign-in is
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
 technologies the feed should show and the sectors (`POST /v1/me/roles`,
-`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`); the country stays
-in the tab until the API can store it.
+`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`) and, when the
+developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
+under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
+(`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
@@ -42,18 +44,24 @@ Role verification is `app/verification/` (at `/en/verification`), for the develo
 a start form (public GitHub repositories and a consent box), then the attempt's three stages
 (repositories check, interview, peer review) read from `/v1/me/verifications`. It asks the API
 again every 5 seconds only while the AI is working, and never shows the API's English error text.
+Starting sends `language`, the language of the page, and the form says so before the button: the
+interview and the AI's report use it and it never changes for that attempt. An active attempt in
+a different language from the page says so in one line.
 
 The interview is `app/verification-interview/` (at `/en/verification/interview?id=`): a chat with
 the AI interviewer over the attempt's WebSocket. The socket opens only when the developer presses
 "Begin the interview", because the API ends the attempt for good if it closes early. While it is
 live the header shows no links (`AppFrame`'s `locked`), and the token for the socket's address
-comes from `accessToken()` in `app/session/session.ts`.
+comes from `accessToken()` in `app/session/session.ts`. The interview is written by the API in
+the attempt's language, so the screen's own text follows the page and the questions follow the attempt.
 
 Peer review is `app/reviews/`: the queue at `/en/reviews` (attempts awaiting review in roles the
 developer is verified in, never their own, with no AI score shown) and one case at
 `/en/reviews/case?id=`. A case shows the evidence first (repositories, the interview, the
 repositories check), then the AI's report marked as a suggestion, then the decision form: notes
 are required, and pass or fail confirms in a dialog. Everything from `ai_result` is plain text.
+Each queue row names the attempt's language, and so does each case's AI report, so a reviewer who
+cannot read it can choose another case.
 
 Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/ideas/compose`
 (new) or `/en/ideas/compose?id=` (existing). The form keeps what everyone sees (title, summary)
@@ -73,13 +81,15 @@ button, read from the hub's card (`viewer.can_ask_again_at`) or from a press tha
 (409 `REQUEST_COOLING_DOWN`).
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
-developer is verified in (`GET /v1/me/matches`), each with the roles that matched. Matching goes
-by verified roles, so a developer without one is sent to verify, and the page does not call the
-API for them.
+developer is verified in (`GET /v1/me/matches`), each with the roles that matched and, when there
+are any, the technologies shared with the idea's author. Matching goes by verified roles, so a
+developer without one is sent to verify, and the page does not call the API for them.
 
 The owner's side is `/en/ideas/matches?id=`: developers verified in a role the idea needs
-(`GET /v1/me/ideas/{id}/matches`), each with the roles that matched and the technologies shared
-with the owner. With a hub, "Invite to the hub" sends the invitation from the row
+(`GET /v1/me/ideas/{id}/matches`), each with the roles that matched, their country (named in the
+page's language, nothing when they gave none) and the technologies shared with the owner. The
+shared ones are named in a line and come first in the tags, marked with a tick and, for a screen
+reader, "in common". With a hub, "Invite to the hub" sends the invitation from the row
 (`inviteMember`, the same call and refusal sentences as the hub's invite form); without one the
 page says a hub comes first. "See who matches" on Your ideas and a link under the hub's invite
 form lead here.
@@ -99,6 +109,15 @@ The village and Your hubs keep that list for the visit (`app/hubs/invitations.ts
 makes a waiting invitation its next step, and the places bar marks Hubs with a dot. Signing or
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
 page of the developer's hubs (`loadHubsByIdea`), because the API cannot look one up by idea.
+
+The hub card carries `phase`, `team_confirmed_at` and `phases` (each phase with its state). The
+page lists the four phases with their real state for everyone who sees the hub and marks the one
+in progress (`hubs/phases.tsx`). The owner of an active hub confirms the team
+(`POST /v1/hubs/{id}/team/confirm`, which opens brainstorm at any team size) and moves the hub one
+phase forward or back (`POST /v1/hubs/{id}/phase`), each behind a confirm dialog, and the page
+shows the card the API answers with. When the API says the hub changed elsewhere, or the action is
+no longer open, the page loads the hub again and says so. The tools for each phase are not built
+yet.
 
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares
@@ -135,7 +154,9 @@ comment that still has replies is drawn as a placeholder with its replies under 
 are plain text. A comment is liked like a post: the screen changes at once and the request
 follows (`PUT` and `DELETE /v1/comments/{id}/like`).
 
-The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
+The profile is `app/profile/`, at `/en/profile`: the name, bio and country (`PATCH /v1/me`; the
+country is a native list with "No country" first, saved as its code or `null`, and the form says
+other signed-in developers can see it), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
@@ -148,9 +169,9 @@ says what the demo is, says so when a change was refused, and offers the way out
 
 The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
 village, then four stops on the demo account's own open idea and hub (the composer, the matches,
-the hub's team, the hub's phases). `AppFrame` shows the tour's panel under the demo line; it
-sticks to the top of the screen, shrinks to one line on a screen that is not the stop, and keeps
-its step in `sessionStorage` (`tour/tour.ts`). A stop can name a part of a screen with a hash:
+the hub's team, the hub's phases; the demo's hub is seeded in Build). `AppFrame` shows the tour's
+panel under the demo line; it sticks to the top of the screen, shrinks to one line on a screen
+that is not the stop, and keeps its step in `sessionStorage` (`tour/tour.ts`). A stop can name a part of a screen with a hash:
 the hub page scrolls to `#team` or `#phases` once the hub has loaded (`app/scroll.ts`).
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`

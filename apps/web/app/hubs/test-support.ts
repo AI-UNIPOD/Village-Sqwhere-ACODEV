@@ -28,6 +28,15 @@ export const agreement = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+// The four phases with the hub at `current`: earlier ones done, later ones not started.
+export const phasesAt = (current: string | null) => {
+  const slugs = ["brainstorm", "design", "build", "review"];
+  return slugs.map((phase, at) => ({
+    phase,
+    state: current === null || at > slugs.indexOf(current) ? "not_started" : at < slugs.indexOf(current) ? "done" : "in_progress",
+  }));
+};
+
 export const hub = (over: Record<string, unknown> = {}) => ({
   id: "hub-1",
   name: "Borehole map hub",
@@ -38,6 +47,9 @@ export const hub = (over: Record<string, unknown> = {}) => ({
   owner: { username: "kwabena-owusu", display_name: "Kwabena Owusu", is_verified: true },
   member_count: 1,
   agreement: { version: 1 },
+  phase: null,
+  team_confirmed_at: null,
+  phases: phasesAt(null),
   viewer: { membership_status: "active", member_role: "owner" },
   ...over,
 });
