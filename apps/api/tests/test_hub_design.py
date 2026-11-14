@@ -1,6 +1,7 @@
 """The design sketch: who reads and writes pieces and links, and when."""
 
 import asyncio
+import threading
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from itertools import permutations
@@ -15,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
+from app.api.v1 import hub_design
 from app.api.v1.hub_design import MAX_LINKS, MAX_PIECES
 from app.main import app
 from app.models import Hub, HubMemberStatus, HubPiece, HubPieceLink, HubStatus, User
@@ -389,6 +391,38 @@ def test_deleting_a_piece_removes_its_links_from_the_answer(client: TestClient) 
     assert stored(HubPieceLink, out_of["id"]).deleted_at is not None
     assert stored(HubPieceLink, apart["id"]).deleted_at is None
     assert_error(remove_link(client, hub, owner, into["id"]), 404, "LINK_NOT_FOUND")
+
+
+def test_a_link_added_while_the_answer_is_read_never_shows_with_a_missing_end(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    hub, owner, member = designing_hub(client)
+    first = make_piece(client, hub, owner, "App")
+    late: dict[str, dict] = {}
+    original = hub_design.with_creator
+
+    def adding_between_the_two_reads(model: Any, hub_id: UUID) -> Any:
+        # The pieces were read. Before the links are, a member adds a piece and a link to it.
+        if model is HubPieceLink and not late:
+
+            def add() -> None:
+                late["piece"] = make_piece(client, hub, member, "API")
+                late["link"] = make_link(client, hub, member, first, late["piece"], "calls")
+
+            worker = threading.Thread(target=add)
+            worker.start()
+            worker.join()
+        return original(model, hub_id)
+
+    monkeypatch.setattr(hub_design, "with_creator", adding_between_the_two_reads)
+    seen = design(client, hub, owner)
+    assert [piece["name"] for piece in seen["pieces"]] == ["App"]
+    assert seen["links"] == []
+
+    # the next read has both, because nothing was lost
+    again = design(client, hub, owner)
+    assert [piece["name"] for piece in again["pieces"]] == ["App", "API"]
+    assert [link["id"] for link in again["links"]] == [late["link"]["id"]]
 
 
 def test_the_creator_or_the_owner_removes_a_piece_or_a_link_and_nobody_else(

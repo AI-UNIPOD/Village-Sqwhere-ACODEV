@@ -161,12 +161,20 @@ def require_creator_or_owner(hub: Hub, user: User, creator_id: UUID, code: str, 
 async def get_design(hub_id: UUID, current_user: CurrentUser, db: DbSession) -> HubDesignResponse:
     hub = await require_active_member(db, hub_id, current_user)
     require_started(hub)
+    # Two statements, two snapshots: a member may add a piece and a link between them. The pieces
+    # are read first and a link is kept only when both its ends are among them, so the answer
+    # never holds an arrow with a missing end.
     pieces = (await db.execute(with_creator(HubPiece, hub.id))).all()
     links = (await db.execute(with_creator(HubPieceLink, hub.id))).all()
+    seen = {piece.id for piece, _ in pieces}
     return HubDesignResponse(
         data=HubDesign(
             pieces=[piece_card(piece, creator, hub, current_user) for piece, creator in pieces],
-            links=[link_card(link, creator, hub, current_user) for link, creator in links],
+            links=[
+                link_card(link, creator, hub, current_user)
+                for link, creator in links
+                if link.from_piece_id in seen and link.to_piece_id in seen
+            ],
         )
     )
 
