@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -190,4 +193,16 @@ test("sector and technology names follow the page's language, and so does the re
   expect(within(list).getByText("30 sur 40")).toBeTruthy();
   expect(within(list).getByText("Pas encore comparé")).toBeTruthy();
   expect(within(list).getByText("Aucune technologie en commun")).toBeTruthy();
+});
+
+test("the reasons are marked as a list, so Safari keeps them one with their name", () => {
+  reasons({ scored: { ...scored(100, [40, 20, 10], [fintech]), shared_technologies: [go] } });
+  expect(screen.getByRole("list", { name: "Why this score" }).getAttribute("role")).toBe("list");
+});
+
+test("the swell uses the match-lands easing, and the partial sentence is set at sentence size", () => {
+  const css = readFileSync(join(__dirname, "match-score.module.css"), "utf8");
+  expect(/animation:\s*swell[^;]*var\(--ease-strong\)/.test(css)).toBe(true);
+  expect(/\.quiet\s*\{[^}]*var\(--type-body-s\)/.test(css)).toBe(true);
+  expect(/\.quiet\s*\{[^}]*--type-caption/.test(css)).toBe(false);
 });

@@ -146,7 +146,7 @@ test("the score, its parts and the lead sentence are in French", async () => {
   const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
   expect(within(shown).getByText("Très bonne correspondance")).toBeTruthy();
   expect(within(shown).getByRole("list", { name: "Pourquoi ce score" })).toBeTruthy();
-  expect(within(shown).getByText("Vous et Ama Mensah construisez tous deux dans les domaines suivants : Fintech")).toBeTruthy();
+  expect(within(shown).getByText("Vous et Ama Mensah construisez tous deux pour Fintech")).toBeTruthy();
   expect(within(shown).getByText("40 sur 40")).toBeTruthy();
   expect(screen.getByText(/meilleur score d'abord/)).toBeTruthy();
 });

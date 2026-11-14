@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ComponentType } from "react";
 
-import { parseSeconds } from "../landing/gather";
+import { cubicBezier, parseEasing, parseSeconds } from "../landing/gather";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -18,6 +18,9 @@ type Step = "strong" | "possible" | "weak" | "poor";
 const stepOf = (score: number): Step => (score >= 80 ? "strong" : score >= 60 ? "possible" : score >= 40 ? "weak" : "poor");
 
 const icons: Record<Step, ComponentType | null> = { strong: Check, possible: null, weak: TriangleAlert, poor: AlertCircle };
+
+// `--ease-strong`, for when the token cannot be read
+const strong = cubicBezier([0.16, 1, 0.3, 1]);
 
 const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -36,12 +39,15 @@ export function MatchScore({ lang, score, partial }: { lang: Lang; score: number
 
   useEffect(() => {
     if (!playing) return;
-    const ms = (parseSeconds(getComputedStyle(document.documentElement).getPropertyValue("--dur-moment")) ?? 0.52) * 1000;
+    const root = getComputedStyle(document.documentElement);
+    const ms = (parseSeconds(root.getPropertyValue("--dur-moment")) ?? 0.52) * 1000;
+    // the Motion table's easing for a match landing, read from the token
+    const ease = parseEasing(root.getPropertyValue("--ease-strong")) ?? strong;
     const start = performance.now();
     let frame = 0;
     const tick = (now: number) => {
       const done = Math.min(1, (now - start) / ms);
-      setShown(Math.round(score * (1 - (1 - done) ** 3)));
+      setShown(Math.round(score * ease(done)));
       if (done < 1) frame = requestAnimationFrame(tick);
       else setPlaying(false);
     };
@@ -98,7 +104,7 @@ export function ScoreReasons({
   ];
   return (
     <>
-      <ul className={styles.reasons} aria-label={t.why}>
+      <ul className={styles.reasons} role="list" aria-label={t.why}>
         {rows.map(({ part, text }) => (
           <li key={part} className={styles.reason}>
             <span className={styles.part}>{t.parts[part]}</span>

@@ -218,7 +218,7 @@ test("the same page in French, with the roles and the invite in French", async (
   expect(first.getByText("Kenya")).toBeTruthy();
   expect(first.getByText("Correspondance possible")).toBeTruthy();
   expect(first.getByText("Score de correspondance : 69 sur 100, correspondance possible. Score partiel.")).toBeTruthy();
-  expect(first.getByText("Vous construisez tous deux dans les domaines suivants : Fintech et Agritech")).toBeTruthy();
+  expect(first.getByText("Vous construisez tous deux pour Fintech et Agritech")).toBeTruthy();
   expect(first.getByRole("list", { name: "Pourquoi ce score" })).toBeTruthy();
   expect(first.getByText("30 sur 40")).toBeTruthy();
   expect(first.getByText("En commun avec vous : Go, React").textContent).toContain("vous\u202f: Go, React");

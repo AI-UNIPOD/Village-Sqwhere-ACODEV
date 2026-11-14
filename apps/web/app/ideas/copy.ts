@@ -470,7 +470,7 @@ const fr: Copy = {
     lead: "Des développeurs vérifiés dans un rôle que votre idée recherche, meilleur score d'abord. Chaque carte dit comment son score a été compté.",
     verifiedIn: "Vérifié dans {roles}",
     inCommon: "En commun avec vous\u202f: {technologies}",
-    sectors: "Vous construisez tous deux dans les domaines suivants\u202f: {sectors}",
+    sectors: "Vous construisez tous deux pour {sectors}",
     inCommonTag: "en commun",
     technologies: "Technologies",
     invite: "Inviter dans l'espace",
@@ -500,7 +500,7 @@ const fr: Copy = {
     whyOne: "Recherche votre rôle vérifié\u202f: {roles}",
     whyMany: "Recherche vos rôles vérifiés\u202f: {roles}",
     inCommon: "En commun avec {name}\u202f: {technologies}",
-    sectors: "Vous et {name} construisez tous deux dans les domaines suivants\u202f: {sectors}",
+    sectors: "Vous et {name} construisez tous deux pour {sectors}",
     emptyTitle: "Aucune idée ouverte ne recherche encore votre rôle",
     emptyText:
       "Les nouvelles idées apparaissent ici quand leurs porteurs disent chercher un rôle dans lequel vous êtes vérifié. En attendant, vous pouvez lire toutes les idées ouvertes.",
