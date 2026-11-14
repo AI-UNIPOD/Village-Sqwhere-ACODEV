@@ -1019,6 +1019,26 @@ see the hub before answering. Archived hubs can still be read.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
   id), `422` (the id is not a UUID).
 
+#### `PATCH /v1/hubs/{hub_id}`
+
+The owner renames or describes the hub. Send `name` (1 to 120 characters, trimmed),
+`description` (up to 2,000 characters, `null` clears it) or both; a left-out field keeps its
+value. Answers `200` with the hub card.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED`, `422` (no field, a null
+  or blank name, a field too long, or any other field).
+
+#### `POST /v1/hubs/{hub_id}/archive`
+
+The owner archives the hub when the work is over. No body. Answers `200` with the hub card,
+`status: "archived"` and `archived_at`. There is no way back. Members keep reading the hub,
+the team, the brief and its notes, but nothing changes any more: no invitations, requests,
+approvals, phase moves, notes or edits (`409 HUB_ARCHIVED`). A member may still leave, and a
+pending request may still be withdrawn or declined.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED` (already archived).
+* Why: `docs/decisions/2026-11-14-hub-edit-and-archive.md`.
+
 #### `GET /v1/me/hubs`
 
 Lists the hubs the signed-in person is in, newest hub first. Archived hubs stay in the list.
