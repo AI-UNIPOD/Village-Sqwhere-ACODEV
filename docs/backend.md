@@ -816,13 +816,16 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | --- | --- | --- |
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
-| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite or withdraw an invitation. |
+| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team or move the phase. |
 | `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief or the member list. |
 | `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
 | `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
 | `409` | `ALREADY_MEMBER` | The person is already an active member. |
 | `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
-| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved. |
+| `409` | `TEAM_ALREADY_CONFIRMED` | The owner already confirmed the team. Move the phase instead. |
+| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move before the owner confirms the team. |
+| `409` | `PHASE_NOT_ADJACENT` | The phase asked for is not the one just before or just after the hub's current phase. This includes the current phase itself. |
 | `409` | `TEAM_FULL` | The hub already has 5 active members, the owner included. |
 | `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
 | `409` | `IDEA_NOT_OPEN` | The idea is a draft or closed. Open it first. |
@@ -898,6 +901,14 @@ are saved together, or nothing is saved.
       "name": "Farm Ledger Hub",
       "description": "Building the offline ledger MVP.",
       "status": "active",
+      "phase": null,
+      "team_confirmed_at": null,
+      "phases": [
+        { "phase": "brainstorm", "state": "not_started" },
+        { "phase": "design", "state": "not_started" },
+        { "phase": "build", "state": "not_started" },
+        { "phase": "review", "state": "not_started" }
+      ],
       "terms": {
         "ownership_model": "custom",
         "notes": "The owner keeps 40%, the rest is split equally."
@@ -924,7 +935,12 @@ are saved together, or nothing is saved.
   }
   ```
   `member_count` counts active members only. `viewer` is the signed-in person's own
-  membership. The idea's confidential details are never in a hub card. The server keeps the
+  membership. `phase` is the hub's current phase (`brainstorm`, `design`, `build` or `review`),
+  or `null` until the owner confirms the team; `team_confirmed_at` is `null` at the same time.
+  `phases` always lists the four in that order, each with a `state`: `done` before the current
+  phase, `in_progress` on it, `not_started` after it (all four before the team is confirmed).
+  Everyone who can read the card sees all of this. The idea's confidential details are never in
+  a hub card. The server keeps the
   signer's IP address (from the connection, never from a header) and browser user agent as
   evidence, and never returns them.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `422` (a field breaks a rule),
@@ -1130,6 +1146,37 @@ The idea behind the hub, with its confidential `details`, for active members onl
 `id`, `title`, `summary`, `details`, `stage`, `status`, `published_at` and `updated_at`.
 
 * **Errors:** `403 NOT_HUB_MEMBER`, `404 NOT_FOUND` (also when the idea was deleted).
+
+#### The hub's phase
+
+A hub has no phase until its owner confirms the team. Then it is in `brainstorm`, and the owner
+moves it one phase forward or one back through `brainstorm`, `design` (design and architecture),
+`build` and `review` (review and test). Only the owner moves it, and an archived hub cannot be
+confirmed or moved. Inviting and joining stay open after the team is confirmed, up to the cap of
+five. Every change is logged (`hub_phase_moves`), and the log cannot be edited or deleted. Why
+these rules: `docs/decisions/2026-11-14-hub-phases.md`. Both routes answer with the hub card,
+and the web must ask for a confirmation before it moves a hub back.
+
+#### `POST /v1/hubs/{hub_id}/team/confirm`
+
+The owner confirms the team, at any size: the owner alone may confirm. Sets the phase to
+`brainstorm` and `team_confirmed_at` to now. No body.
+
+* **Success Response (200 OK):** the hub card, in `data`.
+* **Errors:** `401`, `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED`,
+  `409 TEAM_ALREADY_CONFIRMED`.
+
+#### `POST /v1/hubs/{hub_id}/phase`
+
+The owner moves the hub to the phase just after or just before its current one.
+
+* **Request Body:** `{ "phase": "design" }`, one of `brainstorm`, `design`, `build`, `review`.
+  Any other value is refused with `422`.
+* **Success Response (200 OK):** the hub card, in `data`.
+* **Errors:** `401`, `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_ADJACENT`, `422`. Skipping a phase, or asking for the
+  phase the hub is already in, is `PHASE_NOT_ADJACENT`, so a request sent twice moves the hub
+  once. Nothing comes before `brainstorm`: the team stays confirmed.
 
 ---
 

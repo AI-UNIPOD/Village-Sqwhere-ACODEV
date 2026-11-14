@@ -20,7 +20,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.models.hubs import HubDeclineKind, HubMemberRole, HubMemberStatus, HubStatus
+from app.models.hubs import HubDeclineKind, HubMemberRole, HubMemberStatus, HubPhase, HubStatus
 from app.models.ideas import IdeaStage, IdeaStatus
 
 # Our own limit, not the database's: hub terms written as compact JSON may be at most this
@@ -94,6 +94,14 @@ class InviteRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     username: Username
+
+
+class MovePhaseRequest(BaseModel):
+    """The phase to move to: the one after the hub's current phase, or the one before it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    phase: HubPhase
 
 
 class UpdateHubRequest(BaseModel):
@@ -174,11 +182,26 @@ class HubAgreement(BaseModel):
     version: int
 
 
+class HubPhaseState(StrEnum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    DONE = "done"
+
+
+class HubPhaseStep(BaseModel):
+    phase: HubPhase
+    state: HubPhaseState
+
+
 class Hub(BaseModel):
     id: UUID
     name: str
     description: str | None = None
     status: HubStatus
+    # null until the owner confirms the team; `phases` lists all four in order with their state
+    phase: HubPhase | None = None
+    team_confirmed_at: datetime | None = None
+    phases: list[HubPhaseStep]
     terms: dict[str, Any]
     idea: HubIdea
     owner: HubOwner

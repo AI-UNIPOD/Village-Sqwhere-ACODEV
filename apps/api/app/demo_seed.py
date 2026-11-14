@@ -7,7 +7,8 @@ Run it where the demo should be on (DEMO_ENABLED=true), against that server's DA
 Every person here is made up, and every account is a demo account (users.is_demo), so the wall
 in app/api/deps.py keeps all of it away from real developers. Times are set relative to when
 the script runs, so the feed reads "2 hours ago". Running it again rewrites the posts and
-comments with fresh times, sets the countries again and leaves the rest.
+comments with fresh times, sets the countries again and leaves the rest, except that it puts
+the visitor's own hub in build if it has no phase yet.
 docs/decisions/2026-11-13-read-only-demo.md
 """
 
@@ -29,6 +30,8 @@ from app.models import (
     HubMember,
     HubMemberRole,
     HubMemberStatus,
+    HubPhase,
+    HubPhaseMove,
     Idea,
     IdeaRoleNeed,
     IdeaStage,
@@ -88,6 +91,10 @@ STACKS = {
 }
 
 
+# the hub the visitor owns, which the seed puts in the build phase
+OWN_HUB = "Payouts Hub"
+
+
 def ago(**delta: float) -> datetime:
     return datetime.now(UTC) - timedelta(**delta)
 
@@ -115,6 +122,7 @@ async def seed(db: AsyncSession) -> bool:
         # Green Tick shows on their cards. Set on a rerun too, for worlds seeded before this.
         user.verified_at = user.verified_at or ago(days=20)
         user.country_code = COUNTRIES[key]  # also on a rerun, for worlds seeded before countries
+    await _start_own_hub(db, people["you"])
     await _write_feed(db, people)
     await db.commit()
     return created
@@ -248,7 +256,7 @@ async def _create_world(db: AsyncSession) -> dict[str, User]:
     # yours, with room in the team and a request waiting for your answer
     await hub(
         payouts,
-        "Payouts Hub",
+        OWN_HUB,
         {"kwabena": HubMemberStatus.ACTIVE, "danladi": HubMemberStatus.REQUESTED},
     )
     # one you belong to, and one that invited you
@@ -268,6 +276,28 @@ async def _create_world(db: AsyncSession) -> dict[str, User]:
 
     await db.flush()
     return people
+
+
+async def _start_own_hub(db: AsyncSession, owner: User) -> None:
+    """Confirms the visitor's own hub and puts it in build, so its page shows a phase done, one
+    in progress and one not started. Also on a rerun, for worlds seeded before hubs had phases;
+    a hub already in a phase is left where it is."""
+    hub = await db.scalar(select(Hub).where(Hub.owner_id == owner.id, Hub.name == OWN_HUB))
+    if hub is None or hub.phase is not None:
+        return
+    previous = None
+    for days, phase in ((9, HubPhase.BRAINSTORM), (6, HubPhase.DESIGN), (3, HubPhase.BUILD)):
+        db.add(
+            HubPhaseMove(
+                hub_id=hub.id,
+                moved_by=owner.id,
+                from_phase=previous,
+                to_phase=phase,
+                created_at=ago(days=days),
+            )
+        )
+        previous = phase
+    hub.phase, hub.team_confirmed_at = HubPhase.BUILD, ago(days=9)
 
 
 async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:

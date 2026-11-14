@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(api): give a hub phases the owner starts and moves (#154)
 - feat(api): run the AI interview and report in the applicant's language (#153)
 - feat(api): store a country on the profile (#152)
 - fix(web): say what is true today on the tour, village and hub pages (#151)
