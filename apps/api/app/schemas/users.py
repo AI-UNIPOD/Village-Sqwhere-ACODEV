@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.countries import AFRICAN_COUNTRY_CODES
-from app.schemas.lookups import SectorRef, TechnologyRef
+from app.schemas.lookups import RoleRef, SectorRef, TechnologyRef
 
 
 class UserRoleVerification(BaseModel):
@@ -55,6 +55,27 @@ class UserProfile(BaseModel):
     sectors: list[SectorRef] = []
     identities: list[UserIdentityRef] = []
     created_at: datetime
+
+
+class PublicProfile(BaseModel):
+    """What another signed-in developer sees: the match card's fields and the bio. Never the
+    email, legal names, sign-in accounts or verification attempts."""
+
+    id: UUID
+    username: str
+    display_name: str
+    avatar_url: str | None = None
+    bio: str | None = None
+    country_code: str | None = None
+    is_verified: bool = False
+    # only roles they passed verification in, and only roles still offered
+    verified_roles: list[RoleRef]
+    technologies: list[TechnologyRef]
+    sectors: list[SectorRef]
+
+
+class PublicProfileResponse(BaseModel):
+    data: PublicProfile
 
 
 class MeResponse(BaseModel):

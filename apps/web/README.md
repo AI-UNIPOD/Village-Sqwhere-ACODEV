@@ -81,15 +81,19 @@ button, read from the hub's card (`viewer.can_ask_again_at`) or from a press tha
 (409 `REQUEST_COOLING_DOWN`).
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
-developer is verified in (`GET /v1/me/matches`), each with the roles that matched and, when there
-are any, the technologies shared with the idea's author. Matching goes by verified roles, so a
-developer without one is sent to verify, and the page does not call the API for them.
+developer is verified in (`GET /v1/me/matches`), best score first. Each card shows the match
+score (`app/ideas/match-score.tsx`: the number, its step as a pill, one sentence for a screen
+reader) and the parts that earned it, each with its raw points: the roles that matched, the
+technologies and sectors shared with the idea's author, and the meaning part, which is not
+compared yet. Matching goes by verified roles, so a developer without one is sent to verify, and
+the page does not call the API for them.
 
 The owner's side is `/en/ideas/matches?id=`: developers verified in a role the idea needs
-(`GET /v1/me/ideas/{id}/matches`), each with the roles that matched, their country (named in the
-page's language, nothing when they gave none) and the technologies shared with the owner. The
-shared ones are named in a line and come first in the tags, marked with a tick and, for a screen
-reader, "in common". With a hub, "Invite to the hub" sends the invitation from the row
+(`GET /v1/me/ideas/{id}/matches`), best score first, each with the same score and parts, and
+their country (named in the page's language, nothing when they gave none, directly under the
+name). The technologies shared with the owner come first in the tags, marked with a tick and, for
+a screen reader, "in common". A response without score fields shows the parts without a score.
+With a hub, "Invite to the hub" sends the invitation from the row
 (`inviteMember`, the same call and refusal sentences as the hub's invite form); without one the
 page says a hub comes first. "See who matches" on Your ideas and a link under the hub's invite
 form lead here.

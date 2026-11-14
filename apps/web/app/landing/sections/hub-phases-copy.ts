@@ -71,10 +71,10 @@ const en: Copy = {
 const fr: Copy = {
   title: "Votre espace compte quatre phases.",
   lead:
-    "Le porteur confirme l'équipe, le brainstorm s'ouvre, puis l'espace traverse quatre phases, une à la fois\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Les outils de chaque phase restent à venir\u202f: les vues ci-dessous sont un exemple inventé.",
+    "Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis l'espace traverse quatre phases, une à la fois\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Les outils de chaque phase restent à venir\u202f: les vues ci-dessous sont un exemple inventé.",
   sampleTag: "Vues d'exemple, outils à venir",
   closing:
-    "Aujourd'hui, la page de l'espace indique chaque phase comme Terminée, En cours ou Pas commencée, et le porteur fait passer l'espace d'une phase à la suivante. Les outils ne sont pas encore construits.",
+    "Aujourd'hui, la page de l'espace indique chaque phase comme Terminée, En cours ou Pas commencée, et le porteur de l'idée fait passer l'espace d'une phase à la suivante. Les outils ne sont pas encore construits.",
   tablist: "Phases",
   done: "Fait",
   phases: [

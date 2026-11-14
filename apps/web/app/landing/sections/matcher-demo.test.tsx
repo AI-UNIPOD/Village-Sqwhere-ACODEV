@@ -70,7 +70,7 @@ test.each([
 test.each([
   ["en", "Simulated score: 92, Strong match", "Simulated score: 74, Possible match", "Scores here are simulated: match scores are a planned feature."],
   // the French no-break space before the colon reads as a space once Testing Library normalises it
-  ["fr", "Score simulé : 92, Correspondance forte", "Score simulé : 74, Correspondance possible", "Scores simulés ici : le score de correspondance est une fonction prévue."],
+  ["fr", "Score simulé : 92, Correspondance forte", "Score simulé : 74, Correspondance possible", "Scores simulés ici : le score de correspondance est une fonctionnalité prévue."],
 ] as const)("in %s each suggestion has a simulated score with its step, and the panel says so", (lang, strong, possible, note) => {
   render(<MatcherDemo lang={lang} />);
   expect(section().getByText(strong)).toBeTruthy();

@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.models import Idea, IdeaRoleNeed, IdeaStatus
-from tests.hub_support import auth, bad_auth_headers, make_user, run
+from tests.hub_support import auth, bad_auth_headers, make_hub, make_user, run
 
 MY_IDEAS = "/v1/me/ideas"
 OPEN_IDEAS = "/v1/ideas"
@@ -274,3 +274,48 @@ def test_list_endpoints_paginate_and_keep_owner_details_out_of_collection(
     assert len(public.json()["data"]) == 1
     assert public.json()["next_offset"] == 1
     assert body()["details"] not in public.text
+
+
+# --- deleting: DELETE /v1/me/ideas/{idea_id} -------------------------------------------------
+
+
+def test_the_author_deletes_an_idea_and_it_is_gone_everywhere(client: TestClient) -> None:
+    owner, reader = make_user(), make_user()
+    draft = create(client, owner)
+    published = create(client, owner)
+    assert (
+        client.post(f"{MY_IDEAS}/{published['id']}/publish", headers=auth(owner)).status_code == 200
+    )
+
+    for idea in (draft, published):
+        response = client.delete(f"{MY_IDEAS}/{idea['id']}", headers=auth(owner))
+        assert response.status_code == 204, response.text
+        assert response.content == b""
+        stored = stored_idea(idea["id"])
+        assert stored.deleted_at is not None and stored.details is None
+
+    assert client.get(MY_IDEAS, headers=auth(owner)).json()["data"] == []
+    assert_error(client.get(f"{MY_IDEAS}/{draft['id']}", headers=auth(owner)), 404, "NOT_FOUND")
+    assert_error(client.get(f"/v1/ideas/{published['id']}", headers=auth(reader)), 404, "NOT_FOUND")
+    listed = client.get("/v1/ideas", headers=auth(reader)).json()["data"]
+    assert published["id"] not in [idea["id"] for idea in listed]
+    again = client.delete(f"{MY_IDEAS}/{draft['id']}", headers=auth(owner))
+    assert_error(again, 404, "NOT_FOUND")
+
+
+def test_only_the_author_can_delete_an_idea(client: TestClient) -> None:
+    owner, other = make_user(), make_user()
+    idea = create(client, owner)
+
+    assert_error(client.delete(f"{MY_IDEAS}/{idea['id']}", headers=auth(other)), 404, "NOT_FOUND")
+    assert stored_idea(idea["id"]).deleted_at is None
+
+
+def test_an_idea_with_a_hub_cannot_be_deleted(client: TestClient) -> None:
+    owner = make_user()
+    hub = make_hub(owner)
+
+    response = client.delete(f"{MY_IDEAS}/{hub.idea_id}", headers=auth(owner))
+
+    assert_error(response, 409, "IDEA_HAS_HUB")
+    assert stored_idea(str(hub.idea_id)).deleted_at is None
