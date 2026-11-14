@@ -79,6 +79,7 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
           </button>
         )}
       </div>
+      {country && <p className={styles.meta}>{country}</p>}
       <p className={landing.srOnly} role="status">
         {state === "sent" ? fill(team.form.sent, { name: person.display_name }) : ""}
       </p>
@@ -88,7 +89,6 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
           {problem}
         </p>
       )}
-      {country && <p className={styles.meta}>{country}</p>}
       <div className={styles.why}>
         <p>{fill(t.verifiedIn, { roles: person.matched_roles.map((role) => roleName(lang, role)).join(", ") })}</p>
         {shared.length > 0 && <p>{fill(t.inCommon, { technologies: shared.map((tech) => technologyName(lang, tech)).join(", ") })}</p>}

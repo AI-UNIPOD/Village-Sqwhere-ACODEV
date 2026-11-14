@@ -336,7 +336,7 @@ p.verified { margin-inline-start: 0; }
 }
 
 /* a technology the developer shares with the owner: a tick and a darker line, so it is not colour alone */
-.sharedTag {
+li.sharedTag {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
