@@ -45,7 +45,6 @@ type Copy = {
   invite: string;
   inviting: string;
   signed: (name: string) => string;
-  hubOpen: string;
   again: string;
   bridge: string;
   ideas: [Idea, Idea, Idea];
@@ -72,10 +71,9 @@ const en: Copy = {
   simulated: "Scores here are simulated: match scores are a planned feature.",
   scoreLine: (score, step) => `Simulated score: ${score}, ${step}`,
   steps: ["Strong match", "Possible match", "Weak match", "Poor match"],
-  invite: "Invite the three to the hub",
+  invite: "Send three invitations",
   inviting: "Sending invitations",
   signed: (name) => `${name} read the agreement and signed.`,
-  hubOpen: "Hub open",
   again: "Try another idea",
   bridge: "What is a Green Tick?",
   ideas: [
@@ -108,7 +106,7 @@ const en: Copy = {
           shared: ["Python"],
         },
       ],
-      win: "Team formed. Four builders in Lagos, Casablanca, Johannesburg and Addis Ababa. The hub is open.",
+      win: "All three read the agreement and signed. Four builders in Lagos, Casablanca, Johannesburg and Addis Ababa.",
     },
     {
       title: "Market prices by SMS, in Wolof and French",
@@ -139,7 +137,7 @@ const en: Copy = {
           shared: ["PyTorch", "LLMs"],
         },
       ],
-      win: "Team formed. Four builders, four countries: Senegal, Cameroon, Rwanda and Cabo Verde. The hub is open.",
+      win: "All three read the agreement and signed. Four builders, four countries: Senegal, Cameroon, Rwanda and Cabo Verde.",
     },
     {
       title: "Clinic queue that texts patients their turn",
@@ -170,7 +168,7 @@ const en: Copy = {
           shared: ["React"],
         },
       ],
-      win: "Team formed. Four builders, three countries: two in Kenya, one in Mozambique, one in Madagascar. The hub is open.",
+      win: "All three read the agreement and signed. Four builders, three countries: two in Kenya, one in Mozambique, one in Madagascar.",
     },
   ],
 };
@@ -197,10 +195,9 @@ const fr: Copy = {
   simulated: "Scores simulés ici\u202f: le score de correspondance est une fonction prévue.",
   scoreLine: (score, step) => `Score simulé\u202f: ${score}, ${step}`,
   steps: ["Correspondance forte", "Correspondance possible", "Correspondance faible", "Correspondance très faible"],
-  invite: "Inviter les trois dans l'espace",
+  invite: "Envoyer trois invitations",
   inviting: "Envoi des invitations",
   signed: (name) => `${name} a lu l'accord et signé.`,
-  hubOpen: "Espace ouvert",
   again: "Essayer une autre idée",
   bridge: "Qu'est-ce qu'un Green Tick\u202f?",
   ideas: [
@@ -238,7 +235,7 @@ const fr: Copy = {
           shared: ["Python"],
         },
       ],
-      win: "Équipe formée. Quatre développeurs à Lagos, Casablanca, Johannesburg et Addis-Abeba. L'espace est ouvert.",
+      win: "Les trois ont lu l'accord et signé. Quatre développeurs à Lagos, Casablanca, Johannesburg et Addis-Abeba.",
     },
     {
       title: "Les prix du marché par SMS, en wolof et en français",
@@ -270,7 +267,7 @@ const fr: Copy = {
           shared: ["PyTorch", "LLM"],
         },
       ],
-      win: "Équipe formée. Quatre développeurs, quatre pays\u202f: Sénégal, Cameroun, Rwanda et Cap-Vert. L'espace est ouvert.",
+      win: "Les trois ont lu l'accord et signé. Quatre développeurs, quatre pays\u202f: Sénégal, Cameroun, Rwanda et Cap-Vert.",
     },
     {
       title: "Une file d'attente de clinique qui prévient par SMS",
@@ -301,7 +298,7 @@ const fr: Copy = {
           shared: ["React"],
         },
       ],
-      win: "Équipe formée. Quatre développeurs, trois pays\u202f: deux au Kenya, un au Mozambique, un à Madagascar. L'espace est ouvert.",
+      win: "Les trois ont lu l'accord et signé. Quatre développeurs, trois pays\u202f: deux au Kenya, un au Mozambique, un à Madagascar.",
     },
   ],
 };

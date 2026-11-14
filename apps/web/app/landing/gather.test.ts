@@ -60,6 +60,11 @@ test("every twin word is in the crowd, so the pointer can find it", () => {
   for (const word of Object.keys(TWIN)) expect(CROWD).toContain(word);
 });
 
+// the matcher has no score today, so the hero must not float the word
+test("the crowd has no word for a feature the product does not have", () => {
+  expect(CROWD).not.toContain("score");
+});
+
 test("reads the filled cells of a mask into runs per row", () => {
   const size = 4;
   const alpha = new Array(size * size * 4).fill(0);

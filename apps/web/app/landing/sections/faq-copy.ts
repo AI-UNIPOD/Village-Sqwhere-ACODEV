@@ -26,11 +26,11 @@ const en: Copy = {
     },
     {
       q: "Which languages does it use?",
-      a: "English and French, on every screen. Switch any time from the header.",
+      a: "The app is in English and French. Switch any time from the header. The AI interviewer and the AI report are not tied to your choice.",
     },
     {
       q: "Can I look around before signing up?",
-      a: "Yes. The demo is a read-only account with a guided tour. Nothing you change is saved.",
+      a: "Yes. The demo is a read-only account with a guided tour, filled with made-up people and ideas. Nothing can be changed.",
     },
   ],
 };
@@ -57,11 +57,11 @@ const fr: Copy = {
     },
     {
       q: "Quelles langues utilise-t-il\u202f?",
-      a: "L'anglais et le français, sur chaque écran. Changez à tout moment depuis l'en-tête.",
+      a: "L'application existe en anglais et en français. Changez à tout moment depuis l'en-tête. L'intervieweur IA et le rapport IA ne suivent pas forcément votre choix.",
     },
     {
       q: "Puis-je explorer avant de m'inscrire\u202f?",
-      a: "Oui. La démo est un compte en lecture seule, avec une visite guidée. Rien de ce que vous modifiez n'est enregistré.",
+      a: "Oui. La démo est un compte en lecture seule, avec une visite guidée, remplie de personnes et d'idées fictives. Rien ne peut être modifié.",
     },
   ],
 };

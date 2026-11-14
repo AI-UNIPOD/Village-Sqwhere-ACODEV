@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- fix(web): say only what is true today on the landing page
 - feat(web): edit the hero headline into shape, once, on the landing page (#148)
 - feat(web): show simulated match scores in the landing matcher demo (#147)
 - feat(web): soften the theme switch and fade it with reduced motion (#146)

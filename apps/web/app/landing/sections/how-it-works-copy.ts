@@ -39,14 +39,13 @@ export type Copy = {
     count: string;
     phasesHeading: string;
     phases: readonly [string, string, string, string];
-    inProgress: string;
     notStarted: string;
   };
 };
 
 const en: Copy = {
   title: "From an idea to a team, in four steps.",
-  lead: "Here is what happens between sharing an idea and building it together.",
+  lead: "Here is what happens between sharing an idea and building it together. The people and ideas shown are made up.",
   steps: [
     {
       title: "Idea",
@@ -60,13 +59,13 @@ const en: Copy = {
     },
     {
       title: "Team",
-      text: "You choose who to invite, up to five members with you. Everyone signs the same agreement.",
+      text: "You invite developers, or accept those who ask to join. A team is up to five people, you included. Everyone reads and signs the same agreement.",
       view: "A team of four, all signed",
     },
     {
       title: "Hub",
-      text: "The team builds in one hub, in four phases: brainstorm, design and architecture, build, then review and test.",
-      view: "The hub and its four phases",
+      text: "Your team gets one hub: the agreement, the terms and the team, in one place. It lists four phases (brainstorm, design and architecture, build, review and test); their tools are still to come.",
+      view: "The hub, with its four phases listed",
     },
   ],
   idea: {
@@ -124,14 +123,14 @@ const en: Copy = {
     count: "4 of 5 members",
     phasesHeading: "Phases",
     phases: ["Brainstorm", "Design and architecture", "Build", "Review and test"],
-    inProgress: "In progress",
     notStarted: "Not started",
   },
 };
 
 const fr: Copy = {
   title: "D'une idée à une équipe, en quatre étapes.",
-  lead: "Voici ce qui se passe entre le partage d'une idée et sa construction en équipe.",
+  lead:
+    "Voici ce qui se passe entre le partage d'une idée et sa construction en équipe. Les personnes et les idées présentées sont fictives.",
   steps: [
     {
       title: "Idée",
@@ -145,13 +144,13 @@ const fr: Copy = {
     },
     {
       title: "Équipe",
-      text: "Vous choisissez qui inviter, jusqu'à cinq membres en vous comptant. Chacun signe le même accord.",
+      text: "Vous invitez des développeurs, ou vous acceptez ceux qui demandent à rejoindre l'espace. Une équipe compte jusqu'à cinq personnes, vous compris. Chacun lit et signe le même accord.",
       view: "Une équipe de quatre, accord signé",
     },
     {
       title: "Espace",
-      text: "L'équipe construit dans un même espace, en quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests.",
-      view: "L'espace et ses quatre phases",
+      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Il liste quatre phases (brainstorm, conception et architecture, construction, revue et tests)\u202f; leurs outils restent à venir.",
+      view: "L'espace, avec ses quatre phases listées",
     },
   ],
   idea: {
@@ -210,7 +209,6 @@ const fr: Copy = {
     count: "Membres\u202f: 4 sur 5",
     phasesHeading: "Phases",
     phases: ["Brainstorm", "Conception et architecture", "Construction", "Revue et tests"],
-    inProgress: "En cours",
     notStarted: "Pas commencée",
   },
 };

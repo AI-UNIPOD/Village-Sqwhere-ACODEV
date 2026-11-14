@@ -45,7 +45,7 @@ afterEach(() => {
 
 test("the line under the button says what the demo is", () => {
   pair();
-  expect(note()).toBe("No sign-up. Look at everything, change nothing. A short tour is inside.");
+  expect(note()).toBe("No sign-up. Made-up people and ideas, and nothing can be changed. A short tour is inside.");
   expect(screen.getByRole("button", { name: "Try the demo" }).getAttribute("aria-describedby")).toBe("demo-note");
 });
 
