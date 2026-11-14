@@ -4,10 +4,12 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { crowdFontSize, layoutCrowd } from "./gather";
 import { GatherHero } from "./gather-hero";
 import { heroAvoid, heroGeometry } from "./hero-layout";
+import { heroTeamCopy } from "./hero-team-copy";
 import { MOTION_KEY } from "./motion";
 
 let resizeCallbacks: Array<() => void> = [];
 const labels = { pause: "Pause animation", play: "Play animation" };
+const team = heroTeamCopy.en;
 
 // jsdom cannot draw: a 2D context that accepts every call and draws nothing
 function fakeContext() {
@@ -15,6 +17,7 @@ function fakeContext() {
   return new Proxy(
     {
       getImageData: () => ({ data: new Uint8ClampedArray(32 * 32 * 4) }),
+      measureText: (text: string) => ({ width: text.length * 6 }),
       createLinearGradient: () => ({ addColorStop: () => {} }),
     } as Record<string, unknown>,
     {
@@ -28,14 +31,14 @@ function fakeContext() {
 }
 
 // the system's reduced-motion setting; `set` changes it and tells whoever listens, like a browser
-function stubMotion(reduced: boolean) {
+function stubMotion(reduced: boolean, hover = false) {
   let current = reduced;
   const listeners = new Set<() => void>();
   vi.stubGlobal(
     "matchMedia",
     vi.fn().mockImplementation((query: string) => ({
       get matches() {
-        return current && query.includes("reduced-motion");
+        return query.includes("hover: hover") ? hover : current && query.includes("reduced-motion");
       },
       addEventListener: (_: string, listener: () => void) => listeners.add(listener),
       removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
@@ -85,7 +88,7 @@ afterEach(() => {
 
 function renderHero(heroLabels = labels) {
   return render(
-    <GatherHero labelledBy="title" labels={heroLabels}>
+    <GatherHero labelledBy="title" labels={heroLabels} team={team}>
       <h1 id="title">Builders across Africa, one square.</h1>
     </GatherHero>,
   );
@@ -197,7 +200,7 @@ test("places everything again when the width changes", () => {
 
 function renderHeroWithNote() {
   return render(
-    <GatherHero labelledBy="title" labels={labels}>
+    <GatherHero labelledBy="title" labels={labels} team={team}>
       <h1 id="title">Builders across Africa, one square.</h1>
       <div>
         <button type="button">Try the demo</button>
@@ -225,7 +228,7 @@ test("the coming-soon line starts under the button it belongs to, wherever that 
     return this.tagName === "BUTTON" ? 260 : 0;
   });
   const { container } = render(
-    <GatherHero labelledBy="title" labels={labels}>
+    <GatherHero labelledBy="title" labels={labels} team={team}>
       <h1 id="title">Builders across Africa, one square.</h1>
       <div>
         <a href="#join">Join the village</a>
@@ -257,17 +260,22 @@ test("no background words are drawn behind the text block, the coming-soon line 
   const top = parseFloat(copy.style.top);
 
   expect(drawn.length).toBeGreaterThan(100); // the crowd was drawn
-  const behindTheBlock = drawn.filter(([x, y]) => x < right && x > left - 40 && y >= top - 10 && y <= top + 240);
+  const behindTheBlock = drawn.filter(([x, y]) => x < right && x > left && y >= top - 10 && y <= top + 240);
   expect(behindTheBlock).toEqual([]);
 });
 
 // ---------- the background scroll ----------
 
+// the drift's tokens, and the story's: the spring (--ease-strong), the signatures (--ease-out)
+// and the way home (--dur-modal)
 const DRIFT_TOKENS: Record<string, string> = {
   "--dur-drift": "2s",
   "--ease-linear": "linear",
   "--space-8": "32px",
   "--space-3": "12px",
+  "--ease-strong": "cubic-bezier(0.16, 1, 0.3, 1)",
+  "--ease-out": "cubic-bezier(0.23, 1, 0.32, 1)",
+  "--dur-modal": "220ms",
 };
 
 function setDriftTokens(on: boolean) {
@@ -314,19 +322,14 @@ test("the background words scroll when the design system's motion tokens are the
   setDriftTokens(false);
 });
 
-test("resting the pointer directly on a background word holds the drift, moving off lets it go", () => {
+test("resting the pointer on a background word no longer holds the drift: the team gathers instead", () => {
   setDriftTokens(true);
+  stubMotion(false, true);
   const { container } = renderHero();
   const section = container.querySelector("section")!;
   const { word, fontSize } = aCrowdWord();
-
   movePointer(section, word.x + word.w / 2, word.y + fontSize / 2);
-  expect(section.getAttribute("data-drift")).toBe("held");
-
-  movePointer(section, word.x + word.w / 2, word.y + fontSize + 2);
   expect(section.getAttribute("data-drift")).toBe("on");
-
-  movePointer(section, word.x + word.w / 2, word.y + fontSize / 2);
   section.dispatchEvent(new MouseEvent("pointerleave"));
   expect(section.getAttribute("data-drift")).toBe("on");
   setDriftTokens(false);

@@ -9,6 +9,7 @@ import { GatherHero } from "./gather-hero";
 import { HeaderPin } from "./header-pin";
 import { HeroHeadline } from "./hero-headline";
 import { headlineEdit } from "./hero-headline-copy";
+import { heroTeamCopy } from "./hero-team-copy";
 import styles from "./landing-page.module.css";
 import { SectionMotion } from "./section-motion";
 import { HeaderTools } from "./header-tools";
@@ -58,7 +59,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
       </div>
 
       <main>
-        <GatherHero labelledBy="hero-title" labels={{ pause: t.pause, play: t.play }}>
+        <GatherHero labelledBy="hero-title" labels={{ pause: t.pause, play: t.play }} team={heroTeamCopy[lang]}>
           <HeroHeadline id="hero-title" headline={t.headline} edit={headlineEdit[lang]} />
           <p className={styles.sub}>{t.sub}</p>
           <div className={styles.ctas}>

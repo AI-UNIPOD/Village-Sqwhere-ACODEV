@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect, test } from "vitest";
 
 import {
+  BUILDERS,
   COUNTRIES,
   CROWD,
   FADE,
@@ -18,7 +19,6 @@ import {
   parseEasing,
   parseSeconds,
   planCycle,
-  pointerOnWord,
   runsFromAlpha,
   scrollOffset,
   zoneFade,
@@ -63,6 +63,7 @@ test("every twin word is in the crowd, so the pointer can find it", () => {
 // the matcher has no score today, so the hero must not float the word
 test("the crowd has no word for a feature the product does not have", () => {
   expect(CROWD).not.toContain("score");
+  expect(CROWD).not.toContain("matcher");
 });
 
 test("reads the filled cells of a mask into runs per row", () => {
@@ -193,7 +194,7 @@ test("packs the crowd edge to edge without covering the text, the square or the 
   });
   expect(words.length).toBeGreaterThan(200);
   for (const w of words) {
-    expect(CROWD).toContain(w.t);
+    expect(CROWD.includes(w.t) || BUILDERS.some(([name]) => name === w.t)).toBe(true);
     expect(w.x).toBeGreaterThanOrEqual(6);
     expect(w.x + w.w).toBeLessThanOrEqual(1440 - 6);
     for (const [ax0, ay0, ax1, ay1] of avoid) {
@@ -204,6 +205,35 @@ test("packs the crowd edge to edge without covering the text, the square or the 
   // the crowd spans the whole width, edge to edge, not only the content column
   expect(Math.min(...words.map((w) => w.x))).toBeLessThanOrEqual(6 + 6);
   expect(Math.max(...words.map((w) => w.x + w.w))).toBeGreaterThanOrEqual(1440 - 6 - 6);
+});
+
+test("builders carry made-up roles; the landing's cast keep theirs", () => {
+  const roleOf = (name: string) => BUILDERS.find(([n]) => n === name)?.[1];
+  expect(BUILDERS).toHaveLength(18);
+  expect(new Set(BUILDERS.map(([name]) => name)).size).toBe(18);
+  // Backend, Mobile, Security: the three roles the hero's team gathers
+  expect([roleOf("Hamza"), roleOf("Thandiwe"), roleOf("Kidist")]).toEqual([0, 1, 2]);
+  for (const [, role] of BUILDERS) expect(role).toBeGreaterThanOrEqual(0);
+  for (const [, role] of BUILDERS) expect(role).toBeLessThan(8);
+});
+
+test("the crowd holds builders with every role, about one a row every 200px, and plain words too", () => {
+  const words = layoutCrowd({
+    width: 1440,
+    height: g.height,
+    centerX: g.x + g.square / 2,
+    centerY: g.y + g.square / 2,
+    square: g.square,
+    fontSize: 10,
+    avoid: [],
+  });
+  const people = words.filter((w) => w.role !== undefined);
+  expect(people.length).toBeGreaterThan(words.length / 25);
+  expect(people.length).toBeLessThan(words.length / 4);
+  expect(new Set(people.map((w) => w.role)).size).toBe(8);
+  // a word is a builder exactly when it has a role, and the roles are the ones in the list
+  for (const w of people) expect(BUILDERS.find(([n]) => n === w.t)?.[1]).toBe(w.role);
+  for (const w of words.filter((x) => x.role === undefined)) expect(CROWD).toContain(w.t);
 });
 
 // ---------- the scroll ----------
@@ -270,27 +300,4 @@ test("a word fades out as it reaches the text, the square or the button", () => 
   expect(zoneFade([0, 0, 40, 10], zone, 12)).toBe(1); // far away
   expect(zoneFade([60, 150, 94, 160], zone, 12)).toBeCloseTo(0.5); // 6px from the zone
   expect(zoneFade([90, 150, 110, 160], zone, 12)).toBe(0); // touching it
-});
-
-test("knows when the pointer rests directly on a word, wherever the scroll has moved it", () => {
-  const words = [{ x: 100, y: 50, w: 40, t: "team" }];
-  expect(pointerOnWord(words, 110, 55, 0, 10)).toBe(true);
-  expect(pointerOnWord(words, 110, 55, -32, 10)).toBe(false); // the word has moved left
-  expect(pointerOnWord(words, 80, 55, -32, 10)).toBe(true);
-  expect(pointerOnWord(words, 110, 70, 0, 10)).toBe(false); // below the word
-});
-
-test("a word that has scrolled off the left edge is found again coming in from the right", () => {
-  const words = [{ x: 10, y: 50, w: 40, t: "team" }];
-  // shifted 30px left, it shows at -20..20, and one hero width (360px) further right
-  expect(pointerOnWord(words, 15, 55, -30, 10, [], 360)).toBe(true);
-  expect(pointerOnWord(words, 350, 55, -30, 10, [], 360)).toBe(true);
-  expect(pointerOnWord(words, 350, 55, -30, 10)).toBe(false); // without the repeat
-});
-
-test("a word that has drifted behind the text is hidden, so resting on it does not hold the drift", () => {
-  const words = [{ x: 100, y: 50, w: 40, t: "team" }];
-  const headline = [[60, 40, 120, 70]] as const; // the word now overlaps the text area
-  expect(pointerOnWord(words, 80, 55, -32, 10, headline)).toBe(false);
-  expect(pointerOnWord(words, 80, 55, -32, 10, [])).toBe(true);
 });
