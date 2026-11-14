@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.auth import router as auth_router
 from app.api.v1.comments import router as comments_router
 from app.api.v1.health import router as health_router
+from app.api.v1.hub_chat import router as hub_chat_router
 from app.api.v1.hub_members import router as hub_members_router
 from app.api.v1.hub_notes import router as hub_notes_router
 from app.api.v1.hub_phases import router as hub_phases_router
@@ -30,5 +31,6 @@ api_v1_router.include_router(hubs_router, tags=["Hubs"])
 api_v1_router.include_router(hub_members_router, tags=["Hubs"])
 api_v1_router.include_router(hub_phases_router, tags=["Hubs"])
 api_v1_router.include_router(hub_notes_router, tags=["Hubs"])
+api_v1_router.include_router(hub_chat_router, tags=["Hubs"])
 api_v1_router.include_router(ideas_router, tags=["Ideas"])
 api_v1_router.include_router(matches_router, tags=["Matching"])
