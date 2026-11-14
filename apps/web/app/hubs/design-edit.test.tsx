@@ -567,6 +567,35 @@ test("a change is not sent while the sketch is being read again", async () => {
   await waitFor(() => expect(statusLine().textContent).toContain("The sketch is up to date."));
 });
 
+test("the buttons that send show they wait while the sketch is being read again", async () => {
+  await open(inDesign, { [DESIGN]: [starting, starting] });
+  await waitFor(() => expect(cards()).toHaveLength(2));
+  const route = fetchMock.getMockImplementation()!;
+  let finish: (value: Response) => void = () => {};
+  fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+    init?.method === "GET" && strip(url).endsWith("/design") && reads().length > 1 ? new Promise<Response>((resolve) => (finish = resolve)) : route(url, init),
+  );
+  const add = within(pieceForm()).getByRole("button", { name: "Add the piece" });
+  const addLink = within(linkForm()).getByRole("button", { name: "Add the link" });
+  expect(add.getAttribute("aria-disabled")).toBeNull();
+  fireEvent.click(within(section()).getByRole("button", { name: "Refresh" }));
+  await waitFor(() => expect(add.getAttribute("aria-disabled")).toBe("true"));
+  expect(addLink.getAttribute("aria-disabled")).toBe("true");
+  click(card("Mobile app"), "Edit the piece Mobile app");
+  const save = within(section()).getByRole("button", { name: "Save" });
+  expect(save.getAttribute("aria-disabled")).toBe("true");
+  finish(new Response(JSON.stringify(starting), { status: 200 }));
+  await waitFor(() => expect(add.getAttribute("aria-disabled")).toBeNull());
+  expect(addLink.getAttribute("aria-disabled")).toBeNull();
+  expect(save.getAttribute("aria-disabled")).toBeNull();
+});
+
+test("in English the intro says any member can add a piece or correct one", async () => {
+  await open(inDesign, { [DESIGN]: starting });
+  await waitFor(() => expect(cards()).toHaveLength(2));
+  expect(within(section()).getByText("This is the team's sketch of the system: its pieces and how they talk. Any member can add a piece or correct one.")).toBeTruthy();
+});
+
 test("in French the intro, the forms, the dialogs and the refusals are French", async () => {
   await open(inDesign, { [DESIGN]: starting, "POST /v1/hubs/hub-1/links": refusal(409, "LINK_EXISTS") }, "fr");
   await waitFor(() => expect(cards()).toHaveLength(2));

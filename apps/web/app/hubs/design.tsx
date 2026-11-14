@@ -209,7 +209,7 @@ export function DesignSketch({ lang, hub, onChange }: { lang: Lang; hub: Hub; on
   const inDesign = hub.phase === "design";
   const editable = inDesign && hub.status === "active";
   const lead = hub.status === "archived" ? d.archived : inDesign ? d.intro : d.over;
-  const shared: Shared = { lang, hubId: hub.id, busy, send, change };
+  const shared: Shared = { lang, hubId: hub.id, busy, refreshing, send, change };
 
   return (
     <section id="design" className={styles.part}>

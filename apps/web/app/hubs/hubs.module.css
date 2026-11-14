@@ -344,6 +344,15 @@
 .noteForm,
 .designForm { margin-block-start: var(--space-6); }
 
+/* A piece's name can be 60 characters, and a select is as wide as its longest option unless told
+   otherwise: it must shrink to the form instead of pushing the page sideways. */
+.pick {
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  text-overflow: ellipsis;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .noteRemove:hover {
     background: var(--surface-sunken);

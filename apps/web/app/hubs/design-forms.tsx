@@ -26,14 +26,14 @@ export type Line = { text: string; problem?: boolean; focus?: boolean };
 export type Send = (key: string, run: () => Promise<Line | null>) => Promise<void>;
 export type Change = (apply: (have: Sketch) => Sketch) => void;
 
-export type Shared = { lang: Lang; hubId: string; busy: string | null; send: Send; change: Change };
+export type Shared = { lang: Lang; hubId: string; busy: string | null; refreshing: boolean; send: Send; change: Change };
 
 // The describedby of a field: its help, and its error while it has one.
 const describe = (id: string, error?: string) => `${id}-help${error ? ` ${id}-error` : ""}`;
 
 // The form that adds a piece, and, with `piece`, the one that corrects it in place.
 export function PieceForm(props: Shared & { piece?: Piece; onSaved?: () => void; onCancel?: () => void }) {
-  const { lang, hubId, busy, send, change, piece, onSaved, onCancel } = props;
+  const { lang, hubId, busy, refreshing, send, change, piece, onSaved, onCancel } = props;
   const d = copy[lang].designSketch;
   const key = piece?.id ?? "new";
   // only what the person typed: a field they did not touch follows the piece as it is now
@@ -137,7 +137,7 @@ export function PieceForm(props: Shared & { piece?: Piece; onSaved?: () => void;
         />
       </Field>
       <div className={styles.phaseActions}>
-        <button type="submit" className={landing.ghost} aria-busy={busy === key || undefined}>
+        <button type="submit" className={landing.ghost} aria-busy={busy === key || undefined} aria-disabled={refreshing || undefined}>
           {piece ? d.piece.save : d.piece.add}
         </button>
         {piece && (
@@ -153,7 +153,7 @@ export function PieceForm(props: Shared & { piece?: Piece; onSaved?: () => void;
 // The form that adds a link from one piece to another. A piece chosen in one list is not offered
 // in the other, so a link never goes from a piece to itself.
 export function LinkForm({ pieces, ...props }: Shared & { pieces: Piece[] }) {
-  const { lang, hubId, busy, send, change } = props;
+  const { lang, hubId, busy, refreshing, send, change } = props;
   const d = copy[lang].designSketch;
   const [ids, setIds] = useState({ from: "", to: "" });
   const [label, setLabel] = useState("");
@@ -212,7 +212,7 @@ export function LinkForm({ pieces, ...props }: Shared & { pieces: Piece[] }) {
         <select
           ref={fromField}
           id="link-from"
-          className={onboarding.input}
+          className={`${onboarding.input} ${styles.pick}`}
           value={from}
           aria-invalid={!!errors.from || undefined}
           aria-describedby={describe("link-from", errors.from)}
@@ -232,7 +232,7 @@ export function LinkForm({ pieces, ...props }: Shared & { pieces: Piece[] }) {
         <select
           ref={toField}
           id="link-to"
-          className={onboarding.input}
+          className={`${onboarding.input} ${styles.pick}`}
           value={to}
           aria-invalid={!!errors.to || undefined}
           aria-describedby={describe("link-to", errors.to)}
@@ -266,7 +266,7 @@ export function LinkForm({ pieces, ...props }: Shared & { pieces: Piece[] }) {
         />
       </Field>
       <div className={styles.phaseActions}>
-        <button type="submit" className={landing.ghost} aria-busy={busy === "link" || undefined}>
+        <button type="submit" className={landing.ghost} aria-busy={busy === "link" || undefined} aria-disabled={refreshing || undefined}>
           {d.link.add}
         </button>
       </div>
