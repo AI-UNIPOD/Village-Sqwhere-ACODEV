@@ -15,12 +15,12 @@ class FallbackCodebaseAnalyzer:
         self.fallback = fallback
 
     async def analyze(
-        self, repositories: Sequence[RepositorySnapshot], role_slug: str
+        self, repositories: Sequence[RepositorySnapshot], role_slug: str, language: str
     ) -> CodebaseAnalysisResult:
         try:
-            return await self.primary.analyze(list(repositories), role_slug)
+            return await self.primary.analyze(list(repositories), role_slug, language)
         except (GroqApiError, GroqConfigurationError):
             try:
-                return await self.fallback.analyze(list(repositories), role_slug)
+                return await self.fallback.analyze(list(repositories), role_slug, language)
             except (GeminiApiError, GeminiConfigurationError):
                 raise

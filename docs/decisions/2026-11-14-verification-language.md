@@ -21,6 +21,9 @@ it: the report is written in the applicant's language. Tanny decided this on 14 
   interviewer used when no AI answers has French text for the same turns.
 - The report instruction asks for the summary, findings and concerns in that language. JSON keys,
   `security_flags` codes, `model` and numbers stay as they are.
+- The repositories check, the first phase, follows the same language, so its summary, strengths,
+  concerns and criterion rationales are written in it (changed the same day, in a second pull
+  request).
 
 ## Options we considered
 
