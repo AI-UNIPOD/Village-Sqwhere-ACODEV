@@ -22,6 +22,7 @@ from pydantic import (
 
 from app.models.hubs import HubDeclineKind, HubMemberRole, HubMemberStatus, HubPhase, HubStatus
 from app.models.ideas import IdeaStage, IdeaStatus
+from app.schemas.posts import NO_NULL
 
 # Our own limit, not the database's: hub terms written as compact JSON may be at most this
 # many characters. The team can change it here.
@@ -32,6 +33,10 @@ HubDescription = Annotated[str, StringConstraints(max_length=2000)]
 LegalName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
 Sha256Hex = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 TermsNotes = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
+# the hub_notes_body_length CHECK, counted in characters
+NoteBody = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=280, pattern=NO_NULL)
+]
 # the users_username_format CHECK
 Username = Annotated[
     str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z0-9_-]{3,39}$")
@@ -94,6 +99,12 @@ class InviteRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     username: Username
+
+
+class AddNoteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: NoteBody
 
 
 class MovePhaseRequest(BaseModel):
@@ -271,3 +282,23 @@ class HubIdeaBrief(BaseModel):
 
 class HubIdeaBriefResponse(BaseModel):
     data: HubIdeaBrief
+
+
+class HubNoteCard(BaseModel):
+    """`can_delete` is true for the note's author and the hub's owner while the hub is active and
+    in brainstorm, the only time a note can be removed."""
+
+    id: UUID
+    body: str
+    author: HubOwner
+    created_at: datetime
+    can_delete: bool
+
+
+class HubNoteResponse(BaseModel):
+    data: HubNoteCard
+
+
+class HubNoteListResponse(BaseModel):
+    data: list[HubNoteCard]
+    next_offset: int | None = None

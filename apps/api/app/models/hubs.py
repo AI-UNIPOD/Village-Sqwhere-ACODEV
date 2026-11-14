@@ -196,6 +196,25 @@ class HubPhaseMove(Base):
     )
 
 
+class HubNote(Base):
+    """A brainstorm note. Deleting one sets deleted_at; the row stays."""
+
+    __tablename__ = "hub_notes"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), nullable=False
+    )
+    author_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class AgreementSignature(Base):
     """A member's signature of the agreement. Append-only legal evidence."""
 

@@ -31,7 +31,13 @@ const idea = (over: Record<string, unknown> = {}) => ({
   published_at: "2026-11-12T10:00:00Z",
   ...over,
 });
-const match = (over: Record<string, unknown> = {}, roles = [backend]) => ({ idea: idea(over), matched_roles: roles });
+const go = { slug: "go", name: "Go" };
+const postgres = { slug: "postgresql", name: "PostgreSQL" };
+const match = (over: Record<string, unknown> = {}, roles = [backend], shared: unknown[] = []) => ({
+  idea: idea(over),
+  matched_roles: roles,
+  shared_technologies: shared,
+});
 
 const role = (slug: string, verified = false) => ({
   slug,
@@ -85,6 +91,26 @@ test("each idea says which of your verified roles it needs, and opens its page",
   expect(shown.textContent).toContain("by Ama Mensah");
   // no score and no claim to be AI
   expect(screen.queryByText(/\d%|\bscore\b|\bAI\b/)).toBeNull();
+});
+
+test("an idea that shares technologies with its author names them, with the author's name", async () => {
+  api({ "/v1/me/matches": { data: [match({}, [backend], [go, postgres]), match({ id: "idea-2", title: "Water points" })], next_offset: null }, "/v1/me": verifiedMe });
+  render(<ForYouIdeas lang="en" />);
+  const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  expect(within(shown).getByText("In common with Ama Mensah: Go, PostgreSQL")).toBeTruthy();
+  // nothing shared, no line
+  const other = screen.getByRole("link", { name: "Water points" }).closest("li")!;
+  expect(within(other).queryByText(/In common/)).toBeNull();
+});
+
+test("the shared technologies line is in French, and names an author without a name by their username", async () => {
+  api({
+    "/v1/me/matches": { data: [match({ author: { username: "danladi", display_name: "danladi", is_verified: false } }, [backend], [go])], next_offset: null },
+    "/v1/me": verifiedMe,
+  });
+  render(<ForYouIdeas lang="fr" />);
+  const line = await screen.findByText("En commun avec @danladi : Go");
+  expect(line.textContent).toContain("@danladi\u202f: Go");
 });
 
 test("several roles are listed by name, in the page's language", async () => {

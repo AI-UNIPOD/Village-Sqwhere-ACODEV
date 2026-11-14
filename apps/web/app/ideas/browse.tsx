@@ -9,7 +9,7 @@ import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { Check, Lightbulb, Users } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
-import { ROLES } from "../onboarding/options";
+import { ROLES, TECHNOLOGIES } from "../onboarding/options";
 import { useMe, type Me } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
@@ -22,6 +22,9 @@ import { IdeasSkeleton } from "./my-ideas";
 
 export const roleName = (lang: Lang, role: { slug: string; name: string }) =>
   ROLES.find((known) => known.slug === role.slug)?.name[lang] ?? role.name;
+
+export const technologyName = (lang: Lang, tech: { slug: string; name: string }) =>
+  TECHNOLOGIES.find((known) => known.slug === tech.slug)?.name[lang] ?? tech.name;
 
 // GitHub accounts without a name get the username as their name: show it once.
 export const authorName = (author: PublicIdea["author"]) =>

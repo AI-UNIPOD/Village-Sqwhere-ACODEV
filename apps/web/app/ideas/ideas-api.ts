@@ -111,14 +111,19 @@ export const loadOpenIdeas = (offset = 0) =>
 export const loadOpenIdea = async (id: string) =>
   (await call<{ data: PublicIdea }>(`/v1/ideas/${encodeURIComponent(id)}`)).data;
 
-// An open idea that needs the signed-in developer, with the verified roles of theirs it needs.
-export type IdeaMatch = { idea: PublicIdea; matched_roles: { slug: string; name: string }[] };
+// An open idea that needs the signed-in developer, with the verified roles of theirs it needs
+// and the technologies they share with the idea's author.
+export type IdeaMatch = {
+  idea: PublicIdea;
+  matched_roles: { slug: string; name: string }[];
+  shared_technologies: { slug: string; name: string }[];
+};
 
 export const loadIdeasForMe = (offset = 0) =>
   call<{ data: IdeaMatch[]; next_offset: number | null }>(`/v1/me/matches?offset=${offset}&limit=20`);
 
-// A developer verified in a role an idea needs, with why: `shared_technology_count` is how many
-// technologies they share with the idea's owner.
+// A developer verified in a role an idea needs, with why: `shared_technologies` are the ones they
+// share with the idea's owner. `country_code` is null when they named no country.
 export type Developer = {
   id: string;
   username: string;
@@ -126,7 +131,8 @@ export type Developer = {
   is_verified: boolean;
   matched_roles: { slug: string; name: string }[];
   technologies: { slug: string; name: string }[];
-  shared_technology_count: number;
+  shared_technologies: { slug: string; name: string }[];
+  country_code: string | null;
 };
 
 export const loadDevelopersForIdea = (id: string, offset = 0) =>

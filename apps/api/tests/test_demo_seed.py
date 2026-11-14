@@ -1,13 +1,14 @@
 import asyncio
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 
 from app import config, database
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.demo_seed import OWN_HUB, PEOPLE, main, seed
-from app.models import Hub, HubPhaseMove, User
+from app.models import Hub, HubNote, HubPhaseMove, User
 from tests.conftest import test_async_session as db_session
 
 
@@ -194,6 +195,60 @@ def test_the_demo_account_cannot_confirm_or_move_a_hub(client: TestClient, visit
         assert resp.status_code == 403
         assert resp.json()["detail"]["code"] == "DEMO_READ_ONLY"
     assert _own_hub(client, visitor)["phase"] == "build"
+
+
+def _hub_notes(client: TestClient, visitor: dict) -> list[dict]:
+    resp = client.get(f"/v1/hubs/{_own_hub(client, visitor)['id']}/notes", headers=visitor)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]
+
+
+def test_the_demo_hub_has_six_brainstorm_notes_the_visitor_can_read_but_not_change(
+    client: TestClient, visitor: dict
+) -> None:
+    hub_id = _own_hub(client, visitor)["id"]
+    notes = _hub_notes(client, visitor)
+
+    assert len(notes) == 6
+    members = client.get(f"/v1/hubs/{hub_id}/members", headers=visitor).json()["data"]
+    active = {m["user"]["id"] for m in members if m["status"] == "active"}
+    assert {note["author"]["id"] for note in notes} == active
+    now = datetime.now(UTC)
+    times = [datetime.fromisoformat(note["created_at"]) for note in notes]
+    assert times == sorted(times)
+    assert all(now - timedelta(days=9) < moment < now - timedelta(days=6) for moment in times)
+    assert any("é" in note["body"] for note in notes)  # some French
+    assert all(note["can_delete"] is False for note in notes)  # the hub is in build
+
+    for resp in (
+        client.post(f"/v1/hubs/{hub_id}/notes", headers=visitor, json={"body": "Hello"}),
+        client.delete(f"/v1/hubs/{hub_id}/notes/{notes[0]['id']}", headers=visitor),
+    ):
+        assert resp.status_code == 403
+        assert resp.json()["detail"]["code"] == "DEMO_READ_ONLY"
+    assert _hub_notes(client, visitor) == notes
+
+
+def test_a_rerun_adds_the_notes_only_when_the_hub_has_none(
+    client: TestClient, visitor: dict
+) -> None:
+    notes = _hub_notes(client, visitor)
+    assert len(notes) == 6
+
+    _seed()
+    assert _hub_notes(client, visitor) == notes
+
+    async def clear() -> None:
+        async with db_session() as session:
+            await session.execute(
+                delete(HubNote).where(HubNote.hub_id == _own_hub(client, visitor)["id"])
+            )
+            await session.commit()
+
+    asyncio.run(clear())
+    assert _hub_notes(client, visitor) == []
+    _seed()
+    assert [note["body"] for note in _hub_notes(client, visitor)] == [n["body"] for n in notes]
 
 
 def test_the_script_writes_nothing_where_the_demo_is_off(
