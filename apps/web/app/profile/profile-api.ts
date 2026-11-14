@@ -14,3 +14,6 @@ export const removeRole = (slug: string) => call(`/v1/me/roles/${slug}`, "DELETE
 
 export const saveStack = async (slugs: string[]) =>
   (await call<{ data: Me["technologies"] }>("/v1/me/technologies", "PUT", { technologies: slugs })).data;
+
+export const saveSectors = async (slugs: string[]) =>
+  (await call<{ data: Me["sectors"] }>("/v1/me/sectors", "PUT", { sectors: slugs })).data;

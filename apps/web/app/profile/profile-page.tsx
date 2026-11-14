@@ -11,7 +11,7 @@ import { RequireSession, SignOutButton } from "../session/session-ui";
 import { copy } from "./copy";
 import styles from "./profile.module.css";
 import { RolesSection } from "./roles-section";
-import { StackSection } from "./stack-section";
+import { SectorsSection, StackSection } from "./stack-section";
 import { YouSection } from "./you-section";
 
 // Shown while the profile loads: blocks where the sections will be.
@@ -81,12 +81,13 @@ function Profile({ lang }: { lang: Lang }) {
       <YouSection lang={lang} me={me} onMe={onMe} />
       <RolesSection lang={lang} me={me} onMe={onMe} />
       <StackSection lang={lang} me={me} onMe={onMe} />
+      <SectorsSection lang={lang} me={me} onMe={onMe} />
       <Account lang={lang} />
     </main>
   );
 }
 
-// The developer's own page: the name and bio others see, the roles they hold and their stack.
+// The developer's own page: the name and bio others see, the roles they hold, their stack and sectors.
 export function ProfilePage({ lang }: { lang: Lang }) {
   return (
     <AppFrame lang={lang} path="profile">
