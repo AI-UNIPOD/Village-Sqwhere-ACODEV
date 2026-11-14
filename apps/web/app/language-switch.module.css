@@ -1,0 +1,97 @@
+/* EN and FR on a track, the page's language on a dark thumb (language-switch.tsx). The thumb
+   sits at --at (0 or 1) and leans --lean towards the other language on hover. */
+.switch {
+  --pad: calc(var(--space-1) / 2);
+  --lean: 0%;
+  position: relative;
+  display: grid;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  block-size: calc(var(--space-8) + var(--space-1));
+  padding: var(--pad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: var(--bg);
+}
+
+.thumb {
+  position: absolute;
+  inset-block: var(--pad);
+  inset-inline-start: var(--pad);
+  inline-size: calc(50% - var(--pad));
+  border-radius: var(--radius-full);
+  background: var(--text);
+  transform: translateX(calc(var(--at) * 100% + var(--lean)));
+  transition: transform var(--dur-modal) var(--ease-out);
+}
+
+/* pressed: the thumb crosses to the other language while it loads */
+.switch[data-going] .thumb {
+  transform: translateX(calc((1 - var(--at)) * 100%));
+}
+
+.option {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-inline-size: var(--tap-min);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font: var(--type-mono-label);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: color var(--dur-modal) var(--ease-out);
+}
+
+.option[aria-current] {
+  color: var(--bg);
+}
+
+/* the link is 44px tall to a finger, wider than it looks */
+a.option::before {
+  content: "";
+  position: absolute;
+  inset-block: calc((100% - var(--tap-min)) / 2);
+  inset-inline: 0;
+}
+
+.switch[data-going] .option[aria-current] {
+  color: var(--text-muted);
+}
+
+.switch[data-going] a.option {
+  color: var(--bg);
+}
+
+/* the lean is movement, so not with reduced motion */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .switch:has(a.option:hover):not([data-going]) {
+    --lean: calc((1 - 2 * var(--at)) * 12%);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a.option:hover {
+    color: var(--text);
+  }
+}
+
+/* reduced motion: the thumb changes place without travelling */
+@media (prefers-reduced-motion: reduce) {
+  .thumb {
+    transition: none;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

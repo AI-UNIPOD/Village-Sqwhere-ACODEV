@@ -10,7 +10,8 @@ import { useKeptInvitations } from "./hubs/invitations";
 import { copy as shared } from "./landing/copy";
 import landing from "./landing/landing-page.module.css";
 import { ThemeButton } from "./landing/theme-toggle";
-import { LANGUAGE_NAMES, type Lang } from "./locales";
+import { LanguageSwitch } from "./language-switch";
+import { type Lang } from "./locales";
 import { Logo } from "./logo";
 import { Home, Lightbulb, Newspaper, ShieldCheck, User, Users } from "./onboarding/icons";
 import { useDemoRefusals } from "./session/demo";
@@ -81,7 +82,6 @@ function DemoLine({ lang }: { lang: Lang }) {
 // list either way, placed by the stylesheet.
 export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) {
   const t = copy[lang];
-  const other: Lang = lang === "en" ? "fr" : "en";
   const signedIn = !!useSession();
   const me = useKeptMe();
   useEffect(() => {
@@ -138,10 +138,7 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
         )}
         {!locked && (
           <div className={styles.tools}>
-            {/* A plain link on purpose: a full page load, as on the landing page. */}
-            <a className={landing.navLink} href={`/${other}/${path}`} hrefLang={other} lang={other} translate="no">
-              {LANGUAGE_NAMES[other]}
-            </a>
+            <LanguageSwitch lang={lang} path={path} />
             <ThemeButton toDark={shared[lang].toDark} toLight={shared[lang].toLight} className={styles.theme} />
             {/* once there is a profile page to reach, signing out lives there */}
             {signedIn && bare && <SignOutButton lang={lang} label={shared[lang].signOut} className={landing.navLink} />}

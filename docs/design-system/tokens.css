@@ -76,10 +76,8 @@
   --hero-frame-share: 72%;
   --tap-min: 44px;
 
-  /* landing page layout: round floating buttons, header, section space */
+  /* landing page layout: the hero's motion button, header, section space */
   --float-size: 36px;
-  --float-top: 10px;
-  --float-gutter: 64px;
   --section-block: 56px;
   --nav-height: 56px;
   --nav-gap: var(--space-3);
@@ -135,7 +133,7 @@
     --gutter: var(--space-6); --pad-card: var(--space-6); --grid-gap: var(--space-6);
     --type-wordmark: 700 17px/1 var(--display);
     --type-wordmark-nav: 700 clamp(16px, 1.3vw, 20px)/1 var(--display);
-    --float-top: 18px; --float-gutter: 68px; --section-block: var(--space-20); --nav-height: 72px;
+    --section-block: var(--space-20); --nav-height: 72px;
     --nav-gap: clamp(20px, 2vw, 32px); --nav-logo-size: clamp(28px, 2.4vw, 36px);
     --pill-height: 56px; --pill-top: var(--space-3);
   }

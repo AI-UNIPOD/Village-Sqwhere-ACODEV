@@ -63,8 +63,8 @@ test("shows the four steps and the four tour stops that add up to three minutes"
 });
 
 test.each([
-  ["en", "Passer en français", "/fr"],
-  ["fr", "Switch to English", "/en"],
+  ["en", "Français", "/fr"],
+  ["fr", "English", "/en"],
 ] as const)("the %s page offers the other language", (lang, label, href) => {
   render(<LandingPage lang={lang} />);
   const link = screen.getByRole("link", { name: label });
@@ -74,14 +74,14 @@ test.each([
 
 // Browser translation turned "Village Sqwhere" into "Village Square" and "EN" into "IN".
 test.each([
-  ["en", "Passer en français"],
-  ["fr", "Switch to English"],
+  ["en", "Français"],
+  ["fr", "English"],
 ] as const)("the %s page keeps the brand name and the language switch out of translation", (lang, label) => {
   render(<LandingPage lang={lang} />);
   const wordmarks = screen.getAllByText("Village Sqwhere");
   expect(wordmarks).toHaveLength(2);
   for (const wordmark of wordmarks) expect(wordmark.getAttribute("translate")).toBe("no");
-  expect(screen.getByRole("link", { name: label }).getAttribute("translate")).toBe("no");
+  expect(screen.getByRole("link", { name: label }).closest("[translate]")?.getAttribute("translate")).toBe("no");
 });
 
 test("offers a dark mode toggle in each language", () => {
@@ -104,12 +104,12 @@ test("has one banner and one main navigation, whether or not the header is pinne
   expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
 });
 
-// jsdom has no layout, so this reads the stylesheet. At 360px the French links need 311px but
-// the header's gutter for the language button left the row 280px, and "Comment ça marche" wrapped.
-test("on phones the section links reach into the language button's gutter, and not on wide screens", () => {
+// jsdom has no layout, so this reads the stylesheet: on phones the section links take a row of
+// their own under the logo and the switches, and on wide screens they share the one row.
+test("on phones the section links get a row of their own, and not on wide screens", () => {
   const css = readFileSync(join(__dirname, "landing-page.module.css"), "utf8").replace(/\s+/g, " ");
   const [phone, wide] = [...css.matchAll(/\.navLinks \{([^}]*)\}/g)].map((m) => m[1]);
-  expect(phone).toContain("flex: 0 0 calc(100% + var(--float-gutter) - var(--space-4));");
+  expect(phone).toContain("flex: 0 0 100%;");
   expect(wide).toContain("flex: 0 1 auto;");
 });
 
@@ -204,12 +204,13 @@ test("draws the logo from the Logo component, hidden from screen readers", () =>
 // The round buttons have no words on them, so each says what it does in a tooltip, in the page's
 // language. The hero's motion button shows its words, so it needs no tooltip.
 test.each([
-  ["en", "Passer en français", "Switch to dark mode", "Pause animation"],
-  ["fr", "Switch to English", "Passer en mode sombre", "Mettre l'animation en pause"],
-] as const)("the %s page gives its language and theme buttons a tooltip in its own words", (lang, language, theme, motion) => {
+  ["en", "Français", "Switch to dark mode", "Pause animation"],
+  ["fr", "English", "Passer en mode sombre", "Mettre l'animation en pause"],
+] as const)("the %s page gives its theme button a tooltip in its own words", (lang, language, theme, motion) => {
   render(<LandingPage lang={lang} />);
   const tooltipOf = (host: Element) => host.querySelector("[data-tooltip]")?.textContent;
-  expect(tooltipOf(screen.getByRole("link", { name: language }))).toBe(language);
+  // the language switch shows both languages, so it needs no tooltip
+  expect(tooltipOf(screen.getByRole("link", { name: language }))).toBeUndefined();
   expect(tooltipOf(screen.getByRole("button", { name: theme }))).toBe(theme);
   // the motion button is hidden until the hero script has placed it, so look past that
   const motionButton = screen

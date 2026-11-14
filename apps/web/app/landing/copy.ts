@@ -12,8 +12,6 @@ type Copy = {
   signOut: string;
   /** Under "Try the demo": what it is, then how opening it is going. */
   demo: { idle: string; opening: string; unavailable: string; network: string; failed: string };
-  switchText: string;
-  switchLabel: string;
   toDark: string;
   toLight: string;
   pause: string;
@@ -55,8 +53,6 @@ const en: Copy = {
     network: "We couldn't reach Village Sqwhere. Check your connection and try again.",
     failed: "The demo did not open. Try again.",
   },
-  switchText: "FR",
-  switchLabel: "Passer en français",
   toDark: "Switch to dark mode",
   toLight: "Switch to light mode",
   pause: "Pause animation",
@@ -122,8 +118,6 @@ const fr: Copy = {
     network: "Nous n'avons pas pu joindre Village Sqwhere. Vérifiez votre connexion et réessayez.",
     failed: "La démo ne s'est pas ouverte. Réessayez.",
   },
-  switchText: "EN",
-  switchLabel: "Switch to English",
   toDark: "Passer en mode sombre",
   toLight: "Passer en mode clair",
   pause: "Mettre l'animation en pause",

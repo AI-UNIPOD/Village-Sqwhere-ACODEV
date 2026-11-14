@@ -6,11 +6,10 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { copy as landing } from "../landing/copy";
 import { GatherHero } from "../landing/gather-hero";
 import landingStyles from "../landing/landing-page.module.css";
-import { ThemeToggle } from "../landing/theme-toggle";
+import { HeaderTools } from "../landing/header-tools";
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
 import { API_URL, useSession } from "../session/session";
-import { Tooltip } from "../tooltip";
 import { copy, type ProblemKey } from "./copy";
 import styles from "./sign-in-page.module.css";
 
@@ -143,7 +142,6 @@ function Marker({ n, state }: { n: number; state: StepState }) {
 export function SignInPage({ lang }: { lang: Lang }) {
   const t = copy[lang];
   const shared = landing[lang];
-  const other: Lang = lang === "en" ? "fr" : "en";
   const [status, setStatus] = useState<Status>("idle");
   const returned = useReturnedProblem();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -195,21 +193,8 @@ export function SignInPage({ lang }: { lang: Lang }) {
           <Logo size={24} className={landingStyles.navLogo} />
           <span className={landingStyles.navWordmark} translate="no">Village Sqwhere</span>
         </Link>
+        <HeaderTools lang={lang} path="sign-in" />
       </header>
-
-      {/* A plain link on purpose, as on the landing page: a full page load keeps the theme. */}
-      <a
-        className={`${landingStyles.fab} ${landingStyles.fabTop}`}
-        href={`/${other}/sign-in`}
-        hrefLang={other}
-        lang={other}
-        translate="no"
-        aria-label={shared.switchLabel}
-      >
-        {shared.switchText}
-        <Tooltip label={shared.switchLabel} side="left" />
-      </a>
-      <ThemeToggle toDark={shared.toDark} toLight={shared.toLight} />
 
       <main>
         <GatherHero labelledBy="sign-in-title" labels={{ pause: shared.pause, play: shared.play }}>

@@ -84,7 +84,7 @@ test.each([
 ] as const)("the %s header keeps the brand name and the language link out of translation", (lang, label) => {
   start(lang);
   expect(screen.getByText("Village Sqwhere").getAttribute("translate")).toBe("no");
-  expect(screen.getByRole("link", { name: label }).getAttribute("translate")).toBe("no");
+  expect(screen.getByRole("link", { name: label }).closest("[translate]")?.getAttribute("translate")).toBe("no");
 });
 
 test("the welcome screen is in French on /fr", () => {
