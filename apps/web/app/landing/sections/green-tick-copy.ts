@@ -28,7 +28,7 @@ const en: Copy = {
   steps: [
     {
       title: "Repositories check",
-      text: "An AI checker reads the public GitHub repositories you choose. Private ones are never read.",
+      text: "An AI checker looks at the public GitHub repositories you choose: file names, languages, tests and recent commit messages. Only public repositories can be checked.",
     },
     {
       title: "Interview",
@@ -36,7 +36,7 @@ const en: Copy = {
     },
     {
       title: "Peer review",
-      text: "A developer already verified in your role reads the report and decides. They see your work, not your name.",
+      text: "A developer already verified in your role reads the evidence and decides. They do not see your profile, but repository addresses can show your GitHub name.",
     },
   ],
   attempts: "You get three attempts for each role.",
@@ -61,7 +61,7 @@ const fr: Copy = {
   steps: [
     {
       title: "Analyse des dépôts",
-      text: "Un vérificateur IA lit les dépôts GitHub publics que vous choisissez. Les dépôts privés ne sont jamais lus.",
+      text: "Un vérificateur IA examine les dépôts GitHub publics que vous choisissez\u202f: noms de fichiers, langages, tests et derniers messages de commit. Seuls les dépôts publics peuvent être analysés.",
     },
     {
       title: "Entretien",
@@ -69,7 +69,7 @@ const fr: Copy = {
     },
     {
       title: "Relecture par un pair",
-      text: "Un développeur déjà vérifié dans votre rôle lit le rapport et décide. Cette personne voit votre travail, pas votre nom.",
+      text: "Un développeur déjà vérifié dans votre rôle lit les éléments et décide. Cette personne ne voit pas votre profil, mais les adresses des dépôts peuvent montrer votre nom GitHub.",
     },
   ],
   attempts: "Vous avez trois tentatives par rôle.",

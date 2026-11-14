@@ -29,33 +29,34 @@ export const COMMITS = [
 ] as const;
 
 const en: Copy = {
-  title: "Inside the hub: four phases, one team.",
-  lead: "A hub moves through four phases, one at a time. This one is a made-up sample.",
-  sampleTag: "Sample hub",
-  closing: "The phases open when the team is in place.",
+  title: "Your hub has four phases.",
+  lead:
+    "The hub page lists four phases: brainstorm, design and architecture, build, then review and test. Their tools are not built yet, so what you see below is a made-up sample.",
+  sampleTag: "Sample, not built yet",
+  closing: "Today the hub only lists the phases. Each one reads Not started.",
   tablist: "Phases",
   done: "Done",
   phases: [
     {
       name: "Brainstorm",
-      text: "The team agrees what to build first, and who does what.",
+      text: "A space to agree what to build first, and who does what.",
       view: "Sticky notes",
       items: ["Traders want one payout each evening", "Start with two banks, not ten", "Out of scope: card payments"],
     },
     {
       name: "Design and architecture",
-      text: "The team sketches the pieces of the system and how they talk.",
+      text: "A space to sketch the pieces of the system and how they talk.",
       view: "Architecture sketch",
       items: ["Payout queue", "Bank adapter", "Retry worker"],
     },
     {
       name: "Build",
-      text: "Each builder takes a piece and ships small changes often.",
+      text: "A space to follow who builds which piece.",
       view: "Commit log",
     },
     {
       name: "Review and test",
-      text: "Teammates read each other's work and test it before it goes out.",
+      text: "A space for teammates to read each other's work and test it before it goes out.",
       view: "Review checklist",
       items: [
         "Retries tested with the bank offline",
@@ -67,16 +68,17 @@ const en: Copy = {
 };
 
 const fr: Copy = {
-  title: "Dans l'espace\u202f: quatre phases, une équipe.",
-  lead: "Un espace traverse quatre phases, une à la fois. Celui-ci est un exemple inventé.",
-  sampleTag: "Espace d'exemple",
-  closing: "Les phases s'ouvrent quand l'équipe est en place.",
+  title: "Votre espace compte quatre phases.",
+  lead:
+    "La page de l'espace liste quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Leurs outils ne sont pas encore construits\u202f: ce qui suit est un exemple inventé.",
+  sampleTag: "Exemple, pas encore construit",
+  closing: "Aujourd'hui, l'espace se contente de lister les phases. Chacune indique Pas commencée.",
   tablist: "Phases",
   done: "Fait",
   phases: [
     {
       name: "Brainstorm",
-      text: "L'équipe choisit ce qu'elle construit en premier, et qui fait quoi.",
+      text: "Un espace pour choisir ce qu'on construit en premier, et qui fait quoi.",
       view: "Notes autocollantes",
       items: [
         "Les marchands veulent un seul paiement chaque soir",
@@ -86,19 +88,19 @@ const fr: Copy = {
     },
     {
       name: "Conception et architecture",
-      text: "L'équipe dessine les briques du système et la façon dont elles communiquent.",
+      text: "Un espace pour dessiner les briques du système et la façon dont elles communiquent.",
       view: "Schéma d'architecture",
       items: ["File des paiements", "Connecteur bancaire", "Worker de relance"],
     },
     {
       name: "Construction",
-      text: "Chacun prend une brique et livre souvent de petits changements.",
+      text: "Un espace pour suivre qui construit quelle brique.",
       view: "Historique des commits",
       // commit messages are code: the same in both languages, with no French space before the colon
     },
     {
       name: "Revue et tests",
-      text: "Les membres de l'équipe se relisent et testent le travail avant sa mise en ligne.",
+      text: "Un espace pour que l'équipe se relise et teste le travail avant sa mise en ligne.",
       view: "Liste de revue",
       items: [
         "Relances testées, banque hors ligne",

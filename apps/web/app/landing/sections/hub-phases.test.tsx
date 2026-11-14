@@ -69,7 +69,7 @@ test.each(["en", "fr"] as const)("the %s section shows its heading, lead and sam
   const t = copy[lang];
   expect(screen.getByRole("heading", { level: 2, name: t.title })).toBeTruthy();
   expect(container.querySelector("section#hub")!.getAttribute("aria-labelledby")).toBe("hub-title");
-  expect(screen.getByText(t.lead)).toBeTruthy();
+  expect(screen.getByText(t.lead, verbatim)).toBeTruthy();
   expect(screen.getByText(t.sampleTag)).toBeTruthy();
   expect(screen.getByText(t.closing, verbatim)).toBeTruthy();
 });
