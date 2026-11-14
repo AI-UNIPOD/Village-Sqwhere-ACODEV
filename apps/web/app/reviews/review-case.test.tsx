@@ -72,7 +72,7 @@ const dialog = () => document.querySelector("dialog")!;
 
 beforeEach(() => {
   // the frame already knows who is signed in, as it does after the first screen of a visit
-  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, roles: [], technologies: [], feed_topics: [], sectors: [] });
+  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, country_code: null, roles: [], technologies: [], feed_topics: [], sectors: [] });
   vi.stubGlobal("fetch", fetchMock);
   // jsdom has no modal dialog: this stands in for what a browser does
   HTMLDialogElement.prototype.showModal = function () {
