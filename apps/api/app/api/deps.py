@@ -84,6 +84,7 @@ def user_to_profile(user: User) -> UserProfile:
         email_verified=user.email_verified_at is not None,
         avatar_url=user.avatar_url,
         bio=user.bio,
+        country_code=user.country_code,
         is_verified=user.is_verified,
         verified_at=user.verified_at,
         platform_role=(

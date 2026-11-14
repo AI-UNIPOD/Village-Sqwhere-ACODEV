@@ -343,6 +343,7 @@ Fetches the full profile of the currently signed-in user.
       "email_verified": true,
       "avatar_url": "https://avatars.githubusercontent.com/u/1001",
       "bio": "Backend engineer in Lagos",
+      "country_code": "NG",
       "is_verified": true,
       "verified_at": "2026-11-06T18:00:00Z",
       "platform_role": "member",
@@ -389,9 +390,11 @@ Updates editable fields on the user's profile.
     "bio": "Updated bio description",
     "first_name": "Ada",
     "last_name": "Obi",
-    "email": "new-email@example.com"
+    "email": "new-email@example.com",
+    "country_code": "NG"
   }
   ```
+* **Country:** `country_code` is optional and has no city beside it. It is a two-letter ISO code (capital letters) of one of the 54 African countries, such as `NG`, `SN` or `KE`; the list is `AFRICAN_COUNTRY_CODES` in `apps/api/app/countries.py`. It is `null` until a developer sets it. Send a code to set or change it, send `"country_code": null` to clear it, and leave the key out to keep it as it is. Any other value (a code from outside Africa, lowercase, three letters) gets a `422` that names `country_code`. Later it will show to other signed-in developers on match cards.
 * **Limits:** `display_name` 1 to 80 characters, `first_name` and `last_name` 1 to 100, after spaces at the start and end are removed. `bio` up to 1000 characters. `email` must look like `name@example.com`. A new email is saved as not verified.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
 * **Error Responses:** `422` when a field breaks a limit (the error names the field). `409` `EMAIL_TAKEN` when another account already uses the email, in any mix of upper and lower case.
@@ -533,6 +536,13 @@ the session is waiting for or receiving repository analysis, `technical_defence`
 analysis is complete and the interview can begin, and `report_generation` while the final
 review brief is being prepared. It is `null` for terminal states and `awaiting_review`.
 
+Each attempt has a `language`, `en` or `fr`, chosen when it starts and never changed. The AI
+interviewer asks its questions in it, and the final report is written in it, so a reviewer who
+reads only English can be given a French report. The applicant's attempt and the reviewer's queue
+and case all carry `language`. The instruction that sets the language comes from a fixed list in
+the code, keyed by the stored value, and never from anything the applicant typed. When no AI
+provider answers, the built-in interviewer speaks the same language.
+
 The codebase analysis service reads public GitHub repository metadata, languages, a bounded file
 tree, test paths and recent commits. `GITHUB_API_TOKEN` is optional. Without it, public
 repositories use GitHub's unauthenticated rate limit. Repository code is never executed.
@@ -606,7 +616,9 @@ It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each 
 with a database row lock, and a failed job is logged while the loop continues.
 
 Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
-`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape.
+`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape. The
+summary, findings and concerns are written in the attempt's `language`. The JSON keys,
+`security_flags` codes, `model` and numbers do not change.
 
 #### `POST /v1/me/verifications/{role_slug}`
 
@@ -616,9 +628,12 @@ Starts a verification attempt for one of the signed-in developer's claimed roles
 * **Request Body:**
   ```json
   {
-    "repositories": ["https://github.com/example/project"]
+    "repositories": ["https://github.com/example/project"],
+    "language": "fr"
   }
   ```
+  `language` is optional: `en` (the default) or `fr`. Anything else is a `422` that names the
+  field.
 * **Success Response (201 Created):** Returns the new verification session in `data`.
 * **Errors:** `404 ROLE_NOT_CLAIMED`, `409 VERIFICATION_IN_PROGRESS`,
   `409 ROLE_ALREADY_VERIFIED` or `409 VERIFICATION_ATTEMPTS_EXHAUSTED`.

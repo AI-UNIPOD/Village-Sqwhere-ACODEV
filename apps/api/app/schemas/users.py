@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
+from app.countries import AFRICAN_COUNTRY_CODES
 from app.schemas.lookups import SectorRef, TechnologyRef
 
 
@@ -43,6 +44,7 @@ class UserProfile(BaseModel):
     email_verified: bool = False
     avatar_url: str | None = None
     bio: str | None = None
+    country_code: str | None = None
     is_verified: bool = False
     verified_at: datetime | None = None
     platform_role: str = "member"
@@ -79,6 +81,15 @@ class UserProfileUpdate(BaseModel):
         Annotated[str, StringConstraints(max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
         | None
     ) = None
+    # null clears the country; leaving the key out keeps it (the route checks model_fields_set)
+    country_code: str | None = None
+
+    @field_validator("country_code")
+    @classmethod
+    def country_must_be_african(cls, code: str | None) -> str | None:
+        if code is not None and code not in AFRICAN_COUNTRY_CODES:
+            raise ValueError("must be the two-letter code of an African country, such as NG")
+        return code
 
 
 class UserRoleResponse(BaseModel):

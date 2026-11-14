@@ -7,8 +7,8 @@ Run it where the demo should be on (DEMO_ENABLED=true), against that server's DA
 Every person here is made up, and every account is a demo account (users.is_demo), so the wall
 in app/api/deps.py keeps all of it away from real developers. Times are set relative to when
 the script runs, so the feed reads "2 hours ago". Running it again rewrites the posts and
-comments with fresh times and leaves the rest, except that it puts the visitor's own hub in
-build if it has no phase yet.
+comments with fresh times, sets the countries again and leaves the rest, except that it puts
+the visitor's own hub in build if it has no phase yet.
 docs/decisions/2026-11-13-read-only-demo.md
 """
 
@@ -63,6 +63,15 @@ PEOPLE = {
     "wanjiru": ("wanjiru_kamau", "Wanjiru Kamau", "ML engineer in Nairobi, mostly Swahili NLP."),
     "tendai": ("tendai_moyo", "Tendai Moyo", "DevOps in Harare. Keeps things running."),
 }
+# where each person lives, from their bio
+COUNTRIES = {
+    "you": "NG",
+    "aminata": "SN",
+    "kwabena": "GH",
+    "danladi": "NG",
+    "wanjiru": "KE",
+    "tendai": "ZW",
+}
 # role slug each person is verified in; the visitor's is their main role
 VERIFIED = {
     "you": "backend-engineer",
@@ -108,10 +117,11 @@ async def seed(db: AsyncSession) -> bool:
         people = {key: found[username] for key, (username, _, _) in PEOPLE.items()}
         # comments, likes, saves and topics go with their posts
         await db.execute(delete(Post).where(Post.author_id.in_([u.id for u in people.values()])))
-    for user in people.values():
+    for key, user in people.items():
         # users.is_verified follows verified_at; every person here has a verified role, so the
         # Green Tick shows on their cards. Set on a rerun too, for worlds seeded before this.
         user.verified_at = user.verified_at or ago(days=20)
+        user.country_code = COUNTRIES[key]  # also on a rerun, for worlds seeded before countries
     await _start_own_hub(db, people["you"])
     await _write_feed(db, people)
     await db.commit()

@@ -20,6 +20,7 @@ from app.services.interview import (
     InterviewHistoryItem,
     InterviewOpening,
     InterviewUnavailable,
+    interview_system_prompt,
 )
 
 
@@ -98,7 +99,9 @@ class GroqInterviewAgent:
         self.model = model
         self.timeout = timeout
 
-    async def opening(self, role_slug: str, analysis: dict | None) -> InterviewOpening:
+    async def opening(
+        self, role_slug: str, analysis: dict | None, language: str
+    ) -> InterviewOpening:
         response = await self._structured_chat(
             {
                 "phase": "opening",
@@ -109,7 +112,8 @@ class GroqInterviewAgent:
                     "Welcome the applicant, explain that there are five technical questions, "
                     "then ask question one. Return welcome and question."
                 ),
-            }
+            },
+            language,
         )
         try:
             return InterviewOpening.model_validate_json(response)
@@ -122,6 +126,7 @@ class GroqInterviewAgent:
         next_turn: int,
         analysis: dict | None,
         history: list[InterviewHistoryItem],
+        language: str,
     ) -> InterviewContinuation:
         response = await self._structured_chat(
             {
@@ -136,7 +141,8 @@ class GroqInterviewAgent:
                     "history for adaptive depth without repeating a question. Return "
                     "acknowledgement and question."
                 ),
-            }
+            },
+            language,
         )
         try:
             return InterviewContinuation.model_validate_json(response)
@@ -148,6 +154,7 @@ class GroqInterviewAgent:
         role_slug: str,
         analysis: dict | None,
         history: list[InterviewHistoryItem],
+        language: str,
     ) -> InterviewClosing:
         response = await self._structured_chat(
             {
@@ -160,26 +167,24 @@ class GroqInterviewAgent:
                     "that the evidence will proceed to peer review. Return acknowledgement and "
                     "closing."
                 ),
-            }
+            },
+            language,
         )
         try:
             return InterviewClosing.model_validate_json(response)
         except ValueError as error:
             raise InterviewUnavailable("Groq interview closing is invalid.") from error
 
-    async def _structured_chat(self, payload: dict[str, Any]) -> str:
+    async def _structured_chat(self, payload: dict[str, Any], language: str) -> str:
         if not self.api_key or not self.model:
             raise InterviewUnavailable("Groq interview chat is not configured.")
+        system = interview_system_prompt(SYSTEM_PROMPT, language)
         user = json.dumps(payload, ensure_ascii=True, separators=(",", ":"))
-        if _estimated_tokens(SYSTEM_PROMPT) + _estimated_tokens(user) > (
+        if _estimated_tokens(system) + _estimated_tokens(user) > (
             GROQ_INTERVIEW_CONTEXT_BUDGET_TOKENS
         ):
             raise InterviewUnavailable("Groq interview context budget exceeded.")
-        return await self._chat(
-            self.model,
-            SYSTEM_PROMPT,
-            user,
-        )
+        return await self._chat(self.model, system, user)
 
     async def _chat(self, model: str, system: str, user: str) -> str:
         try:

@@ -30,19 +30,19 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Share an idea",
-        text: "An idea has a public part everyone sees and the roles it needs. It also has a private brief only the team reads.",
+        text: "An idea has a public part that signed-in developers see, with the roles it needs. It also has a private brief only the team reads.",
       },
       {
         name: "See who the matcher suggests",
         text: "The matcher suggests verified developers whose role the idea needs. It says why each one matched.",
       },
       {
-        name: "Approve your team",
-        text: "The owner approves the team: a developer has asked to join this hub. A hub takes 2 to 5 people, and everyone signs the same agreement.",
+        name: "Invite your team",
+        text: "The owner invites developers, or answers those who ask to join. Approving a request sends an invitation, and the person then reads the agreement and signs. A hub takes up to five people, the owner included.",
       },
       {
-        name: "Walk the hub's four phases",
-        text: "The hub has four phases: brainstorm, design and architecture, build, and review. The team moves through them one at a time.",
+        name: "See the hub's four phases",
+        text: "The hub page lists four phases: brainstorm, design and architecture, build, and review and test. They are not open yet, so each one reads Not started.",
       },
     ],
     start: "Start the route",
@@ -65,19 +65,19 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Partager une idée",
-        text: "Une idée a une partie publique que tout le monde voit et les rôles dont elle a besoin. Elle a aussi un brief privé que seule l'équipe lit.",
+        text: "Une idée a une partie publique que voient les développeurs connectés, avec les rôles dont elle a besoin. Elle a aussi un brief privé que seule l'équipe lit.",
       },
       {
         name: "Voir qui le matcher propose",
         text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il dit pourquoi chacun correspond.",
       },
       {
-        name: "Valider votre équipe",
-        text: "Le porteur valide l'équipe\u202f: un développeur a demandé à rejoindre cet espace. Un espace réunit de 2 à 5 personnes, et tout le monde signe le même accord.",
+        name: "Inviter votre équipe",
+        text: "Le porteur invite des développeurs, ou répond à ceux qui demandent à rejoindre l'espace. Accepter une demande envoie une invitation\u202f: la personne lit alors l'accord et le signe. Un espace accueille jusqu'à cinq personnes, porteur compris.",
       },
       {
-        name: "Parcourir les quatre phases de l'espace",
-        text: "L'espace a quatre phases\u202f: brainstorm, conception et architecture, construction, et revue. L'équipe les traverse une à une.",
+        name: "Voir les quatre phases de l'espace",
+        text: "La page de l'espace liste quatre phases\u202f: brainstorm, conception et architecture, construction, et revue et tests. Elles ne sont pas encore ouvertes\u202f: chacune indique Pas commencée.",
       },
     ],
     start: "Commencer le parcours",

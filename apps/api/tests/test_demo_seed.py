@@ -7,7 +7,7 @@ from sqlalchemy import func, select, update
 from app import config, database
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.demo_seed import OWN_HUB, PEOPLE, main, seed
-from app.models import Hub, HubPhaseMove
+from app.models import Hub, HubPhaseMove, User
 from tests.conftest import test_async_session as db_session
 
 
@@ -89,6 +89,19 @@ def test_running_the_seed_again_rewrites_only_the_feed(client: TestClient, visit
     assert after.isdisjoint(before)
 
 
+def _countries() -> dict[str, str | None]:
+    async def go() -> dict[str, str | None]:
+        async with db_session() as session:
+            rows = await session.execute(
+                select(User.username, User.country_code).where(
+                    User.username.in_([username for username, _, _ in PEOPLE.values()])
+                )
+            )
+            return dict(rows.all())
+
+    return asyncio.run(go())
+
+
 def _own_hub(client: TestClient, visitor: dict) -> dict:
     hubs = client.get("/v1/me/hubs", headers=visitor).json()["data"]
     return next(hub for hub in hubs if hub["name"] == OWN_HUB)
@@ -117,6 +130,36 @@ def _logged_moves(hub_id: str) -> int:
             )
 
     return asyncio.run(go())
+
+
+def test_the_seed_gives_each_person_the_country_in_their_bio(
+    client: TestClient, visitor: dict
+) -> None:
+    assert client.get("/v1/me", headers=visitor).json()["data"]["country_code"] == "NG"
+    assert _countries() == {
+        "olaoluwa_demo": "NG",
+        "aminata_ndiaye": "SN",
+        "kwabena_owusu": "GH",
+        "danladi_kabir": "NG",
+        "wanjiru_kamau": "KE",
+        "tendai_moyo": "ZW",
+    }
+
+
+def test_running_the_seed_again_sets_countries_a_world_made_without_them_lacks(
+    visitor: dict,
+) -> None:
+    async def clear() -> None:
+        async with db_session() as session:
+            await session.execute(update(User).where(User.is_demo).values(country_code=None))
+            await session.commit()
+
+    asyncio.run(clear())
+    assert set(_countries().values()) == {None}
+
+    assert _seed() is False
+
+    assert _countries()["aminata_ndiaye"] == "SN" and None not in _countries().values()
 
 
 def test_the_demo_hub_is_in_build_after_a_run_and_after_a_rerun(

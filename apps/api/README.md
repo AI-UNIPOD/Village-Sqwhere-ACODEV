@@ -47,5 +47,5 @@ otherwise it stops with an error and writes nothing, so running it by mistake ag
 without the demo leaves that server alone. Everything it makes is demo content, which real
 developers never see. Its times count back from when it runs, so the feed reads "2 hours ago". Run it again, for
 example on the morning of a demo, to rewrite the posts and comments with fresh times; the
-people, ideas and hubs stay as they are, except that the visitor's own hub is put in the build
-phase if it has none yet.
+people, ideas and hubs stay as they are, each person gets their country again, and the
+visitor's own hub is put in the build phase if it has none yet.
