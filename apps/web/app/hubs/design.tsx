@@ -179,7 +179,7 @@ export function DesignSketch({ lang, hub, onChange }: { lang: Lang; hub: Hub; on
 
   async function removePiece() {
     const gone = piece;
-    if (!gone || busy) return;
+    if (!gone || busy || refreshing) return;
     await send("delete", async () => {
       await deletePiece(hub.id, gone.id);
       change((have) => ({
@@ -195,7 +195,7 @@ export function DesignSketch({ lang, hub, onChange }: { lang: Lang; hub: Hub; on
 
   async function removeLink() {
     const gone = link;
-    if (!gone || busy) return;
+    if (!gone || busy || refreshing) return;
     await send("delete", async () => {
       await deleteLink(hub.id, gone.id);
       change((have) => ({ ...have, links: have.links.filter((one) => one.id !== gone.id) }));
