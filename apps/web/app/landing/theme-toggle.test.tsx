@@ -124,7 +124,7 @@ function stubAnimate() {
     playbackRate: 1,
     updatePlaybackRate: vi.fn(),
   };
-  const animate = vi.fn((..._args: unknown[]) => animation);
+  const animate = vi.fn<(keyframes: object, options: object) => typeof animation>(() => animation);
   Object.assign(document.documentElement, { animate });
   return { animate, animation };
 }

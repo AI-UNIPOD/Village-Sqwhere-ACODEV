@@ -497,6 +497,16 @@ export function GatherHero({ children, labelledBy, labels }: GatherHeroProps) {
       paintTile();
       paintMask();
       paintedShift = Number.NaN;
+      // The theme switch takes the new page's picture right after the change, before the next
+      // frame: draw now, or the picture holds the old colours.
+      if (geo && animated) {
+        try {
+          draw(state.clock);
+        } catch {
+          fail();
+          return;
+        }
+      }
       invalidate();
     }
     // side by side the hero fills the window, so a change of window height matters too
