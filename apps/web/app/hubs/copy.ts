@@ -90,6 +90,22 @@ type Copy = {
     delete: { label: string; title: string; text: string; confirm: string; cancel: string; done: string; gone: string };
     errors: { empty: string; long: string; changed: string; full: string; notAuthor: string; failed: string };
   };
+  // the design sketch under the brainstorm notes
+  designSketch: {
+    heading: string;
+    loading: string;
+    loadFailed: string;
+    empty: string;
+    emptyAfter: string;
+    intro: string;
+    over: string;
+    archived: string;
+    refresh: string;
+    refreshed: string;
+    // what a piece points to and what points to it, in words a screen reader can say
+    to: string;
+    from: string;
+  };
   missingHub: Screen;
   // the team and the brief on a hub's page
   team: {
@@ -267,8 +283,8 @@ const en: Copy = {
   phasesNote: {
     toConfirm: "Confirm the team when you are ready to start. Brainstorm opens, and you can still invite people after, up to five.",
     waiting: "The phases open when the owner confirms the team.",
-    confirmed: "The owner moves the hub from one phase to the next. Brainstorm has its notes below; the tools for the other phases are still to come.",
-    confirmedOutside: "The owner moves the hub from one phase to the next. The brainstorm notes are for the hub's members; the tools for the other phases are still to come.",
+    confirmed: "The owner moves the hub from one phase to the next. Brainstorm has its notes and Design and architecture has its sketch below; the tools for the other phases are still to come.",
+    confirmedOutside: "The owner moves the hub from one phase to the next. The brainstorm notes and the design sketch are for the hub's members; the tools for the other phases are still to come.",
     archived: "This hub is archived, so its phases will not start.",
   },
   phaseActions: {
@@ -332,6 +348,20 @@ const en: Copy = {
       notAuthor: "Only the note's author or the hub's owner can delete it.",
       failed: "We couldn't save that. Nothing changed, so try again.",
     },
+  },
+  designSketch: {
+    heading: "Design sketch",
+    loading: "Getting the sketch",
+    loadFailed: "We couldn't load the sketch. Nothing was changed, so check your connection and try again.",
+    empty: "No pieces yet.",
+    emptyAfter: "No sketch was made during design and architecture.",
+    intro: "This is the team's sketch of the system: its pieces and how they talk.",
+    over: "Design and architecture is over. The sketch stays here to read.",
+    archived: "This hub is archived. The sketch stays here to read.",
+    refresh: "Refresh",
+    refreshed: "The sketch is up to date.",
+    to: "To {piece}: {label}",
+    from: "From {piece}: {label}",
   },
   missingHub: { title: "We couldn't find this hub", text: "It may have been removed, or the address is wrong." },
   team: {
@@ -621,6 +651,20 @@ const fr: Copy = {
       notAuthor: "Seul l'auteur de la note ou le porteur de l'espace peut la supprimer.",
       failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
     },
+  },
+  designSketch: {
+    heading: "Schéma de conception",
+    loading: "Chargement du schéma",
+    loadFailed: "Nous n'avons pas pu charger le schéma. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
+    empty: "Pas encore de composants.",
+    emptyAfter: "Aucun schéma n'a été réalisé pendant la conception et l'architecture.",
+    intro: "Voici le schéma du système réalisé par l'équipe\u202f: ses composants et la façon dont ils communiquent.",
+    over: "La conception et l'architecture sont terminées. Le schéma reste ici à lire.",
+    archived: "Cet espace est archivé. Le schéma reste ici à lire.",
+    refresh: "Actualiser",
+    refreshed: "Le schéma est à jour.",
+    to: "Vers {piece}\u202f: {label}",
+    from: "Depuis {piece}\u202f: {label}",
   },
   missingHub: {
     title: "Nous n'avons pas trouvé cet espace",
