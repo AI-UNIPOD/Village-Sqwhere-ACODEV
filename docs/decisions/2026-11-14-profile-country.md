@@ -2,9 +2,9 @@
 
 ## Context
 
-Nothing on a profile says where a developer is. Matching and the match cards will be more useful
-when a developer can see which country a possible teammate works from. A place is also personal
-data, and the more exact it is, the more it can say about a person.
+Nothing on a profile says where a developer is, while the landing page's match cards show a
+place for each person. Onboarding already asks for a country and has nowhere to save it. A
+place is also personal data, and the more exact it is, the more it says about a person.
 
 ## Decision
 
@@ -21,10 +21,12 @@ A developer can name a country, and nothing finer. Tanny decided this on 2026-11
 
 ## Options we considered
 
-- A free-text city. Not chosen: it is exact enough to point at a person, people spell the same city
-  many ways, and we would have to moderate and match free text.
-- A list of cities. Not chosen: a list long enough to be fair to every developer is a large thing
-  to build and keep up to date, and it still shows more than matching needs.
+Tanny was offered three and chose the country alone.
+
+- A free-text city next to the country. It covers every town with no list to keep, but people
+  spell the same city many ways, and a city says more about a person than a country does.
+- A list of cities for each country. The spelling stays the same, but the list has to be written
+  and kept up to date, and smaller towns would be missing.
 
 ## Consequences
 
