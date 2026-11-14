@@ -9,6 +9,8 @@ from app.models.hubs import (
     HubNote,
     HubPhase,
     HubPhaseMove,
+    HubPiece,
+    HubPieceLink,
     HubStatus,
 )
 from app.models.ideas import Idea, IdeaRoleNeed, IdeaStage, IdeaStatus
@@ -58,6 +60,8 @@ __all__ = [
     "HubNote",
     "HubPhase",
     "HubPhaseMove",
+    "HubPiece",
+    "HubPieceLink",
     "HubStatus",
     "Idea",
     "IdeaRoleNeed",

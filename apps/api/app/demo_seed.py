@@ -8,8 +8,8 @@ Every person here is made up, and every account is a demo account (users.is_demo
 in app/api/deps.py keeps all of it away from real developers. Times are set relative to when
 the script runs, so the feed reads "2 hours ago". Running it again rewrites the posts and
 comments with fresh times, sets the countries again and leaves the rest, except that it puts
-the visitor's own hub in build if it has no phase yet and gives it its brainstorm notes if it
-has none.
+the visitor's own hub in build if it has no phase yet and gives it its brainstorm notes and its
+design sketch if it has none.
 docs/decisions/2026-11-13-read-only-demo.md
 """
 
@@ -34,6 +34,8 @@ from app.models import (
     HubNote,
     HubPhase,
     HubPhaseMove,
+    HubPiece,
+    HubPieceLink,
     Idea,
     IdeaRoleNeed,
     IdeaStage,
@@ -104,6 +106,23 @@ OWN_HUB_NOTES = [
     ("you", 6.9, "Paiement échoué\u202f: on réessaie sans repayer ceux qui ont déjà reçu."),
     ("kwabena", 6.2, "Question: naira and CFA from the first version, or naira only?"),
 ]
+# what the same two members sketched in its design phase, as (who, days ago, name, summary)
+OWN_HUB_PIECES = [
+    ("kwabena", 5.9, "Mobile app", "Where the treasurer approves a batch and members see payouts."),
+    ("you", 5.7, "Payouts API", "Takes an approved batch and refuses a transfer with no key."),
+    ("you", 5.3, "Payouts worker", "Pays each member's wallet and retries a failure once."),
+    ("you", 5.0, "Ledger database", "PostgreSQL tables with every payout and its audit trail."),
+    ("kwabena", 4.6, "SMS gateway", "Texts each member a receipt in English or French."),
+]
+# and the arrows between them, as (who, days ago, from piece, to piece, label)
+OWN_HUB_LINKS = [
+    ("kwabena", 5.5, "Mobile app", "Payouts API", "approves a batch"),
+    ("you", 4.8, "Payouts API", "Ledger database", "records the batch"),
+    ("you", 4.7, "Payouts API", "Payouts worker", "queues transfers"),
+    ("you", 4.5, "Payouts worker", "Ledger database", "writes each result"),
+    ("kwabena", 4.2, "Payouts worker", "SMS gateway", "asks for a receipt"),
+    ("you", 3.9, "Payouts API", "Mobile app", "returns the status"),
+]
 
 
 def ago(**delta: float) -> datetime:
@@ -135,6 +154,7 @@ async def seed(db: AsyncSession) -> bool:
         user.country_code = COUNTRIES[key]  # also on a rerun, for worlds seeded before countries
     await _start_own_hub(db, people["you"])
     await _write_own_hub_notes(db, people)
+    await _write_own_hub_design(db, people)
     await _write_feed(db, people)
     await db.commit()
     return created
@@ -321,6 +341,40 @@ async def _write_own_hub_notes(db: AsyncSession, people: dict[str, User]) -> Non
     db.add_all(
         HubNote(hub_id=hub.id, author_id=people[who].id, body=body, created_at=ago(days=days))
         for who, days, body in OWN_HUB_NOTES
+    )
+
+
+async def _write_own_hub_design(db: AsyncSession, people: dict[str, User]) -> None:
+    """The visitor's hub has a sketch from its design phase. Added only when it has no pieces,
+    so a rerun does not pile up copies."""
+    hub = await db.scalar(select(Hub).where(Hub.owner_id == people["you"].id, Hub.name == OWN_HUB))
+    if hub is None or await db.scalar(
+        select(HubPiece.id).where(HubPiece.hub_id == hub.id).limit(1)
+    ):
+        return
+    pieces = {
+        name: HubPiece(
+            hub_id=hub.id,
+            name=name,
+            summary=summary,
+            created_by=people[who].id,
+            created_at=ago(days=days),
+            updated_at=ago(days=days),
+        )
+        for who, days, name, summary in OWN_HUB_PIECES
+    }
+    db.add_all(pieces.values())
+    await db.flush()
+    db.add_all(
+        HubPieceLink(
+            hub_id=hub.id,
+            from_piece_id=pieces[source].id,
+            to_piece_id=pieces[target].id,
+            label=label,
+            created_by=people[who].id,
+            created_at=ago(days=days),
+        )
+        for who, days, source, target, label in OWN_HUB_LINKS
     )
 
 
