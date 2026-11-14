@@ -42,6 +42,8 @@ const TAPER = 0.5;
 const OVERLAP = 0.5;
 // px the canvas keeps inside the diamond's edge, so the two meet without a seam
 const SEAM = 2.1;
+// px the plain half of a flap runs into its shaded half, so the line between them stays closed
+const JOIN = 1.5;
 
 const strongFallback: Ease = (x) => 1 - (1 - x) ** 4;
 const outFallback: Ease = (x) => 1 - (1 - x) * (1 - x);
@@ -161,6 +163,11 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
     // is still open (a card swinging up from the page), so neighbours read as blocks.
     const taper = TAPER * (1 - pe);
     const half = w / 2;
+    // the plain half runs a little into the shaded half, which is drawn first, so the line where
+    // they meet never lets the old page show through
+    const join = Math.min(w, half + JOIN);
+    // the free edge reaches a hair past the flap, into the neighbour's hinge, so the two never part
+    const far = w + 2 * OVERLAP;
     const span = (u: number) => h * (1 - taper * (u / (w || 1))) + OVERLAP * (1 - u / (w || 1));
     if (Math.abs(i) >= Math.abs(j)) {
       // hinged on a vertical edge, opening left or right
@@ -169,8 +176,9 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
       const s0 = span(0);
       const s1 = span(half);
       const s2 = span(w);
-      quad(0, xh - dx * 0.75, cy - s0, xh + dx * half, cy - s1, xh + dx * half, cy + s1, xh - dx * 0.75, cy + s0);
-      quad(level, xh + dx * half, cy - s1, xh + dx * w, cy - s2, xh + dx * w, cy + s2, xh + dx * half, cy + s1);
+      const sj = span(join);
+      quad(0, xh - dx * 0.75, cy - s0, xh + dx * join, cy - sj, xh + dx * join, cy + sj, xh - dx * 0.75, cy + s0);
+      quad(level, xh + dx * half, cy - s1, xh + dx * far, cy - s2, xh + dx * far, cy + s2, xh + dx * half, cy + s1);
     } else {
       // hinged on a horizontal edge, opening up or down
       const dy = j < 0 ? -1 : 1;
@@ -178,8 +186,9 @@ export function createTilePlan(input: TilePlanInput): TilePlan {
       const s0 = span(0);
       const s1 = span(half);
       const s2 = span(w);
-      quad(0, cx - s0, yh - dy * 0.75, cx - s1, yh + dy * half, cx + s1, yh + dy * half, cx + s0, yh - dy * 0.75);
-      quad(level, cx - s1, yh + dy * half, cx - s2, yh + dy * w, cx + s2, yh + dy * w, cx + s1, yh + dy * half);
+      const sj = span(join);
+      quad(0, cx - s0, yh - dy * 0.75, cx - sj, yh + dy * join, cx + sj, yh + dy * join, cx + s0, yh - dy * 0.75);
+      quad(level, cx - s1, yh + dy * half, cx - s2, yh + dy * far, cx + s2, yh + dy * far, cx + s1, yh + dy * half);
     }
     return 2;
   }
