@@ -37,7 +37,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
   ] as const;
 
   return (
-    <div>
+    <div className={styles.landing}>
       {/* The slot keeps the header's place while HeaderPin turns it into a pill, and is what the
           hero measures: a pinned header is shorter than the one in the flow. */}
       <div data-site-header="" data-header-slot="">

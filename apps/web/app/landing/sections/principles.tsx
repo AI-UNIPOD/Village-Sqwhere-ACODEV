@@ -3,6 +3,7 @@
 import { type CSSProperties, useEffect, useRef } from "react";
 
 import type { Lang } from "../../locales";
+import { HeadingText } from "../heading-text";
 import styles from "../landing-page.module.css";
 import { copy, type PrincipleKey } from "./principles-copy";
 import own from "./principles.module.css";
@@ -60,9 +61,11 @@ export function Principles({ lang }: { lang: Lang }) {
   }, []);
 
   return (
-    <section className={styles.block} aria-labelledby="principles-title">
+    <section className={`${styles.block} ${styles.warm}`} aria-labelledby="principles-title">
       <div className={styles.wrap}>
-        <h2 id="principles-title">{t.title}</h2>
+        <h2 id="principles-title">
+          <HeadingText text={t.title} />
+        </h2>
         <div className={own.list} ref={listRef}>
           {t.items.map((item, i) => (
             <article

@@ -3,6 +3,7 @@
 import { type CSSProperties, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import type { Lang } from "../../locales";
+import { HeadingText } from "../heading-text";
 import styles from "../landing-page.module.css";
 import { copy } from "./green-tick-copy";
 import own from "./green-tick.module.css";
@@ -94,7 +95,9 @@ export function GreenTick({ lang }: { lang: Lang }) {
   return (
     <section className={styles.block} id="green-tick" aria-labelledby="green-tick-title">
       <div className={styles.wrap}>
-        <h2 id="green-tick-title">{t.title}</h2>
+        <h2 id="green-tick-title">
+          <HeadingText text={t.title} />
+        </h2>
         <p className={styles.lead}>{t.lead}</p>
 
         <div className={own.body}>

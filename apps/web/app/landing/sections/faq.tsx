@@ -1,4 +1,5 @@
 import type { Lang } from "../../locales";
+import { HeadingText } from "../heading-text";
 import styles from "../landing-page.module.css";
 import { copy } from "./faq-copy";
 import own from "./faq.module.css";
@@ -9,7 +10,9 @@ export function Faq({ lang }: { lang: Lang }) {
   return (
     <section className={`${styles.block} ${own.faq}`} id="faq" aria-labelledby="faq-title">
       <div className={`${styles.wrap} ${own.layout}`}>
-        <h2 id="faq-title">{t.title}</h2>
+        <h2 id="faq-title">
+          <HeadingText text={t.title} />
+        </h2>
         <div className={own.list}>
           {t.items.map((item) => (
             <details className={own.item} name="faq" key={item.q}>
