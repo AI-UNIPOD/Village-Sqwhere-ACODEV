@@ -39,6 +39,9 @@ from app.schemas.hubs import (
     HubOwner,
     HubResponse,
     InviteRequest,
+    MyMembership,
+    MyMembershipResponse,
+    MySignature,
 )
 from app.services.hubs import hub_card, in_viewers_world, load_hub
 
@@ -180,6 +183,45 @@ async def get_hub_idea(
     if hub.idea.deleted_at is not None:
         raise hub_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Idea not found.")
     return HubIdeaBriefResponse(data=HubIdeaBrief.model_validate(hub.idea))
+
+
+@router.get("/hubs/{hub_id}/membership", response_model=MyMembershipResponse)
+async def get_my_membership(
+    hub_id: UUID, current_user: CurrentUser, db: DbSession
+) -> MyMembershipResponse:
+    hub = await find_hub(db, hub_id, current_user)
+    member = await find_membership(db, hub.id, current_user.id)
+    if member is None:
+        raise hub_error(
+            status.HTTP_404_NOT_FOUND,
+            "MEMBERSHIP_NOT_FOUND",
+            "You have never been invited to this hub or asked to join it.",
+        )
+    # a member who left or was removed keeps the signature they gave
+    signature = member.signature
+    return MyMembershipResponse(
+        data=MyMembership(
+            member_role=member.member_role,
+            status=member.status,
+            decline_kind=member.decline_kind,
+            # shown only while it is ahead, as on the hub card
+            can_ask_again_at=wait if (wait := member.can_ask_again_at) and wait > _now() else None,
+            created_at=member.created_at,
+            joined_at=member.joined_at,
+            left_at=member.left_at,
+            signature=None
+            if signature is None
+            else MySignature(
+                template_id=signature.template_id,
+                # a hub's signatures are all for its one agreement (a database trigger checks)
+                version=hub.agreement_template.version,
+                template_sha256=signature.template_sha256,
+                signed_legal_name=signature.signed_legal_name,
+                terms_snapshot=signature.terms_snapshot,
+                signed_at=signature.signed_at,
+            ),
+        )
+    )
 
 
 @router.get("/hubs/{hub_id}/members", response_model=HubMembersResponse)

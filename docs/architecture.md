@@ -66,6 +66,8 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/members/{user_id}/approve` (an invitation, signed the same way) or
   `POST /v1/hubs/{hub_id}/members/{user_id}/decline`. Only active members read
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
+  Anyone with a membership row reads their own, with what they signed, at
+  `GET /v1/hubs/{hub_id}/membership`.
   The owner starts the work with `POST /v1/hubs/{hub_id}/team/confirm` (any team size, which
   opens brainstorm) and moves the hub one phase forward or back with
   `POST /v1/hubs/{hub_id}/phase`; the hub card says which phase it is in. Active members write

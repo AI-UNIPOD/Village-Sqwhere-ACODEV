@@ -261,6 +261,35 @@ class HubMemberResponse(BaseModel):
     data: HubMemberCard
 
 
+class MySignature(BaseModel):
+    """What the person signed: the agreement version, its text's hash, the name they typed and
+    the hub's terms as they stood. The address and browser it came from are kept, not shown."""
+
+    template_id: UUID
+    version: int
+    template_sha256: str
+    signed_legal_name: str
+    terms_snapshot: dict[str, Any]
+    signed_at: datetime
+
+
+class MyMembership(BaseModel):
+    """The signed-in person's own membership row in a hub, with the signature it rests on."""
+
+    member_role: HubMemberRole
+    status: HubMemberStatus
+    decline_kind: HubDeclineKind | None = None
+    can_ask_again_at: datetime | None = None
+    created_at: datetime
+    joined_at: datetime | None = None
+    left_at: datetime | None = None
+    signature: MySignature | None = None
+
+
+class MyMembershipResponse(BaseModel):
+    data: MyMembership
+
+
 class HubMembersResponse(BaseModel):
     data: list[HubMemberCard]
 
