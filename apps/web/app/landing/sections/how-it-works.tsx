@@ -128,17 +128,17 @@ function HubView({ t }: { t: Copy }) {
       </p>
       <p className={s.fieldLabel}>{hub.phasesHeading}</p>
       <div className={s.rail} aria-hidden="true">
-        <span data-on="" />
+        <span />
         <span />
         <span />
         <span />
       </div>
       <ol className={s.phases}>
         {hub.phases.map((phase, i) => (
-          <li key={phase} className={s.phase} data-on={i === 0 ? "" : undefined}>
+          <li key={phase} className={s.phase}>
             <span className={s.num}>{`0${i + 1}`}</span>
             <span className={s.phaseName}>{phase}</span>
-            <span className={s.meta}>{i === 0 ? hub.inProgress : hub.notStarted}</span>
+            <span className={s.meta}>{hub.notStarted}</span>
           </li>
         ))}
       </ol>

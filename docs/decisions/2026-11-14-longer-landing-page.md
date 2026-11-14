@@ -34,8 +34,8 @@ The header links are Matcher, Hub and FAQ, short enough for the French pill at 3
 
 **The page only claims what the product does.** The matcher is role based: it ranks
 developers verified in the roles an idea needs, then by technologies in common, and never
-reads the idea's text. So the demo shows no fit score (the product has none), never says the
-matcher "reads your idea", and uses the product's own steps (invite, read the agreement,
+reads the idea's text. So the demo's match scores are labelled simulated (scores are planned,
+see `2026-11-14-simulated-match-score-in-demo.md`), it never says the matcher "reads your idea", and uses the product's own steps (invite, read the agreement,
 sign). The hub's phase tools are not built, so that section is labelled a sample. Every person
 and idea on the page is made up, and the page says so.
 

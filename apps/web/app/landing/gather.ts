@@ -26,7 +26,7 @@ export const CROWD = [
   "react", "postgres", "figma", "node", "flutter", "python", "ensemble", "idée", "équipe", "Aminata",
   "Wanjiru", "Kwabena", "Nour", "ideas", "team", "build", "plan", "api", "data", "design", "mobile",
   "review", "test", "Ọláolúwa", "Ɗanladi", "arbre", "together", "kotlin", "swift", "rust", "sql", "git",
-  "docs", "ux", "merge", "pair", "ship", "sprint", "brainstorm", "hub", "matcher", "score",
+  "docs", "ux", "merge", "pair", "ship", "sprint", "brainstorm", "hub", "matcher", "role",
 ];
 
 /** Crowd words that show their other-language twin under the pointer. */
