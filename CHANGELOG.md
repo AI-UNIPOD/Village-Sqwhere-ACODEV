@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- feat(web): let the team edit the design sketch
+- feat(web): let the team edit the design sketch (#182)
 - fix(web): show the real score and live brainstorm notes on the landing (#181)
 
 ## 2026-11-14
