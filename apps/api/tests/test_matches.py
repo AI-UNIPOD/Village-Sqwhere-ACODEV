@@ -1,4 +1,4 @@
-"""Matching open ideas with developers by verified roles.
+"""Matching open ideas with developers by verified roles, scored out of 100.
 
 The test database is shared and never cleaned, so every test matches on roles it creates
 for itself. Nothing left by another test can then appear in, or reorder, its matches. The
@@ -19,9 +19,11 @@ from app.models import (
     HubMemberStatus,
     IdeaRoleNeed,
     Role,
+    Sector,
     Technology,
     User,
     UserRole,
+    UserSector,
     UserTechnology,
 )
 from tests.hub_support import add_member, auth, bad_auth_headers, make_user, run
@@ -39,7 +41,22 @@ DEVELOPER_CARD = {
     "technologies",
     "shared_technologies",
     "shared_technology_count",
+    "shared_sectors",
     "country_code",
+    "score",
+    "score_version",
+    "partial",
+    "breakdown",
+}
+IDEA_CARD = {
+    "idea",
+    "matched_roles",
+    "shared_technologies",
+    "shared_sectors",
+    "score",
+    "score_version",
+    "partial",
+    "breakdown",
 }
 
 
@@ -71,6 +88,40 @@ def new_role() -> Generator[Callable[[], Role]]:
     run(clean)
 
 
+@pytest.fixture
+def new_lookup() -> Generator[Callable[[type[Technology | Sector], str], Technology | Sector]]:
+    """Makes technologies and sectors that only this test uses, named as the test asks."""
+    made: list[Technology | Sector] = []
+
+    def make(model: type[Technology | Sector], name: str) -> Technology | Sector:
+        unique = f"{name} {uuid4().hex[:8]}"
+
+        async def work(session):
+            row = model(slug=unique.lower().replace(" ", "-"), name=unique)
+            session.add(row)
+            await session.commit()
+            return row
+
+        row = run(work)
+        made.append(row)
+        return row
+
+    yield make
+
+    async def clean(session):
+        technologies = [row.id for row in made if isinstance(row, Technology)]
+        sectors = [row.id for row in made if isinstance(row, Sector)]
+        await session.execute(
+            delete(UserTechnology).where(UserTechnology.technology_id.in_(technologies))
+        )
+        await session.execute(delete(UserSector).where(UserSector.sector_id.in_(sectors)))
+        await session.execute(delete(Technology).where(Technology.id.in_(technologies)))
+        await session.execute(delete(Sector).where(Sector.id.in_(sectors)))
+        await session.commit()
+
+    run(clean)
+
+
 def hold(user: User, role: Role, *, verified_at: datetime | None) -> None:
     async def work(session):
         session.add(UserRole(user_id=user.id, role_id=role.id, verified_at=verified_at))
@@ -89,6 +140,20 @@ def use_technologies(user: User, *slugs: str) -> None:
         found = await session.execute(select(Technology).where(Technology.slug.in_(slugs)))
         for technology in found.scalars():
             session.add(UserTechnology(user_id=user.id, technology_id=technology.id))
+        await session.commit()
+
+    run(work)
+
+
+def share(user: User, *items: Technology | Sector) -> None:
+    """Gives the user these technologies and sectors."""
+
+    async def work(session):
+        for item in items:
+            if isinstance(item, Technology):
+                session.add(UserTechnology(user_id=user.id, technology_id=item.id))
+            else:
+                session.add(UserSector(user_id=user.id, sector_id=item.id))
         await session.commit()
 
     run(work)
@@ -177,7 +242,7 @@ def assert_error(response: Any, status: int, code: str) -> None:
     assert response.json()["detail"]["code"] == code
 
 
-def test_developers_rank_by_roles_then_shared_technologies_then_earliest_verification(
+def test_developers_rank_by_score_then_earliest_verification(
     client: TestClient, new_role: Callable[[], Role]
 ) -> None:
     backend, design = new_role(), new_role()
@@ -200,6 +265,8 @@ def test_developers_rank_by_roles_then_shared_technologies_then_earliest_verific
 
     page = developer_matches(client, owner, idea_id)
 
+    # Scores: two roles 40 of 70, one role and two shared technologies 38, one role and one
+    # shared technology 34 twice, so the earlier verification goes first.
     assert usernames(page) == [
         both_roles.username,
         two_shared.username,
@@ -411,6 +478,8 @@ def test_ideas_match_a_developer_by_verified_roles_needed(
 
     assert response.status_code == 200, response.text
     page = response.json()
+    # Two roles score 40 of 70 and one role 30, so the idea needing both comes first. The two
+    # ideas needing one role tie, and the newest publication goes first.
     assert [match["idea"]["id"] for match in page["data"]] == [
         needs_both,
         needs_one_late,
@@ -418,7 +487,7 @@ def test_ideas_match_a_developer_by_verified_roles_needed(
     ]
     assert page["next_offset"] is None
     best = page["data"][0]
-    assert set(best) == {"idea", "matched_roles", "shared_technologies"}
+    assert set(best) == IDEA_CARD
     assert [role["slug"] for role in best["matched_roles"]] == [backend.slug, design.slug]
     assert [role["slug"] for role in best["idea"]["roles_needed"]] == [
         backend.slug,
@@ -498,3 +567,182 @@ def test_matching_needs_sign_in(client: TestClient, headers: dict[str, str]) -> 
     for url in (MY_MATCHES, f"{MY_IDEAS}/{uuid4()}/matches"):
         response = client.get(url, headers=headers)
         assert response.status_code == 401, response.text
+
+
+def parts(card: Any) -> dict[str, Any]:
+    """The breakdown as {part: points}, after checking every part's maximum."""
+    maxima = {"roles": 40, "technologies": 20, "sectors": 10, "meaning": 30}
+    assert {name: part["max"] for name, part in card["breakdown"].items()} == maxima
+    return {name: part["points"] for name, part in card["breakdown"].items()}
+
+
+def test_developer_scores_follow_the_record_and_say_what_is_missing(
+    client: TestClient, new_role: Callable[[], Role], new_lookup: Any
+) -> None:
+    first, second = new_role(), new_role()
+    technologies = [new_lookup(Technology, f"Stack {n}") for n in range(5)]
+    sectors = [new_lookup(Sector, f"Field {n}") for n in range(2)]
+    owner = make_user()
+    share(owner, *technologies, *sectors)
+    idea_id = new_idea(client, owner, first, second)
+    one_role = make_user()
+    verify(one_role, first)
+    three_technologies = make_user()
+    verify(three_technologies, first)
+    share(three_technologies, *technologies[:3])
+    mixed = make_user()
+    verify(mixed, first, second)
+    share(mixed, *technologies[:3], sectors[0])
+    everything = make_user()
+    verify(everything, first, second)
+    share(everything, *technologies, *sectors)
+
+    cards = {card["username"]: card for card in developer_matches(client, owner, idea_id)["data"]}
+
+    # raw points over 70, scaled to 100 and rounded half up: 30 gives 43, 42 gives 60, 57 gives 81
+    assert {name: card["score"] for name, card in cards.items()} == {
+        one_role.username: 43,
+        three_technologies.username: 60,
+        mixed.username: 81,
+        everything.username: 100,
+    }
+    assert parts(cards[mixed.username]) == {
+        "roles": 40,
+        "technologies": 12,
+        "sectors": 5,
+        "meaning": None,
+    }
+    assert parts(cards[one_role.username]) == {
+        "roles": 30,
+        "technologies": 0,
+        "sectors": 0,
+        "meaning": None,
+    }
+    assert all(card["score_version"] == 1 and card["partial"] is True for card in cards.values())
+
+
+def test_shared_technologies_and_sectors_stop_counting_after_five_and_two(
+    client: TestClient, new_role: Callable[[], Role], new_lookup: Any
+) -> None:
+    needed = new_role()
+    technologies = [new_lookup(Technology, f"Stack {n}") for n in range(6)]
+    sectors = [new_lookup(Sector, f"Field {n}") for n in range(3)]
+    owner = make_user()
+    share(owner, *technologies, *sectors)
+    idea_id = new_idea(client, owner, needed)
+    developer = make_user()
+    verify(developer, needed)
+    share(developer, *technologies, *sectors)
+
+    card = developer_matches(client, owner, idea_id)["data"][0]
+
+    assert card["shared_technology_count"] == 6
+    assert len(card["shared_sectors"]) == 3
+    assert parts(card) == {"roles": 30, "technologies": 20, "sectors": 10, "meaning": None}
+    assert card["score"] == 86
+
+
+def test_developer_cards_name_the_shared_sectors_sorted_by_name(
+    client: TestClient, new_role: Callable[[], Role], new_lookup: Any
+) -> None:
+    needed = new_role()
+    # made in this order, so sorting by name differs from sorting by id
+    zebra = new_lookup(Sector, "Zebra trade")
+    apple = new_lookup(Sector, "apple growing")
+    other = new_lookup(Sector, "Other work")
+    owner = make_user()
+    share(owner, zebra, apple)
+    idea_id = new_idea(client, owner, needed)
+    some, none = make_user(), make_user()
+    for developer in (some, none):
+        verify(developer, needed)
+    share(some, zebra, apple, other)
+    share(none, other)
+
+    cards = {card["username"]: card for card in developer_matches(client, owner, idea_id)["data"]}
+
+    assert [sector["name"][:5] for sector in cards[some.username]["shared_sectors"]] == [
+        "apple",
+        "Zebra",
+    ]
+    assert set(cards[some.username]["shared_sectors"][0]) == {"slug", "name"}
+    assert cards[none.username]["shared_sectors"] == []
+
+
+def test_developer_pages_are_ordered_by_score_even_when_roles_say_otherwise(
+    client: TestClient, new_role: Callable[[], Role], new_lookup: Any
+) -> None:
+    first, second = new_role(), new_role()
+    technologies = [new_lookup(Technology, f"Stack {n}") for n in range(5)]
+    sectors = [new_lookup(Sector, f"Field {n}") for n in range(2)]
+    owner = make_user()
+    share(owner, *technologies, *sectors)
+    idea_id = new_idea(client, owner, first, second)
+    long_ago = datetime.now(UTC) - timedelta(days=9)
+    # one role with everything shared is 60 of 70, two roles with nothing shared is 40
+    one_role_full = make_user()
+    verify(one_role_full, first)
+    share(one_role_full, *technologies, *sectors)
+    two_roles_bare = make_user()
+    verify(two_roles_bare, first, second, at=long_ago)
+    # one role and two sectors is also 40, and was verified later than the two-role developer
+    # it ties with, so it comes after
+    one_role_sectors = make_user()
+    verify(one_role_sectors, second)
+    share(one_role_sectors, *sectors)
+    bare = make_user()
+    verify(bare, first, at=long_ago)
+
+    first_page = developer_matches(client, owner, idea_id, limit=2)
+    second_page = developer_matches(
+        client, owner, idea_id, limit=2, offset=first_page["next_offset"]
+    )
+
+    cards = first_page["data"] + second_page["data"]
+    assert [card["username"] for card in cards] == [
+        one_role_full.username,
+        two_roles_bare.username,
+        one_role_sectors.username,
+        bare.username,
+    ]
+    assert [card["score"] for card in cards] == [86, 57, 57, 43]
+    assert [card["score"] for card in cards] == sorted(
+        (card["score"] for card in cards), reverse=True
+    )
+    assert first_page["next_offset"] == 2
+    assert second_page["next_offset"] is None
+
+
+def test_ideas_are_scored_named_and_ordered_by_score_across_pages(
+    client: TestClient, new_role: Callable[[], Role], new_lookup: Any
+) -> None:
+    first, second = new_role(), new_role()
+    technologies = [new_lookup(Technology, f"Stack {n}") for n in range(5)]
+    zebra = new_lookup(Sector, "Zebra trade")
+    apple = new_lookup(Sector, "apple growing")
+    me = make_user()
+    verify(me, first, second)
+    share(me, *technologies, zebra, apple)
+    close_friend, stranger = make_user(), make_user()
+    share(close_friend, *technologies, zebra, apple)
+    # two roles needed and nothing shared is 40 of 70; one role with all shared is 60
+    two_roles_bare = new_idea(client, stranger, first, second)
+    one_role_full = new_idea(client, close_friend, first)
+    one_role_bare = new_idea(client, stranger, first)
+
+    cards = []
+    offset: int | None = 0
+    while offset is not None:
+        response = client.get(MY_MATCHES, headers=auth(me), params={"limit": 1, "offset": offset})
+        assert response.status_code == 200, response.text
+        cards += response.json()["data"]
+        offset = response.json()["next_offset"]
+
+    assert [card["idea"]["id"] for card in cards] == [one_role_full, two_roles_bare, one_role_bare]
+    assert [card["score"] for card in cards] == [86, 57, 43]
+    assert set(cards[0]) == IDEA_CARD
+    assert parts(cards[0]) == {"roles": 30, "technologies": 20, "sectors": 10, "meaning": None}
+    assert parts(cards[1]) == {"roles": 40, "technologies": 0, "sectors": 0, "meaning": None}
+    assert all(card["score_version"] == 1 and card["partial"] is True for card in cards)
+    assert [sector["name"][:5] for sector in cards[0]["shared_sectors"]] == ["apple", "Zebra"]
+    assert cards[1]["shared_sectors"] == [] and cards[2]["shared_sectors"] == []
