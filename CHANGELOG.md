@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- fix(web): say what the AI checker looks at in a verification (#179)
 - feat(web): show the design sketch on the hub page (#178)
 - feat(api): add hub chat for active members (#177)
 - feat(api): show another developer's public profile (#175)
