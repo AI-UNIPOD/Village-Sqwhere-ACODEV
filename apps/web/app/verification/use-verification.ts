@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import type { Lang } from "../locales";
 import { loadMe, useMe, type Me } from "../session/me";
 import { SignedOutError, apiFetch } from "../session/session";
 
@@ -9,6 +10,7 @@ export type AttemptStatus = "pending" | "in_progress" | "awaiting_review" | "pas
 export type Attempt = {
   id: string;
   attempt_number: number;
+  language: Lang;
   status: AttemptStatus;
   current_phase: "codebase_analysis" | "technical_defence" | "report_generation" | null;
   last_error: string | null;

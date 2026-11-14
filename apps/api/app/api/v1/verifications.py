@@ -32,6 +32,7 @@ def session_to_response(session: VerificationSession) -> VerificationResponse:
         role=session.user_role.role.slug,
         role_name=session.user_role.role.name,
         attempt_number=session.attempt_number,
+        language=session.language,
         status=session.status.value,
         current_phase=session.current_phase.value if session.current_phase else None,
         analysis_attempts=session.analysis_attempts,
@@ -136,6 +137,7 @@ async def start_verification(
         status=VerificationStatus.PENDING,
         current_phase=VerificationPhase.CODEBASE_ANALYSIS,
         source=AuthProvider.GITHUB,
+        language=payload.language,
         evidence=[{"repository_url": repository} for repository in payload.repositories],
         started_at=datetime.now(UTC),
     )

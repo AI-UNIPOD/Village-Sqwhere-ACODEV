@@ -104,6 +104,7 @@ async def process_verification_report(
         session.user_role.role.slug,
         codebase_result,
         turns,
+        session.language,
     )
     session.ai_result = {
         **(session.ai_result or {}),

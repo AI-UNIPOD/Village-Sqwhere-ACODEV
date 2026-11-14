@@ -30,12 +30,12 @@ class GeminiCodebaseAnalyzer:
         self.timeout = timeout
 
     async def analyze(
-        self, repositories: list[RepositorySnapshot], role_slug: str
+        self, repositories: list[RepositorySnapshot], role_slug: str, language: str
     ) -> CodebaseAnalysisResult:
         if not self.api_key or not self.model:
             raise GeminiConfigurationError("Gemini API key and codebase model are required.")
 
-        prompt = build_codebase_analysis_prompt(role_slug, repositories)
+        prompt = build_codebase_analysis_prompt(role_slug, repositories, language)
         response = await self._post_json(
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{quote(self.model, safe='')}:generateContent",

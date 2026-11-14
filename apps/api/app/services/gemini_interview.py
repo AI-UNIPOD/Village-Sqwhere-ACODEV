@@ -14,6 +14,7 @@ from app.services.interview import (
     InterviewHistoryItem,
     InterviewOpening,
     InterviewUnavailable,
+    interview_system_prompt,
 )
 
 SYSTEM_PROMPT = (
@@ -113,7 +114,9 @@ class GeminiInterviewAgent:
         self.model = model
         self.timeout = timeout
 
-    async def opening(self, role_slug: str, analysis: dict | None) -> InterviewOpening:
+    async def opening(
+        self, role_slug: str, analysis: dict | None, language: str
+    ) -> InterviewOpening:
         response = await self._generate(
             {
                 "phase": "opening",
@@ -124,7 +127,8 @@ class GeminiInterviewAgent:
                     "Welcome the applicant, explain that there are five technical questions, "
                     "then ask question one. Return welcome and question."
                 ),
-            }
+            },
+            language,
         )
         try:
             return InterviewOpening.model_validate_json(response)
@@ -137,6 +141,7 @@ class GeminiInterviewAgent:
         next_turn: int,
         analysis: dict | None,
         history: list[InterviewHistoryItem],
+        language: str,
     ) -> InterviewContinuation:
         response = await self._generate(
             {
@@ -151,7 +156,8 @@ class GeminiInterviewAgent:
                     "history for adaptive depth without repeating a question. Return "
                     "acknowledgement and question."
                 ),
-            }
+            },
+            language,
         )
         try:
             return InterviewContinuation.model_validate_json(response)
@@ -163,6 +169,7 @@ class GeminiInterviewAgent:
         role_slug: str,
         analysis: dict | None,
         history: list[InterviewHistoryItem],
+        language: str,
     ) -> InterviewClosing:
         response = await self._generate(
             {
@@ -175,18 +182,19 @@ class GeminiInterviewAgent:
                     "that the evidence will proceed to peer review. Return acknowledgement and "
                     "closing."
                 ),
-            }
+            },
+            language,
         )
         try:
             return InterviewClosing.model_validate_json(response)
         except ValueError as error:
             raise InterviewUnavailable("Gemini interview closing is invalid.") from error
 
-    async def _generate(self, payload: dict[str, Any]) -> str:
+    async def _generate(self, payload: dict[str, Any], language: str) -> str:
         if not self.api_key or not self.model:
             raise InterviewUnavailable("Gemini interview chat is not configured.")
         try:
-            response = await asyncio.to_thread(self._generate_sync, payload)
+            response = await asyncio.to_thread(self._generate_sync, payload, language)
             content = response["candidates"][0]["content"]["parts"][0]["text"]
             if not isinstance(content, str) or not content.strip():
                 raise ValueError("empty model response")
@@ -203,14 +211,15 @@ class GeminiInterviewAgent:
         ) as error:
             raise InterviewUnavailable("Gemini interview chat failed.") from error
 
-    def _generate_sync(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _generate_sync(self, payload: dict[str, Any], language: str) -> dict[str, Any]:
+        system = interview_system_prompt(SYSTEM_PROMPT, language)
         payload_text = json.dumps(payload, ensure_ascii=True, separators=(",", ":"))
         request = Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{quote(self.model or '', safe='')}:generateContent",
             data=json.dumps(
                 {
-                    "contents": [{"parts": [{"text": f"{SYSTEM_PROMPT}\n\n{payload_text}"}]}],
+                    "contents": [{"parts": [{"text": f"{system}\n\n{payload_text}"}]}],
                     "generationConfig": {
                         "temperature": 0.2,
                         "responseMimeType": "application/json",

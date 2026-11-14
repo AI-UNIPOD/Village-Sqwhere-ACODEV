@@ -394,7 +394,7 @@ Updates editable fields on the user's profile.
     "country_code": "NG"
   }
   ```
-* **Country:** `country_code` is optional and has no city beside it. It is a two-letter ISO code (capital letters) of one of the 54 African countries, such as `NG`, `SN` or `KE`; the list is `AFRICAN_COUNTRY_CODES` in `apps/api/app/countries.py`. It is `null` until a developer sets it. Send a code to set or change it, send `"country_code": null` to clear it, and leave the key out to keep it as it is. Any other value (a code from outside Africa, lowercase, three letters) gets a `422` that names `country_code`. Later it will show to other signed-in developers on match cards.
+* **Country:** `country_code` is optional and has no city beside it. It is a two-letter ISO code (capital letters) of one of the 54 African countries, such as `NG`, `SN` or `KE`; the list is `AFRICAN_COUNTRY_CODES` in `apps/api/app/countries.py`. It is `null` until a developer sets it. Send a code to set or change it, send `"country_code": null` to clear it, and leave the key out to keep it as it is. Any other value (a code from outside Africa, lowercase, three letters) gets a `422` that names `country_code`. It shows to other signed-in developers on the match cards of `GET /v1/me/ideas/{idea_id}/matches`.
 * **Limits:** `display_name` 1 to 80 characters, `first_name` and `last_name` 1 to 100, after spaces at the start and end are removed. `bio` up to 1000 characters. `email` must look like `name@example.com`. A new email is saved as not verified.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
 * **Error Responses:** `422` when a field breaks a limit (the error names the field). `409` `EMAIL_TAKEN` when another account already uses the email, in any mix of upper and lower case.
@@ -536,13 +536,22 @@ the session is waiting for or receiving repository analysis, `technical_defence`
 analysis is complete and the interview can begin, and `report_generation` while the final
 review brief is being prepared. It is `null` for terminal states and `awaiting_review`.
 
+Each attempt has a `language`, `en` or `fr`, chosen when it starts and never changed. The
+repositories check writes its summary, strengths, concerns and criterion rationales in it, the AI
+interviewer asks its questions in it, and the final report is written in it, so a reviewer who
+reads only English can be given a French report. The applicant's attempt and the reviewer's queue
+and case all carry `language`. The instruction that sets the language comes from a fixed list in
+the code, keyed by the stored value, and never from anything the applicant typed. When no AI
+provider answers, the built-in interviewer speaks the same language.
+
 The codebase analysis service reads public GitHub repository metadata, languages, a bounded file
 tree, test paths and recent commits. `GITHUB_API_TOKEN` is optional. Without it, public
 repositories use GitHub's unauthenticated rate limit. Repository code is never executed.
 
 The Groq codebase adapter is configured with `GROQ_API_KEY` and `GROQ_CODEBASE_MODEL`. It sends
 the bounded snapshot to the configured model, requests JSON, and validates the response before
-storing it. The adapter is not called directly by an HTTP endpoint.
+storing it. The JSON keys, criterion names, numbers and `model` do not change with the language.
+The adapter is not called directly by an HTTP endpoint.
 
 The worker claims one pending codebase analysis with a row lock. It keeps that transaction open
 while the external analysis runs, preventing two workers from processing the same session. A
@@ -609,7 +618,9 @@ It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each 
 with a database row lock, and a failed job is logged while the loop continues.
 
 Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
-`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape.
+`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape. The
+summary, findings and concerns are written in the attempt's `language`. The JSON keys,
+`security_flags` codes, `model` and numbers do not change.
 
 #### `POST /v1/me/verifications/{role_slug}`
 
@@ -619,9 +630,12 @@ Starts a verification attempt for one of the signed-in developer's claimed roles
 * **Request Body:**
   ```json
   {
-    "repositories": ["https://github.com/example/project"]
+    "repositories": ["https://github.com/example/project"],
+    "language": "fr"
   }
   ```
+  `language` is optional: `en` (the default) or `fr`. Anything else is a `422` that names the
+  field.
 * **Success Response (201 Created):** Returns the new verification session in `data`.
 * **Errors:** `404 ROLE_NOT_CLAIMED`, `409 VERIFICATION_IN_PROGRESS`,
   `409 ROLE_ALREADY_VERIFIED` or `409 VERIFICATION_ATTEMPTS_EXHAUSTED`.
@@ -771,13 +785,18 @@ page should prompt the owner to add roles.
         "is_verified": true,
         "matched_roles": [{ "slug": "backend-engineer", "name": "Backend & Systems Engineer" }],
         "technologies": [{ "slug": "python", "name": "Python" }],
-        "shared_technology_count": 1
+        "shared_technologies": [{ "slug": "python", "name": "Python" }],
+        "shared_technology_count": 1,
+        "country_code": "GH"
       }
     ],
     "next_offset": null
   }
   ```
-  A card never has an email, first or last name, or bio.
+  `shared_technologies` names the developer's technologies that the idea's author also has,
+  sorted by name like `technologies`. `shared_technology_count` is always its length.
+  `country_code` is the developer's country (two capital letters) and `null` when they have not
+  named one. A card never has an email, first or last name, or bio.
 * **Errors:** `404 NOT_FOUND` when the idea is not the caller's, does not exist or is deleted.
   `409 IDEA_NOT_OPEN` for a draft or closed idea: publish it first.
 
@@ -790,7 +809,10 @@ empty list, so the page should point them to role verification.
 
 * **Authentication:** Bearer token required.
 * **Success Response (200 OK):** `{"data": [{"idea": <public idea card>, "matched_roles":
-  [<role>]}], "next_offset": null}`. The idea card is the same as `GET /v1/ideas/{idea_id}`.
+  [<role>], "shared_technologies": [<technology>]}], "next_offset": null}`. The idea card is
+  the same as `GET /v1/ideas/{idea_id}`. `shared_technologies` names the technologies the caller
+  shares with the idea's author, sorted by name. It is empty when none are shared. The card has
+  no author country.
 
 ### Hubs
 
@@ -804,13 +826,16 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | --- | --- | --- |
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
-| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite or withdraw an invitation. |
+| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team or move the phase. |
 | `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief or the member list. |
 | `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
 | `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
 | `409` | `ALREADY_MEMBER` | The person is already an active member. |
 | `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
-| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved. |
+| `409` | `TEAM_ALREADY_CONFIRMED` | The owner already confirmed the team. Move the phase instead. |
+| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move before the owner confirms the team. |
+| `409` | `PHASE_NOT_ADJACENT` | The phase asked for is not the one just before or just after the hub's current phase. This includes the current phase itself. |
 | `409` | `TEAM_FULL` | The hub already has 5 active members, the owner included. |
 | `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
 | `409` | `IDEA_NOT_OPEN` | The idea is a draft or closed. Open it first. |
@@ -886,6 +911,14 @@ are saved together, or nothing is saved.
       "name": "Farm Ledger Hub",
       "description": "Building the offline ledger MVP.",
       "status": "active",
+      "phase": null,
+      "team_confirmed_at": null,
+      "phases": [
+        { "phase": "brainstorm", "state": "not_started" },
+        { "phase": "design", "state": "not_started" },
+        { "phase": "build", "state": "not_started" },
+        { "phase": "review", "state": "not_started" }
+      ],
       "terms": {
         "ownership_model": "custom",
         "notes": "The owner keeps 40%, the rest is split equally."
@@ -912,7 +945,12 @@ are saved together, or nothing is saved.
   }
   ```
   `member_count` counts active members only. `viewer` is the signed-in person's own
-  membership. The idea's confidential details are never in a hub card. The server keeps the
+  membership. `phase` is the hub's current phase (`brainstorm`, `design`, `build` or `review`),
+  or `null` until the owner confirms the team; `team_confirmed_at` is `null` at the same time.
+  `phases` always lists the four in that order, each with a `state`: `done` before the current
+  phase, `in_progress` on it, `not_started` after it (all four before the team is confirmed).
+  Everyone who can read the card sees all of this. The idea's confidential details are never in
+  a hub card. The server keeps the
   signer's IP address (from the connection, never from a header) and browser user agent as
   evidence, and never returns them.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `422` (a field breaks a rule),
@@ -1118,6 +1156,37 @@ The idea behind the hub, with its confidential `details`, for active members onl
 `id`, `title`, `summary`, `details`, `stage`, `status`, `published_at` and `updated_at`.
 
 * **Errors:** `403 NOT_HUB_MEMBER`, `404 NOT_FOUND` (also when the idea was deleted).
+
+#### The hub's phase
+
+A hub has no phase until its owner confirms the team. Then it is in `brainstorm`, and the owner
+moves it one phase forward or one back through `brainstorm`, `design` (design and architecture),
+`build` and `review` (review and test). Only the owner moves it, and an archived hub cannot be
+confirmed or moved. Inviting and joining stay open after the team is confirmed, up to the cap of
+five. Every change is logged (`hub_phase_moves`), and the log cannot be edited or deleted. Why
+these rules: `docs/decisions/2026-11-14-hub-phases.md`. Both routes answer with the hub card,
+and the web must ask for a confirmation before it moves a hub back.
+
+#### `POST /v1/hubs/{hub_id}/team/confirm`
+
+The owner confirms the team, at any size: the owner alone may confirm. Sets the phase to
+`brainstorm` and `team_confirmed_at` to now. No body.
+
+* **Success Response (200 OK):** the hub card, in `data`.
+* **Errors:** `401`, `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED`,
+  `409 TEAM_ALREADY_CONFIRMED`.
+
+#### `POST /v1/hubs/{hub_id}/phase`
+
+The owner moves the hub to the phase just after or just before its current one.
+
+* **Request Body:** `{ "phase": "design" }`, one of `brainstorm`, `design`, `build`, `review`.
+  Any other value is refused with `422`.
+* **Success Response (200 OK):** the hub card, in `data`.
+* **Errors:** `401`, `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_ADJACENT`, `422`. Skipping a phase, or asking for the
+  phase the hub is already in, is `PHASE_NOT_ADJACENT`, so a request sent twice moves the hub
+  once. Nothing comes before `brainstorm`: the team stays confirmed.
 
 ---
 

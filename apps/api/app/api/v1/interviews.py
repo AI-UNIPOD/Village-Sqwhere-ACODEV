@@ -189,7 +189,7 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
         )
         role_slug = session.user_role.role.slug
         if not interview.turns:
-            opening = await agent.opening(role_slug, session.ai_result)
+            opening = await agent.opening(role_slug, session.ai_result, session.language)
             interview.welcome_message = opening.welcome
             interview.turns.append(
                 VerificationInterviewTurn(
@@ -198,7 +198,9 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                 )
             )
         elif not interview.welcome_message:
-            opening = await DefaultInterviewAgent().opening(role_slug, session.ai_result)
+            opening = await DefaultInterviewAgent().opening(
+                role_slug, session.ai_result, session.language
+            )
             interview.welcome_message = opening.welcome
         await db.commit()
         await websocket.accept()
@@ -286,7 +288,9 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                 answered_turn.security_flags = await guard.inspect(answered_turn.answer_text)
                 history = interview_history(interview)
                 if answered_turn.sequence >= VERIFICATION_INTERVIEW_MAX_TURNS:
-                    closing = await agent.closing(role_slug, session.ai_result, history)
+                    closing = await agent.closing(
+                        role_slug, session.ai_result, history, session.language
+                    )
                     answered_turn.acknowledgement = closing.acknowledgement
                     interview.closing_message = closing.closing
                     complete_interview(interview, session)
@@ -298,6 +302,7 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
                         next_turn,
                         session.ai_result,
                         history,
+                        session.language,
                     )
                     answered_turn.acknowledgement = continuation.acknowledgement
                     interview.turn_number = next_turn

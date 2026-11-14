@@ -203,6 +203,12 @@ def test_a_hub_list_response_has_data_and_next_offset() -> None:
         "name": "Farm Ledger Hub",
         "description": None,
         "status": "active",
+        "phase": None,
+        "team_confirmed_at": None,
+        "phases": [
+            {"phase": phase, "state": "not_started"}
+            for phase in ("brainstorm", "design", "build", "review")
+        ],
         "terms": {},
         "idea": {"id": uuid4(), "title": "Offline farm ledger", "summary": "A ledger."},
         "owner": {

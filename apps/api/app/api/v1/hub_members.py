@@ -99,22 +99,18 @@ async def require_active_member(db: AsyncSession, hub_id: UUID, user: User) -> H
     return hub
 
 
-def require_owner(hub: Hub, user_id: UUID) -> None:
+def require_owner(
+    hub: Hub, user_id: UUID, message: str = "Only the hub's owner can manage invitations."
+) -> None:
     if hub.owner_id != user_id:
-        raise hub_error(
-            status.HTTP_403_FORBIDDEN,
-            "NOT_HUB_OWNER",
-            "Only the hub's owner can manage invitations.",
-        )
+        raise hub_error(status.HTTP_403_FORBIDDEN, "NOT_HUB_OWNER", message)
 
 
-def require_active_hub(hub: Hub) -> None:
+def require_active_hub(
+    hub: Hub, message: str = "This hub is archived, so nobody can join it."
+) -> None:
     if hub.status != HubStatus.ACTIVE:
-        raise hub_error(
-            status.HTTP_409_CONFLICT,
-            "HUB_ARCHIVED",
-            "This hub is archived, so nobody can join it.",
-        )
+        raise hub_error(status.HTTP_409_CONFLICT, "HUB_ARCHIVED", message)
 
 
 async def require_room(db: AsyncSession, hub: Hub) -> None:
