@@ -36,3 +36,17 @@ test("a question holds its answer", () => {
   expect(second.querySelector("summary")!.textContent).toBe("Who can read my idea?");
   expect(second.querySelector("p")!.textContent).toContain("Until you publish");
 });
+
+// The language is fixed when a verification starts, so the answer says what follows it and the limit.
+test.each([
+  ["en", "Which languages does it use?", ["interview", "repositories check", "report", "stays fixed"]],
+  ["fr", "Dans quelles langues\u202f?", ["entretien", "analyse des dépôts", "rapport", "reste fixée"]],
+] as const)("the %s language answer says the AI interview, check and report follow the page's language", (lang, question, words) => {
+  const { container } = render(<Faq lang={lang} />);
+  const item = Array.from(container.querySelectorAll("details")).find(
+    (d) => d.querySelector("summary")!.textContent === question,
+  )!;
+  const answer = item.querySelector("p")!.textContent!;
+  for (const word of words) expect(answer).toContain(word);
+  expect(answer).not.toMatch(/not tied|ne suivent pas/);
+});
