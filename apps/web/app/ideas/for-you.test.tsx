@@ -107,6 +107,50 @@ test("an idea that shares technologies with its author names them, with the auth
   expect(within(other).getByText("No technologies in common")).toBeTruthy();
 });
 
+test("each idea shows the score with its parts, and the page says the order", async () => {
+  api({
+    "/v1/me/matches": { data: [match({}, [backend], [go, postgres], scored(69, [30, 8, 10], [fintech, agritech])), match({ id: "idea-2", title: "Water points" })], next_offset: null },
+    "/v1/me": verifiedMe,
+  });
+  render(<ForYouIdeas lang="en" />);
+  const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  expect(within(shown).getByText("69")).toBeTruthy();
+  expect(within(shown).getByText("Match score: 69 out of 100, Possible match. Partial score.")).toBeTruthy();
+  expect(within(within(shown).getByRole("list", { name: "Why this score" })).getAllByRole("listitem").map((part) => part.textContent)).toEqual([
+    "Roles30 of 40Needs your verified role: Backend and Systems Engineer",
+    "Technologies8 of 20In common with Ama Mensah: Go, PostgreSQL",
+    "Sectors10 of 10You and Ama Mensah both build for Fintech and Agritech",
+    "MeaningNot compared yet",
+  ]);
+  const other = screen.getByRole("link", { name: "Water points" }).closest("li")!;
+  expect(within(other).getByText("43")).toBeTruthy();
+  expect(within(other).getByText("Weak match")).toBeTruthy();
+  expect(within(other).getByText("No sectors in common")).toBeTruthy();
+  expect(screen.getByText("Open ideas that need a role you are verified in, best score first. Each one says which role.")).toBeTruthy();
+});
+
+test("an idea with no score fields shows its reasons and no score", async () => {
+  const old = { idea: idea(), matched_roles: [backend], shared_technologies: [go] };
+  api({ "/v1/me/matches": { data: [old], next_offset: null }, "/v1/me": verifiedMe });
+  render(<ForYouIdeas lang="en" />);
+  const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  expect(within(shown).queryByText(/Match score/)).toBeNull();
+  expect(within(shown).getByText("Needs your verified role: Backend and Systems Engineer")).toBeTruthy();
+  expect(within(shown).getByText("In common with Ama Mensah: Go")).toBeTruthy();
+  expect(within(shown).queryByText("Meaning")).toBeNull();
+});
+
+test("the score, its parts and the lead sentence are in French", async () => {
+  api({ "/v1/me/matches": { data: [match({}, [backend], [go], scored(86, [40, 4, 10], [fintech]))], next_offset: null }, "/v1/me": verifiedMe });
+  render(<ForYouIdeas lang="fr" />);
+  const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  expect(within(shown).getByText("Très bonne correspondance")).toBeTruthy();
+  expect(within(shown).getByRole("list", { name: "Pourquoi ce score" })).toBeTruthy();
+  expect(within(shown).getByText("Vous et Ama Mensah construisez tous deux dans les domaines suivants : Fintech")).toBeTruthy();
+  expect(within(shown).getByText("40 sur 40")).toBeTruthy();
+  expect(screen.getByText(/meilleur score d'abord/)).toBeTruthy();
+});
+
 test("the shared technologies line is in French, and names an author without a name by their username", async () => {
   api({
     "/v1/me/matches": { data: [match({ author: { username: "danladi", display_name: "danladi", is_verified: false } }, [backend], [go])], next_offset: null },
