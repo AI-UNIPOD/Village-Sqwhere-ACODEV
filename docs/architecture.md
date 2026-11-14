@@ -66,6 +66,8 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/members/{user_id}/approve` (an invitation, signed the same way) or
   `POST /v1/hubs/{hub_id}/members/{user_id}/decline`. Only active members read
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
+  A member leaves with `POST /v1/hubs/{hub_id}/membership/leave`, and the owner removes one
+  with `POST /v1/hubs/{hub_id}/members/{user_id}/remove`.
   The owner renames or describes the hub with `PATCH /v1/hubs/{hub_id}` and archives it, for
   good, with `POST /v1/hubs/{hub_id}/archive`.
   The owner starts the work with `POST /v1/hubs/{hub_id}/team/confirm` (any team size, which
