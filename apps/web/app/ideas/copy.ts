@@ -52,6 +52,7 @@ type Copy = {
     detailsLong: string;
     roles: string;
     save: string;
+    changed: string;
     notFoundTitle: string;
     notFoundText: string;
   };
@@ -204,6 +205,7 @@ const en: Copy = {
     detailsLong: "Shorten the brief to 20,000 characters or fewer.",
     roles: "One of these roles is no longer offered. Untick it and save again.",
     save: "We couldn't save your idea. Your text is still here, so check your connection and try again.",
+    changed: "This idea had already been published or closed in another tab or window. The page now shows it as it is.",
     notFoundTitle: "We couldn't find this idea",
     notFoundText: "It may have been removed, or it belongs to another account.",
   },
@@ -373,6 +375,7 @@ const fr: Copy = {
     detailsLong: "Raccourcissez le dossier à 20\u202f000 caractères au plus.",
     roles: "L'un de ces rôles n'est plus proposé. Décochez-le et enregistrez à nouveau.",
     save: "Nous n'avons pas pu enregistrer votre idée. Votre texte est toujours là, vérifiez votre connexion et réessayez.",
+    changed: "Cette idée avait déjà été publiée ou fermée dans un autre onglet ou une autre fenêtre. La page la montre maintenant telle qu'elle est.",
     notFoundTitle: "Nous n'avons pas trouvé cette idée",
     notFoundText: "Elle a peut-être été supprimée, ou elle appartient à un autre compte.",
   },
