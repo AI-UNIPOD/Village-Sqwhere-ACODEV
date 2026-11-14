@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(api): show my hub membership and the agreement I signed (#170)
 - feat(web): add brainstorm notes to the hub page (#166)
 - fix(web): show the hub phases and the language choice that now ship (#164)
 - docs: bring the progress file up to date after phase one (#163)
