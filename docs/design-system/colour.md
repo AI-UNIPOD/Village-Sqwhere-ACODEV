@@ -55,6 +55,12 @@ uses the text colour.
 - **Match scores** use their own steps: 80 and above in `--success`, 60 to 79 in
   `--text`, 40 to 59 in `--warning`, below 40 in `--error`. Each step also has a label:
   Strong, Possible, Weak, Poor.
+- **Warm tints on the landing page.** Every other section sits on a band of 5% `--action`
+  mixed into `--bg`, and the stages under product views mix 5% into `--surface-sunken`. A
+  5% tint is warmth, not decoration: Laterite as a colour you can name still appears once
+  per section. The closing band has a low Laterite glow behind its logo, and section titles
+  end on a full stop in `--logo`. While the matcher's suggestions are its own, a soft Lagoon
+  ring holds them.
 - **Soft tints** for pills and messages are mixed from the job colour:
   `color-mix(in srgb, var(--success) 12%, transparent)` for pills (16% on Ink), 7% into
   `--surface` for messages (11% on Ink).

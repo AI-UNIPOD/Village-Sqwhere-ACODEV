@@ -68,7 +68,7 @@
 .stage {
   padding: var(--space-4);
   border-radius: var(--radius-l);
-  background: var(--surface-sunken);
+  background: var(--landing-stage);
 }
 
 @media (min-width: 600px) {
@@ -87,8 +87,8 @@
   padding: var(--space-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-l);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2), var(--card-lift);
 }
 
 @media (min-width: 600px) {
