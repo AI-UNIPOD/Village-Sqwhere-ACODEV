@@ -19,7 +19,7 @@ type Copy = {
   skip: string;
   role: Question & { error: string };
   stack: Question & { error: string; filter: string; selected: string };
-  country: Question & { filter: string; selected: string };
+  country: Question & { note: string; filter: string; selected: string };
   topics: Question;
   feed: Question & { useStack: string };
   empty: Empty;
@@ -33,6 +33,7 @@ type Copy = {
   nextSteps: string[];
   saving: string;
   saved: string;
+  savedWithCountry: string;
   saveFailed: string;
   village: string;
   change: string;
@@ -73,6 +74,7 @@ const en: Copy = {
   country: {
     title: "Where do you build from?",
     why: "Teammates in nearby time zones find it easier to meet.",
+    note: "Optional. Other signed-in developers can see your country.",
     filter: "Filter countries",
     selected: "Selected: {country}",
   },
@@ -104,7 +106,8 @@ const en: Copy = {
     "Verify your role to earn your Green Tick.",
   ],
   saving: "Saving your answers",
-  saved: "Your role, stack, sectors and what your feed shows are saved. Your country is not saved yet.",
+  saved: "Your role, stack, sectors and what your feed shows are saved.",
+  savedWithCountry: "Your role, stack, sectors, country and what your feed shows are saved.",
   saveFailed: "We couldn't save your answers. They are still here, so try again.",
   village: "Go to the village",
   change: "Change my answers",
@@ -147,8 +150,9 @@ const fr: Copy = {
   country: {
     title: "Depuis où construisez-vous\u202f?",
     why: "Des coéquipiers dans des fuseaux horaires proches se retrouvent plus facilement.",
+    note: "Facultatif. Les autres développeurs connectés peuvent voir votre pays.",
     filter: "Filtrer les pays",
-    selected: "Sélection : {country}",
+    selected: "Sélection\u202f: {country}",
   },
   topics: {
     title: "Quelles idées voulez-vous voir\u202f?",
@@ -180,7 +184,9 @@ const fr: Copy = {
     "Faites vérifier votre rôle pour obtenir votre Green Tick.",
   ],
   saving: "Enregistrement de vos réponses",
-  saved: "Votre rôle, vos technologies, vos domaines et le contenu de votre fil sont enregistrés. Votre pays ne l'est pas encore.",
+  saved: "Votre rôle, vos technologies, vos domaines et le contenu de votre fil sont enregistrés.",
+  savedWithCountry:
+    "Votre rôle, vos technologies, vos domaines, votre pays et le contenu de votre fil sont enregistrés.",
   saveFailed:
     "Nous n'avons pas pu enregistrer vos réponses. Elles sont toujours là, vous pouvez donc réessayer.",
   village: "Aller au village",

@@ -78,9 +78,9 @@ How we build it (the build's own calls, inside those decisions):
 - The order changes. A developer verified in one needed role who shares five technologies and
   two sectors with the owner (60 of 70) now comes before one verified in two roles who shares
   nothing (40 of 70).
-- The match responses gain `score`, `score_version`, `partial` and `breakdown`. When the real
-  score is on the match cards, the landing demo's simulated scores and its "simulated" line are
-  replaced by the real wording.
+- The match responses gain `score`, `score_version`, `partial`, `breakdown` and
+  `shared_sectors`. When the real score is on the match cards, the landing demo's simulated
+  scores and its "simulated" line are replaced by the real wording.
 - Version 2 adds the meaning part from embeddings of public text only (an idea's title and
   summary, never the brief). Scores will move when it arrives, which is why version 1 is marked
   partial.

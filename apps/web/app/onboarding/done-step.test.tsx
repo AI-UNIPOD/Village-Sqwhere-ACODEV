@@ -73,22 +73,33 @@ test("the French card shows technologies in French", () => {
   ]);
 });
 
-test("the card says what is saved (role, stack, sectors, feed) and what is not (country)", async () => {
+test("the card says what is saved: role, stack, sectors and feed, plus the country only when one was chosen", async () => {
   card("en", { displayName: "Kofi Mensah", username: "kofi-ships" });
   expect(screen.getByText("Saving your answers")).toBeTruthy();
-  expect(
-    await screen.findByText("Your role, stack, sectors and what your feed shows are saved. Your country is not saved yet."),
-  ).toBeTruthy();
+  expect(await screen.findByText("Your role, stack, sectors and what your feed shows are saved.")).toBeTruthy();
   // the role, the stack, the feed's technologies, the sectors
   expect(fetchMock).toHaveBeenCalledTimes(4);
+});
+
+test("a chosen country is saved with the rest, and the card says so in both languages", async () => {
+  const chosen = { ...answers, country: "SEN" };
+  render(<DoneStep lang="en" answers={chosen} profile={{ displayName: "Kofi Mensah", username: "kofi-ships" }} onChange={() => {}} />);
+  expect(await screen.findByText("Your role, stack, sectors, country and what your feed shows are saved.")).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(5);
+  const [, patch] = fetchMock.mock.calls[4];
+  expect([patch.method, patch.body]).toEqual(["PATCH", '{"country_code":"SN"}']);
+
+  cleanup();
+  render(<DoneStep lang="fr" answers={chosen} profile={{ displayName: "Kofi Mensah", username: "kofi-ships" }} onChange={() => {}} />);
+  expect(
+    await screen.findByText("Votre rôle, vos technologies, vos domaines, votre pays et le contenu de votre fil sont enregistrés."),
+  ).toBeTruthy();
 });
 
 test("the saved message is in French too", async () => {
   card("fr", { displayName: "Kofi Mensah", username: "kofi-ships" });
   expect(
-    await screen.findByText(
-      "Votre rôle, vos technologies, vos domaines et le contenu de votre fil sont enregistrés. Votre pays ne l'est pas encore.",
-    ),
+    await screen.findByText("Votre rôle, vos technologies, vos domaines et le contenu de votre fil sont enregistrés."),
   ).toBeTruthy();
 });
 

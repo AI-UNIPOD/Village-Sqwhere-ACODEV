@@ -22,8 +22,10 @@ the real text: `hero-headline.tsx`, words in `hero-headline-copy.ts`), then one 
 `app/landing/sections/` (each with its own copy, styles and tests), and the onboarding page shown after the first sign-in is
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
 technologies the feed should show and the sectors (`POST /v1/me/roles`,
-`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`); the country stays
-in the tab until the API can store it.
+`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`) and, when the
+developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
+under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
+(`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
@@ -150,7 +152,9 @@ comment that still has replies is drawn as a placeholder with its replies under 
 are plain text. A comment is liked like a post: the screen changes at once and the request
 follows (`PUT` and `DELETE /v1/comments/{id}/like`).
 
-The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
+The profile is `app/profile/`, at `/en/profile`: the name, bio and country (`PATCH /v1/me`; the
+country is a native list with "No country" first, saved as its code or `null`, and the form says
+other signed-in developers can see it), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.

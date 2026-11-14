@@ -25,10 +25,11 @@ type Copy = {
     heading: string;
     name: Field;
     bio: Field;
+    country: Field & { none: string };
     save: string;
     saved: string;
     count: string;
-    errors: { name: string; bio: string; save: string };
+    errors: { name: string; bio: string; country: string; save: string };
   };
   roles: {
     heading: string;
@@ -70,12 +71,18 @@ const en: Copy = {
       label: "About you",
       help: "A line or two that idea owners will read. Where you build from, what you like working on.",
     },
+    country: {
+      label: "Country",
+      help: "Optional. Other signed-in developers can see your country.",
+      none: "No country",
+    },
     save: "Save",
     saved: "Saved",
     count: "{n} of {max}",
     errors: {
       name: "Enter a name of 1 to 80 characters.",
       bio: "Shorten this to 1,000 characters or fewer.",
+      country: "Choose a country from the list, or No country.",
       save: "We couldn't save your changes. Nothing you typed was lost, so check your connection and try again.",
     },
   },
@@ -143,12 +150,18 @@ const fr: Copy = {
       label: "À propos de vous",
       help: "Une ou deux lignes que les porteurs d'idées liront. D'où vous construisez, ce que vous aimez faire.",
     },
+    country: {
+      label: "Pays",
+      help: "Facultatif. Les autres développeurs connectés peuvent voir votre pays.",
+      none: "Aucun pays",
+    },
     save: "Enregistrer",
     saved: "Enregistré",
     count: "{n} sur {max}",
     errors: {
       name: "Saisissez un nom de 1 à 80 caractères.",
       bio: "Raccourcissez ce texte à 1\u202f000 caractères ou moins.",
+      country: "Choisissez un pays dans la liste, ou Aucun pays.",
       save: "Nous n'avons pas pu enregistrer vos modifications. Rien de ce que vous avez saisi n'est perdu, vérifiez donc votre connexion et réessayez.",
     },
   },
@@ -194,7 +207,7 @@ const fr: Copy = {
   sectors: {
     heading: "Domaines",
     lead: "Les domaines dans lesquels vous voulez construire des idées, ceux que vous avez choisis à votre arrivée.",
-    selected: "Sélection : {n}",
+    selected: "Sélection\u202f: {n}",
     save: "Enregistrer les domaines",
     saved: "Enregistré",
     failed:
