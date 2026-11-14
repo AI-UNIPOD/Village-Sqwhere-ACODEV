@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Field } from "../ideas/composer";
 import { IdeaError } from "../ideas/ideas-api";
@@ -43,6 +43,12 @@ export function PieceForm(props: Shared & { piece?: Piece; onSaved?: () => void;
   const summaryField = useRef<HTMLTextAreaElement>(null);
   const name = draft.name ?? piece?.name ?? "";
   const summary = draft.summary ?? piece?.summary ?? "";
+  // The Edit button that opened this form is gone with the card it replaced, so the name
+  // field takes the focus. The form that adds a piece is always there and takes none.
+  const editing = !!piece;
+  useEffect(() => {
+    if (editing) nameField.current?.focus();
+  }, [editing]);
 
   const problem = (field: "name" | "summary", value: string) =>
     field === "name" && size(value) === 0

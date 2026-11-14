@@ -215,6 +215,8 @@ test("Edit turns the card into filled fields and Save sends only the name that c
   const form = within(screen.getByRole("form", { name: "Edit the piece Mobile app" }));
   expect((form.getByLabelText("Name") as HTMLInputElement).value).toBe("Mobile app");
   expect((form.getByLabelText("Summary") as HTMLTextAreaElement).value).toBe("Where agents approve payouts.");
+  // the Edit button went with the card, so the name field takes the focus
+  await waitFor(() => expect(document.activeElement).toBe(form.getByLabelText("Name")));
   type(form.getByLabelText("Name"), " Agent app ");
   fireEvent.click(form.getByRole("button", { name: "Save" }));
   await waitFor(() => expect(sent("PATCH")).toEqual([["/v1/hubs/hub-1/pieces/p-1", { name: "Agent app" }]]));
