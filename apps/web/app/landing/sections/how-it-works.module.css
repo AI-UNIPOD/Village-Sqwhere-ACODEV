@@ -52,7 +52,7 @@
 .frame {
   padding: var(--space-4);
   border-radius: var(--radius-l);
-  background: var(--surface-sunken);
+  background: var(--landing-stage);
 }
 
 @media (min-width: 768px) {
@@ -168,7 +168,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-l);
   background: var(--surface-raised);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2), var(--card-lift);
 }
 
 @media (min-width: 768px) {

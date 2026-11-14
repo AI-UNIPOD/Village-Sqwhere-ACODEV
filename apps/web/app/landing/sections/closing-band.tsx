@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Lang } from "../../locales";
 import { Logo } from "../../logo";
 import { DemoButton, DemoNote } from "../demo-button";
+import { HeadingText } from "../heading-text";
 import styles from "../landing-page.module.css";
 import { copy } from "./closing-band-copy";
 import own from "./closing-band.module.css";
@@ -19,7 +20,7 @@ export function ClosingBand({ lang }: { lang: Lang }) {
             <Logo size={128} />
           </div>
           <h2 id="closing-title" className={own.title}>
-            {t.title}
+            <HeadingText text={t.title} />
           </h2>
           <p className={own.text}>{t.text}</p>
           <div className={own.buttons}>
