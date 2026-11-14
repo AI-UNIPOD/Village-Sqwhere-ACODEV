@@ -90,21 +90,23 @@ function Person({ lang, me }: { lang: Lang; me: Me }) {
 // typed stays in the fields when the save fails.
 export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: Me) => void }) {
   const t = copy[lang].you;
-  const [name, setName] = useState(me.display_name);
-  const [bio, setBio] = useState(me.bio ?? "");
+  // A field follows the profile until the person types in it, so a fresher profile that arrives
+  // after the form is on screen is shown and not overwritten by an older copy.
+  const [typed, setTyped] = useState<{ name?: string; bio?: string; country?: string }>({});
+  const name = typed.name ?? me.display_name;
+  const bio = typed.bio ?? me.bio ?? "";
   // the API's two-letter code, or "" for no country
-  const [country, setCountry] = useState(me.country_code ?? "");
+  const country = typed.country ?? me.country_code ?? "";
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  function edit(next: { name: string; bio: string }) {
-    setName(next.name);
-    setBio(next.bio);
+  function edit(next: { name?: string; bio?: string; country?: string }) {
+    setTyped((shown) => ({ ...shown, ...next }));
     setSaved(false);
     // an error that is showing goes the moment the value is fixed; new ones wait for a save
-    const found = validate(next.name, next.bio, t);
+    const found = validate(next.name ?? name, next.bio ?? bio, t);
     setErrors((shown) => ({ name: shown.name && found.name, bio: shown.bio && found.bio }));
   }
 
@@ -128,9 +130,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
       try {
         const profile = await saveProfile(changes);
         onMe(profile);
-        setName(profile.display_name);
-        setBio(profile.bio ?? "");
-        setCountry(profile.country_code ?? "");
+        setTyped({});
       } catch (error) {
         if (error instanceof SignedOutError) return;
         const field = error instanceof IdeaError ? FIELDS[error.field ?? ""] : undefined;
@@ -177,7 +177,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
             autoComplete="name"
             aria-invalid={!!errors.name || undefined}
             aria-describedby={describe("name")}
-            onChange={(event) => edit({ name: event.target.value, bio })}
+            onChange={(event) => edit({ name: event.target.value })}
           />
         </Field>
         <Field
@@ -194,7 +194,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
             value={bio}
             aria-invalid={!!errors.bio || undefined}
             aria-describedby={describe("bio")}
-            onChange={(event) => edit({ name, bio: event.target.value })}
+            onChange={(event) => edit({ bio: event.target.value })}
           />
         </Field>
         <Field id="profile-country" label={t.country.label} help={t.country.help} error={errors.country}>
@@ -205,9 +205,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
             aria-invalid={!!errors.country || undefined}
             aria-describedby={describe("country")}
             onChange={(event) => {
-              setCountry(event.target.value);
-              setSaved(false);
-              setErrors((shown) => ({ ...shown, country: undefined }));
+              edit({ country: event.target.value });
             }}
           >
             <option value="">{t.country.none}</option>

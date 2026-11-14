@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { forgetMe, keepMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { copy } from "./copy";
 import { ProfilePage } from "./profile-page";
@@ -86,6 +87,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   fetchMock.mockReset();
   localStorage.clear();
+  forgetMe();
 });
 
 test("while the profile loads there is a status and no form", () => {
@@ -219,6 +221,19 @@ test("the country field is in French, named and sorted in French", async () => {
   const names = [...select.options].slice(1).map((option) => option.textContent ?? "");
   expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, "fr")));
   expect(screen.getByText("Facultatif. Les autres développeurs connectés peuvent voir votre pays.")).toBeTruthy();
+});
+
+test("a fresher profile that arrives after the form is shown is not overwritten by saving the bio", async () => {
+  // the kept copy is older than the API: the country was set since
+  keepMe(me() as never);
+  api({ "GET /v1/me": { data: me({ country_code: "NG" }) }, "PATCH /v1/me": { data: me({ country_code: "NG", bio: "Hello." }) } });
+  render(<ProfilePage lang="en" />);
+  await waitFor(() => expect(countrySelect().value).toBe("NG"));
+  fireEvent.change(screen.getByLabelText("About you"), { target: { value: "Hello." } });
+  press("Save");
+  await screen.findByText("Saved");
+  expect(sent()).toEqual([["PATCH", "/v1/me", { bio: "Hello." }]]);
+  expect(countrySelect().value).toBe("NG");
 });
 
 test("an unchanged form sends nothing", async () => {
