@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- docs: bring the progress file up to date after phase one
 - feat(api): score every match and order both lists by it (#160)
 - feat(web): save the country from onboarding and the profile (#159)
 - feat(web): show a hub's real phases and let its owner move them (#158)

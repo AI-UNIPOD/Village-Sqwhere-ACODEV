@@ -3,7 +3,7 @@
 Read this first. Update "Current state" and "What's next" in place after meaningful work.
 Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions/`.
 
-## Current state (2026-11-13)
+## Current state (2026-11-14)
 
 - Monorepo: `apps/web` (Next.js 16, landing page in English and French), `apps/api` (FastAPI
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
@@ -12,10 +12,18 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, sectors and
   verification (GitHub analysis, five-question AI interview, report, peer review), Groq
   and Gemini fallbacks and a separate worker. Guide: `docs/backend.md`.
-- Ideas, matching and hubs are in place (drafts, cards, ranking, agreements, invitations,
-  join requests). Posts: create, read, edit, delete, like, save, a filtered list
-  (`GET /v1/posts`), the feed and saved posts. Comments and replies: create, read, edit,
-  delete, lists, threads and likes. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
+- Ideas, matching and hubs are in place (drafts, cards, agreements, invitations, join
+  requests). Every match has a score out of 100 that decides the order (roles, shared
+  technologies, shared sectors; version 1 is partial until embeddings add the meaning part:
+  `docs/decisions/2026-11-14-match-score.md`), and cards name the shared technologies and the
+  developer's country (profiles hold a country, no city).
+- A hub has a real phase: the owner confirms the team (any size), which opens brainstorm, then
+  moves it one phase forward or back (`2026-11-14-hub-phases.md`). The hub page shows it.
+- A verification attempt stores a language; the AI interview, the repositories check and the
+  report are written in it, and the web sends the page's language.
+- Posts: create, read, edit, delete, like, save, a filtered list (`GET /v1/posts`), the feed
+  and saved posts. Comments and replies: create, read, edit, delete, lists, threads and likes.
+  Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
 - The API needs `JWT_SECRET_KEY` (32+ chars) and keeps sign-in state in memory, so run one
   process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). `POST /v1/auth/demo`
   signs in as a read-only demo account when `DEMO_ENABLED=true` (content: `app.demo_seed`).
@@ -31,11 +39,13 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 ## What's next
 
 1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
-2. Leaving and removing members, editing and archiving a hub, and the four hub phases (decisions
-   and next steps need a new schema script); later, semantic similarity for matching.
+2. The hub's four phase tools: brainstorm notes (in review), the design sketch as boxes and
+   arrows, the build tab (pieces, and the commits of a public repository the owner pastes),
+   the review checklist and finishing a hub. Then embeddings for the score's meaning part, the
+   score on join requests, leaving and removing members, and a "pause matching" setting.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
-4. Save the onboarding country and a completion flag once the API has fields (the sectors and
+4. Save an onboarding completion flag once the API has a field (the country, the sectors and
    the feed's technologies are saved).
 5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
 6. Web next: a French-speaking teammate's check of the copy.
