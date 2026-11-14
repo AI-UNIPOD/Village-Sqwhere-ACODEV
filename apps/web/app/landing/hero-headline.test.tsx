@@ -162,7 +162,7 @@ test("with the motion button off it also stands still", async () => {
 test("the beats come in order and end on the real headline", async () => {
   const { container } = renderHeadline();
   const { lines, names } = await watch(container, 8000);
-  expect(names).toEqual(["Hamza · Casablanca", "Thandiwe · Johannesburg", "Ọmọlará · Lagos"]);
+  expect(names).toEqual(["Hamza · Morocco", "Thandiwe · South Africa", "Ọmọlará · Nigeria"]);
   const order = ["Africa, one platform", "Africa, one place", "Africa, one square", "Africa, one square."];
   const at = order.map((line) => lines.indexOf(line));
   expect(at.every((i) => i >= 0)).toBe(true);
@@ -189,7 +189,7 @@ test("the word is selected before it is replaced", async () => {
 test("the French edit has two people and ends on the French headline", async () => {
   const { container } = renderHeadline("fr");
   const { lines, names } = await watch(container, 8000);
-  expect(names).toEqual(["Hamza · Casablanca", "Kidist · Addis-Abeba"]);
+  expect(names).toEqual(["Hamza · Maroc", "Kidist · Éthiopie"]);
   expect(lines[0]).toBe("une seule plateforme");
   expect(lines.at(-1)).toBe("une seule place.");
   expect(state(container)).toBeNull();
@@ -266,7 +266,7 @@ test("a draft word that does not fit the text box is skipped, with every step be
   const { lines, names } = await watch(container, 8000);
   expect(lines[0]).toBe("Africa, one place");
   expect(lines).not.toContain("Africa, one platform");
-  expect(names).toEqual(["Thandiwe · Johannesburg", "Ọmọlará · Lagos"]);
+  expect(names).toEqual(["Thandiwe · South Africa", "Ọmọlará · Nigeria"]);
   expect(state(container)).toBeNull();
 });
 
