@@ -153,7 +153,7 @@ const fr: Copy = {
     },
     {
       title: "Espace",
-      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Le porteur confirme l'équipe, le brainstorm s'ouvre, puis le porteur fait passer l'espace par quatre phases, une à la fois. Les outils de chaque phase restent à venir.",
+      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis il fait passer l'espace par quatre phases, une à la fois. Les outils de chaque phase restent à venir.",
       view: "Un espace d'exemple, chaque phase Terminée, En cours ou Pas commencée",
     },
   ],
@@ -167,7 +167,7 @@ const fr: Copy = {
     roles: ["Ingénieur backend et systèmes", "Ingénieur mobile", "Auditeur cybersécurité et smart contracts"],
   },
   matcher: {
-    tag: "Le matcher propose. Le porteur décide.",
+    tag: "Le matcher propose. Le porteur de l'idée décide.",
     matches: [
       {
         name: "Hamza Benali",
@@ -199,7 +199,7 @@ const fr: Copy = {
     heading: "Équipe",
     count: "Membres\u202f: 4 sur 5",
     members: [
-      { name: "Ọmọlará Adéwálé", initials: "ỌA", line: "Porteur · Ingénieur frontend", signed: "Signé" },
+      { name: "Ọmọlará Adéwálé", initials: "ỌA", line: "Porteur de l'idée · Ingénieur frontend", signed: "Signé" },
       { name: "Hamza Benali", initials: "HB", line: "Ingénieur backend et systèmes", signed: "Signé" },
       { name: "Thandiwe Mokoena", initials: "TM", line: "Ingénieur mobile", signed: "Signée" },
       { name: "Kidist Alemayehu", initials: "KA", line: "Auditeur cybersécurité et smart contracts", signed: "Signée" },

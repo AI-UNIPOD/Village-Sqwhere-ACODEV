@@ -34,7 +34,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "See who the matcher suggests",
-        text: "The matcher suggests verified developers whose role the idea needs. It says why each one matched.",
+        text: "The matcher suggests verified developers whose role the idea needs. It gives each one a score and says how it was counted.",
       },
       {
         name: "Invite your team",
@@ -69,7 +69,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Voir qui le matcher propose",
-        text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il dit pourquoi chacun correspond.",
+        text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il donne à chacun un score et dit comment il a été compté.",
       },
       {
         name: "Inviter votre équipe",
