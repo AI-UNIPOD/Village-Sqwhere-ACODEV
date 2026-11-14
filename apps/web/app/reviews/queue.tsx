@@ -118,6 +118,7 @@ function Cases({ lang }: { lang: Lang }) {
             fill(t.attempt, { n: attempt.attempt_number }),
             fill(t.waiting, { time: waited(attempt.completed_at ?? attempt.created_at, now, lang) }),
             repos === 1 ? t.repoOne : fill(t.repoMany, { n: repos }),
+            fill(t.inLanguage, { language: t.languages[attempt.language] }),
           ];
           return (
             <li key={attempt.id}>

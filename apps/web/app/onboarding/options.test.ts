@@ -2,7 +2,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 
-import { ROLES, TECHNOLOGIES, TOPICS } from "./options";
+import { COUNTRIES } from "../landing/gather";
+import { ALPHA2, ROLES, TECHNOLOGIES, TOPICS, countriesFor } from "./options";
 
 // The lists are written out here, with their French names, instead of read from the API's
 // lookups. This keeps them in step with the slugs the database scripts add.
@@ -28,4 +29,20 @@ test.each([
   const inDatabase = seeded(table);
   expect(inDatabase.length).toBeGreaterThan(0);
   expect(slugs(list)).toEqual([...inDatabase].sort());
+});
+
+// The API checks a country against its own list. Keeping the web's codes equal to that list
+// stops a country from being offered that the API would refuse, or the reverse.
+test("the web's two-letter country codes are exactly the API's", () => {
+  const python = readFileSync(join(__dirname, "../../../api/app/countries.py"), "utf8");
+  // the codes are the quoted words after `frozenset(`
+  const codes = [...python.slice(python.indexOf("frozenset(")).matchAll(/"([^"]+)"/g)].flatMap((m) => m[1].split(" ").filter(Boolean));
+  expect(codes.length).toBeGreaterThan(0);
+
+  const web = COUNTRIES.map(([, , alpha3]) => ALPHA2[alpha3]);
+  expect(web.every((code) => /^[A-Z]{2}$/.test(code ?? ""))).toBe(true);
+  expect(new Set(web).size).toBe(COUNTRIES.length);
+  expect([...web].sort()).toEqual([...codes].sort());
+  expect(Object.keys(ALPHA2).sort()).toEqual(COUNTRIES.map(([, , alpha3]) => alpha3).sort());
+  expect(countriesFor("fr").every((country) => country.alpha2 === ALPHA2[country.code])).toBe(true);
 });

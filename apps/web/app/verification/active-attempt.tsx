@@ -187,6 +187,7 @@ export function ActiveAttempt({ lang, attempt, actions }: { lang: Lang; attempt:
       </ol>
 
       <p className={styles.reassure}>{t.reassure}</p>
+      {attempt.language !== lang && <p className={styles.reassure}>{t.otherLanguage}</p>}
 
       <p className={styles.label}>{t.submitted}</p>
       <ul className={styles.repos}>

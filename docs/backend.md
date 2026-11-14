@@ -536,7 +536,8 @@ the session is waiting for or receiving repository analysis, `technical_defence`
 analysis is complete and the interview can begin, and `report_generation` while the final
 review brief is being prepared. It is `null` for terminal states and `awaiting_review`.
 
-Each attempt has a `language`, `en` or `fr`, chosen when it starts and never changed. The AI
+Each attempt has a `language`, `en` or `fr`, chosen when it starts and never changed. The
+repositories check writes its summary, strengths, concerns and criterion rationales in it, the AI
 interviewer asks its questions in it, and the final report is written in it, so a reviewer who
 reads only English can be given a French report. The applicant's attempt and the reviewer's queue
 and case all carry `language`. The instruction that sets the language comes from a fixed list in
@@ -549,7 +550,8 @@ repositories use GitHub's unauthenticated rate limit. Repository code is never e
 
 The Groq codebase adapter is configured with `GROQ_API_KEY` and `GROQ_CODEBASE_MODEL`. It sends
 the bounded snapshot to the configured model, requests JSON, and validates the response before
-storing it. The adapter is not called directly by an HTTP endpoint.
+storing it. The JSON keys, criterion names, numbers and `model` do not change with the language.
+The adapter is not called directly by an HTTP endpoint.
 
 The worker claims one pending codebase analysis with a row lock. It keeps that transaction open
 while the external analysis runs, preventing two workers from processing the same session. A

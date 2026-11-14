@@ -222,6 +222,8 @@ test("the country list is in the page language, sorted for it, and the step can 
   const go = start("fr");
   answerRequired(go, /Ingénieur frontend/);
   go("country");
+  // the question says it is optional and who can see the answer
+  expect(screen.getByText("Facultatif. Les autres développeurs connectés peuvent voir votre pays.")).toBeTruthy();
   const names = screen.getAllByRole("radio").map((radio) => radio.closest("label")?.textContent ?? "");
   expect(names).toHaveLength(54);
   expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, "fr")));

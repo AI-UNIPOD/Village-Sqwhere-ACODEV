@@ -98,7 +98,7 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
       </ol>
       {(status === "saving" || status === "saved") && (
         <p className={styles.muted} role="status">
-          {status === "saving" ? t.saving : t.saved}
+          {status === "saving" ? t.saving : country ? t.savedWithCountry : t.saved}
         </p>
       )}
       {status === "failed" && (

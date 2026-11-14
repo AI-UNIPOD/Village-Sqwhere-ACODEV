@@ -9,6 +9,7 @@ export type Attempt = {
   role: string;
   role_name: string;
   attempt_number: number;
+  language: Lang;
   evidence: unknown;
   ai_result: unknown;
   created_at: string;

@@ -49,6 +49,7 @@ const attempt = (aiResult: unknown = full, evidence: unknown = [{ repository_url
   role: "backend-engineer",
   role_name: "Backend & Systems Engineer",
   attempt_number: 2,
+  language: "en",
   evidence,
   ai_result: aiResult,
   created_at: "2026-11-11T10:00:00Z",
@@ -72,7 +73,7 @@ const dialog = () => document.querySelector("dialog")!;
 
 beforeEach(() => {
   // the frame already knows who is signed in, as it does after the first screen of a visit
-  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, roles: [], technologies: [], feed_topics: [], sectors: [] });
+  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, country_code: null, roles: [], technologies: [], feed_topics: [], sectors: [] });
   vi.stubGlobal("fetch", fetchMock);
   // jsdom has no modal dialog: this stands in for what a browser does
   HTMLDialogElement.prototype.showModal = function () {
@@ -163,6 +164,20 @@ test("the AI's report comes after the transcript, is labelled a suggestion and d
   expect(card.textContent).toContain("Suggested score: 78.5 of 100");
   expect(card.textContent).toContain("Confidence: 74%");
   expect(card.textContent).not.toMatch(/strong|weak|pass(ed)? |fail/i);
+});
+
+test.each([
+  ["en", "fr", "Report language: French"],
+  ["en", "en", "Report language: English"],
+  ["fr", "fr", "Langue du rapport\u202f: français"],
+  ["fr", "en", "Langue du rapport\u202f: anglais"],
+] as const)("on the %s page, the report of a %s attempt says %s", async (lang, language, text) => {
+  api(json({ data: { ...attempt(), language } }));
+  render(<ReviewCase lang={lang} />);
+  const heading = await screen.findByRole("heading", { name: lang === "en" ? "The AI's report" : "Le rapport de l'IA" });
+  // the page's text matcher folds the no-break space, so the exact text is read from the node
+  const line = within(heading.closest("section")!).getByText(/^(Report language|Langue du rapport)/);
+  expect(line.textContent).toBe(text);
 });
 
 test("an empty list in the report is left out", async () => {
@@ -312,7 +327,7 @@ test("the case is written in French, the language switch keeps the case", async 
   api(json({ data: attempt() }));
   render(<ReviewCase lang="fr" />);
   expect((await screen.findByRole("heading", { level: 1 })).textContent).toBe(
-    "Revue : Ingénieur backend et systèmes, tentative 2",
+    "Revue\u202f: Ingénieur backend et systèmes, tentative 2",
   );
   expect(screen.getAllByText("Sa réponse")).toHaveLength(3);
   expect(screen.getByRole("link", { name: "English" }).getAttribute("href")).toBe("/en/reviews/case?id=case-1");

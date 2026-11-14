@@ -22,6 +22,7 @@ const attempt = (n: number, overrides: Record<string, unknown> = {}) => ({
   role: "backend-engineer",
   role_name: "Backend & Systems Engineer",
   attempt_number: 1,
+  language: "en",
   status: "awaiting_review",
   evidence: [{ repository_url: "https://github.com/ama/one" }, { repository_url: "https://github.com/ama/two" }],
   ai_score: 91,
@@ -111,6 +112,19 @@ test("each attempt is one row with its role, attempt number, waiting time and re
   expect(rows[1].textContent).toContain("Attempt 2 of 3 · Waiting 5 hours · 1 repository");
   expect(screen.queryByText(/91/)).toBeNull();
   expect(queueCalls()).toEqual(["http://localhost:8000/v1/reviews/verifications?offset=0&limit=20"]);
+});
+
+test.each([
+  ["en", "fr", "Interview and report in French"],
+  ["en", "en", "Interview and report in English"],
+  ["fr", "fr", "Entretien et rapport en français"],
+  ["fr", "en", "Entretien et rapport en anglais"],
+] as const)("on the %s page, a %s attempt reads %s", async (lang, language, text) => {
+  nav.lang = lang;
+  api(true, json({ data: [attempt(1, { language })], next_offset: null }));
+  render(<ReviewQueue lang={lang} />);
+  const link = await screen.findByRole("link", { name: /Backend|backend/ });
+  expect(link.textContent).toContain(text);
 });
 
 test("each row is one link to its case", async () => {

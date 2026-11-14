@@ -18,6 +18,8 @@ export type Me = {
   /** The shared demo account: it can look at everything and change nothing. */
   is_demo?: boolean;
   bio: string | null;
+  /** Two capital letters such as NG, or null when the developer named none. */
+  country_code: string | null;
   roles: MeRole[];
   technologies: { slug: string; name: string }[];
   feed_topics: { slug: string; name: string }[];

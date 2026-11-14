@@ -38,11 +38,11 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Invite your team",
-        text: "The owner invites developers, or answers those who ask to join. Approving a request sends an invitation, and the person then reads the agreement and signs. A hub takes up to five people, the owner included.",
+        text: "The owner invites developers, or answers those who ask to join. Each person reads the agreement and signs, up to five people with the owner. When the team is ready, the owner confirms it and Brainstorm opens.",
       },
       {
-        name: "See the hub's four phases",
-        text: "The hub page lists four phases: brainstorm, design and architecture, build, and review and test. They are not open yet, so each one reads Not started.",
+        name: "Follow the hub's four phases",
+        text: "A hub moves through four phases: brainstorm, design and architecture, build, then review and test. Its owner moves it from one to the next. This hub is in Build; the tools for each phase are still to come.",
       },
     ],
     start: "Start the route",
@@ -73,11 +73,11 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Inviter votre équipe",
-        text: "Le porteur invite des développeurs, ou répond à ceux qui demandent à rejoindre l'espace. Accepter une demande envoie une invitation\u202f: la personne lit alors l'accord et le signe. Un espace accueille jusqu'à cinq personnes, porteur compris.",
+        text: "Le porteur invite des développeurs, ou répond à ceux qui demandent à rejoindre l'espace. Chacun lit l'accord et le signe, jusqu'à cinq personnes avec le porteur. Quand l'équipe est prête, le porteur la confirme et le brainstorm s'ouvre.",
       },
       {
-        name: "Voir les quatre phases de l'espace",
-        text: "La page de l'espace liste quatre phases\u202f: brainstorm, conception et architecture, construction, et revue et tests. Elles ne sont pas encore ouvertes\u202f: chacune indique Pas commencée.",
+        name: "Suivre les quatre phases de l'espace",
+        text: "Un espace traverse quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Son porteur le fait passer de l'une à l'autre. Cet espace est en Construction\u202f; les outils de chaque phase restent à venir.",
       },
     ],
     start: "Commencer le parcours",

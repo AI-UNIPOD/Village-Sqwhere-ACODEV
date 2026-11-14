@@ -178,6 +178,9 @@
 
 .repos a { overflow-wrap: anywhere; }
 
+/* the language note sits close under the reassurance it follows */
+.reassure + .reassure { margin-block-start: var(--space-2); }
+
 .reassure + .label { margin-block-start: var(--space-6); }
 
 .stopRow { margin-block-start: var(--space-8); }

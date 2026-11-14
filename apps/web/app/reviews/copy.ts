@@ -16,6 +16,8 @@ type Copy = {
   waiting: string;
   repoOne: string;
   repoMany: string;
+  inLanguage: string;
+  languages: Record<Lang, string>;
   review: string;
   loadMore: string;
   moreFailed: string;
@@ -36,6 +38,7 @@ type Copy = {
   criterionScore: string;
   aiTitle: string;
   aiLabel: string;
+  reportLanguage: string;
   aiMissing: string;
   codeShows: string;
   interviewShows: string;
@@ -80,6 +83,8 @@ const en: Copy = {
   waiting: "Waiting {time}",
   repoOne: "1 repository",
   repoMany: "{n} repositories",
+  inLanguage: "Interview and report in {language}",
+  languages: { en: "English", fr: "French" },
   review: "Review",
   loadMore: "Load more",
   moreFailed: "We couldn't load more attempts. Check your connection and try again.",
@@ -103,6 +108,7 @@ const en: Copy = {
   criterionScore: "{n} of 25",
   aiTitle: "The AI's report",
   aiLabel: "Written by the AI checker. A suggestion, not a decision.",
+  reportLanguage: "Report language: {language}",
   aiMissing: "The AI report is missing for this attempt.",
   codeShows: "What the code shows",
   interviewShows: "What the interview shows",
@@ -149,6 +155,8 @@ const fr: Copy = {
   waiting: "En attente depuis {time}",
   repoOne: "1 dépôt",
   repoMany: "{n} dépôts",
+  inLanguage: "Entretien et rapport en {language}",
+  languages: { en: "anglais", fr: "français" },
   review: "Examiner",
   loadMore: "Afficher plus",
   moreFailed: "Nous n'avons pas pu charger d'autres tentatives. Vérifiez votre connexion et réessayez.",
@@ -172,6 +180,7 @@ const fr: Copy = {
   criterionScore: "{n} sur 25",
   aiTitle: "Le rapport de l'IA",
   aiLabel: "Rédigé par l'IA de vérification. Une suggestion, pas une décision.",
+  reportLanguage: "Langue du rapport\u202f: {language}",
   aiMissing: "Le rapport de l'IA est absent pour cette tentative.",
   codeShows: "Ce que montre le code",
   interviewShows: "Ce que montre l'entretien",
