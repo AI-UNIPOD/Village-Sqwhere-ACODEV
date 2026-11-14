@@ -216,13 +216,16 @@ export function CountryStep({ lang, answers, update }: StepProps) {
   return (
     <>
       <Head id="country" title={t.country.title} why={t.country.why} />
+      <p id="country-note" className={styles.why}>
+        {t.country.note}
+      </p>
       <Filter id="country" label={t.country.filter} value={query} onChange={setQuery} />
       {/* the filter can hide the chosen country, so the choice is also said here */}
       <p className={styles.selected} role="status">
         {chosen && fill(t.country.selected, { country: chosen.name })}
       </p>
       {countries.length > 0 ? (
-        <fieldset className={styles.group} aria-describedby="country-why">
+        <fieldset className={styles.group} aria-describedby="country-why country-note">
           <legend className={landing.srOnly}>{t.country.title}</legend>
           <div className={styles.countryList}>
             {countries.map((country) => (

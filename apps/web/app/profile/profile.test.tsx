@@ -30,6 +30,7 @@ const me = (over: Record<string, unknown> = {}) => ({
   username: "kwabena-owusu",
   display_name: "Kwabena Owusu",
   bio: "Backend engineer in Accra.",
+  country_code: null,
   roles: [backend, devops],
   technologies: [
     { slug: "go", name: "Go" },
@@ -141,6 +142,83 @@ test("saving only the bio sends only the bio", async () => {
   press("Save");
   await screen.findByText("Saved");
   expect(sent()).toEqual([["PATCH", "/v1/me", { bio: "Building in Accra." }]]);
+});
+
+const countrySelect = () => screen.getByLabelText("Country") as HTMLSelectElement;
+
+test("the country is a list with No country first, then the 54 countries by name, and says who sees it", async () => {
+  await page(me({ country_code: "GH" }));
+  const options = [...countrySelect().options];
+  expect(options).toHaveLength(55);
+  expect(options[0].textContent).toBe("No country");
+  expect(options[0].value).toBe("");
+  const names = options.slice(1).map((option) => option.textContent ?? "");
+  expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, "en")));
+  expect(countrySelect().value).toBe("GH");
+  expect(screen.getByText("Optional. Other signed-in developers can see your country.")).toBeTruthy();
+  expect(countrySelect().getAttribute("aria-describedby")).toBe("profile-country-help");
+});
+
+test("a developer with no country sees No country chosen", async () => {
+  await page();
+  expect(countrySelect().value).toBe("");
+});
+
+test("choosing a country sends its two-letter code alone and shows Saved", async () => {
+  await page(me(), { "PATCH /v1/me": { data: me({ country_code: "NG" }) } });
+  fireEvent.change(countrySelect(), { target: { value: "NG" } });
+  press("Save");
+  await screen.findByText("Saved");
+  expect(sent()).toEqual([["PATCH", "/v1/me", { country_code: "NG" }]]);
+  expect(countrySelect().value).toBe("NG");
+});
+
+test("choosing No country clears it with null", async () => {
+  await page(me({ country_code: "NG" }), { "PATCH /v1/me": { data: me() } });
+  fireEvent.change(countrySelect(), { target: { value: "" } });
+  press("Save");
+  await screen.findByText("Saved");
+  expect(sent()).toEqual([["PATCH", "/v1/me", { country_code: null }]]);
+  expect(countrySelect().value).toBe("");
+});
+
+test("a country that did not change is not sent with another change", async () => {
+  await page(me({ country_code: "NG" }), { "PATCH /v1/me": { data: me({ country_code: "NG", bio: "Hello." }) } });
+  fireEvent.change(screen.getByLabelText("About you"), { target: { value: "Hello." } });
+  press("Save");
+  await screen.findByText("Saved");
+  expect(sent()).toEqual([["PATCH", "/v1/me", { bio: "Hello." }]]);
+});
+
+test("a failed country save keeps the choice and says nothing was lost", async () => {
+  await page(me(), { "PATCH /v1/me": refusal(500, "SERVER_ERROR") });
+  fireEvent.change(countrySelect(), { target: { value: "KE" } });
+  press("Save");
+  expect((await screen.findByRole("alert")).textContent).toContain("Nothing you typed was lost");
+  expect(countrySelect().value).toBe("KE");
+});
+
+test("a 422 on country_code marks the country field", async () => {
+  await page(me(), {
+    "PATCH /v1/me": reply(422, { detail: [{ loc: ["body", "country_code"], msg: "not allowed", type: "value_error" }] }),
+  });
+  fireEvent.change(countrySelect(), { target: { value: "KE" } });
+  press("Save");
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("Choose a country from the list, or No country."));
+  expect(countrySelect().getAttribute("aria-invalid")).toBe("true");
+  fireEvent.change(countrySelect(), { target: { value: "" } });
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("the country field is in French, named and sorted in French", async () => {
+  api({ "GET /v1/me": { data: me({ country_code: "CI" }) } });
+  render(<ProfilePage lang="fr" />);
+  const select = (await screen.findByLabelText("Pays")) as HTMLSelectElement;
+  expect(select.options[0].textContent).toBe("Aucun pays");
+  expect(select.selectedOptions[0].textContent).toBe("Côte d'Ivoire");
+  const names = [...select.options].slice(1).map((option) => option.textContent ?? "");
+  expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, "fr")));
+  expect(screen.getByText("Facultatif. Les autres développeurs connectés peuvent voir votre pays.")).toBeTruthy();
 });
 
 test("an unchanged form sends nothing", async () => {

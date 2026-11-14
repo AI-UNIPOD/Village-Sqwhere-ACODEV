@@ -9,7 +9,7 @@ import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { AlertCircle, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
-import { toProfile } from "../onboarding/options";
+import { countriesFor, toProfile } from "../onboarding/options";
 import type { Me } from "../session/me";
 import { SignedOutError } from "../session/session";
 import village from "../village/village.module.css";
@@ -19,7 +19,7 @@ import styles from "./profile.module.css";
 
 const LIMITS = { nameMax: 80, bioMax: 1000 };
 
-type Errors = { name?: string; bio?: string };
+type Errors = { name?: string; bio?: string; country?: string };
 
 function validate(name: string, bio: string, t: (typeof copy)[Lang]["you"]): Errors {
   const errors: Errors = {};
@@ -29,7 +29,7 @@ function validate(name: string, bio: string, t: (typeof copy)[Lang]["you"]): Err
 }
 
 // The field the API names when it refuses a value, as this form calls it.
-const FIELDS: Record<string, keyof Errors> = { display_name: "name", bio: "bio" };
+const FIELDS: Record<string, keyof Errors> = { display_name: "name", bio: "bio", country_code: "country" };
 
 function Field(props: {
   id: string;
@@ -86,12 +86,14 @@ function Person({ lang, me }: { lang: Lang; me: Me }) {
   );
 }
 
-// The name and the bio others see. Only what changed is sent, and what the person typed stays
-// in the fields when the save fails.
+// The name, the bio and the country others see. Only what changed is sent, and what the person
+// typed stays in the fields when the save fails.
 export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: Me) => void }) {
   const t = copy[lang].you;
   const [name, setName] = useState(me.display_name);
   const [bio, setBio] = useState(me.bio ?? "");
+  // the API's two-letter code, or "" for no country
+  const [country, setCountry] = useState(me.country_code ?? "");
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -118,6 +120,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
     const changes = {
       ...(name.trim() !== me.display_name && { display_name: name.trim() }),
       ...(bio !== (me.bio ?? "") && { bio }),
+      ...(country !== (me.country_code ?? "") && { country_code: country || null }),
     };
     if (Object.keys(changes).length > 0) {
       setBusy(true);
@@ -127,6 +130,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
         onMe(profile);
         setName(profile.display_name);
         setBio(profile.bio ?? "");
+        setCountry(profile.country_code ?? "");
       } catch (error) {
         if (error instanceof SignedOutError) return;
         const field = error instanceof IdeaError ? FIELDS[error.field ?? ""] : undefined;
@@ -142,7 +146,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
     setSaved(true);
   }
 
-  const describe = (field: "name" | "bio") => `profile-${field}-help${errors[field] ? ` profile-${field}-error` : ""}`;
+  const describe = (field: "name" | "bio" | "country") => `profile-${field}-help${errors[field] ? ` profile-${field}-error` : ""}`;
   // quiet until the text is within a tenth of its limit
   const count = (length: number, max: number) => (length > max * 0.9 ? fill(t.count, { n: length, max }) : undefined);
 
@@ -192,6 +196,27 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
             aria-describedby={describe("bio")}
             onChange={(event) => edit({ name, bio: event.target.value })}
           />
+        </Field>
+        <Field id="profile-country" label={t.country.label} help={t.country.help} error={errors.country}>
+          <select
+            id="profile-country"
+            className={onboarding.input}
+            value={country}
+            aria-invalid={!!errors.country || undefined}
+            aria-describedby={describe("country")}
+            onChange={(event) => {
+              setCountry(event.target.value);
+              setSaved(false);
+              setErrors((shown) => ({ ...shown, country: undefined }));
+            }}
+          >
+            <option value="">{t.country.none}</option>
+            {countriesFor(lang).map((option) => (
+              <option key={option.alpha2} value={option.alpha2}>
+                {option.name}
+              </option>
+            ))}
+          </select>
         </Field>
         <div className={`${onboarding.actions} ${styles.bar}`}>
           {failed && (
