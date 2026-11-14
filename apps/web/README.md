@@ -22,8 +22,10 @@ the real text: `hero-headline.tsx`, words in `hero-headline-copy.ts`), then one 
 `app/landing/sections/` (each with its own copy, styles and tests), and the onboarding page shown after the first sign-in is
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
 technologies the feed should show and the sectors (`POST /v1/me/roles`,
-`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`); the country stays
-in the tab until the API can store it.
+`PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`) and, when the
+developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
+under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
+(`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
@@ -79,13 +81,15 @@ button, read from the hub's card (`viewer.can_ask_again_at`) or from a press tha
 (409 `REQUEST_COOLING_DOWN`).
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
-developer is verified in (`GET /v1/me/matches`), each with the roles that matched. Matching goes
-by verified roles, so a developer without one is sent to verify, and the page does not call the
-API for them.
+developer is verified in (`GET /v1/me/matches`), each with the roles that matched and, when there
+are any, the technologies shared with the idea's author. Matching goes by verified roles, so a
+developer without one is sent to verify, and the page does not call the API for them.
 
 The owner's side is `/en/ideas/matches?id=`: developers verified in a role the idea needs
-(`GET /v1/me/ideas/{id}/matches`), each with the roles that matched and the technologies shared
-with the owner. With a hub, "Invite to the hub" sends the invitation from the row
+(`GET /v1/me/ideas/{id}/matches`), each with the roles that matched, their country (named in the
+page's language, nothing when they gave none) and the technologies shared with the owner. The
+shared ones are named in a line and come first in the tags, marked with a tick and, for a screen
+reader, "in common". With a hub, "Invite to the hub" sends the invitation from the row
 (`inviteMember`, the same call and refusal sentences as the hub's invite form); without one the
 page says a hub comes first. "See who matches" on Your ideas and a link under the hub's invite
 form lead here.
@@ -158,7 +162,9 @@ comment that still has replies is drawn as a placeholder with its replies under 
 are plain text. A comment is liked like a post: the screen changes at once and the request
 follows (`PUT` and `DELETE /v1/comments/{id}/like`).
 
-The profile is `app/profile/`, at `/en/profile`: the name and bio (`PATCH /v1/me`), the roles
+The profile is `app/profile/`, at `/en/profile`: the name, bio and country (`PATCH /v1/me`; the
+country is a native list with "No country" first, saved as its code or `null`, and the form says
+other signed-in developers can see it), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.

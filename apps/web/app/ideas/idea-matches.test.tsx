@@ -20,6 +20,7 @@ const backend = { slug: "backend-engineer", name: "Backend & Systems Engineer" }
 const mobile = { slug: "mobile-engineer", name: "Mobile Engineer" };
 const react = { slug: "react", name: "React" };
 const flutter = { slug: "flutter", name: "Flutter" };
+const go = { slug: "go", name: "Go" };
 
 // a made-up developer, as the matches answer gives them
 const person = (username: string, display_name: string, over: Record<string, unknown> = {}) => ({
@@ -30,12 +31,19 @@ const person = (username: string, display_name: string, over: Record<string, unk
   is_verified: false,
   matched_roles: [backend],
   technologies: [],
-  shared_technology_count: 0,
+  shared_technologies: [],
+  country_code: null,
   ...over,
 });
 
-const wanjiru = person("wanjiru-kamau", "Wanjiru Kamau", { is_verified: true, technologies: [react, flutter], shared_technology_count: 2 });
-const danladi = person("danladi", "danladi", { matched_roles: [backend, mobile], technologies: [react], shared_technology_count: 1 });
+// Flutter comes first in her own list, React is the one she shares
+const wanjiru = person("wanjiru-kamau", "Wanjiru Kamau", {
+  is_verified: true,
+  technologies: [flutter, go, react],
+  shared_technologies: [go, react],
+  country_code: "KE",
+});
+const danladi = person("danladi", "danladi", { matched_roles: [backend, mobile], technologies: [react], shared_technologies: [react] });
 const fatou = person("fatou-sow", "Fatou Sow");
 
 const open = (over: Record<string, unknown> = {}) => idea({ roles_needed: [backend, mobile], ...over });
@@ -57,7 +65,7 @@ const title = (text: string) => screen.findByRole("heading", { level: 1, name: t
 
 beforeEach(() => {
   // the frame already knows who is signed in, as it does after the first screen of a visit
-  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, roles: [], technologies: [], feed_topics: [], sectors: [] });
+  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, country_code: null, roles: [], technologies: [], feed_topics: [], sectors: [] });
   nav.search = "id=idea-1";
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem(
@@ -88,27 +96,65 @@ test("the page names the idea, leads back to Your ideas, and shows each develope
   expect(github.getAttribute("rel")).toBe("noopener noreferrer");
   expect(first.getByText("Verified")).toBeTruthy();
   expect(first.getByText("Verified in: Backend and Systems Engineer")).toBeTruthy();
-  expect(first.getByText("2 technologies in common with you")).toBeTruthy();
-  const tags = within(first.getByRole("list", { name: "Technologies" }));
-  expect(tags.getAllByRole("listitem").map((tag) => tag.textContent)).toEqual(["React", "Flutter"]);
+  expect(first.getByText("Kenya")).toBeTruthy();
+  expect(first.getByText("In common with you: Go, React")).toBeTruthy();
 
   // several roles, one shared technology, and a GitHub account with no name
   const second = cardOf("danladi");
   expect(second.getByText("Verified in: Backend and Systems Engineer, Mobile Engineer")).toBeTruthy();
-  expect(second.getByText("1 technology in common with you")).toBeTruthy();
+  expect(second.getByText("In common with you: React")).toBeTruthy();
   expect(second.getByRole("link", { name: "danladi (GitHub profile, opens in a new tab)" })).toBeTruthy();
   expect(second.queryByText("Verified")).toBeNull();
   // no score, no percentage
   expect(screen.queryByText(/\d%|\bscore\b|\bAI\b/)).toBeNull();
 });
 
-test("a developer who shares no technology has no line about it, and one with none listed has no tags", async () => {
-  await show({ "GET /v1/me/ideas/idea-1/matches": { data: [fatou], next_offset: null } });
+test("the shared technologies come first in the tags, each marked with a tick and words for a screen reader", async () => {
+  await show();
+  await screen.findByText("Wanjiru Kamau");
+  const tags = within(cardOf("Wanjiru Kamau").getByRole("list", { name: "Technologies" })).getAllByRole("listitem");
+  expect(tags.map((tag) => tag.textContent)).toEqual(["Go (in common)", "React (in common)", "Flutter"]);
+  expect(tags.map((tag) => !!tag.querySelector("svg"))).toEqual([true, true, false]);
+  // the words are for a screen reader only: the tag's own text is the name
+  expect(within(tags[0]).getByText("(in common)").className).toContain("srOnly");
+});
+
+test("a developer who shares no technology has no line about it, no marked tag, and one with none listed has no tags", async () => {
+  await show({ "GET /v1/me/ideas/idea-1/matches": { data: [fatou, person("tendai-moyo", "Tendai Moyo", { technologies: [react] })], next_offset: null } });
   await screen.findByText("Fatou Sow");
   const row = cardOf("Fatou Sow");
   expect(row.getByText("Verified in: Backend and Systems Engineer")).toBeTruthy();
   expect(row.queryByText(/in common/)).toBeNull();
   expect(row.queryByRole("list")).toBeNull();
+  const other = cardOf("Tendai Moyo");
+  expect(other.queryByText(/in common/)).toBeNull();
+  expect(other.getAllByRole("listitem").map((tag) => tag.textContent)).toEqual(["React"]);
+  expect(other.getByRole("list", { name: "Technologies" }).querySelector("svg")).toBeNull();
+});
+
+test("the country shows by name in the page's language, and nothing for no country or a code the page does not know", async () => {
+  const lands = (code: string | null, name: string) => person(name.toLowerCase(), name, { country_code: code });
+  await show({
+    "GET /v1/me/ideas/idea-1/matches": {
+      data: [lands("CF", "Aya"), lands(null, "Bola"), lands("XX", "Chidi"), lands("ST", "Dele")],
+      next_offset: null,
+    },
+  });
+  await screen.findByText("Aya");
+  expect(cardOf("Aya").getByText("Central African Republic")).toBeTruthy();
+  expect(cardOf("Dele").getByText("São Tomé and Príncipe")).toBeTruthy();
+  // a card with no country, or an unknown one, has the same lines as any other, and the country adds one
+  const lines = (name: string) => screen.getByText(name, { selector: "p" }).closest("li")!.querySelectorAll("p").length;
+  expect(lines("Chidi")).toBe(lines("Bola"));
+  expect(lines("Aya")).toBe(lines("Bola") + 1);
+  expect(cardOf("Chidi").queryByText("XX")).toBeNull();
+});
+
+test("the country is named in French on the French page", async () => {
+  await show({ "GET /v1/me/ideas/idea-1/matches": { data: [person("dele", "Dele", { country_code: "ST" }), person("aya", "Aya", { country_code: "CF" })], next_offset: null } }, "fr");
+  await screen.findByText("Dele");
+  expect(cardOf("Dele").getByText("Sao Tomé-et-Principe")).toBeTruthy();
+  expect(cardOf("Aya").getByText("Centrafrique")).toBeTruthy();
 });
 
 test("the same page in French, with the roles and the invite in French", async () => {
@@ -117,8 +163,10 @@ test("the same page in French, with the roles and the invite in French", async (
   const first = cardOf("Wanjiru Kamau");
   // Testing Library reads the narrow no-break space as a plain one
   expect(first.getByText("Vérifié dans : Ingénieur backend et systèmes")).toBeTruthy();
-  expect(first.getByText("2 technologies en commun avec vous")).toBeTruthy();
-  expect(cardOf("danladi").getByText("1 technologie en commun avec vous")).toBeTruthy();
+  expect(first.getByText("Kenya")).toBeTruthy();
+  expect(first.getByText("En commun avec vous : Go, React").textContent).toContain("vous\u202f: Go, React");
+  expect(within(first.getByRole("list", { name: "Technologies" })).getAllByRole("listitem")[0].textContent).toBe("Go (en commun)");
+  expect(cardOf("danladi").getByText("En commun avec vous : React")).toBeTruthy();
   expect(first.getByRole("button", { name: /^Inviter dans l'espace.: Wanjiru Kamau$/ })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Vos idées" })).toBeTruthy();
 });
@@ -249,7 +297,7 @@ test("an idea with no hub yet lists the developers with no invite buttons, and o
   expect(create[0].getAttribute("href")).toBe("/en/hubs/new?idea=idea-1");
   expect(screen.queryByRole("button", { name: /Invite/ })).toBeNull();
   // the why is still there
-  expect(cardOf("Wanjiru Kamau").getByText("2 technologies in common with you")).toBeTruthy();
+  expect(cardOf("Wanjiru Kamau").getByText("In common with you: Go, React")).toBeTruthy();
 });
 
 // ---------- the states ----------

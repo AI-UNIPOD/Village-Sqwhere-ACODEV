@@ -3,7 +3,7 @@ import type { Me } from "../session/me";
 
 // Each change answers with the profile as the API now holds it, or the part that changed.
 // The roles come back one at a time, so the page loads the profile again after them.
-export const saveProfile = async (changes: { display_name?: string; bio?: string }) =>
+export const saveProfile = async (changes: { display_name?: string; bio?: string; country_code?: string | null }) =>
   (await call<{ data: Me }>("/v1/me", "PATCH", changes)).data;
 
 export const addRole = (slug: string) => call("/v1/me/roles", "POST", { role: slug, is_primary: false });

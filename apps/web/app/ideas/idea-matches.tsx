@@ -12,13 +12,13 @@ import { Person, TEAM_MAX, inviteMessage } from "../hubs/team";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { AlertCircle, ArrowLeft, Clock, Lightbulb } from "../onboarding/icons";
+import { AlertCircle, ArrowLeft, Check, Clock, Lightbulb } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
-import { TECHNOLOGIES } from "../onboarding/options";
+import { countriesFor } from "../onboarding/options";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
-import { roleName } from "./browse";
+import { roleName, technologyName } from "./browse";
 import { copy } from "./copy";
 import { IdeaError, loadDevelopersForIdea, loadMyIdea, type Developer, type OwnedIdea } from "./ideas-api";
 import styles from "./ideas.module.css";
@@ -32,6 +32,12 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
   const card = useRef<HTMLLIElement>(null);
   const [state, setState] = useState<"idle" | "busy" | "sent">("idle");
   const [problem, setProblem] = useState<string | null>(null);
+  const shared = person.shared_technologies;
+  // a missing or unknown code shows nothing: a wrong place is worse than none
+  const country = countriesFor(lang).find((known) => known.alpha2 === person.country_code)?.name;
+  // the shared ones lead, each group in the API's order
+  const marked = person.technologies.map((tech) => ({ tech, inCommon: shared.some((one) => one.slug === tech.slug) }));
+  const tags = [...marked.filter((tag) => tag.inCommon), ...marked.filter((tag) => !tag.inCommon)];
 
   // the button leaves with the invitation, so keyboard focus moves to the person's link
   useEffect(() => {
@@ -73,6 +79,7 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
           </button>
         )}
       </div>
+      {country && <p className={styles.meta}>{country}</p>}
       <p className={landing.srOnly} role="status">
         {state === "sent" ? fill(team.form.sent, { name: person.display_name }) : ""}
       </p>
@@ -84,15 +91,15 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
       )}
       <div className={styles.why}>
         <p>{fill(t.verifiedIn, { roles: person.matched_roles.map((role) => roleName(lang, role)).join(", ") })}</p>
-        {person.shared_technology_count > 0 && (
-          <p>{fill(person.shared_technology_count === 1 ? t.techOne : t.techMany, { n: person.shared_technology_count })}</p>
-        )}
+        {shared.length > 0 && <p>{fill(t.inCommon, { technologies: shared.map((tech) => technologyName(lang, tech)).join(", ") })}</p>}
       </div>
-      {person.technologies.length > 0 && (
+      {tags.length > 0 && (
         <ul className={village.tags} aria-label={t.technologies}>
-          {person.technologies.map((tech) => (
-            <li key={tech.slug} className={village.tag}>
-              {TECHNOLOGIES.find((known) => known.slug === tech.slug)?.name[lang] ?? tech.name}
+          {tags.map(({ tech, inCommon }) => (
+            <li key={tech.slug} className={inCommon ? `${village.tag} ${styles.sharedTag}` : village.tag}>
+              {inCommon && <Check />}
+              {technologyName(lang, tech)}
+              {inCommon && <span className={landing.srOnly}> ({t.inCommonTag})</span>}
             </li>
           ))}
         </ul>

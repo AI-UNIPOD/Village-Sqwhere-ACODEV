@@ -68,7 +68,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
   The owner starts the work with `POST /v1/hubs/{hub_id}/team/confirm` (any team size, which
   opens brainstorm) and moves the hub one phase forward or back with
-  `POST /v1/hubs/{hub_id}/phase`; the hub card says which phase it is in.
+  `POST /v1/hubs/{hub_id}/phase`; the hub card says which phase it is in. Active members write
+  short brainstorm notes: `GET /v1/hubs/{hub_id}/notes` reads them in every phase once the team
+  is confirmed, `POST /v1/hubs/{hub_id}/notes` adds one and
+  `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm.
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
   `POST /v1/me/ideas/{idea_id}/publish` and `POST /v1/me/ideas/{idea_id}/close` create and
@@ -77,7 +80,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   confidential brief. Guide: `docs/backend.md`.
 - **Matching** (Bearer token): `GET /v1/me/ideas/{idea_id}/matches` ranks developers verified
   in the roles one of my open ideas needs, and `GET /v1/me/matches` ranks open ideas that need
-  my verified roles. No AI model and no idea details are involved.
+  my verified roles. Every match has a score out of 100, counted from roles, shared technologies
+  and shared sectors, and both lists are ordered by it. No AI model and no idea details are
+  involved.
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
   `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
   `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics

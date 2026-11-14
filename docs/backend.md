@@ -758,6 +758,35 @@ deterministic: no AI model is called and an idea's `details` are never read. Bot
 `offset` (0 or more) and `limit` (1 to 50, default 20) and return `next_offset` when another
 page exists. Why: `docs/decisions/2026-11-13-role-based-idea-matching.md`.
 
+**The score.** Every match has a score out of 100 and both lists are ordered by it. Why:
+`docs/decisions/2026-11-14-match-score.md`. It is counted from stored facts, in four parts:
+
+| Part | Points | How it is counted |
+| --- | --- | --- |
+| Roles | 40 | 30 for one needed role the developer is verified in, 40 for two or more |
+| Technologies | 20 | 4 for each technology shared with the idea's author, at most 5 counted |
+| Sectors | 10 | 5 for each sector shared with the idea's author, at most 2 counted |
+| Meaning | 30 | Not built yet |
+
+Version 1 has no meaning part, so the 70 points that exist are scaled to 100 and rounded to a
+whole number, half up: `(raw * 100 + 35) // 70`. Raw 30 gives 43, 42 gives 60, 57 gives 81 and
+70 gives 100. Both lists add these fields to each item:
+
+* `score`: a whole number from 0 to 100.
+* `score_version`: `1`.
+* `partial`: `true` while the meaning part is missing.
+* `breakdown`: `roles`, `technologies`, `sectors` and `meaning`, each `{"points", "max"}` with
+  `max` 40, 20, 10 and 30. `points` are the raw points before scaling, so a card can say
+  "30 of 40". `meaning.points` is `null` in version 1.
+* `shared_sectors`: the sectors both people have, sorted by name like `shared_technologies`
+  (`[]` when none). On the developer list it is the developer's sectors that the idea's author
+  also has; on the idea list, the caller's sectors that the idea's author also has.
+
+The order is the raw points, highest first. Ties are broken by the earlier rules: for
+developers the earliest verification, then the user id; for ideas the newest publication, then
+the idea id (highest first). The order is computed in SQL, so `offset` and `limit` page through
+it correctly.
+
 People asking to join an idea's hub, invited to it or in it are not suggested for that idea,
 and that idea is left out of their own matches. After a decline, a withdrawn request, leaving
 or a removal, both can be suggested again. Why:
@@ -765,12 +794,11 @@ or a removal, both can be suggested again. Why:
 
 #### `GET /v1/me/ideas/{idea_id}/matches`
 
-Developers who fit one of the caller's open ideas. The order is: more of the idea's needed
-roles covered, then more technologies shared with the author, then earliest verification.
-The author and deleted accounts never appear, nor does anyone who is asking to join the
-idea's hub, invited to it or in it. After a decline, a withdrawn request, leaving or a removal,
-the person can be suggested again. An idea with no roles needed returns an empty list, so the
-page should prompt the owner to add roles.
+Developers who fit one of the caller's open ideas, ordered by score (see above), then
+earliest verification, then user id. The author and deleted accounts never appear, nor does
+anyone who is asking to join the idea's hub, invited to it or in it. After a decline, a
+withdrawn request, leaving or a removal, the person can be suggested again. An idea with no
+roles needed returns an empty list, so the page should prompt the owner to add roles.
 
 * **Authentication:** Bearer token required. Only the idea's author.
 * **Success Response (200 OK):**
@@ -787,7 +815,17 @@ page should prompt the owner to add roles.
         "technologies": [{ "slug": "python", "name": "Python" }],
         "shared_technologies": [{ "slug": "python", "name": "Python" }],
         "shared_technology_count": 1,
-        "country_code": "GH"
+        "shared_sectors": [{ "slug": "fintech", "name": "Fintech" }],
+        "country_code": "GH",
+        "score": 56,
+        "score_version": 1,
+        "partial": true,
+        "breakdown": {
+          "roles": { "points": 30, "max": 40 },
+          "technologies": { "points": 4, "max": 20 },
+          "sectors": { "points": 5, "max": 10 },
+          "meaning": { "points": null, "max": 30 }
+        }
       }
     ],
     "next_offset": null
@@ -803,16 +841,17 @@ page should prompt the owner to add roles.
 #### `GET /v1/me/matches`
 
 Open ideas, by other authors, that need a role the caller is verified in, leaving out ideas
-whose hub the caller is asking to join, invited to or in. The order is: more of the caller's
-roles needed, then newest publication. A caller with no verified role gets an
-empty list, so the page should point them to role verification.
+whose hub the caller is asking to join, invited to or in. The order is the score (see above),
+then newest publication, then idea id. A caller with no verified role gets an empty list, so
+the page should point them to role verification.
 
 * **Authentication:** Bearer token required.
 * **Success Response (200 OK):** `{"data": [{"idea": <public idea card>, "matched_roles":
-  [<role>], "shared_technologies": [<technology>]}], "next_offset": null}`. The idea card is
-  the same as `GET /v1/ideas/{idea_id}`. `shared_technologies` names the technologies the caller
-  shares with the idea's author, sorted by name. It is empty when none are shared. The card has
-  no author country.
+  [<role>], "shared_technologies": [<technology>], "shared_sectors": [<sector>], "score": 60,
+  "score_version": 1, "partial": true, "breakdown": {...}}], "next_offset": null}`. The idea card
+  is the same as `GET /v1/ideas/{idea_id}`. `shared_technologies` and `shared_sectors` name the
+  technologies and sectors the caller shares with the idea's author, sorted by name. They are
+  empty when none are shared. The card has no author country.
 
 ### Hubs
 
@@ -827,14 +866,18 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
 | `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team or move the phase. |
-| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief or the member list. |
+| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list or the notes. |
+| `403` | `NOT_NOTE_AUTHOR` | Only a note's author or the hub's owner can remove it. |
 | `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
+| `404` | `NOTE_NOT_FOUND` | The note does not exist, is already removed, or belongs to another hub. |
 | `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
 | `409` | `ALREADY_MEMBER` | The person is already an active member. |
 | `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
-| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes added or removed. |
 | `409` | `TEAM_ALREADY_CONFIRMED` | The owner already confirmed the team. Move the phase instead. |
-| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move before the owner confirms the team. |
+| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes cannot be read or written, before the owner confirms the team. |
+| `409` | `PHASE_CLOSED` | The hub is past brainstorm, so notes can no longer be added or removed. They stay readable. |
+| `409` | `NOTES_FULL` | The hub already has 200 notes that are not removed. |
 | `409` | `PHASE_NOT_ADJACENT` | The phase asked for is not the one just before or just after the hub's current phase. This includes the current phase itself. |
 | `409` | `TEAM_FULL` | The hub already has 5 active members, the owner included. |
 | `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
@@ -1187,6 +1230,62 @@ The owner moves the hub to the phase just after or just before its current one.
   `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_ADJACENT`, `422`. Skipping a phase, or asking for the
   phase the hub is already in, is `PHASE_NOT_ADJACENT`, so a request sent twice moves the hub
   once. Nothing comes before `brainstorm`: the team stays confirmed.
+
+#### Brainstorm notes
+
+Short sticky notes the team writes while the hub is in `brainstorm`. A note is plain text of 1 to
+280 characters, counted as characters, not bytes. The text is trimmed, and a null character is
+refused, like in posts. Only active members read or write notes. Reading is open in every phase
+once the team is confirmed. Adding and removing work only while the hub is active and in
+`brainstorm`. Notes are confidential to the team: nothing else returns them, and the hub card does
+not change. A removed note keeps its row (`deleted_at`) but is never listed. Nothing pushes new
+notes to a browser, so the web reloads the list and offers a Refresh button. Why these rules:
+`docs/decisions/2026-11-14-hub-brainstorm-notes.md`. A note:
+
+```json
+{
+  "id": "…",
+  "body": "Idempotency key on every transfer",
+  "author": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": true },
+  "created_at": "2026-11-14T10:15:00Z",
+  "can_delete": true
+}
+```
+
+`can_delete` is true when the viewer is the note's author or the hub's owner and the hub is
+active and in `brainstorm`, so the web can show a remove button without working it out.
+
+#### `GET /v1/hubs/{hub_id}/notes`
+
+The hub's notes that are not removed, oldest first. Paged with `offset` (default 0) and `limit`
+(1 to 50, default 50), like the other lists. A hub holds at most 200 notes, so four pages cover
+a full board.
+
+* **Success Response (200 OK):** `{"data": [<note>], "next_offset": null}`. `next_offset` is the
+  `offset` of the next page, or null on the last one.
+* **Errors:** `401`, `422` (a bad `offset` or `limit`, checked first), `404 NOT_FOUND`,
+  `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`. The checks after `422` run in that order.
+
+#### `POST /v1/hubs/{hub_id}/notes`
+
+Adds a note, as the signed-in member.
+
+* **Request Body:** `{ "body": "…" }`. The other fields are refused.
+* **Success Response (201 Created):** the note, in `data`.
+* **Errors:** `401`, `422` (empty or only spaces, over 280 characters, a null character, or an
+  unknown field), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `409 NOTES_FULL`. A body that fails validation gets
+  `422` before any other check, even on a hub that is past brainstorm. After that the checks run
+  in the order listed.
+
+#### `DELETE /v1/hubs/{hub_id}/notes/{note_id}`
+
+The note's author or the hub's owner removes a note. Answers `204`.
+
+* **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `404 NOTE_NOT_FOUND`,
+  `403 NOT_NOTE_AUTHOR` (another member's note). The checks run in that order, so a closed phase
+  is reported before a missing note.
 
 ---
 

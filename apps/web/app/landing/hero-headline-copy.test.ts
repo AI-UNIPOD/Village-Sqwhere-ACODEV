@@ -10,7 +10,7 @@ test("the edit copy follows the voice rules: no dashes, no exclamation marks, no
     const text = [
       edit.draft,
       edit.underline,
-      ...edit.steps.flatMap((step) => [step.name, step.city, step.text]),
+      ...edit.steps.flatMap((step) => [step.name, step.country, step.text]),
     ];
     for (const line of text) {
       expect(line.trim()).not.toBe("");
