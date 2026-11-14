@@ -399,6 +399,30 @@ Updates editable fields on the user's profile.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
 * **Error Responses:** `422` when a field breaks a limit (the error names the field). `409` `EMAIL_TAKEN` when another account already uses the email, in any mix of upper and lower case.
 
+#### `POST /v1/me/deletion`
+
+Deletes the signed-in account. The person types their username to confirm (any capital
+letters): `{"username": "kofi-b"}`. Answers `204` with no body, and every token stops working
+at once.
+
+What happens, in one transaction:
+* The account is anonymised: the username becomes `deleted-` and 12 characters of the id, the
+  display name "Deleted account", and the names, email, avatar, bio and country are cleared.
+  The GitHub link, technologies, sectors and feed topics are removed. Signing in with the same
+  GitHub account later makes a new, empty account.
+* Posts, comments and likes stay, shown under "Deleted account". Signatures stay: they are
+  append-only legal records.
+* Open ideas are closed. Hubs the person owns are archived (only possible when nobody else is
+  in them). In other hubs, an active membership becomes `left`, an invitation is removed and a
+  request is withdrawn.
+* Verifications still in progress or waiting for review are abandoned, so no reviewer gets a
+  case nobody will hear back about. Finished verification records stay for the review audit.
+
+* **Errors:** `409 OWNS_HUB_WITH_TEAM` (an active hub you own still has other active members),
+  `422 CONFIRMATION_MISMATCH` (the username does not match), `422` (no username),
+  `403 DEMO_READ_ONLY` (the demo account).
+* Why: `docs/decisions/2026-11-14-account-deletion.md`.
+
 #### `POST /v1/me/roles`
 Claims a developer role for the authenticated user (e.g. during onboarding or profile editing).
 

@@ -35,7 +35,8 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `JWT_SECRET_KEY`. Bitbucket is not built and returns `503`. A new account also gets a
   verified email from GitHub when there is one (`apps/api/app/services/provider_emails.py`).
   A missing, clashing or unreadable email never blocks sign-in.
-- **Profile** (Bearer token): `GET /v1/me` and `PATCH /v1/me`.
+- **Profile** (Bearer token): `GET /v1/me`, `PATCH /v1/me` and `POST /v1/me/deletion`
+  (anonymises the account and keeps its posts).
 - **Roles, technologies, feed topics and sectors** (Bearer token): `POST /v1/me/roles`,
   `PATCH /v1/me/roles/{role_slug}` (make it the primary role), `DELETE /v1/me/roles/{role_slug}`
   (refused with `409` once the role has verification attempts), `PUT /v1/me/technologies`

@@ -10,6 +10,7 @@ from app.models.users import User, UserFeedTopic, UserRole, UserSector, UserTech
 from app.schemas.lookups import SectorRef, TechnologyRef
 from app.schemas.users import (
     ClaimRoleRequest,
+    DeleteAccountRequest,
     MeResponse,
     ReplaceFeedTopicsRequest,
     ReplaceSectorsRequest,
@@ -20,6 +21,7 @@ from app.schemas.users import (
     UserProfileUpdate,
     UserRoleResponse,
 )
+from app.services.account_deletion import delete_account, hubs_with_a_team, lock_hubs
 
 router = APIRouter()
 
@@ -72,6 +74,36 @@ async def update_my_profile(
         ) from None
     await db.refresh(current_user)
     return MeResponse(data=user_to_profile(current_user))
+
+
+@router.post("/me/deletion", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_my_account(
+    payload: DeleteAccountRequest, current_user: CurrentUser, db: DbSession
+) -> Response:
+    if payload.username.lower() != current_user.username.lower():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "CONFIRMATION_MISMATCH",
+                "message": "Type your username exactly to confirm that you want to delete "
+                "your account.",
+            },
+        )
+    await lock_hubs(db, current_user)
+    await lock_own_lists(db, current_user)
+    teams = await hubs_with_a_team(db, current_user)
+    if teams:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "OWNS_HUB_WITH_TEAM",
+                "message": f"You own {teams} hub(s) that other members are still in. Your "
+                "account can be deleted once nobody else is in them.",
+            },
+        )
+    await delete_account(db, current_user)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/me/roles", response_model=UserRoleResponse, status_code=status.HTTP_201_CREATED)
