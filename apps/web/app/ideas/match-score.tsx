@@ -29,11 +29,12 @@ export const sentenceList = (lang: Lang, names: string[]) => new Intl.ListFormat
 
 // The number and its step as a pill under it. When the list arrives the number counts up once
 // (a strong one swells a little at the end); with reduced motion it shows at once. A screen
-// reader hears one sentence, never the count.
-export function MatchScore({ lang, score, partial }: { lang: Lang; score: number; partial: boolean }) {
+// reader hears one sentence, never the count. `count={false}` shows the number at once and reads
+// nothing from the browser, for a card drawn on the server (the landing's matcher demo).
+export function MatchScore({ lang, score, partial, count = true }: { lang: Lang; score: number; partial: boolean; count?: boolean }) {
   const t = copy[lang].score;
   // decided when the card first shows: a card that re-renders, or follows fresh data, does not count again
-  const [counting] = useState(() => !still());
+  const [counting] = useState(() => count && !still());
   const [playing, setPlaying] = useState(counting);
   const [shown, setShown] = useState(0);
 
