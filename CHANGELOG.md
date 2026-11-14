@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-14
 
-- feat(web): save the country from onboarding and the profile
+- feat(web): save the country from onboarding and the profile (#159)
 - feat(api): store a country on the profile (#152)
 - fix(web): say what is true today on the tour, village and hub pages (#151)
 - docs: record the match score that decides the order (#150)
