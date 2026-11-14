@@ -287,6 +287,24 @@ test("an area marked data-tile-bg that paints nothing is left out", async () => 
   document.documentElement.style.removeProperty("--bg");
 });
 
+test("the wave is centred on the visible page: a classic scrollbar is left out of its width", async () => {
+  // a window of 1024px with a 15px scrollbar shows a page 1009px wide
+  vi.spyOn(document.documentElement, "clientWidth", "get").mockReturnValue(window.innerWidth - 15);
+  vi.spyOn(document.documentElement, "clientHeight", "get").mockReturnValue(700);
+  const { pending } = stubTransitions();
+  stubAnimate();
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  const root = document.documentElement;
+  expect(root.style.getPropertyValue("--tiles-x")).toBe(`${(window.innerWidth - 15) / 2}px`);
+  expect(root.style.getPropertyValue("--tiles-y")).toBe("350px");
+  const canvas = waveCanvas() as HTMLCanvasElement;
+  expect(canvas.style.width).toBe(`${window.innerWidth - 15}px`);
+  expect(canvas.style.height).toBe("700px");
+  await finishAll(pending);
+});
+
 test("with reduced motion the theme crossfades and no tiles are drawn", async () => {
   const { start, pending } = stubTransitions();
   const { animate } = stubAnimate();
