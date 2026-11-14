@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(web): show a hub's real phases and let its owner move them (#158)
 - feat(web): start a verification in the page's language (#157)
 - feat(api): write the repositories check in the applicant's language (#156)
 - feat(api): name shared technologies and the country on matches (#155)

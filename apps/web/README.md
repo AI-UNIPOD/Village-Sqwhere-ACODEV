@@ -106,6 +106,15 @@ makes a waiting invitation its next step, and the places bar marks Hubs with a d
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
 page of the developer's hubs (`loadHubsByIdea`), because the API cannot look one up by idea.
 
+The hub card carries `phase`, `team_confirmed_at` and `phases` (each phase with its state). The
+page lists the four phases with their real state for everyone who sees the hub and marks the one
+in progress (`hubs/phases.tsx`). The owner of an active hub confirms the team
+(`POST /v1/hubs/{id}/team/confirm`, which opens brainstorm at any team size) and moves the hub one
+phase forward or back (`POST /v1/hubs/{id}/phase`), each behind a confirm dialog, and the page
+shows the card the API answers with. When the API says the hub changed elsewhere, or the action is
+no longer open, the page loads the hub again and says so. The tools for each phase are not built
+yet.
+
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares
 the agreement block and the signature checks with the create-hub page (`agreement-block.tsx`),
@@ -154,9 +163,9 @@ says what the demo is, says so when a change was refused, and offers the way out
 
 The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
 village, then four stops on the demo account's own open idea and hub (the composer, the matches,
-the hub's team, the hub's phases). `AppFrame` shows the tour's panel under the demo line; it
-sticks to the top of the screen, shrinks to one line on a screen that is not the stop, and keeps
-its step in `sessionStorage` (`tour/tour.ts`). A stop can name a part of a screen with a hash:
+the hub's team, the hub's phases; the demo's hub is seeded in Build). `AppFrame` shows the tour's
+panel under the demo line; it sticks to the top of the screen, shrinks to one line on a screen
+that is not the stop, and keeps its step in `sessionStorage` (`tour/tour.ts`). A stop can name a part of a screen with a hash:
 the hub page scrolls to `#team` or `#phases` once the hub has loaded (`app/scroll.ts`).
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`

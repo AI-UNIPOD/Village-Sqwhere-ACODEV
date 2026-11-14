@@ -9,6 +9,10 @@ export type Terms = { ownership_model?: Ownership; notes?: string };
 // `hub_terms` is the terms signed with this text: empty on the current agreement, the hub's own on a hub's.
 export type Agreement = { template_id: string; version: number; title: string; body: string; body_sha256: string; hub_terms: Terms };
 
+export const PHASES = ["brainstorm", "design", "build", "review"] as const;
+export type Phase = (typeof PHASES)[number];
+export type PhaseState = "not_started" | "in_progress" | "done";
+
 // A hub's card, as the API answers it to any signed-in developer: nothing private is in it.
 export type Hub = {
   id: string;
@@ -20,6 +24,10 @@ export type Hub = {
   owner: { username: string; display_name: string; is_verified: boolean };
   member_count: number;
   agreement: { version: number };
+  // `phase` and `team_confirmed_at` are null until the owner confirms the team
+  phase: Phase | null;
+  team_confirmed_at: string | null;
+  phases: { phase: Phase; state: PhaseState }[];
   // both null for someone who was never a member
   // `can_ask_again_at` is set only while a wait after a decline is still ahead
   viewer: { membership_status: string | null; member_role: "owner" | "member" | null; can_ask_again_at?: string | null };
@@ -111,6 +119,13 @@ export const approveRequest = async (id: string, userId: string) =>
 
 export const declineRequest = async (id: string, userId: string) =>
   (await call<{ data: Member }>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/decline`, "POST")).data;
+
+// The owner confirms the team, which opens brainstorm; both calls answer with the updated hub card.
+export const confirmTeam = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/team/confirm`, "POST")).data;
+
+// The owner moves the hub one phase forward or back.
+export const movePhase = async (id: string, phase: Phase) =>
+  (await call<{ data: Hub }>(`${hubPath(id)}/phase`, "POST", { phase })).data;
 
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
