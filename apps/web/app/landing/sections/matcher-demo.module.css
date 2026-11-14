@@ -1,0 +1,538 @@
+/* The matcher demo (matcher-demo.tsx): ideas to pick on the left, the app's own suggestion
+   screen on the right, both on a sunken stage. Lagoon only marks what the matcher is doing. */
+.stage {
+  display: grid;
+  gap: var(--space-6);
+  margin-block-start: var(--space-10);
+}
+
+/* Cards sit on --surface-raised: on Ink, --surface is the same as the sunken stage.
+   The sunken stage only from tablets: on a phone every nested frame costs reading width */
+@media (min-width: 600px) {
+  .stage {
+    padding: var(--space-4);
+    border-radius: var(--radius-l);
+    background: var(--surface-sunken);
+  }
+}
+
+@media (min-width: 900px) {
+  .stage {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: start;
+    gap: var(--space-6);
+    padding: var(--space-6);
+  }
+
+  /* the ideas stay in reach while the suggestions scroll by */
+  .picker {
+    position: sticky;
+    top: calc(var(--pill-top) + var(--pill-height) + var(--space-6));
+  }
+}
+
+/* ---------- the ideas ---------- */
+.picker {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  margin-block-end: var(--space-3);
+  padding: 0;
+  color: var(--text-muted);
+  font: var(--type-label);
+}
+
+/* each idea is a radio: the ring at its end fills when it is the one shown */
+.option {
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4) calc(var(--space-4) + var(--space-8)) var(--space-4) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface-raised);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-press) var(--ease-out),
+    box-shadow var(--dur-press) var(--ease-out);
+}
+
+.option::after {
+  content: "";
+  position: absolute;
+  inset-block-start: var(--space-4);
+  inset-inline-end: var(--space-4);
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  transition:
+    border-color var(--dur-menu) var(--ease-out),
+    background-color var(--dur-menu) var(--ease-out);
+}
+
+.option:has(.radio:checked) {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+
+.option:has(.radio:checked)::after {
+  border-color: var(--text);
+  background: var(--text);
+  box-shadow: inset 0 0 0 4px var(--surface-raised);
+}
+
+.option:has(.radio:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .option:hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.radio {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.optionTitle {
+  font: var(--type-label);
+  text-wrap: pretty;
+}
+
+.optionMeta,
+.note {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.note {
+  margin: var(--space-2) 0 0;
+}
+
+/* ---------- the app's suggestion screen ---------- */
+.panel {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  min-inline-size: 0;
+  padding: var(--pad-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
+}
+
+/* on wide screens the screen keeps its height, so the page does not jump as a run starts */
+@media (min-width: 900px) {
+  .panel {
+    min-block-size: 40rem;
+  }
+}
+
+.ideaHead {
+  padding-block-end: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.ideaTitle {
+  margin: 0;
+  font: var(--type-title);
+  text-wrap: balance;
+}
+
+.pitch {
+  max-inline-size: 60ch;
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.rolesLabel {
+  margin: var(--space-3) 0 var(--space-2);
+  color: var(--text-muted);
+  font: var(--type-caption);
+}
+
+.roles,
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roles li {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  font: var(--type-caption);
+}
+
+/* ---------- the matcher at work ---------- */
+.status {
+  display: grid;
+  align-content: center;
+  gap: var(--space-2);
+  min-block-size: var(--space-12);
+  color: var(--ai);
+}
+
+.status p {
+  margin: 0;
+  font: var(--type-body-s);
+}
+
+.waiting {
+  color: var(--text-muted);
+}
+
+.runLine {
+  font-weight: 600;
+  animation: lineIn var(--dur-menu) var(--ease-out) both;
+}
+
+.progress {
+  position: relative;
+  display: block;
+  block-size: 2px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--ai-tint);
+}
+
+.progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ai);
+  transform: scaleX(var(--done));
+  transform-origin: left;
+  transition: transform var(--dur-reveal) var(--ease-out);
+}
+
+/* the matcher's line, on a Lagoon tint while the suggestions are its own */
+.status .tag {
+  justify-self: start;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--ai-tint);
+  font-weight: 600;
+  transition:
+    color var(--dur-modal) var(--ease-out),
+    background-color var(--dur-modal) var(--ease-out);
+  animation: lineIn var(--dur-menu) var(--ease-out) both;
+}
+
+/* once the owner acts, the matcher has had its say: its words go quiet */
+.status .tag[data-quiet] {
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+}
+
+.skeletons {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skeletons li {
+  block-size: calc(var(--space-20) + var(--space-4));
+  border-radius: var(--radius-m);
+  background: var(--surface-sunken);
+  animation: wait var(--dur-sheet) var(--ease-linear) calc(var(--i) * var(--delay-stagger)) infinite alternate;
+}
+
+/* ---------- the suggestions ---------- */
+/* A thread runs down the suggestions: Lagoon while they are the matcher's, plain once the
+   owner has acted on them. */
+.matches {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0 0 0 var(--space-3);
+  list-style: none;
+}
+
+.matches::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--space-2);
+  inset-inline-start: 0;
+  inline-size: 2px;
+  border-radius: var(--radius-full);
+  background: var(--ai);
+  transform-origin: top;
+  animation: thread var(--dur-sheet) var(--ease-out) both;
+  transition: background-color var(--dur-modal) var(--ease-out);
+}
+
+.matches[data-thread="people"]::before {
+  background: var(--line);
+}
+
+.match {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface-raised);
+  animation: matchIn var(--dur-reveal) var(--ease-out) both;
+  animation-delay: calc(var(--i) * var(--delay-stagger) * 2);
+  transition: border-color var(--dur-modal) var(--ease-out);
+}
+
+.match[data-signed] {
+  border-color: var(--success);
+}
+
+/* the order the matcher gives, from tablets; on a phone the list order says it */
+.rank {
+  display: none;
+  padding-block-start: var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-mono-label);
+}
+
+@media (min-width: 600px) {
+  .match {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    padding: var(--space-4);
+  }
+
+  .rank {
+    display: block;
+  }
+}
+
+.avatar,
+.teamAvatar {
+  display: grid;
+  place-items: center;
+  inline-size: var(--space-10);
+  block-size: var(--space-10);
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  color: var(--text);
+  font: var(--type-caption);
+  font-weight: 600;
+}
+
+.who {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.who p {
+  margin: 0;
+}
+
+.name {
+  font: var(--type-label);
+}
+
+.place,
+.shared {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.role,
+.signed {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  font: var(--type-body-s);
+}
+
+.verifiedIcon,
+.signedIcon {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  margin-block-start: 2px;
+  fill: none;
+  stroke: var(--success);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shared {
+  margin-block-start: var(--space-1);
+  font: var(--type-caption);
+}
+
+.chips li {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  font: var(--type-mono-row);
+}
+
+.signed {
+  margin-block-start: var(--space-1);
+  color: var(--success);
+  animation: lineIn var(--dur-modal) var(--ease-out) both;
+}
+
+.signedIcon path {
+  stroke-dasharray: 1;
+  animation: draw var(--dur-modal) var(--ease-out) both;
+}
+
+/* ---------- the owner's turn, and the win ---------- */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+}
+
+.bridge {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap-min);
+  font: var(--type-body-s);
+}
+
+.win {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* the four gather into one row, and a Laterite line is drawn under them */
+.team {
+  position: relative;
+  display: flex;
+  inline-size: fit-content;
+  padding-block-end: var(--space-3);
+}
+
+.team::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  block-size: 2px;
+  border-radius: var(--radius-full);
+  background: var(--action);
+  transform-origin: left;
+  animation: underline var(--dur-moment) var(--ease-out) var(--dur-modal) both;
+}
+
+.teamAvatar {
+  border: 2px solid var(--surface-raised);
+  animation: gather var(--dur-moment) var(--ease-strong) both;
+}
+
+.teamAvatar + .teamAvatar {
+  margin-inline-start: calc(var(--space-3) * -1);
+}
+
+.winText {
+  max-inline-size: 48ch;
+  margin: 0;
+  font: var(--type-title);
+  text-wrap: pretty;
+  animation: lineIn var(--dur-moment) var(--ease-out) var(--dur-modal) both;
+}
+
+.winActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+}
+
+@keyframes lineIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+@keyframes matchIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-3));
+  }
+}
+
+@keyframes thread {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes wait {
+  to {
+    opacity: 0.45;
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes gather {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--i) * var(--space-4)));
+  }
+}
+
+@keyframes underline {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* reduced motion: nothing travels or draws; what appears fades in */
+@media (prefers-reduced-motion: reduce) {
+  .runLine,
+  .status .tag,
+  .match,
+  .signed,
+  .teamAvatar,
+  .winText {
+    animation-name: fade;
+  }
+
+  .matches::before,
+  .team::after,
+  .signedIcon path,
+  .skeletons li {
+    animation: none;
+  }
+}

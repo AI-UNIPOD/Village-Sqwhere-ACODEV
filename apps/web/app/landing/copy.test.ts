@@ -21,17 +21,6 @@ test("English and French have the same shape and no empty text", () => {
   for (const text of [...strings(copy.en), ...strings(copy.fr)]) expect(text.trim()).not.toBe("");
 });
 
-test("the tour stops add up to the total", () => {
-  const seconds = (time: string) => {
-    const [m, s] = time.split(":").map(Number);
-    return m * 60 + s;
-  };
-  for (const lang of ["en", "fr"] as const) {
-    const sum = copy[lang].stops.reduce((n, stop) => n + seconds(stop.time), 0);
-    expect(sum).toBe(seconds(copy[lang].total.time));
-  }
-});
-
 // The en dash and the em dash, written as character codes so this file holds no dash itself.
 const DASHES = String.fromCharCode(0x2013, 0x2014);
 const EMOJI_SELECTOR = String.fromCharCode(0xfe0f);

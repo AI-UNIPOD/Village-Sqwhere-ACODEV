@@ -530,176 +530,6 @@
   text-wrap: pretty;
 }
 
-.steps {
-  display: grid;
-  gap: var(--space-8) var(--space-6);
-  margin: var(--space-10) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-@media (min-width: 640px) {
-  .steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1100px) {
-  .steps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.step {
-  --i: 0;
-  position: relative;
-  min-inline-size: 0;
-  padding-block-start: var(--space-5);
-  border-top: 1px solid var(--line-strong);
-}
-
-/* steps side by side arrive one after another; in one column each arrives on its own */
-@media (min-width: 640px) {
-  .step {
-    --i: var(--i2);
-  }
-}
-
-@media (min-width: 1100px) {
-  .step {
-    --i: var(--i4);
-  }
-}
-
-/* as a step lands, its top line fills in from the start and its number darkens */
-.step::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: -1px;
-  border-top: 1px solid var(--text);
-  transform-origin: left;
-  transition: transform var(--dur-reveal) var(--ease-out);
-  transition-delay: calc(var(--delay-stagger) * var(--i, 0));
-}
-
-.step[data-reveal="waiting"]::before {
-  transform: scaleX(0);
-}
-
-.num {
-  display: grid;
-  place-items: center;
-  inline-size: var(--space-8);
-  block-size: var(--space-8);
-  margin-block-end: var(--space-4);
-  border: 1px solid var(--text);
-  color: var(--text);
-  font: var(--type-mono-label);
-  font-variant-numeric: tabular-nums;
-  transition:
-    border-color var(--dur-reveal) var(--ease-out),
-    background-color var(--dur-press) var(--ease-out);
-}
-
-.step[data-reveal="waiting"] .num {
-  border-color: var(--line-strong);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .step:hover .num {
-    background: var(--surface-sunken);
-  }
-}
-
-.step h3 {
-  margin: 0;
-  font: var(--type-step-title);
-}
-
-.step p {
-  margin: var(--space-2) 0 0;
-  color: var(--text-muted);
-  font: var(--type-body);
-  text-wrap: pretty;
-}
-
-.tourGrid {
-  display: grid;
-  gap: var(--space-10);
-}
-
-@media (min-width: 1100px) {
-  .tourGrid {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-    gap: var(--space-16);
-    align-items: start;
-  }
-}
-
-.tourButton {
-  margin-block-start: var(--tour-button-gap);
-}
-
-/* how opening the demo is going, under the tour's button: in the flow, so a long sentence
-   pushes the stops down instead of covering them, and gone while there is nothing to say */
-.tourNote {
-  margin-block-start: var(--space-3);
-  color: var(--text-muted);
-  font: var(--type-body-s);
-}
-
-.tourNote:empty {
-  display: none;
-}
-
-.stops {
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--line-strong);
-  list-style: none;
-}
-
-.stops li {
-  position: relative;
-  display: grid;
-  grid-template-columns: var(--space-8) minmax(0, 1fr) auto;
-  gap: var(--space-4);
-  align-items: baseline;
-  padding-block: var(--space-4);
-  border-bottom: 1px solid var(--line);
-}
-
-/* each stop's share of the three minutes, drawn on its bottom line, growing in as it lands */
-.bar {
-  position: absolute;
-  inset-block-end: -1px;
-  inset-inline-start: calc(var(--from) * 100%);
-  inline-size: calc(var(--size) * 100%);
-  border-top: 1px solid var(--text-muted);
-  transform-origin: left;
-  transition: transform var(--dur-reveal) var(--ease-out);
-  transition-delay: calc(var(--delay-stagger) * var(--i, 0));
-}
-
-.reveal[data-reveal="waiting"] .bar {
-  transform: scaleX(0);
-}
-
-.meta {
-  color: var(--text-muted);
-  font: var(--type-mono-row);
-  white-space: nowrap;
-}
-
-.what {
-  font: var(--type-body);
-}
-
-.total .what {
-  font: var(--type-label);
-}
-
 /* ---------- footer ---------- */
 .foot {
   padding-block: var(--space-10) var(--space-12);
@@ -772,7 +602,6 @@
 /* Reduced motion follows the design system: fades and colour changes stay, movement goes.
    A press shows in the colour change, not a scale, and the theme icon swaps by fading. */
 @media (prefers-reduced-motion: reduce) {
-  .fab:active,
   .btn:active:not([aria-disabled="true"]),
   .ghost:active:not([aria-disabled="true"]) {
     transform: none;
@@ -794,8 +623,6 @@
     animation-name: pinFade;
   }
 
-  .step::before,
-  .bar,
   .navLink::after,
   .footLink::after {
     transition-property: border-color;
@@ -806,11 +633,6 @@
 @media print {
   .reveal[data-reveal="waiting"] {
     opacity: 1;
-    transform: none;
-  }
-
-  .step[data-reveal="waiting"]::before,
-  .reveal[data-reveal="waiting"] .bar {
     transform: none;
   }
 }

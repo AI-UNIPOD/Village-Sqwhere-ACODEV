@@ -1,0 +1,113 @@
+/* Lets height animate to and from auto where the browser can; elsewhere an answer just opens. */
+.faq {
+  interpolate-size: allow-keywords;
+}
+
+.list {
+  max-inline-size: 72ch;
+  margin-block-start: var(--space-8);
+  border-bottom: 1px solid var(--line);
+}
+
+.item {
+  border-top: 1px solid var(--line);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  inline-size: 100%;
+  min-block-size: var(--tap-min);
+  padding-block: var(--space-4);
+  cursor: pointer;
+  font: var(--type-title);
+  list-style: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-s);
+}
+
+.chevron {
+  flex: none;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    transform var(--dur-menu) var(--ease-out),
+    stroke var(--dur-menu) var(--ease-out);
+}
+
+.item[open] .chevron {
+  transform: rotate(180deg);
+  stroke: var(--text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .summary:hover .chevron {
+    stroke: var(--text);
+  }
+}
+
+.answer {
+  max-inline-size: 60ch;
+  margin: 0;
+  padding-block-end: var(--space-5);
+  color: var(--text-muted);
+  font: var(--type-body);
+  text-wrap: pretty;
+}
+
+/* In their own rules: a browser without ::details-content would drop a whole list that named it. */
+.item::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size var(--dur-modal) var(--ease-out),
+    content-visibility var(--dur-modal) var(--ease-out) allow-discrete;
+}
+
+.item[open]::details-content {
+  block-size: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition-property: stroke;
+  }
+
+  .item::details-content {
+    transition: none;
+  }
+}
+
+/* wide screens: the heading on the left, the questions beside it, so the column is not half empty */
+@media (min-width: 1100px) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: start;
+    gap: var(--space-10);
+  }
+
+  .layout > h2 {
+    position: sticky;
+    top: calc(var(--pill-top) + var(--pill-height) + var(--space-6));
+  }
+
+  .layout > .list {
+    margin-block-start: 0;
+  }
+}

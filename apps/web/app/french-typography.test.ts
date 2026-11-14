@@ -6,6 +6,13 @@ import { copy as feed } from "./feed/copy";
 import { copy as hubs } from "./hubs/copy";
 import { copy as ideas } from "./ideas/copy";
 import { copy as landing } from "./landing/copy";
+import { copy as matcherDemo } from "./landing/sections/matcher-demo-copy";
+import { copy as closingBand } from "./landing/sections/closing-band-copy";
+import { copy as faq } from "./landing/sections/faq-copy";
+import { copy as greenTick } from "./landing/sections/green-tick-copy";
+import { copy as howItWorks } from "./landing/sections/how-it-works-copy";
+import { copy as hubPhases } from "./landing/sections/hub-phases-copy";
+import { copy as principles } from "./landing/sections/principles-copy";
 import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
 import { copy as profile } from "./profile/copy";
@@ -37,6 +44,13 @@ const french = strings([
   hubs.fr,
   ideas.fr,
   landing.fr,
+  matcherDemo.fr,
+  closingBand.fr,
+  faq.fr,
+  greenTick.fr,
+  howItWorks.fr,
+  hubPhases.fr,
+  principles.fr,
   onboarding.fr,
   profile.fr,
   reviews.fr,

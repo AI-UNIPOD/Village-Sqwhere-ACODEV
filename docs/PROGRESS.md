@@ -19,9 +19,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - The API needs `JWT_SECRET_KEY` (32+ chars) and keeps sign-in state in memory, so run one
   process (`docs/decisions/2026-11-07-sign-in-without-dev-login.md`). `POST /v1/auth/demo`
   signs in as a read-only demo account when `DEMO_ENABLED=true` (content: `app.demo_seed`).
-- Landing page at `/en` and `/fr` matches B3v design with motion and dark theme. Hero leads to
-  sign-in, "Try the demo" opens the read-only demo account, and "Start the tour" opens it on a
-  guided route of four stops (`app/tour/`).
+- Landing page at `/en` and `/fr`: the B3v hero ("Join the village", "Try the demo"), then a matcher
+  demo to try, how it works, the hub's phases, the Green Tick, principles, FAQ and a closing band
+  (`app/landing/sections/`). The guided tour starts inside the demo (`app/tour/`).
   GitHub sign-in works end to end with token refresh.
 - Below the hero, sections reveal once; the header pins as a pill while scrolling. Onboarding
   saves role and stack. Signed-in web screens share `AppFrame`.

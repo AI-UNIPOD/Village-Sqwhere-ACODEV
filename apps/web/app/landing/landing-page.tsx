@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
 
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
@@ -10,11 +9,14 @@ import { GatherHero } from "./gather-hero";
 import { HeaderPin } from "./header-pin";
 import styles from "./landing-page.module.css";
 import { SectionMotion } from "./section-motion";
-import { stopShares } from "./stops";
 import { HeaderTools } from "./header-tools";
-
-// custom properties for the stagger: the item's place in its row of 2 or 4, or in its list
-const order = (vars: Record<string, number>) => vars as CSSProperties;
+import { ClosingBand } from "./sections/closing-band";
+import { Faq } from "./sections/faq";
+import { GreenTick } from "./sections/green-tick";
+import { HowItWorks } from "./sections/how-it-works";
+import { HubPhases } from "./sections/hub-phases";
+import { MatcherDemo } from "./sections/matcher-demo";
+import { Principles } from "./sections/principles";
 
 // translate="no": browser translation turned the name into "Village Square".
 function Brand({ lang, logoClass, wordmarkClass }: { lang: Lang; logoClass: string; wordmarkClass: string }) {
@@ -28,10 +30,11 @@ function Brand({ lang, logoClass, wordmarkClass }: { lang: Lang; logoClass: stri
 
 export function LandingPage({ lang }: { lang: Lang }) {
   const t = copy[lang];
-  const shares = stopShares(
-    t.stops.map((stop) => stop.time),
-    t.total.time,
-  );
+  const sections = [
+    ["#matcher", t.navMatcher],
+    ["#hub", t.navHub],
+    ["#faq", t.navFaq],
+  ] as const;
 
   return (
     <div>
@@ -41,12 +44,11 @@ export function LandingPage({ lang }: { lang: Lang }) {
         <header className={styles.nav}>
           <Brand lang={lang} logoClass={styles.navLogo} wordmarkClass={styles.navWordmark} />
           <nav className={styles.navLinks} aria-label={t.navLabel}>
-            <a className={styles.navLink} href="#how">
-              {t.navHow}
-            </a>
-            <a className={styles.navLink} href="#tour">
-              {t.navTour}
-            </a>
+            {sections.map(([href, label]) => (
+              <a key={href} className={styles.navLink} href={href}>
+                {label}
+              </a>
+            ))}
             <AccountNavLink lang={lang} signIn={t.signIn} signOut={t.signOut} className={styles.navLink} />
           </nav>
           <HeaderTools lang={lang} path="" />
@@ -61,9 +63,6 @@ export function LandingPage({ lang }: { lang: Lang }) {
             <Link className={`${styles.btn} ${styles.heroButton}`} href={`/${lang}/sign-in`}>
               {t.ctaJoin}
             </Link>
-            <a className={`${styles.ghost} ${styles.heroButton}`} href="#tour">
-              {t.ctaTour}
-            </a>
             <DemoButton lang={lang} className={`${styles.ghost} ${styles.heroButton}`} note="demo-note">
               {t.ctaDemo}
             </DemoButton>
@@ -74,72 +73,13 @@ export function LandingPage({ lang }: { lang: Lang }) {
           </p>
         </GatherHero>
 
-        <section className={styles.block} id="how" aria-labelledby="how-title">
-          <div className={styles.wrap}>
-            <h2 id="how-title">{t.howTitle}</h2>
-            <p className={styles.lead}>{t.howLead}</p>
-            <ol className={styles.steps}>
-              {t.steps.map((step, i) => (
-                <li
-                  className={`${styles.step} ${styles.reveal}`}
-                  key={step.title}
-                  data-reveal=""
-                  style={order({ "--i2": i % 2, "--i4": i % 4 })}
-                >
-                  <span className={styles.num} aria-hidden="true">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <h3>{step.title}</h3>
-                  <p>{step.text}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        <section className={styles.block} id="tour" aria-labelledby="tour-title">
-          <div className={`${styles.wrap} ${styles.tourGrid}`}>
-            <div>
-              <h2 id="tour-title">{t.tourTitle}</h2>
-              <p className={styles.lead}>{t.tourLead}</p>
-              <div className={styles.tourButton}>
-                {/* the demo, opened on the tour's first step */}
-                <DemoButton lang={lang} className={styles.ghost} note="tour-note" tour>
-                  {t.tourButton}
-                </DemoButton>
-                <p className={styles.tourNote} id="tour-note">
-                  <DemoNote lang={lang} quiet />
-                </p>
-              </div>
-            </div>
-            <ol className={styles.stops}>
-              {t.stops.map((stop, i) => (
-                <li key={stop.text} className={styles.reveal} data-reveal="" style={order({ "--i": i })}>
-                  <span className={styles.meta} aria-hidden="true">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span className={styles.what}>{stop.text}</span>
-                  <span className={styles.meta}>{stop.time}</span>
-                  <span
-                    className={styles.bar}
-                    aria-hidden="true"
-                    style={order({ "--from": shares[i].from, "--size": shares[i].size })}
-                  />
-                </li>
-              ))}
-              <li
-                className={`${styles.total} ${styles.reveal}`}
-                data-reveal=""
-                style={order({ "--i": t.stops.length })}
-              >
-                <span className={styles.meta} aria-hidden="true" />
-                <span className={styles.what}>{t.total.text}</span>
-                <span className={styles.meta}>{t.total.time}</span>
-                <span className={styles.bar} aria-hidden="true" style={order({ "--from": 0, "--size": 1 })} />
-              </li>
-            </ol>
-          </div>
-        </section>
+        <MatcherDemo lang={lang} />
+        <HowItWorks lang={lang} />
+        <HubPhases lang={lang} />
+        <GreenTick lang={lang} />
+        <Principles lang={lang} />
+        <Faq lang={lang} />
+        <ClosingBand lang={lang} />
       </main>
 
       <footer className={styles.foot}>
@@ -156,11 +96,13 @@ export function LandingPage({ lang }: { lang: Lang }) {
                     {t.navHow}
                   </a>
                 </li>
-                <li>
-                  <a className={styles.footLink} href="#tour">
-                    {t.navTour}
-                  </a>
-                </li>
+                {sections.map(([href, label]) => (
+                  <li key={href}>
+                    <a className={styles.footLink} href={href}>
+                      {label}
+                    </a>
+                  </li>
+                ))}
                 <li>
                   <DemoButton lang={lang} className={styles.footLink}>
                     {t.footDemo}
@@ -178,6 +120,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
           <p className={styles.legal}>
             <span>{t.footCopy}</span>
             <span>{t.footLang}</span>
+            <span>{t.footMadeUp}</span>
             <span>{t.footCredit}</span>
           </p>
         </div>
