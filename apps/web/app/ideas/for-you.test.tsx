@@ -7,6 +7,7 @@ import { forgetMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { BrowseIdeas } from "./browse";
 import { ForYouIdeas } from "./for-you";
+import { agritech, fintech, scored, stillMotion } from "./match-fixtures";
 import { MyIdeas } from "./my-ideas";
 
 vi.mock("next/navigation", () => ({
@@ -33,10 +34,11 @@ const idea = (over: Record<string, unknown> = {}) => ({
 });
 const go = { slug: "go", name: "Go" };
 const postgres = { slug: "postgresql", name: "PostgreSQL" };
-const match = (over: Record<string, unknown> = {}, roles = [backend], shared: unknown[] = []) => ({
+const match = (over: Record<string, unknown> = {}, roles = [backend], shared: unknown[] = [], score: Record<string, unknown> = scored(43, [30, 0, 0])) => ({
   idea: idea(over),
   matched_roles: roles,
   shared_technologies: shared,
+  ...score,
 });
 
 const role = (slug: string, verified = false) => ({
@@ -64,6 +66,7 @@ const asked = () => fetchMock.mock.calls.map(([url]) => String(url).replace("htt
 const verifiedMe = { data: me([role("backend-engineer", true)]) };
 
 beforeEach(() => {
+  stillMotion();
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem(
     SESSION_KEY,
@@ -89,8 +92,8 @@ test("each idea says which of your verified roles it needs, and opens its page",
   // the card is the one the open ideas list draws
   expect(within(shown).getByText(/Patients wait for hours/)).toBeTruthy();
   expect(shown.textContent).toContain("by Ama Mensah");
-  // no score and no claim to be AI
-  expect(screen.queryByText(/\d%|\bscore\b|\bAI\b/)).toBeNull();
+  // no percentage, and no claim to be AI
+  expect(screen.queryByText(/\d%|\bAI\b/)).toBeNull();
 });
 
 test("an idea that shares technologies with its author names them, with the author's name", async () => {
@@ -98,9 +101,54 @@ test("an idea that shares technologies with its author names them, with the auth
   render(<ForYouIdeas lang="en" />);
   const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
   expect(within(shown).getByText("In common with Ama Mensah: Go, PostgreSQL")).toBeTruthy();
-  // nothing shared, no line
+  // nothing shared, no line about it
   const other = screen.getByRole("link", { name: "Water points" }).closest("li")!;
-  expect(within(other).queryByText(/In common/)).toBeNull();
+  expect(within(other).queryByText(/In common with/)).toBeNull();
+  expect(within(other).getByText("No technologies in common")).toBeTruthy();
+});
+
+test("each idea shows the score with its parts, and the page says the order", async () => {
+  api({
+    "/v1/me/matches": { data: [match({}, [backend], [go, postgres], scored(69, [30, 8, 10], [fintech, agritech])), match({ id: "idea-2", title: "Water points" })], next_offset: null },
+    "/v1/me": verifiedMe,
+  });
+  render(<ForYouIdeas lang="en" />);
+  const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  expect(within(shown).getByText("69")).toBeTruthy();
+  expect(within(shown).getByText("Match score: 69 out of 100, Possible match. Partial score.")).toBeTruthy();
+  expect(within(within(shown).getByRole("list", { name: "Why this score" })).getAllByRole("listitem").map((part) => part.textContent)).toEqual([
+    "Roles30 of 40Needs your verified role: Backend and Systems Engineer",
+    "Technologies8 of 20In common with Ama Mensah: Go, PostgreSQL",
+    "Sectors10 of 10You and Ama Mensah both build for Fintech and Agritech",
+    "MeaningNot compared yet",
+  ]);
+  const other = screen.getByRole("link", { name: "Water points" }).closest("li")!;
+  expect(within(other).getByText("43")).toBeTruthy();
+  expect(within(other).getByText("Weak match")).toBeTruthy();
+  expect(within(other).getByText("No sectors in common")).toBeTruthy();
+  expect(screen.getByText("Open ideas that need a role you are verified in, best score first. Each one says which role.")).toBeTruthy();
+});
+
+test("an idea with no score fields shows its reasons and no score", async () => {
+  const old = { idea: idea(), matched_roles: [backend], shared_technologies: [go] };
+  api({ "/v1/me/matches": { data: [old], next_offset: null }, "/v1/me": verifiedMe });
+  render(<ForYouIdeas lang="en" />);
+  const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  expect(within(shown).queryByText(/Match score/)).toBeNull();
+  expect(within(shown).getByText("Needs your verified role: Backend and Systems Engineer")).toBeTruthy();
+  expect(within(shown).getByText("In common with Ama Mensah: Go")).toBeTruthy();
+  expect(within(shown).queryByText("Meaning")).toBeNull();
+});
+
+test("the score, its parts and the lead sentence are in French", async () => {
+  api({ "/v1/me/matches": { data: [match({}, [backend], [go], scored(86, [40, 4, 10], [fintech]))], next_offset: null }, "/v1/me": verifiedMe });
+  render(<ForYouIdeas lang="fr" />);
+  const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  expect(within(shown).getByText("Très bonne correspondance")).toBeTruthy();
+  expect(within(shown).getByRole("list", { name: "Pourquoi ce score" })).toBeTruthy();
+  expect(within(shown).getByText("Vous et Ama Mensah construisez tous deux pour Fintech")).toBeTruthy();
+  expect(within(shown).getByText("40 sur 40")).toBeTruthy();
+  expect(screen.getByText(/meilleur score d'abord/)).toBeTruthy();
 });
 
 test("the shared technologies line is in French, and names an author without a name by their username", async () => {
