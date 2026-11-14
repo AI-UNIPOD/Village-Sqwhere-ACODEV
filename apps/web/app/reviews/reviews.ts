@@ -56,7 +56,7 @@ export function readCase(attempt: Attempt) {
     }),
     analysis: {
       summary: text(analysis.summary),
-      criteria: list(analysis.criteria).flatMap((item) => {
+      criteria: list(analysis.criterion_assessments).flatMap((item) => {
         const criterion = obj(item);
         const name = text(criterion.criterion);
         return name
