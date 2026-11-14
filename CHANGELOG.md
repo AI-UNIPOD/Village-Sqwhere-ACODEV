@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- fix(web): list every invitation and join request, not only the first 50 (#142)
 - fix(api): suggest people and ideas again after a membership ends (#141)
 - test(web): fail when hard-coded lookup slugs drift from the database (#144)
 - fix(web): read the review criteria the API sends (#139)
