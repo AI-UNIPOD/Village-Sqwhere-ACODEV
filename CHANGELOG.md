@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(web): soften the theme switch and fade it with reduced motion (#146)
 - feat(web): warm the landing page colours in both themes (#145)
 - fix(web): say when an idea was published or closed in another tab (#140)
 - feat(web): let a developer change their sectors on the profile (#143)
