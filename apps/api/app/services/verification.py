@@ -129,7 +129,7 @@ class CodebaseAnalysisResult(BaseModel):
 
 class CodebaseAnalyzer(Protocol):
     async def analyze(
-        self, repositories: Sequence[RepositorySnapshot], role_slug: str
+        self, repositories: Sequence[RepositorySnapshot], role_slug: str, language: str
     ) -> CodebaseAnalysisResult: ...
 
 
@@ -143,7 +143,7 @@ async def analyze_codebase(
     snapshots = await asyncio.gather(
         *(repository_client.snapshot(repository_url) for repository_url in repository_urls)
     )
-    return await analyzer.analyze(snapshots, role_slug)
+    return await analyzer.analyze(snapshots, role_slug, session.language)
 
 
 async def run_codebase_analysis(

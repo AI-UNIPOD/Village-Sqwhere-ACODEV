@@ -258,6 +258,13 @@
   border-bottom: 1px solid var(--line);
 }
 
+.phaseActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
 .num {
   color: var(--text-muted);
   font: var(--type-mono-label);

@@ -29,7 +29,9 @@ Tanny delegated these calls to the product owner on 13 November 2026.
   read, and no model sees any idea text.
 - There is no opt-out setting yet. A developer enters matching by verifying a role. A candidate
   card shows only username, display name, avatar, the verified badge, matched roles and
-  technologies: no email, names or bio.
+  technologies: no email, names or bio. Changed on 2026-11-14: the card also carries the
+  developer's country when they named one, and names the shared technologies; see
+  `2026-11-14-profile-country.md`.
 
 ## Options we considered
 

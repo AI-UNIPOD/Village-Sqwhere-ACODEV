@@ -11,6 +11,12 @@ its number:
 ## 2026-11-14
 
 - feat(web): save the country from onboarding and the profile (#159)
+- feat(web): show a hub's real phases and let its owner move them (#158)
+- feat(web): start a verification in the page's language (#157)
+- feat(api): write the repositories check in the applicant's language (#156)
+- feat(api): name shared technologies and the country on matches (#155)
+- feat(api): give a hub phases the owner starts and moves (#154)
+- feat(api): run the AI interview and report in the applicant's language (#153)
 - feat(api): store a country on the profile (#152)
 - fix(web): say what is true today on the tour, village and hub pages (#151)
 - docs: record the match score that decides the order (#150)

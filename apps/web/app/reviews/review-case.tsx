@@ -194,7 +194,7 @@ function Bullets({ title, items, children }: { title: string; items: string[]; c
 
 // The AI's own words come last, after the evidence, so the reviewer reads the work before any
 // score can anchor them. Its colour marks it as the AI's, and it shows no pass or fail word.
-function AiReport({ lang, report }: { lang: Lang; report: NonNullable<Read["report"]> }) {
+function AiReport({ lang, language, report }: { lang: Lang; language: Lang; report: NonNullable<Read["report"]> }) {
   const t = copy[lang];
   const number = new Intl.NumberFormat(lang, { maximumFractionDigits: 1 });
   const percent = new Intl.NumberFormat(lang, { style: "percent", maximumFractionDigits: 0 });
@@ -206,6 +206,7 @@ function AiReport({ lang, report }: { lang: Lang; report: NonNullable<Read["repo
         {t.aiLabel}
       </p>
       <h2 className={styles.sectionTitle}>{t.aiTitle}</h2>
+      <p className={styles.muted}>{fill(t.reportLanguage, { language: t.languages[language] })}</p>
       {report.summary && <p className={styles.text}>{report.summary}</p>}
       <Bullets title={t.codeShows} items={report.code} />
       <Bullets title={t.interviewShows} items={report.interview} />
@@ -242,7 +243,7 @@ function Case({ lang, attempt }: { lang: Lang; attempt: Attempt }) {
       {(read.analysis.summary || read.analysis.criteria.length > 0) && (
         <RepositoriesCheck lang={lang} analysis={read.analysis} />
       )}
-      {read.report ? <AiReport lang={lang} report={read.report} /> : <p className={`${styles.section} ${styles.muted}`}>{t.aiMissing}</p>}
+      {read.report ? <AiReport lang={lang} language={attempt.language} report={read.report} /> : <p className={`${styles.section} ${styles.muted}`}>{t.aiMissing}</p>}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>{t.decisionTitle}</h2>
         {closed ? <Gone lang={lang} /> : <Decision lang={lang} id={attempt.id} role={role} onClosed={() => setClosed(true)} />}
