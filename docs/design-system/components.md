@@ -61,6 +61,38 @@ still and the button offers "Play animation". The choice is kept in `localStorag
 `vs-motion` ("on" or "off") and wins over the system setting; with no choice the system
 setting decides and is followed when it changes.
 
+## Hero headline
+
+The hero's h1 is edited into shape once, when the page opens, by the landing page's made-up
+cast (`app/landing/hero-headline.tsx`, `headline-edit.ts`, words in `hero-headline-copy.ts`).
+It reads "Builders across Africa, one platform". Hamza (Casablanca) selects "platform", the
+highlight sweeping right to left over 650ms on `--ease-strong`, rests 250ms and types "place",
+55ms a character. Thandiwe (Johannesburg) selects "place" and types "square". Ọmọlará (Lagos)
+types the full stop. One `--action` underline then draws under "one square" over
+`--dur-moment` on `--ease-out`, bar after bar when the words sit on two lines, while the names
+fade out together. It takes about six seconds. The French reads "Toute l'Afrique, une seule
+plateforme": Hamza types "place", Kidist (Addis-Abeba) types the full stop, and the underline
+goes under "une seule place".
+
+- **Carets and names are neutral.** A bar in `--text`, 0.075em wide, and an inverted pill
+  (`--text` fill, `--bg` text, `--type-caption`) reading "Hamza · Casablanca" on top of it. The
+  selection is `--text` at 12% (`color-mix`). No colour says who is who. Laterite is used once,
+  for the underline.
+- **No "live" marker.** The people are made up, so a name never says typing or online, the
+  names are cities and not presence, and they all leave at the end.
+- **Plays once per page view,** when the hero is on screen and motion is on (see the motion
+  button above). Pausing stops it at the finished headline and it does not start again.
+- **The layout never moves.** The real headline stays in the flow, as the heading's name and
+  as what the hero measures; while the layer plays it is only made transparent. The layer is
+  `aria-hidden`, draws over the real lines with the same font, size and alignment, and only the
+  last line changes, so the heading keeps its height and line count at every width. A draft
+  word that needs more than the text box and its padding again is skipped, and the animation
+  starts from the first word that fits.
+- **Still frame.** With reduced motion, the motion button off, no JavaScript, or any failure,
+  the finished headline stands with its underline (a background on the underlined words, so it
+  needs no script) and there are no carets.
+- The underline bars and the carets move with `transform` and `opacity` only.
+
 ## Pinned header
 
 Once the landing header has scrolled out of view, the same header is pinned as a pill near the
@@ -217,6 +249,7 @@ Every screen has all four.
 | Items in a row or list arrive one after another | `--delay-stagger` (80ms) between items | as the item's own motion |
 | A link's underline draws in on hover or keyboard focus | 160ms (`--dur-press`) | `--ease-out` |
 | Landing hero background words scroll right to left, forever | `--space-8` every `--dur-drift` (2s), about 16px a second | `--ease-linear`, for continuous motion only |
+| Landing hero headline is edited into shape, once | about 6s: sweep 650ms (`--ease-strong`), 55ms a character, underline `--dur-moment` (`--ease-out`) | see Hero headline |
 
 Reveals never hide headings or lead text, never hide anything without JavaScript, and
 leave content already on screen alone. An item counts as in view once 15% of it shows

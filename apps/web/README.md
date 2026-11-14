@@ -17,8 +17,9 @@ The site is bilingual by address: pages live in `app/[lang]/` and are served at 
 `proxy.ts` sends the bare `/`, and any address typed without a language, to the visitor's
 language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
-landing page is `app/landing/`: the hero, then one file per section in `app/landing/sections/`
-(each with its own copy, styles and tests), and the onboarding page shown after the first sign-in is
+landing page is `app/landing/`: the hero (its headline is edited into shape once by a layer over
+the real text: `hero-headline.tsx`, words in `hero-headline-copy.ts`), then one file per section in
+`app/landing/sections/` (each with its own copy, styles and tests), and the onboarding page shown after the first sign-in is
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
 technologies the feed should show and the sectors (`POST /v1/me/roles`,
 `PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`); the country stays
