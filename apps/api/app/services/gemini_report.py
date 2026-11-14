@@ -21,11 +21,11 @@ class GeminiReportEvaluator:
         self.timeout = timeout
 
     async def evaluate(
-        self, role_slug: str, codebase_result: dict, interview_turns: list[dict]
+        self, role_slug: str, codebase_result: dict, interview_turns: list[dict], language: str
     ) -> VerificationReport:
         if not self.api_key or not self.model:
             raise RuntimeError("Gemini evaluation is not configured.")
-        system, user = build_report_prompt(role_slug, codebase_result, interview_turns)
+        system, user = build_report_prompt(role_slug, codebase_result, interview_turns, language)
         response = await self._post_json(
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{quote(self.model, safe='')}:generateContent",
