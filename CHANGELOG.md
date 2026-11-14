@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-14
 
-- feat(api): add brainstorm notes to a hub
+- feat(api): add brainstorm notes to a hub (#162)
 - feat(api): write the repositories check in the applicant's language (#156)
 - feat(api): name shared technologies and the country on matches (#155)
 - feat(api): give a hub phases the owner starts and moves (#154)
