@@ -15,7 +15,9 @@ Tanny delegated these calls to the product owner on 13 November 2026.
 - Matching is deterministic for now. `GET /v1/me/ideas/{idea_id}/matches` ranks developers by
   the number of the idea's needed roles they are verified in, then by technologies shared with
   the idea's author, then by earliest verification. `GET /v1/me/matches` ranks open ideas by the
-  number of the developer's verified roles they need, then by newest publication.
+  number of the developer's verified roles they need, then by newest publication. Changed on
+  2026-11-14: a match score built from the same facts will decide the order, and these rules
+  will break ties (`2026-11-14-match-score.md`).
 - Only verified roles match. A match recommends a person for a role, and verification is the
   platform's trust signal. Self-claimed roles do not count, and neither do inactive roles.
 - A result says why it matched: the matched roles and, for developers, the shared technology
