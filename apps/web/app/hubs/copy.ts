@@ -239,7 +239,7 @@ const en: Copy = {
   agreementVersion: "Version {n} of the hub agreement",
   phasesHeading: "Phases",
   phases: ["Brainstorm", "Design and architecture", "Build", "Review and test"],
-  phasesNote: "The team moves through these one at a time. They open when the team is in place.",
+  phasesNote: "The hub lists its four phases. Their tools are still to come, so each one reads Not started.",
   notStarted: "Not started",
   missingHub: { title: "We couldn't find this hub", text: "It may have been removed, or the address is wrong." },
   team: {
@@ -460,7 +460,7 @@ const fr: Copy = {
   agreementVersion: "Version {n} de l'accord de l'espace",
   phasesHeading: "Phases",
   phases: ["Brainstorm", "Conception et architecture", "Construction", "Revue et tests"],
-  phasesNote: "L'équipe les traverse une à une. Elles s'ouvrent quand l'équipe est en place.",
+  phasesNote: "L'espace liste ses quatre phases. Leurs outils restent à venir\u202f: chacune indique Pas commencée.",
   notStarted: "Pas commencée",
   missingHub: {
     title: "Nous n'avons pas trouvé cet espace",
