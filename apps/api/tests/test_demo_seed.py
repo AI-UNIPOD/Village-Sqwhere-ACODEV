@@ -2,11 +2,12 @@ import asyncio
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from app import config, database
-from app.demo_seed import PEOPLE, main, seed
-from app.models import User
+from app.api.v1.auth import DEMO_ACCOUNT_ID
+from app.demo_seed import OWN_HUB, PEOPLE, main, seed
+from app.models import Hub, HubPhaseMove, User
 from tests.conftest import test_async_session as db_session
 
 
@@ -101,6 +102,36 @@ def _countries() -> dict[str, str | None]:
     return asyncio.run(go())
 
 
+def _own_hub(client: TestClient, visitor: dict) -> dict:
+    hubs = client.get("/v1/me/hubs", headers=visitor).json()["data"]
+    return next(hub for hub in hubs if hub["name"] == OWN_HUB)
+
+
+def _unstart_own_hub() -> None:
+    """A demo world seeded before hubs had phases."""
+
+    async def go() -> None:
+        async with db_session() as session:
+            await session.execute(
+                update(Hub)
+                .where(Hub.name == OWN_HUB, Hub.owner_id == DEMO_ACCOUNT_ID)
+                .values(phase=None, team_confirmed_at=None)
+            )
+            await session.commit()
+
+    asyncio.run(go())
+
+
+def _logged_moves(hub_id: str) -> int:
+    async def go() -> int:
+        async with db_session() as session:
+            return await session.scalar(
+                select(func.count()).select_from(HubPhaseMove).where(HubPhaseMove.hub_id == hub_id)
+            )
+
+    return asyncio.run(go())
+
+
 def test_the_seed_gives_each_person_the_country_in_their_bio(
     client: TestClient, visitor: dict
 ) -> None:
@@ -129,6 +160,40 @@ def test_running_the_seed_again_sets_countries_a_world_made_without_them_lacks(
     assert _seed() is False
 
     assert _countries()["aminata_ndiaye"] == "SN" and None not in _countries().values()
+
+
+def test_the_demo_hub_is_in_build_after_a_run_and_after_a_rerun(
+    client: TestClient, visitor: dict
+) -> None:
+    def states() -> list[str]:
+        card = _own_hub(client, visitor)
+        assert card["phase"] == "build" and card["team_confirmed_at"] is not None
+        return [step["state"] for step in card["phases"]]
+
+    assert states() == ["done", "done", "in_progress", "not_started"]
+
+    _unstart_own_hub()
+    assert _own_hub(client, visitor)["phase"] is None
+    _seed()
+    assert states() == ["done", "done", "in_progress", "not_started"]
+
+    # a hub that already has a phase is left alone, so a third run logs nothing new
+    hub_id = _own_hub(client, visitor)["id"]
+    logged = _logged_moves(hub_id)
+    _seed()
+    assert _logged_moves(hub_id) == logged
+
+
+def test_the_demo_account_cannot_confirm_or_move_a_hub(client: TestClient, visitor: dict) -> None:
+    hub_id = _own_hub(client, visitor)["id"]
+
+    for resp in (
+        client.post(f"/v1/hubs/{hub_id}/team/confirm", headers=visitor),
+        client.post(f"/v1/hubs/{hub_id}/phase", headers=visitor, json={"phase": "review"}),
+    ):
+        assert resp.status_code == 403
+        assert resp.json()["detail"]["code"] == "DEMO_READ_ONLY"
+    assert _own_hub(client, visitor)["phase"] == "build"
 
 
 def test_the_script_writes_nothing_where_the_demo_is_off(

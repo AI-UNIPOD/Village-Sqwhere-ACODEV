@@ -66,6 +66,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/members/{user_id}/approve` (an invitation, signed the same way) or
   `POST /v1/hubs/{hub_id}/members/{user_id}/decline`. Only active members read
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
+  The owner starts the work with `POST /v1/hubs/{hub_id}/team/confirm` (any team size, which
+  opens brainstorm) and moves the hub one phase forward or back with
+  `POST /v1/hubs/{hub_id}/phase`; the hub card says which phase it is in.
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
   `POST /v1/me/ideas/{idea_id}/publish` and `POST /v1/me/ideas/{idea_id}/close` create and
@@ -95,8 +98,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 1. A developer signs in and shares an idea.
 2. The API embeds the idea and finds developers with similar ideas and complementary skills.
 3. Matched developers accept the digital IP/NDA agreement before joining.
-4. The API provisions a Virtual Collaboration Hub that moves through four phases:
-   brainstorm → design and architecture → build → peer review.
+4. The API provisions a Virtual Collaboration Hub. When the owner confirms the team, the hub
+   opens in brainstorm, then the owner moves it through four phases: brainstorm → design and
+   architecture → build → review and test.
 
 ## Decisions so far
 
