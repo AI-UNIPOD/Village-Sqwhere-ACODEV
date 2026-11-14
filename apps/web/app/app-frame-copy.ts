@@ -18,7 +18,7 @@ type Copy = {
 export const copy: Record<Lang, Copy> = {
   en: { navLabel: "Main", village: "Village", feed: "Feed", ideas: "Ideas", hubs: "Hubs", reviews: "Reviews", profile: "Profile", invited: "an invitation is waiting",
     demo: {
-      line: "You are in the demo. Look at everything: nothing you change is saved.",
+      line: "You are in the demo. The people and ideas here are made up, and nothing can be changed.",
       refused: "That was not saved. The demo is for looking around: sign in with GitHub to do it for real.",
       leave: "Leave the demo",
       tour: "Take the tour",
@@ -27,7 +27,7 @@ export const copy: Record<Lang, Copy> = {
   // Needs a native French review before launch.
   fr: { navLabel: "Principale", village: "Village", feed: "Fil", ideas: "Idées", hubs: "Espaces", reviews: "Revues", profile: "Profil", invited: "une invitation vous attend",
     demo: {
-      line: "Vous êtes dans la démo. Regardez tout, rien de ce que vous modifiez n'est enregistré.",
+      line: "Vous êtes dans la démo. Les personnes et les idées sont fictives, et rien ne peut être modifié.",
       refused: "Cela n'a pas été enregistré. La démo sert à regarder\u202f: connectez-vous avec GitHub pour le faire vraiment.",
       leave: "Quitter la démo",
       tour: "Faire la visite",

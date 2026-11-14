@@ -62,7 +62,7 @@ const en: Copy = {
     },
     hub: {
       title: "Build together in a hub",
-      text: "The idea's owner approves a team of 2 to 5. You build in four phases: brainstorm, design, build, then review.",
+      text: "The idea's owner invites a team of up to five, the owner included, and everyone signs the same agreement. The hub lists four phases; their tools are still to come.",
     },
   },
   setUp: "Set up my profile",
@@ -112,7 +112,7 @@ const fr: Copy = {
     },
     hub: {
       title: "Construire ensemble dans un espace",
-      text: "Le porteur de l'idée valide une équipe de 2 à 5 personnes. Vous construisez en quatre phases\u202f: brainstorm, conception, construction, puis revue.",
+      text: "Le porteur de l'idée invite une équipe de cinq personnes au plus, porteur compris, et chacun signe le même accord. L'espace liste quatre phases\u202f; leurs outils restent à venir.",
     },
   },
   setUp: "Configurer mon profil",
