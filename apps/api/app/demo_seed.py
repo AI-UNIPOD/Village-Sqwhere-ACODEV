@@ -8,7 +8,8 @@ Every person here is made up, and every account is a demo account (users.is_demo
 in app/api/deps.py keeps all of it away from real developers. Times are set relative to when
 the script runs, so the feed reads "2 hours ago". Running it again rewrites the posts and
 comments with fresh times, sets the countries again and leaves the rest, except that it puts
-the visitor's own hub in build if it has no phase yet.
+the visitor's own hub in build if it has no phase yet and gives it its brainstorm notes if it
+has none.
 docs/decisions/2026-11-13-read-only-demo.md
 """
 
@@ -30,6 +31,7 @@ from app.models import (
     HubMember,
     HubMemberRole,
     HubMemberStatus,
+    HubNote,
     HubPhase,
     HubPhaseMove,
     Idea,
@@ -93,6 +95,15 @@ STACKS = {
 
 # the hub the visitor owns, which the seed puts in the build phase
 OWN_HUB = "Payouts Hub"
+# what its two active members wrote on the brainstorm board, as (who, days ago, text)
+OWN_HUB_NOTES = [
+    ("you", 8.8, "One co-op treasurer approves the batch, then the app pays every member."),
+    ("kwabena", 8.4, "Les membres veulent un reçu par SMS après chaque paiement."),
+    ("you", 8.0, "An idempotency key on every transfer, so a retry never pays twice."),
+    ("kwabena", 7.3, "Show the audit trail as a plain timeline, not a table."),
+    ("you", 6.9, "Paiement échoué\u202f: on réessaie sans repayer ceux qui ont déjà reçu."),
+    ("kwabena", 6.2, "Question: naira and CFA from the first version, or naira only?"),
+]
 
 
 def ago(**delta: float) -> datetime:
@@ -123,6 +134,7 @@ async def seed(db: AsyncSession) -> bool:
         user.verified_at = user.verified_at or ago(days=20)
         user.country_code = COUNTRIES[key]  # also on a rerun, for worlds seeded before countries
     await _start_own_hub(db, people["you"])
+    await _write_own_hub_notes(db, people)
     await _write_feed(db, people)
     await db.commit()
     return created
@@ -298,6 +310,18 @@ async def _start_own_hub(db: AsyncSession, owner: User) -> None:
         )
         previous = phase
     hub.phase, hub.team_confirmed_at = HubPhase.BUILD, ago(days=9)
+
+
+async def _write_own_hub_notes(db: AsyncSession, people: dict[str, User]) -> None:
+    """The visitor's hub has notes from its brainstorm. Added only when it has none, so a rerun
+    does not pile up copies."""
+    hub = await db.scalar(select(Hub).where(Hub.owner_id == people["you"].id, Hub.name == OWN_HUB))
+    if hub is None or await db.scalar(select(HubNote.id).where(HubNote.hub_id == hub.id).limit(1)):
+        return
+    db.add_all(
+        HubNote(hub_id=hub.id, author_id=people[who].id, body=body, created_at=ago(days=days))
+        for who, days, body in OWN_HUB_NOTES
+    )
 
 
 async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
