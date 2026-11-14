@@ -49,6 +49,7 @@ const attempt = (aiResult: unknown = full, evidence: unknown = [{ repository_url
   role: "backend-engineer",
   role_name: "Backend & Systems Engineer",
   attempt_number: 2,
+  language: "en",
   evidence,
   ai_result: aiResult,
   created_at: "2026-11-11T10:00:00Z",
@@ -163,6 +164,20 @@ test("the AI's report comes after the transcript, is labelled a suggestion and d
   expect(card.textContent).toContain("Suggested score: 78.5 of 100");
   expect(card.textContent).toContain("Confidence: 74%");
   expect(card.textContent).not.toMatch(/strong|weak|pass(ed)? |fail/i);
+});
+
+test.each([
+  ["en", "fr", "Report language: French"],
+  ["en", "en", "Report language: English"],
+  ["fr", "fr", "Langue du rapport : français"],
+  ["fr", "en", "Langue du rapport : anglais"],
+] as const)("on the %s page, the report of a %s attempt says %s", async (lang, language, text) => {
+  api(json({ data: { ...attempt(), language } }));
+  render(<ReviewCase lang={lang} />);
+  const heading = await screen.findByRole("heading", { name: lang === "en" ? "The AI's report" : "Le rapport de l'IA" });
+  // the page's text matcher folds the no-break space, so the exact text is read from the node
+  const line = within(heading.closest("section")!).getByText(/^(Report language|Langue du rapport)/);
+  expect(line.textContent).toBe(text);
 });
 
 test("an empty list in the report is left out", async () => {

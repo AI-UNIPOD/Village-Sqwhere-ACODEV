@@ -42,18 +42,24 @@ Role verification is `app/verification/` (at `/en/verification`), for the develo
 a start form (public GitHub repositories and a consent box), then the attempt's three stages
 (repositories check, interview, peer review) read from `/v1/me/verifications`. It asks the API
 again every 5 seconds only while the AI is working, and never shows the API's English error text.
+Starting sends `language`, the language of the page, and the form says so before the button: the
+interview and the AI's report use it and it never changes for that attempt. An active attempt in
+a different language from the page says so in one line.
 
 The interview is `app/verification-interview/` (at `/en/verification/interview?id=`): a chat with
 the AI interviewer over the attempt's WebSocket. The socket opens only when the developer presses
 "Begin the interview", because the API ends the attempt for good if it closes early. While it is
 live the header shows no links (`AppFrame`'s `locked`), and the token for the socket's address
-comes from `accessToken()` in `app/session/session.ts`.
+comes from `accessToken()` in `app/session/session.ts`. The interview is written by the API in
+the attempt's language, so the screen's own text follows the page and the questions follow the attempt.
 
 Peer review is `app/reviews/`: the queue at `/en/reviews` (attempts awaiting review in roles the
 developer is verified in, never their own, with no AI score shown) and one case at
 `/en/reviews/case?id=`. A case shows the evidence first (repositories, the interview, the
 repositories check), then the AI's report marked as a suggestion, then the decision form: notes
 are required, and pass or fail confirms in a dialog. Everything from `ai_result` is plain text.
+Each queue row and each case names the attempt's language, so a reviewer who cannot read it can
+choose another case.
 
 Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/ideas/compose`
 (new) or `/en/ideas/compose?id=` (existing). The form keeps what everyone sees (title, summary)

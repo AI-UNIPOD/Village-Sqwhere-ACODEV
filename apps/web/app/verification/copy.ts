@@ -21,6 +21,7 @@ export type Copy = {
   };
   pills: { done: string; checking: string; yourTurn: string; waiting: string; writing: string; later: string };
   reassure: string;
+  otherLanguage: string;
   submitted: string;
   newTab: string;
   stop: { button: string; title: string; text: string; confirm: string; keep: string; failed: string };
@@ -31,6 +32,7 @@ export type Copy = {
     label: string;
     help: string;
     consent: string;
+    language: string;
     submit: string;
     errors: { empty: string; tooMany: string; notGithub: string; duplicate: string; consent: string; rejected: string };
     failed: { network: string; server: string };
@@ -90,6 +92,7 @@ const en: Copy = {
     later: "Later",
   },
   reassure: "You can leave this page. We keep working and this page shows where things stand when you come back.",
+  otherLanguage: "This attempt is in French: the interview and the AI's report use French.",
   submitted: "Repositories submitted",
   newTab: "opens in a new tab",
   stop: {
@@ -121,6 +124,8 @@ const en: Copy = {
     help: "One GitHub address per line, up to 10. Public repositories only, for example https://github.com/your-name/your-project",
     consent:
       "I agree that the public code in these repositories is read by an AI checker, and that my interview answers are kept with this attempt. Private repositories are never read.",
+    language:
+      "The interview and the AI's report will be in English, the language of this page. To use French, switch language before you start.",
     submit: "Start verification",
     errors: {
       empty: "Add at least one repository address.",
@@ -203,6 +208,7 @@ const fr: Copy = {
   },
   reassure:
     "Vous pouvez quitter cette page. Nous continuons le travail, et cette page montre où en sont les choses à votre retour.",
+  otherLanguage: "Cette tentative est en anglais : l'entretien et le rapport de l'IA sont en anglais.",
   submitted: "Dépôts envoyés",
   newTab: "s'ouvre dans un nouvel onglet",
   stop: {
@@ -234,6 +240,8 @@ const fr: Copy = {
     help: "Une adresse GitHub par ligne, 10 au maximum. Dépôts publics uniquement, par exemple https://github.com/votre-nom/votre-projet",
     consent:
       "J'accepte que le code public de ces dépôts soit lu par un vérificateur IA, et que mes réponses à l'entretien soient conservées avec cette tentative. Les dépôts privés ne sont jamais lus.",
+    language:
+      "L'entretien et le rapport de l'IA seront en français, la langue de cette page. Pour utiliser l'anglais, changez de langue avant de commencer.",
     submit: "Lancer la vérification",
     errors: {
       empty: "Ajoutez au moins une adresse de dépôt.",
