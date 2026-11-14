@@ -40,7 +40,7 @@ test("a question holds its answer", () => {
 // The language is fixed when a verification starts, so the answer says what follows it and the limit.
 test.each([
   ["en", "Which languages does it use?", ["interview", "repositories check", "report", "stays fixed"]],
-  ["fr", "Quelles langues utilise-t-il\u202f?", ["entretien", "analyse des dépôts", "rapport", "reste fixée"]],
+  ["fr", "Dans quelles langues\u202f?", ["entretien", "analyse des dépôts", "rapport", "reste fixée"]],
 ] as const)("the %s language answer says the AI interview, check and report follow the page's language", (lang, question, words) => {
   const { container } = render(<Faq lang={lang} />);
   const item = Array.from(container.querySelectorAll("details")).find(

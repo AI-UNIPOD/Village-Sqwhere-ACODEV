@@ -53,10 +53,10 @@ const fr: Copy = {
     },
     {
       q: "Me faut-il un Green Tick\u202f?",
-      a: "Pas pour partager une idée. Pour être proposé aux autres porteurs, oui. Vous avez trois tentatives par rôle.",
+      a: "Pas pour partager une idée. Pour être proposé aux porteurs d'idées, oui. Vous avez trois tentatives par rôle.",
     },
     {
-      q: "Quelles langues utilise-t-il\u202f?",
+      q: "Dans quelles langues\u202f?",
       a: "En anglais et en français, sur chaque écran. L'entretien IA, l'analyse des dépôts et le rapport IA sont rédigés dans la langue de la page au moment où vous lancez une vérification, et elle reste fixée pour cette tentative. Changez à tout moment depuis l'en-tête.",
     },
     {
