@@ -137,7 +137,7 @@ test("with no attempt and attempts left, the person sees how it works and the st
   expect(await screen.findByRole("heading", { name: "What happens" })).toBeTruthy();
   expect(screen.getByText("Attempt 2 of 3")).toBeTruthy();
   expect(screen.getByRole("textbox", { name: "Repositories" })).toBeTruthy();
-  expect(screen.getByRole("checkbox", { name: /I agree that the public code/ })).toBeTruthy();
+  expect(screen.getByRole("checkbox", { name: /I agree that an AI checker looks at these public repositories/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Start verification" })).toBeTruthy();
   // the last attempt, its notes and the attempts left come first
   expect(screen.getByRole("heading", { name: "Your last attempt was not passed." })).toBeTruthy();
@@ -199,7 +199,7 @@ test("while the AI checks the repositories, the stage says so and lists the repo
   signedInWith([role()], [attempt()]);
   render(<Verification lang="en" />);
   const first = (await screen.findByRole("heading", { level: 3, name: "Repositories check" })).closest("li")!;
-  expect(within(first).getByText("Our AI checker is reading your public repositories. This usually takes a few minutes.")).toBeTruthy();
+  expect(within(first).getByText("Our AI checker is looking at your public repositories: file names, languages, tests and recent commit messages. This usually takes a few minutes.")).toBeTruthy();
   expect(within(stage("Interview")).getByText("Later")).toBeTruthy();
   expect(within(stage("Peer review")).getByText("Later")).toBeTruthy();
   const link = screen.getByRole("link", { name: /github\.com\/fatou-sow\/ledger-api/ });
