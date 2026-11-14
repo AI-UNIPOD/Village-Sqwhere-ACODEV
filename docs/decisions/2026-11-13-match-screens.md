@@ -22,7 +22,7 @@ Tanny delegated these calls to the product owner on 13 November 2026.
   "Strong match" and "Poor match" steps) is not used: it assumes a score the API does not have.
   The `--ai` colour is not used either, because nothing here is AI. Changed on 2026-11-14: a
   match score is being built and will decide the order (`2026-11-14-match-score.md`); the
-  reasons stay on every card and the `--ai` colour stays off these screens.
+  reasons stay on every card and the `--ai` colour stays off these screens. Changed on 2026-11-14: each card shows the match score with its reasons (`2026-11-14-match-score.md`).
 - **A developer with no verified role is not shown an empty list.** Matching ignores roles that
   are only claimed, so the page explains that and leads to verification. A developer with no
   role at all is sent to set up their profile first. In both cases the page does not call the
@@ -37,7 +37,7 @@ Tanny delegated these calls to the product owner on 13 November 2026.
   (shown only above zero). The technology tags are the developer's own list, without saying which
   are shared, because the API gives only the count. Changed on 2026-11-14: the API names the shared
   technologies and carries the developer's country, so the card names them, marks them in the tags
-  and shows the country (`2026-11-14-profile-country.md`).
+  and shows the country (`2026-11-14-profile-country.md`). Changed on 2026-11-14: each card shows the match score with its reasons (`2026-11-14-match-score.md`).
 - **Inviting needs a hub first.** An invitation belongs to a hub (`POST /v1/hubs/{id}/invitations`),
   so an idea with no hub shows the developers with no invite buttons and one notice with
   "Create the hub". The hub is found by reading every page of `GET /v1/me/hubs`, as on Your

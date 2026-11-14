@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(web): show the match score and its reasons on match cards (#171)
 - fix(web): make three French lines on the landing page read plainly (#168)
 - feat(api): let members leave a hub and owners remove them (#167)
 - feat(web): add brainstorm notes to the hub page (#166)
