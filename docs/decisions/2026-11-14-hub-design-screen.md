@@ -4,8 +4,8 @@
 
 The API now keeps a design sketch for a hub: pieces of the system and labelled links between
 them (`GET /v1/hubs/{id}/design`, see `2026-11-14-hub-design-sketch.md` in the API's records). This
-is the second phase tool on the web, after the brainstorm notes. This change only reads the
-sketch. Adding, editing and deleting pieces and links come in the next pull request.
+is the second phase tool on the web, after the brainstorm notes. The first change only read the
+sketch. Adding, editing and deleting pieces and links are in the last section.
 
 ## Decision
 
@@ -50,6 +50,26 @@ live co-editing. We settled the rest:
 
 - The drawing shrinks to fit the page, so a sketch of six or seven columns has small text. The list
   holds everything, and the drawing is for the overall shape.
-- When a team edits the sketch (the next pull request), the section keeps the same list and
-  drawing and adds the forms around them.
+- Editing (the last section) keeps the same list and drawing and adds the forms around them.
 - Revisit this when the sketch grows past its caps or when teams ask to place boxes by hand.
+
+## Editing the sketch
+
+The team edits the sketch on the same page, while the hub is active and in design:
+
+- **Any member corrects a piece, and only its creator or the hub's owner deletes it.** The API decides
+  and says so in `can_delete`, so the page shows Delete only on those cards and a refusal still reads as
+  a sentence. Links work the same way.
+- **A link has one delete button, on its outgoing line** ("To Payouts API: approves a batch"). The
+  incoming line on the other card has none, so each link can be deleted from one place and a screen
+  reader does not meet it twice. Its name says which link: "Delete the link from Mobile app to Payouts API".
+- **Every delete asks first.** A piece takes its links with it, so after it the page reads the sketch
+  again instead of guessing what is left.
+- **The forms sit under the sketch on the same page,** not in a dialog or on another page. Editing a
+  piece turns its card into the same two fields, filled in. A field the person did not touch follows the
+  piece when the sketch is read again, and only what changed is sent.
+- **The two lists of a new link exclude each other,** so a link never goes from a piece to itself. A
+  piece deleted since it was chosen is no longer chosen. Editing a link's label is not offered: delete
+  the link and add it again.
+- **One change at a time.** While one is on its way the other buttons and Refresh do nothing, so a read
+  never crosses a write.
