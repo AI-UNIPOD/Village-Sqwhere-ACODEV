@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
-import { copy as landing } from "../landing/copy";
 import landingStyles from "../landing/landing-page.module.css";
-import { ThemeToggle } from "../landing/theme-toggle";
+import { HeaderTools } from "../landing/header-tools";
 import { hasLocale, type Lang } from "../locales";
 import { Logo } from "../logo";
 import { API_URL, isTokenData, saveSession } from "../session/session";
@@ -90,7 +89,6 @@ function Icon({ kind }: { kind: "success" | "error" }) {
 
 export function CallbackPage({ lang }: { lang: Lang }) {
   const t = copy[lang];
-  const shared = landing[lang];
   const [status, setStatus] = useState<Status>("loading");
   const loginCode = useRef("");
   const started = useRef(false);
@@ -135,10 +133,9 @@ export function CallbackPage({ lang }: { lang: Lang }) {
           <Logo size={24} className={landingStyles.navLogo} />
           <span className={landingStyles.navWordmark} translate="no">Village Sqwhere</span>
         </Link>
+        {/* No language switch here: the login code works once, so the other language cannot reuse it. */}
+        <HeaderTools lang={lang} path={null} />
       </header>
-
-      {/* No language link here: the login code works once, so the other language cannot reuse it. */}
-      <ThemeToggle toDark={shared.toDark} toLight={shared.toLight} />
 
       <main className={styles.main}>
         <div className={styles.column}>

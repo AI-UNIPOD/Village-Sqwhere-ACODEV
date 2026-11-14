@@ -29,15 +29,24 @@ states. Anything you tap is at least 44px high.
 44 by 44px with a 20px icon, `--radius-s`, a tooltip on hover and keyboard focus, and an
 `aria-label`. A toggle (like "Save") fills its icon in `--link` when on.
 
-## Floating buttons
+## Language and theme switches
 
-Language and theme sit on the landing page as round buttons that stay on screen: the
-language button at the top right, the theme button near the bottom right, both 16px from the
-right edge. `--float-size` (36px) wide, `--radius-full`, 1px `--line-strong`, `--bg` fill,
-`--shadow-float`, label in `--type-mono-label`. A ring around each widens the tap area to
-44px. Hover fills with `--surface-sunken`, pressed scales to 0.97 over `--dur-press`. The
-theme button shows a moon on Paper and a sun on Ink, turning into each other over
-`--dur-icon`, and its label says what a tap does ("Switch to dark mode").
+Every header ends with the same two switches, in this order (`app/language-switch.tsx`,
+`app/landing/theme-toggle.tsx`).
+
+- **Language:** EN and FR side by side on a track, `--radius-full`, 1px `--line`, `--bg`
+  fill, labels in `--type-mono-label`. The page's language sits on a `--text` thumb with
+  `--bg` text; the other one is a plain link (a full page load) to the same screen in that
+  language, at least `--tap-min` wide and 44px tall to a finger, named in its own language
+  ("Passer en français"). On hover the thumb leans 12% towards it; pressed, the thumb slides
+  across over `--dur-modal` while the page loads. With reduced motion the thumb does not
+  travel. No flags: a flag names a country, and French is spoken in many.
+- **Theme:** a 44px round icon button, the `--icon-toggle` moon on Paper (go dark) and sun on
+  Ink (go light), turning into each other over `--dur-icon`. Hover fills with
+  `--surface-sunken`, pressed scales to 0.97. The new theme spreads from the button in a circle
+  over `--dur-drawer` on `--ease-out` (a view transition); with reduced motion, or where view
+  transitions are missing, it changes at once. Its label and tooltip say what a tap does
+  ("Switch to dark mode").
 
 The hero's motion button is a pill, not a round button: `--float-size` (36px) high,
 `--radius-full`, 1px `--line-strong`, `--bg` fill, padding `--space-3` then `--space-4`, the
@@ -58,9 +67,8 @@ Once the landing header has scrolled out of view, the same header is pinned as a
 top, until the visitor is back at the top. It is `--pill-height` high, `--pill-top` from the
 top, `--radius-full`, 1px `--line`, `--shadow-float`, and `--surface` at 85% over a
 `--blur-bar` blur (solid `--surface` where the blur is missing or with reduced transparency).
-From 768px it is centred, holds the logo, the name and the links with `--nav-gap` between them,
-and stays clear of the language button on both sides. Below 768px it sits beside the language
-button and holds the links only, in `--type-body-s` at weight 600. Below 360px there is no pill.
+From 768px it is centred and holds the logo, the name, the links and the two switches. Below
+768px it is centred and holds the links only, in `--type-body-s` at weight 600. Below 360px there is no pill.
 It rises `--space-2` and fades in over `--dur-modal` on `--ease-out`, and fades out over
 `--dur-modal-out`; with reduced motion it only fades. While it is pinned, jumps and keyboard
 focus land below it (`scroll-padding-top`).

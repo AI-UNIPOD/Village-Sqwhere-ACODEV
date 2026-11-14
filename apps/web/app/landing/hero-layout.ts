@@ -10,7 +10,7 @@ const FRAME_MIN = 1180; // --content-max
 const FRAME_SHARE = 0.72; // --hero-frame-share
 const FRAME_MAX = 1760; // --hero-frame-max
 const PHONE = 600; // below this the square is a little smaller and the headline may take 3 lines
-const FLOAT_CLEAR = 60; // room kept at the right edge for the floating buttons
+const FLOAT_CLEAR = 60; // room kept clear at the sides of the hero (the floating buttons sat there)
 const SIDE = 32; // the content's side padding from 768px
 
 // Space between the text box's outer edge (its padding is the clearing in the crowd) and the

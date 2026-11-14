@@ -8,8 +8,7 @@
   white-space: nowrap;
 }
 
-/* The content column. Below 1240px there is no side margin large enough for the floating
-   buttons, so the column keeps 60px clear on its right (16px offset, button, 8px gap). */
+/* The content column. */
 .wrap {
   max-inline-size: var(--content-max);
   margin-inline: auto;
@@ -22,16 +21,10 @@
   }
 }
 
-@media (max-width: 1239px) {
-  .wrap {
-    padding-inline-end: calc(var(--space-4) + var(--float-size) + var(--space-2));
-  }
-}
-
 /* ---------- header ---------- */
-/* On wide screens the header lines up with the content column. Its right side always clears
-   the floating language button. On phones the section links get a second row of their own,
-   under the logo, so phones can jump to them too. Once it has scrolled away, HeaderPin pins this
+/* On wide screens the header lines up with the content column: the logo, the section links,
+   then the language and theme switches. On phones the section links get a second row of their
+   own, under the logo and the switches, so phones can jump to them too. Once it has scrolled away, HeaderPin pins this
    same header as a floating pill (see "pinned header" below). */
 .nav {
   position: relative;
@@ -41,7 +34,7 @@
   align-items: center;
   gap: 0 var(--nav-gap);
   min-block-size: var(--nav-height);
-  padding-inline: var(--space-4) var(--float-gutter);
+  padding-inline: var(--space-4);
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
@@ -53,9 +46,10 @@
     block-size: var(--nav-height);
     /* the hero's frame (it breaks out wider than --content-max on big screens), so the logo
        and the links line up with the hero's text and square */
-    padding-inline:
-      max(var(--space-8), calc((100% - clamp(var(--content-max), var(--hero-frame-share), var(--hero-frame-max))) / 2 + var(--space-8)))
-      max(var(--float-gutter), calc((100% - clamp(var(--content-max), var(--hero-frame-share), var(--hero-frame-max))) / 2 + var(--space-8)));
+    padding-inline: max(
+      var(--space-8),
+      calc((100% - clamp(var(--content-max), var(--hero-frame-share), var(--hero-frame-max))) / 2 + var(--space-8))
+    );
   }
 }
 
@@ -112,11 +106,64 @@
   }
 }
 
-/* The second row sits under the logo, clear of the language button's row, so it may use the
-   button's gutter: without it the French links wrap at 360px. */
+/* the language and theme switches close the first row */
+.tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+/* the theme switch: a 44px tap area around the 18px icon, no frame */
+.themeButton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: var(--tap-min);
+  block-size: var(--tap-min);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .themeButton:hover {
+    background: var(--surface-sunken);
+    color: var(--text);
+  }
+}
+
+.themeButton:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .themeButton:active {
+    transform: none;
+  }
+}
+
+/* In the header (not the pill) the icon lines up with the edge of the content and its tap area
+   reaches into the padding: at 360px the logo, the name and both switches need the room. */
+.nav:not([data-pinned]) .tools {
+  gap: 0;
+}
+
+.nav:not([data-pinned]) .themeButton {
+  margin-inline-end: calc(var(--space-3) * -1);
+}
+
+/* The second row sits under the logo and the switches, the full width of the header. */
 .navLinks {
   display: flex;
-  flex: 0 0 calc(100% + var(--float-gutter) - var(--space-4));
+  flex: 0 0 100%;
+  order: 1;
   align-items: center;
   gap: var(--space-6);
   border-top: 1px solid var(--line);
@@ -143,9 +190,15 @@
 @media (min-width: 768px) {
   .navLinks {
     flex: 0 1 auto;
+    order: 1;
     gap: var(--nav-gap);
     margin-inline-start: auto;
     border-top: 0;
+  }
+
+  .tools {
+    order: 2;
+    margin-inline-start: 0;
   }
 
   .navLinks .soonLink {
@@ -204,8 +257,8 @@
 /* ---------- pinned header ---------- */
 /* HeaderPin sets data-pinned once the header has scrolled out of view: the same header, now
    fixed near the top as a translucent pill, until the visitor is back at the top ("leaving"
-   fades it out first). Below 360px a pill does not fit beside the language button, so the
-   header just scrolls away. */
+   fades it out first). Below 360px the French links do not fit in a pill, so the header just
+   scrolls away. */
 @media (min-width: 360px) {
   .nav[data-pinned] {
     position: fixed;
@@ -213,7 +266,7 @@
     inline-size: fit-content;
     block-size: var(--pill-height);
     min-block-size: 0;
-    padding: 0 var(--space-5) 0 var(--space-4);
+    padding: 0 var(--space-1) 0 var(--space-4);
     border: 1px solid var(--line);
     border-radius: var(--radius-full);
     background: color-mix(in srgb, var(--surface) 85%, transparent);
@@ -269,28 +322,25 @@
   }
 }
 
-/* wide screens: centred, one row with the logo, clear of the language button on both sides */
-@media (min-width: 768px) {
+/* centred, one row: the logo, the links and the switches on wide screens */
+@media (min-width: 360px) {
   .nav[data-pinned] {
     inset-inline: 0;
     margin-inline: auto;
-    max-inline-size: calc(100% - 2 * var(--float-gutter));
+    max-inline-size: calc(100% - 2 * var(--space-3));
   }
 }
 
-/* phones: beside the language button, the three links only (the logo and name would not fit
-   next to the French links) */
+/* phones: the three links only (the logo, the name and the switches would not fit next to the
+   French links); they are back with the header at the top */
 @media (min-width: 360px) and (max-width: 767px) {
-  /* measured at 360px: the three French links are 245px of text and the pill has 282px inside
-     its border, so the gap and the end padding are --space-2 */
   .nav[data-pinned] {
     flex-wrap: nowrap;
-    inset-inline-start: var(--space-3);
-    max-inline-size: calc(100% - var(--space-3) - var(--float-gutter));
-    padding-inline: var(--space-2);
+    padding-inline: var(--space-3);
   }
 
-  .nav[data-pinned] .brand {
+  .nav[data-pinned] .brand,
+  .nav[data-pinned] .tools {
     display: none;
   }
 
@@ -306,62 +356,7 @@
   }
 }
 
-/* ---------- floating language and theme buttons ---------- */
-.fab {
-  position: fixed;
-  z-index: 30;
-  right: var(--space-4);
-  display: grid;
-  place-items: center;
-  inline-size: var(--float-size);
-  block-size: var(--float-size);
-  padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-full);
-  background: var(--bg);
-  color: var(--text);
-  box-shadow: var(--shadow-float);
-  font: var(--type-mono-label);
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    background-color var(--dur-press) var(--ease-out),
-    transform var(--dur-press) var(--ease-out);
-}
-
-/* a ring that widens the tap area to 44px */
-.fab::before {
-  content: "";
-  position: absolute;
-  inset: calc((var(--float-size) - var(--tap-min)) / 2);
-  border-radius: var(--radius-full);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .fab:hover {
-    background: var(--surface-sunken);
-  }
-}
-
-.fab:active {
-  transform: scale(0.97);
-}
-
-.fabTop {
-  top: var(--float-top);
-}
-
-.fabBottom {
-  bottom: var(--space-4);
-}
-
-@media (min-width: 768px) {
-  .fabBottom {
-    bottom: var(--space-6);
-  }
-}
-
+/* ---------- the theme switch's icons ---------- */
 /* the moon shows on Paper (go dark), the sun on Ink (go light), turning into each other */
 .mode svg {
   position: absolute;

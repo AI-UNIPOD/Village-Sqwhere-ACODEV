@@ -45,7 +45,7 @@ test.each([
     expect(screen.getByText("Village Sqwhere").getAttribute("translate")).toBe("no");
     const switcher = screen.getByRole("link", { name: label });
     expect(switcher.getAttribute("href")).toBe(href);
-    expect(switcher.getAttribute("translate")).toBe("no");
+    expect(switcher.closest("[translate]")?.getAttribute("translate")).toBe("no");
     unmount();
   }
 });

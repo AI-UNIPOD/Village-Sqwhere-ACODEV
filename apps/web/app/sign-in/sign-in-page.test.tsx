@@ -119,8 +119,8 @@ test.each([
 });
 
 test.each([
-  ["en", "Passer en français", "/fr/sign-in", "/en"],
-  ["fr", "Switch to English", "/en/sign-in", "/fr"],
+  ["en", "Français", "/fr/sign-in", "/en"],
+  ["fr", "English", "/en/sign-in", "/fr"],
 ] as const)("the %s page links home and to the other language's sign-in", (lang, label, otherHref, homeHref) => {
   render(<SignInPage lang={lang} />);
   expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe(otherHref);
@@ -129,12 +129,12 @@ test.each([
 
 // Browser translation turned "Village Sqwhere" into "Village Square" and "EN" into "IN".
 test.each([
-  ["en", "Passer en français"],
-  ["fr", "Switch to English"],
+  ["en", "Français"],
+  ["fr", "English"],
 ] as const)("the %s page keeps the brand name and the language switch out of translation", (lang, label) => {
   render(<SignInPage lang={lang} />);
   expect(screen.getByText("Village Sqwhere").getAttribute("translate")).toBe("no");
-  expect(screen.getByRole("link", { name: label }).getAttribute("translate")).toBe("no");
+  expect(screen.getByRole("link", { name: label }).closest("[translate]")?.getAttribute("translate")).toBe("no");
 });
 
 test("says what is read from GitHub and links to GitHub to create an account", () => {
@@ -400,10 +400,3 @@ test("after a failure from GitHub, try again starts a new sign-in", async () => 
   expect(screen.queryByRole("group")).toBeNull();
 });
 
-test.each([
-  ["en", "Passer en français"],
-  ["fr", "Switch to English"],
-] as const)("the %s page's language button has a tooltip saying what it does", (lang, label) => {
-  render(<SignInPage lang={lang} />);
-  expect(screen.getByRole("link", { name: label }).querySelector("[data-tooltip]")?.textContent).toBe(label);
-});

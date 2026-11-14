@@ -18,7 +18,7 @@
   z-index: 4;
   left: var(--space-4);
   top: var(--space-8);
-  inline-size: calc(100% - var(--space-4) - var(--space-4) - var(--float-size) - var(--space-2));
+  inline-size: calc(100% - var(--space-4) - var(--space-4));
   max-inline-size: 35rem;
   /* room on all four sides, so the text never hugs the edge of its box; the headline's size
      follows the content width (the box minus this padding) through the container query unit */

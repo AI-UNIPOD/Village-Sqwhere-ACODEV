@@ -59,9 +59,7 @@ The landing page keeps a few values that are not on the 4px scale. Use them only
 | `--icon-toggle` | 18 | 18 | Sun and moon icon on the theme button |
 | `--icon-play` | 14 | 14 | Pause and play symbols on the hero's pause button |
 | `--tour-button-gap` | 28 | 28 | Space above the "Start the tour" button |
-| `--float-size` | 36 | 36 | Round floating buttons (language, theme). A 44px tap area surrounds each one |
-| `--float-top` | 10 | 18 | Distance of the language button from the top |
-| `--float-gutter` | 64 | 68 | Right space the header keeps clear of the floating buttons |
+| `--float-size` | 36 | 36 | Height of the hero's motion button. A 44px tap area surrounds it |
 | `--pill-height` | 48 | 56 | Height of the header pinned as a pill |
 | `--pill-top` | 8 | 12 | Distance of the pinned pill from the top |
 | `--blur-bar` | 12 | 12 | Blur behind the pinned pill |
@@ -70,8 +68,7 @@ The landing page keeps a few values that are not on the 4px scale. Use them only
 
 The hero also scales its buttons and gaps with the screen: `--hero-button-height` (44 up to
 54), `--hero-button-pad`, `--hero-button-font`, `--hero-sub-gap`, `--hero-cta-gap` and
-`--hero-cta-top`. Below 1324px the page content keeps 60px clear on its right for the
-floating buttons.
+`--hero-cta-top`.
 
 ## Corner radius
 

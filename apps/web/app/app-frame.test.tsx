@@ -128,7 +128,7 @@ test("the language link opens the same screen in the other language", () => {
   render(<AppFrame lang="en" path="hubs/view?id=7">screen</AppFrame>);
   const link = screen.getByRole("link", { name: "Français" });
   expect(link.getAttribute("href")).toBe("/fr/hubs/view?id=7");
-  expect(link.getAttribute("translate")).toBe("no");
+  expect(link.closest("[translate]")?.getAttribute("translate")).toBe("no");
 });
 
 test("the theme switch says what a press does, and does it", () => {

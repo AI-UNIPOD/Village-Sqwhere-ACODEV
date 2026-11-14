@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { THEME_INIT_SCRIPT, THEME_KEY } from "./theme";
-import { ThemeToggle } from "./theme-toggle";
+import { ThemeButton } from "./theme-toggle";
 
 function stubSystemTheme(dark: boolean) {
   vi.stubGlobal(
@@ -31,18 +31,18 @@ afterEach(() => {
 
 test("offers dark mode on a light system and light mode on a dark one", () => {
   stubSystemTheme(false);
-  render(<ThemeToggle {...labels} />);
+  render(<ThemeButton {...labels} className="theme" />);
   expect(screen.getByRole("button", { name: "Switch to dark mode" })).toBeTruthy();
   cleanup();
 
   stubSystemTheme(true);
-  render(<ThemeToggle {...labels} />);
+  render(<ThemeButton {...labels} className="theme" />);
   expect(screen.getByRole("button", { name: "Switch to light mode" })).toBeTruthy();
 });
 
 test("switches theme, saves the choice and changes its label", () => {
   stubSystemTheme(false);
-  render(<ThemeToggle {...labels} />);
+  render(<ThemeButton {...labels} className="theme" />);
 
   fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
@@ -57,7 +57,7 @@ test("switches theme, saves the choice and changes its label", () => {
 test("a chosen theme wins over the system setting", () => {
   stubSystemTheme(true);
   document.documentElement.setAttribute("data-theme", "light");
-  render(<ThemeToggle {...labels} />);
+  render(<ThemeButton {...labels} className="theme" />);
   expect(screen.getByRole("button", { name: "Switch to dark mode" })).toBeTruthy();
 });
 
@@ -66,14 +66,43 @@ test("still switches when the browser refuses to save the choice", () => {
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
     throw new Error("denied");
   });
-  render(<ThemeToggle {...labels} />);
+  render(<ThemeButton {...labels} className="theme" />);
   fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
 });
 
+test("spreads the new theme from the button through a view transition, unless motion is reduced", () => {
+  const start = vi.fn((update: () => void) => {
+    update();
+    return { ready: new Promise<void>(() => {}), finished: Promise.resolve() };
+  });
+  Object.assign(document, { startViewTransition: start });
+  stubSystemTheme(false);
+  render(<ThemeButton {...labels} className="theme" />);
+  fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
+  expect(start).toHaveBeenCalledOnce();
+  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  cleanup();
+
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("reduce"),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+  document.documentElement.setAttribute("data-theme", "light");
+  render(<ThemeButton {...labels} className="theme" />);
+  fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
+  expect(start).toHaveBeenCalledOnce();
+  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  delete (document as { startViewTransition?: unknown }).startViewTransition;
+});
+
 test("keeps both icons hidden from screen readers", () => {
   stubSystemTheme(false);
-  const { container } = render(<ThemeToggle {...labels} />);
+  const { container } = render(<ThemeButton {...labels} className="theme" />);
   const icons = container.querySelectorAll("svg");
   expect(icons).toHaveLength(2);
   for (const icon of icons) expect(icon.getAttribute("aria-hidden")).toBe("true");
@@ -109,7 +138,7 @@ const tooltipOf = (host: HTMLElement) => host.querySelector("[data-tooltip]")?.t
 
 test("names what a tap does in a tooltip that follows the label", () => {
   stubSystemTheme(false);
-  render(<ThemeToggle {...labels} />);
+  render(<ThemeButton {...labels} className="theme" />);
   const button = screen.getByRole("button");
   expect(tooltipOf(button)).toBe("Switch to dark mode");
   fireEvent.click(button);
@@ -118,6 +147,6 @@ test("names what a tap does in a tooltip that follows the label", () => {
 
 test("says it in French on the French page", () => {
   stubSystemTheme(false);
-  render(<ThemeToggle toDark="Passer en mode sombre" toLight="Passer en mode clair" />);
+  render(<ThemeButton toDark="Passer en mode sombre" toLight="Passer en mode clair" className="theme" />);
   expect(tooltipOf(screen.getByRole("button"))).toBe("Passer en mode sombre");
 });

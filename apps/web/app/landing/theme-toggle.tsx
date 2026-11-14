@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type MouseEvent } from "react";
 
 import { Tooltip } from "../tooltip";
 import styles from "./landing-page.module.css";
@@ -26,8 +26,7 @@ function currentTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function toggle() {
-  const next: Theme = currentTheme() === "dark" ? "light" : "dark";
+function apply(next: Theme) {
   document.documentElement.setAttribute("data-theme", next);
   try {
     localStorage.setItem(THEME_KEY, next);
@@ -35,6 +34,44 @@ function toggle() {
     // private mode: the choice still applies until the page is closed
   }
   listeners.forEach((notify) => notify());
+}
+
+type Transitioning = Document & {
+  startViewTransition?: (update: () => void) => { ready: Promise<void>; finished: Promise<void> };
+};
+
+// The new theme spreads out from the button in a circle until it covers the screen. Without view
+// transitions, or with reduced motion, it changes at once.
+function toggle(event: MouseEvent<HTMLButtonElement>) {
+  const next: Theme = currentTheme() === "dark" ? "light" : "dark";
+  const doc = document as Transitioning;
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!doc.startViewTransition || still) {
+    apply(next);
+    return;
+  }
+  const box = event.currentTarget.getBoundingClientRect();
+  const x = box.left + box.width / 2;
+  const y = box.top + box.height / 2;
+  const reach = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+  const root = document.documentElement;
+  // globals.css turns off the default crossfade while this attribute is set
+  root.setAttribute("data-theme-spread", "");
+  const transition = doc.startViewTransition(() => apply(next));
+  transition.ready
+    .then(() => {
+      const style = getComputedStyle(root);
+      root.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${reach}px at ${x}px ${y}px)`] },
+        {
+          duration: parseFloat(style.getPropertyValue("--dur-drawer")) || 400,
+          easing: style.getPropertyValue("--ease-out").trim() || "ease-out",
+          pseudoElement: "::view-transition-new(root)",
+        },
+      );
+    })
+    .catch(() => undefined);
+  transition.finished.finally(() => root.removeAttribute("data-theme-spread"));
 }
 
 type ThemeToggleProps = { toDark: string; toLight: string };
@@ -63,24 +100,7 @@ function ThemeIcons() {
   );
 }
 
-// A round floating button for the landing page. Its label says what a tap does.
-export function ThemeToggle({ toDark, toLight }: ThemeToggleProps) {
-  const theme = useSyncExternalStore(subscribe, currentTheme, () => "light" as Theme);
-  const dark = theme === "dark";
-  return (
-    <button
-      type="button"
-      className={`${styles.fab} ${styles.fabBottom} ${styles.mode} ${dark ? styles.dark : ""}`}
-      aria-label={dark ? toLight : toDark}
-      onClick={toggle}
-    >
-      <ThemeIcons />
-      <Tooltip label={dark ? toLight : toDark} side="left" />
-    </button>
-  );
-}
-
-// The same switch as an icon button in a header: the caller's class places and sizes it.
+// The theme switch, an icon button in a header: the caller's class places and sizes it.
 export function ThemeButton({ toDark, toLight, className }: ThemeToggleProps & { className: string }) {
   const theme = useSyncExternalStore(subscribe, currentTheme, () => "light" as Theme);
   const dark = theme === "dark";

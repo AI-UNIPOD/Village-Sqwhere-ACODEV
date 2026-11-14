@@ -4,7 +4,6 @@ import type { CSSProperties } from "react";
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
 import { AccountNavLink } from "../session/session-ui";
-import { Tooltip } from "../tooltip";
 import { copy } from "./copy";
 import { DemoButton, DemoNote } from "./demo-button";
 import { GatherHero } from "./gather-hero";
@@ -12,7 +11,7 @@ import { HeaderPin } from "./header-pin";
 import styles from "./landing-page.module.css";
 import { SectionMotion } from "./section-motion";
 import { stopShares } from "./stops";
-import { ThemeToggle } from "./theme-toggle";
+import { HeaderTools } from "./header-tools";
 
 // custom properties for the stagger: the item's place in its row of 2 or 4, or in its list
 const order = (vars: Record<string, number>) => vars as CSSProperties;
@@ -29,7 +28,6 @@ function Brand({ lang, logoClass, wordmarkClass }: { lang: Lang; logoClass: stri
 
 export function LandingPage({ lang }: { lang: Lang }) {
   const t = copy[lang];
-  const other: Lang = lang === "en" ? "fr" : "en";
   const shares = stopShares(
     t.stops.map((stop) => stop.time),
     t.total.time,
@@ -51,24 +49,9 @@ export function LandingPage({ lang }: { lang: Lang }) {
             </a>
             <AccountNavLink lang={lang} signIn={t.signIn} signOut={t.signOut} className={styles.navLink} />
           </nav>
+          <HeaderTools lang={lang} path="" />
         </header>
       </div>
-
-      {/* A plain link on purpose: a full page load. A client navigation keeps the old language
-          hidden in the page and makes React drop the theme set on <html>. translate="no" stops
-          browser translation turning "EN" into "IN". */}
-      <a
-        className={`${styles.fab} ${styles.fabTop}`}
-        href={`/${other}`}
-        hrefLang={other}
-        lang={other}
-        translate="no"
-        aria-label={t.switchLabel}
-      >
-        {t.switchText}
-        <Tooltip label={t.switchLabel} side="left" />
-      </a>
-      <ThemeToggle toDark={t.toDark} toLight={t.toLight} />
 
       <main>
         <GatherHero labelledBy="hero-title" labels={{ pause: t.pause, play: t.play }}>
