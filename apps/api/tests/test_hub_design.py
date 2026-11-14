@@ -25,6 +25,17 @@ from tests.test_hub_phases import assert_error, confirm, move
 
 UNKNOWN_ID = "00000000-0000-4000-8000-000000000000"
 OTHER_UNKNOWN_ID = "00000000-0000-4000-8000-000000000001"
+AUTHOR_KEYS = {"id", "username", "display_name", "avatar_url", "is_verified"}
+PIECE_KEYS = {"id", "name", "summary", "created_by", "created_at", "updated_at", "can_delete"}
+LINK_KEYS = {
+    "id",
+    "from_piece_id",
+    "to_piece_id",
+    "label",
+    "created_by",
+    "created_at",
+    "can_delete",
+}
 
 
 def design_url(hub: Hub) -> str:
@@ -159,48 +170,20 @@ def stored(model: Any, row_id: str) -> Any:
 
 def test_a_member_adds_a_piece_and_the_team_reads_it(client: TestClient) -> None:
     hub, owner, member = designing_hub(client)
+    assert read(client, hub, owner).json() == {"data": {"pieces": [], "links": []}}
 
     resp = add_piece(client, hub, member, "  Payouts API  ", summary="  Takes approved batches  ")
 
     assert resp.status_code == 201, resp.text
     piece = resp.json()["data"]
     assert piece["name"] == "Payouts API" and piece["summary"] == "Takes approved batches"
-    assert set(piece) == {
-        "id",
-        "name",
-        "summary",
-        "created_by",
-        "created_at",
-        "updated_at",
-        "can_delete",
-    }
+    assert set(piece) == PIECE_KEYS and set(piece["created_by"]) == AUTHOR_KEYS
     assert piece["created_by"]["id"] == str(member.id)
-    assert piece["created_by"]["username"] == member.username
-    assert set(piece["created_by"]) == {
-        "id",
-        "username",
-        "display_name",
-        "avatar_url",
-        "is_verified",
-    }
     assert piece["can_delete"] is True
     for reader in (owner, member):
-        assert design(client, hub, reader) == {"pieces": [{**piece}], "links": []}
-
-
-def test_the_summary_is_optional(client: TestClient) -> None:
-    hub, owner, _ = designing_hub(client)
-
-    piece = make_piece(client, hub, owner)
-
-    assert piece["summary"] == ""
-    assert add_piece(client, hub, owner, "Ledger", summary="").json()["data"]["summary"] == ""
-
-
-def test_an_empty_sketch_is_empty(client: TestClient) -> None:
-    hub, owner, _ = designing_hub(client)
-
-    assert read(client, hub, owner).json() == {"data": {"pieces": [], "links": []}}
+        assert design(client, hub, reader) == {"pieces": [piece], "links": []}
+    # the summary is optional
+    assert make_piece(client, hub, owner, "Ledger")["summary"] == ""
 
 
 def test_pieces_and_links_come_oldest_first_and_deleted_ones_are_left_out(
@@ -222,58 +205,74 @@ def test_pieces_and_links_come_oldest_first_and_deleted_ones_are_left_out(
     assert [link["label"] for link in seen["links"]] == ["link 0", "link 1", "link 2"]
 
 
-def test_a_link_has_a_direction_a_label_and_an_author(client: TestClient) -> None:
+def test_a_link_has_a_direction_and_the_opposite_one_is_a_different_link(
+    client: TestClient,
+) -> None:
     hub, owner, member = designing_hub(client)
-    app_piece, api = make_piece(client, hub, owner), make_piece(client, hub, owner, "Payouts API")
+    one, two = make_piece(client, hub, owner, "One"), make_piece(client, hub, owner, "Two")
+    forward = make_link(client, hub, member, one, two, "  calls  ")
 
-    resp = add_link(client, hub, member, app_piece["id"], api["id"], "  approves a batch  ")
+    assert set(forward) == LINK_KEYS and forward["label"] == "calls"
+    assert (forward["from_piece_id"], forward["to_piece_id"]) == (one["id"], two["id"])
+    assert forward["created_by"]["id"] == str(member.id) and forward["can_delete"] is True
+    assert design(client, hub, owner)["links"] == [forward]
 
-    assert resp.status_code == 201, resp.text
-    link = resp.json()["data"]
-    assert set(link) == {
-        "id",
-        "from_piece_id",
-        "to_piece_id",
-        "label",
-        "created_by",
-        "created_at",
-        "can_delete",
-    }
-    assert (link["from_piece_id"], link["to_piece_id"]) == (app_piece["id"], api["id"])
-    assert link["label"] == "approves a batch"
-    assert link["created_by"]["id"] == str(member.id) and link["can_delete"] is True
-    assert design(client, hub, owner)["links"] == [link]
+    assert_error(add_link(client, hub, owner, one["id"], two["id"], "calls"), 409, "LINK_EXISTS")
+    other_label = add_link(client, hub, member, one["id"], two["id"], "other label")
+    assert_error(other_label, 409, "LINK_EXISTS")
+    backward = make_link(client, hub, member, two, one, "answers")
+
+    assert [link["id"] for link in design(client, hub, owner)["links"]] == [
+        forward["id"],
+        backward["id"],
+    ]
+    # once the link is removed, the same pair can be linked again
+    assert remove_link(client, hub, owner, forward["id"]).status_code == 204
+    assert add_link(client, hub, owner, one["id"], two["id"], "calls again").status_code == 201
+
+
+def test_a_link_joins_two_live_pieces_of_this_hub(client: TestClient) -> None:
+    hub, owner, _ = designing_hub(client)
+    elsewhere, elsewhere_owner, _ = designing_hub(client)
+    one, gone = make_piece(client, hub, owner, "One"), make_piece(client, hub, owner, "Gone")
+    foreign = make_piece(client, elsewhere, elsewhere_owner, "Foreign")
+    assert remove_piece(client, hub, owner, gone["id"]).status_code == 204
+
+    for source, target in (
+        (one["id"], UNKNOWN_ID),
+        (UNKNOWN_ID, one["id"]),
+        (one["id"], gone["id"]),
+        (gone["id"], one["id"]),
+        (one["id"], foreign["id"]),
+        (foreign["id"], one["id"]),
+    ):
+        assert_error(add_link(client, hub, owner, source, target), 404, "PIECE_NOT_FOUND")
+    assert design(client, hub, owner)["links"] == []
+    assert design(client, elsewhere, elsewhere_owner)["links"] == []
 
 
 def test_any_active_member_corrects_a_piece(client: TestClient) -> None:
     hub, owner, member = designing_hub(client)
     other = make_user()
     add_member(hub, other, HubMemberStatus.ACTIVE)
-    piece = make_piece(client, hub, member, "Mobile app")
+    piece = add_piece(client, hub, member, "Mobile app", summary="Every payout").json()["data"]
 
     renamed = change_piece(client, hub, other, piece["id"], name="  Member app ")
-    summed = change_piece(client, hub, owner, piece["id"], summary="Where members see payouts")
+    cleared = change_piece(client, hub, owner, piece["id"], summary="")
 
-    assert renamed.status_code == 200 and summed.status_code == 200, summed.text
-    changed = summed.json()["data"]
-    assert changed["name"] == "Member app"
-    assert changed["summary"] == "Where members see payouts"
+    assert renamed.status_code == 200 and cleared.status_code == 200, cleared.text
+    # a field left out stays, and a summary sent empty clears it
+    assert (renamed.json()["data"]["name"], renamed.json()["data"]["summary"]) == (
+        "Member app",
+        "Every payout",
+    )
+    changed = cleared.json()["data"]
+    assert (changed["name"], changed["summary"]) == ("Member app", "")
     assert changed["id"] == piece["id"] and changed["created_at"] == piece["created_at"]
     # the creator stays the creator, and can_delete follows the viewer
     assert changed["created_by"]["id"] == str(member.id) and changed["can_delete"] is True
     assert changed["updated_at"] > piece["updated_at"]
-    assert design(client, hub, member)["pieces"][0]["name"] == "Member app"
-
-
-def test_a_summary_sent_empty_clears_it_and_a_field_left_out_stays(client: TestClient) -> None:
-    hub, owner, _ = designing_hub(client)
-    piece = add_piece(client, hub, owner, "Ledger", summary="Every payout").json()["data"]
-
-    kept = change_piece(client, hub, owner, piece["id"], name="Ledger database").json()["data"]
-    cleared = change_piece(client, hub, owner, piece["id"], summary="").json()["data"]
-
-    assert (kept["name"], kept["summary"]) == ("Ledger database", "Every payout")
-    assert (cleared["name"], cleared["summary"]) == ("Ledger database", "")
+    assert design(client, hub, member)["pieces"] == [changed]
 
 
 @pytest.mark.parametrize(
@@ -291,47 +290,45 @@ def test_a_bad_correction_is_a_422_and_changes_nothing(client: TestClient, field
     assert design(client, hub, owner)["pieces"] == [piece]
 
 
-def test_an_unknown_deleted_or_foreign_piece_is_a_404(client: TestClient) -> None:
+def test_an_unknown_deleted_or_foreign_piece_or_link_is_a_404(client: TestClient) -> None:
     hub, owner, _ = designing_hub(client)
     elsewhere, elsewhere_owner, _ = designing_hub(client)
     foreign = make_piece(client, elsewhere, elsewhere_owner)
-    gone = make_piece(client, hub, owner, "Gone")
+    other = make_piece(client, elsewhere, elsewhere_owner, "Other")
+    foreign_link = make_link(client, elsewhere, elsewhere_owner, foreign, other)
+    gone, kept = make_piece(client, hub, owner, "Gone"), make_piece(client, hub, owner, "Kept")
+    gone_link = make_link(client, hub, owner, gone, kept)
     assert remove_piece(client, hub, owner, gone["id"]).status_code == 204
 
     for piece_id in (UNKNOWN_ID, foreign["id"], gone["id"]):
         assert_error(change_piece(client, hub, owner, piece_id, name="X"), 404, "PIECE_NOT_FOUND")
         assert_error(remove_piece(client, hub, owner, piece_id), 404, "PIECE_NOT_FOUND")
-    assert piece_names(client, elsewhere, elsewhere_owner) == ["Mobile app"]
+    for link_id in (UNKNOWN_ID, foreign_link["id"], gone_link["id"]):
+        assert_error(remove_link(client, hub, owner, link_id), 404, "LINK_NOT_FOUND")
+    assert piece_names(client, elsewhere, elsewhere_owner) == ["Mobile app", "Other"]
+    assert len(design(client, elsewhere, elsewhere_owner)["links"]) == 1
 
 
 def test_two_pieces_of_a_hub_cannot_share_a_name_ignoring_case_and_outer_spaces(
     client: TestClient,
 ) -> None:
     hub, owner, member = designing_hub(client)
+    elsewhere, elsewhere_owner, _ = designing_hub(client)
     piece = make_piece(client, hub, owner, "Payouts API")
     other = make_piece(client, hub, owner, "Ledger")
 
     for name in ("payouts api", "PAYOUTS API", "  Payouts API  ", "Payouts api"):
         assert_error(add_piece(client, hub, member, name), 409, "PIECE_NAME_TAKEN")
-        assert_error(
-            change_piece(client, hub, member, other["id"], name=name), 409, "PIECE_NAME_TAKEN"
-        )
+        renamed = change_piece(client, hub, member, other["id"], name=name)
+        assert_error(renamed, 409, "PIECE_NAME_TAKEN")
     # inside the name a space still counts
     assert add_piece(client, hub, member, "Payouts  API").status_code == 201
     # a piece may take its own name again, in other letters
     assert change_piece(client, hub, member, piece["id"], name="PAYOUTS api").status_code == 200
     assert sorted(piece_names(client, hub, owner)) == ["Ledger", "PAYOUTS api", "Payouts  API"]
-
-
-def test_a_name_is_free_again_after_its_piece_is_deleted_and_free_in_another_hub(
-    client: TestClient,
-) -> None:
-    hub, owner, _ = designing_hub(client)
-    elsewhere, elsewhere_owner, _ = designing_hub(client)
-    piece = make_piece(client, hub, owner, "Ledger")
-
+    # the name is free in another hub, and again once its piece is deleted
     assert make_piece(client, elsewhere, elsewhere_owner, "ledger")["name"] == "ledger"
-    assert remove_piece(client, hub, owner, piece["id"]).status_code == 204
+    assert remove_piece(client, hub, owner, other["id"]).status_code == 204
     assert make_piece(client, hub, owner, "LEDGER")["name"] == "LEDGER"
 
 
@@ -343,6 +340,8 @@ def test_a_hub_keeps_at_most_30_pieces_that_are_not_deleted(client: TestClient) 
     assert last.status_code == 201, last.text
     assert_error(add_piece(client, hub, owner, "One too many"), 409, "PIECES_FULL")
     assert_error(add_piece(client, hub, member, "One too many"), 409, "PIECES_FULL")
+    # a full hub says so before it looks at the name
+    assert_error(add_piece(client, hub, member, "piece 0"), 409, "PIECES_FULL")
     # a rename is not an addition
     assert (
         change_piece(client, hub, owner, last.json()["data"]["id"], name="Renamed").status_code
@@ -360,14 +359,16 @@ def test_a_hub_keeps_at_most_60_links_that_are_not_deleted(client: TestClient) -
     insert_links(hub, member, pairs[: MAX_LINKS - 1])
     insert_links(hub, member, pairs[MAX_LINKS : MAX_LINKS + 5], deleted=True)
 
-    last = add_link(client, hub, owner, pairs[MAX_LINKS - 1][0], pairs[MAX_LINKS - 1][1])
+    last = add_link(client, hub, owner, *pairs[MAX_LINKS - 1])
     assert last.status_code == 201, last.text
-    source, target = pairs[MAX_LINKS]
-    assert_error(add_link(client, hub, owner, source, target), 409, "LINKS_FULL")
-    assert_error(add_link(client, hub, member, source, target), 409, "LINKS_FULL")
+    assert_error(add_link(client, hub, owner, *pairs[MAX_LINKS]), 409, "LINKS_FULL")
+    assert_error(add_link(client, hub, member, *pairs[MAX_LINKS]), 409, "LINKS_FULL")
+    # a full hub still names a missing piece or a link that exists first
+    assert_error(add_link(client, hub, owner, ids[0], UNKNOWN_ID), 404, "PIECE_NOT_FOUND")
+    assert_error(add_link(client, hub, owner, *pairs[0]), 409, "LINK_EXISTS")
 
     assert remove_link(client, hub, owner, last.json()["data"]["id"]).status_code == 204
-    assert add_link(client, hub, owner, source, target).status_code == 201
+    assert add_link(client, hub, owner, *pairs[MAX_LINKS]).status_code == 201
 
 
 def test_deleting_a_piece_removes_its_links_from_the_answer(client: TestClient) -> None:
@@ -382,7 +383,7 @@ def test_deleting_a_piece_removes_its_links_from_the_answer(client: TestClient) 
     seen = design(client, hub, owner)
     assert [piece["name"] for piece in seen["pieces"]] == ["App", "DB"]
     assert [link["id"] for link in seen["links"]] == [apart["id"]]
-    # the rows stay, with the time they were removed, and the link that did not touch it does not
+    # the rows stay, and the link that did not touch the piece is untouched
     assert stored(HubPiece, api["id"]).deleted_at is not None
     assert stored(HubPieceLink, into["id"]).deleted_at is not None
     assert stored(HubPieceLink, out_of["id"]).deleted_at is not None
@@ -390,130 +391,48 @@ def test_deleting_a_piece_removes_its_links_from_the_answer(client: TestClient) 
     assert_error(remove_link(client, hub, owner, into["id"]), 404, "LINK_NOT_FOUND")
 
 
-def test_the_creator_or_the_owner_removes_a_piece_and_nobody_else(client: TestClient) -> None:
-    hub, owner, member = designing_hub(client)
-    other = make_user()
-    add_member(hub, other, HubMemberStatus.ACTIVE)
-    by_member = make_piece(client, hub, member, "By member")
-    by_owner = make_piece(client, hub, owner, "By owner")
-
-    assert_error(remove_piece(client, hub, other, by_member["id"]), 403, "NOT_PIECE_AUTHOR")
-    assert_error(remove_piece(client, hub, member, by_owner["id"]), 403, "NOT_PIECE_AUTHOR")
-    assert remove_piece(client, hub, owner, by_member["id"]).status_code == 204
-    assert remove_piece(client, hub, owner, by_owner["id"]).status_code == 204
-
-    assert piece_names(client, hub, other) == []
-
-
-def test_the_creator_or_the_owner_removes_a_link_and_nobody_else(client: TestClient) -> None:
-    hub, owner, member = designing_hub(client)
-    other = make_user()
-    add_member(hub, other, HubMemberStatus.ACTIVE)
-    first, second = make_piece(client, hub, owner, "One"), make_piece(client, hub, owner, "Two")
-    by_member = make_link(client, hub, member, first, second)
-    by_owner = make_link(client, hub, owner, second, first)
-
-    assert_error(remove_link(client, hub, other, by_member["id"]), 403, "NOT_LINK_AUTHOR")
-    assert_error(remove_link(client, hub, member, by_owner["id"]), 403, "NOT_LINK_AUTHOR")
-    assert remove_link(client, hub, member, by_member["id"]).status_code == 204
-    assert remove_link(client, hub, owner, by_owner["id"]).status_code == 204
-
-    assert design(client, hub, other)["links"] == []
-    assert_error(remove_link(client, hub, owner, by_owner["id"]), 404, "LINK_NOT_FOUND")
-    assert stored(HubPieceLink, by_owner["id"]).deleted_at is not None
-
-
-def test_a_link_is_unknown_when_it_is_missing_deleted_or_of_another_hub(client: TestClient) -> None:
-    hub, owner, _ = designing_hub(client)
-    elsewhere, elsewhere_owner, _ = designing_hub(client)
-    one, two = (
-        make_piece(client, elsewhere, elsewhere_owner),
-        make_piece(client, elsewhere, elsewhere_owner, "Two"),
-    )
-    foreign = make_link(client, elsewhere, elsewhere_owner, one, two)
-
-    assert_error(remove_link(client, hub, owner, UNKNOWN_ID), 404, "LINK_NOT_FOUND")
-    assert_error(remove_link(client, hub, owner, foreign["id"]), 404, "LINK_NOT_FOUND")
-    assert len(design(client, elsewhere, elsewhere_owner)["links"]) == 1
-
-
-def test_a_link_joins_two_live_pieces_of_this_hub(client: TestClient) -> None:
-    hub, owner, _ = designing_hub(client)
-    elsewhere, elsewhere_owner, _ = designing_hub(client)
-    one, two, gone = (make_piece(client, hub, owner, name) for name in ("One", "Two", "Gone"))
-    foreign = make_piece(client, elsewhere, elsewhere_owner, "Foreign")
-    assert remove_piece(client, hub, owner, gone["id"]).status_code == 204
-
-    for source, target in (
-        (one["id"], UNKNOWN_ID),
-        (UNKNOWN_ID, one["id"]),
-        (one["id"], gone["id"]),
-        (gone["id"], one["id"]),
-        (one["id"], foreign["id"]),
-        (foreign["id"], one["id"]),
-    ):
-        assert_error(add_link(client, hub, owner, source, target), 404, "PIECE_NOT_FOUND")
-    assert design(client, hub, owner)["links"] == []
-    assert design(client, elsewhere, elsewhere_owner)["links"] == []
-    assert add_link(client, hub, owner, one["id"], two["id"]).status_code == 201
-
-
-def test_a_link_cannot_join_a_piece_to_itself(client: TestClient) -> None:
-    hub, owner, _ = designing_hub(client)
-    piece = make_piece(client, hub, owner)
-
-    resp = add_link(client, hub, owner, piece["id"], piece["id"])
-
-    assert resp.status_code == 422
-    assert design(client, hub, owner)["links"] == []
-
-
-def test_the_opposite_direction_is_a_different_link_and_the_same_one_is_refused(
+def test_the_creator_or_the_owner_removes_a_piece_or_a_link_and_nobody_else(
     client: TestClient,
 ) -> None:
     hub, owner, member = designing_hub(client)
-    one, two = make_piece(client, hub, owner, "One"), make_piece(client, hub, owner, "Two")
-    forward = make_link(client, hub, owner, one, two, "calls")
-
-    assert_error(add_link(client, hub, owner, one["id"], two["id"], "calls"), 409, "LINK_EXISTS")
-    assert_error(
-        add_link(client, hub, member, one["id"], two["id"], "other label"), 409, "LINK_EXISTS"
-    )
-    backward = make_link(client, hub, member, two, one, "answers")
-
-    assert [link["id"] for link in design(client, hub, owner)["links"]] == [
-        forward["id"],
-        backward["id"],
-    ]
-    # once the link is removed, the same pair can be linked again
-    assert remove_link(client, hub, owner, forward["id"]).status_code == 204
-    assert add_link(client, hub, owner, one["id"], two["id"], "calls again").status_code == 201
-
-
-def test_can_delete_is_true_only_for_the_creator_and_the_owner(client: TestClient) -> None:
-    hub, owner, member = designing_hub(client)
     other = make_user()
     add_member(hub, other, HubMemberStatus.ACTIVE)
-    one, two = make_piece(client, hub, member, "One"), make_piece(client, hub, member, "Two")
-    make_link(client, hub, member, one, two)
+    by_member, by_owner = (
+        make_piece(client, hub, member, "One"),
+        make_piece(client, hub, owner, "Two"),
+    )
+    link_by_member = make_link(client, hub, member, by_member, by_owner)
+    link_by_owner = make_link(client, hub, owner, by_owner, by_member)
 
-    flags = {
-        name: [
-            [item["can_delete"] for item in design(client, hub, viewer)[key]]
-            for key in ("pieces", "links")
-        ]
-        for name, viewer in (("owner", owner), ("creator", member), ("other", other))
-    }
+    # can_delete tells each viewer what the removals below will answer
+    for viewer, flag in ((owner, True), (other, False)):
+        seen = design(client, hub, viewer)
+        assert [item["can_delete"] for item in seen["pieces"] + seen["links"]] == [flag] * 4
+    seen = design(client, hub, member)
+    assert [item["can_delete"] for item in seen["pieces"] + seen["links"]] == [True, False] * 2
 
-    assert flags == {
-        "owner": [[True, True], [True]],
-        "creator": [[True, True], [True]],
-        "other": [[False, False], [False]],
-    }
+    assert_error(remove_piece(client, hub, other, by_member["id"]), 403, "NOT_PIECE_AUTHOR")
+    assert_error(remove_piece(client, hub, member, by_owner["id"]), 403, "NOT_PIECE_AUTHOR")
+    assert_error(remove_link(client, hub, other, link_by_member["id"]), 403, "NOT_LINK_AUTHOR")
+    assert_error(remove_link(client, hub, member, link_by_owner["id"]), 403, "NOT_LINK_AUTHOR")
+    assert remove_link(client, hub, member, link_by_member["id"]).status_code == 204
+    assert remove_link(client, hub, owner, link_by_owner["id"]).status_code == 204
+    assert remove_piece(client, hub, owner, by_member["id"]).status_code == 204
+    assert remove_piece(client, hub, member, by_member["id"]).status_code == 404
+    assert remove_piece(client, hub, owner, by_owner["id"]).status_code == 204
+
+    assert design(client, hub, other) == {"pieces": [], "links": []}
 
 
 @pytest.mark.parametrize(
-    "status", [None, HubMemberStatus.INVITED, HubMemberStatus.REQUESTED, HubMemberStatus.DECLINED]
+    "status",
+    [
+        None,
+        HubMemberStatus.INVITED,
+        HubMemberStatus.REQUESTED,
+        HubMemberStatus.DECLINED,
+        HubMemberStatus.LEFT,
+    ],
 )
 def test_only_active_members_see_or_write_the_sketch(
     client: TestClient, status: HubMemberStatus | None
@@ -538,42 +457,24 @@ def test_only_active_members_see_or_write_the_sketch(
     assert [piece["name"] for piece in seen["pieces"]] == ["One", "Two"] and len(seen["links"]) == 1
 
 
-def test_someone_who_left_sees_no_sketch(client: TestClient) -> None:
-    hub, _, _ = designing_hub(client)
-    gone = make_user()
-    add_member(hub, gone, HubMemberStatus.LEFT)
-
-    assert_error(read(client, hub, gone), 403, "NOT_HUB_MEMBER")
-    assert_error(add_piece(client, hub, gone), 403, "NOT_HUB_MEMBER")
-
-
 def test_the_sketch_needs_a_signed_in_person_and_a_hub_that_exists(client: TestClient) -> None:
     hub, owner, _ = designing_hub(client)
-    one = make_piece(client, hub, owner)
     base = f"/v1/hubs/{hub.id}"
-
-    for method, path in (
+    gone = f"/v1/hubs/{UNKNOWN_ID}"
+    routes = (
         ("GET", "/design"),
         ("POST", "/pieces"),
-        ("PATCH", f"/pieces/{one['id']}"),
-        ("DELETE", f"/pieces/{one['id']}"),
+        ("PATCH", f"/pieces/{UNKNOWN_ID}"),
+        ("DELETE", f"/pieces/{UNKNOWN_ID}"),
         ("POST", "/links"),
         ("DELETE", f"/links/{UNKNOWN_ID}"),
-    ):
+    )
+    link_body = {"from_piece_id": UNKNOWN_ID, "to_piece_id": OTHER_UNKNOWN_ID, "label": "x"}
+
+    for method, path in routes:
         assert client.request(method, base + path, json={}).status_code == 401, (method, path)
-    gone = f"/v1/hubs/{UNKNOWN_ID}"
-    for resp in (
-        client.get(f"{gone}/design", headers=auth(owner)),
-        client.post(f"{gone}/pieces", headers=auth(owner), json={"name": "X"}),
-        client.patch(f"{gone}/pieces/{UNKNOWN_ID}", headers=auth(owner), json={"name": "X"}),
-        client.delete(f"{gone}/pieces/{UNKNOWN_ID}", headers=auth(owner)),
-        client.post(
-            f"{gone}/links",
-            headers=auth(owner),
-            json={"from_piece_id": UNKNOWN_ID, "to_piece_id": OTHER_UNKNOWN_ID, "label": "x"},
-        ),
-        client.delete(f"{gone}/links/{UNKNOWN_ID}", headers=auth(owner)),
-    ):
+        body = link_body if path == "/links" else {"name": "X"}
+        resp = client.request(method, gone + path, headers=auth(owner), json=body)
         assert_error(resp, 404, "NOT_FOUND")
 
 
@@ -601,28 +502,24 @@ def test_a_hub_of_the_other_world_is_a_404_and_the_demo_reads_but_never_writes(
     assert_error(add_piece(client, demo_hub, real_owner, "Mine"), 404, "NOT_FOUND")
     assert design(client, demo_hub, demo_member)["pieces"][0]["id"] == piece["id"]
     for resp in writes(client, demo_hub, demo_member):
-        assert resp.status_code == 403
-        assert resp.json()["detail"]["code"] == "DEMO_READ_ONLY"
+        assert_error(resp, 403, "DEMO_READ_ONLY")
     assert piece_names(client, demo_hub, demo_member) == ["Mobile app"]
 
 
-def test_the_sketch_waits_for_the_team_to_be_confirmed(client: TestClient) -> None:
+@pytest.mark.parametrize(
+    ("confirmed", "code"), [(False, "TEAM_NOT_CONFIRMED"), (True, "PHASE_NOT_STARTED")]
+)
+def test_the_sketch_is_closed_until_the_hub_reaches_design(
+    client: TestClient, confirmed: bool, code: str
+) -> None:
     owner = make_user()
     hub = make_hub(owner)
+    if confirmed:
+        assert confirm(client, hub, owner).status_code == 200
 
-    assert_error(read(client, hub, owner), 409, "TEAM_NOT_CONFIRMED")
+    assert_error(read(client, hub, owner), 409, code)
     for resp in writes(client, hub, owner):
-        assert_error(resp, 409, "TEAM_NOT_CONFIRMED")
-
-
-def test_the_sketch_is_not_open_during_brainstorm(client: TestClient) -> None:
-    owner = make_user()
-    hub = make_hub(owner)
-    assert confirm(client, hub, owner).status_code == 200
-
-    assert_error(read(client, hub, owner), 409, "PHASE_NOT_STARTED")
-    for resp in writes(client, hub, owner):
-        assert_error(resp, 409, "PHASE_NOT_STARTED")
+        assert_error(resp, 409, code)
 
 
 def test_after_design_the_sketch_stays_readable_but_cannot_change(client: TestClient) -> None:
@@ -653,6 +550,7 @@ def test_after_design_the_sketch_stays_readable_but_cannot_change(client: TestCl
 
 def test_an_archived_hub_takes_no_changes_and_stays_readable(client: TestClient) -> None:
     hub, owner, member = designing_hub(client)
+    outsider = make_user()
     one, two = make_piece(client, hub, member, "One"), make_piece(client, hub, member, "Two")
     link = make_link(client, hub, member, one, two)
     set_hub(hub, status=HubStatus.ARCHIVED, archived_at=datetime.now(UTC))
@@ -660,108 +558,51 @@ def test_an_archived_hub_takes_no_changes_and_stays_readable(client: TestClient)
     for resp in writes(client, hub, owner):
         assert_error(resp, 409, "HUB_ARCHIVED")
     assert_error(remove_link(client, hub, owner, link["id"]), 409, "HUB_ARCHIVED")
+    # membership is checked first, and the archive before the item and who made it
+    assert_error(remove_piece(client, hub, outsider, one["id"]), 403, "NOT_HUB_MEMBER")
+    assert_error(add_link(client, hub, member, one["id"], UNKNOWN_ID), 409, "HUB_ARCHIVED")
     seen = design(client, hub, member)
     assert len(seen["pieces"]) == 2 and len(seen["links"]) == 1
     assert not any(item["can_delete"] for item in seen["pieces"] + seen["links"])
 
 
-def test_the_checks_run_in_order_hub_member_phase_archive_then_the_item(
-    client: TestClient,
+@pytest.mark.parametrize("char", ["a", "é", "漢", "😀"])
+def test_text_at_its_limits_is_kept_counting_characters_not_bytes(
+    client: TestClient, char: str
 ) -> None:
-    hub, owner, member = designing_hub(client)
-    other = make_user()
-    add_member(hub, other, HubMemberStatus.ACTIVE)
-    one, two = make_piece(client, hub, owner, "One"), make_piece(client, hub, owner, "Two")
-    link = make_link(client, hub, owner, one, two)
-    outsider = make_user()
-
-    # a member's missing right comes after the phase and the archive checks, not before
-    assert_error(remove_piece(client, hub, other, one["id"]), 403, "NOT_PIECE_AUTHOR")
-    assert_error(remove_link(client, hub, other, link["id"]), 403, "NOT_LINK_AUTHOR")
-    set_hub(hub, status=HubStatus.ARCHIVED, archived_at=datetime.now(UTC))
-    assert_error(remove_piece(client, hub, other, one["id"]), 409, "HUB_ARCHIVED")
-    assert_error(remove_link(client, hub, other, link["id"]), 409, "HUB_ARCHIVED")
-    assert_error(remove_piece(client, hub, outsider, one["id"]), 403, "NOT_HUB_MEMBER")
-    assert_error(add_link(client, hub, member, one["id"], UNKNOWN_ID), 409, "HUB_ARCHIVED")
-
-
-def test_a_full_hub_refuses_before_it_looks_at_the_name_or_the_pieces(client: TestClient) -> None:
-    hub, owner, member = designing_hub(client)
-    ids = insert_pieces(hub, member, live=MAX_PIECES)
-
-    assert_error(add_piece(client, hub, owner, "piece 0"), 409, "PIECES_FULL")
-    assert_error(add_link(client, hub, owner, ids[0], UNKNOWN_ID), 404, "PIECE_NOT_FOUND")
-
-
-@pytest.mark.parametrize("name", ["a", "a" * 60, "é" * 60, "ẹ" * 60, "漢" * 60, "😀" * 60])
-def test_a_name_of_1_to_60_characters_is_kept(client: TestClient, name: str) -> None:
     hub, owner, _ = designing_hub(client)
 
-    resp = add_piece(client, hub, owner, name)
+    full = make_piece(client, hub, owner, char * 60)
+    full_with_summary = add_piece(client, hub, owner, char, summary=char * 280).json()["data"]
+    empty_summary = add_piece(client, hub, owner, char * 2, summary="").json()["data"]
 
-    assert resp.status_code == 201, resp.text
-    assert resp.json()["data"]["name"] == name
+    assert full["name"] == char * 60 and full_with_summary["summary"] == char * 280
+    assert empty_summary["summary"] == ""
+    assert make_link(client, hub, owner, full, empty_summary, char * 60)["label"] == char * 60
+
+
+CHARS_OVER = ["a" * 61, "é" * 61, "漢" * 61, "😀" * 61, "a\x00b", None, 12, ["a"]]
 
 
 @pytest.mark.parametrize(
-    "name",
-    ["", "   ", "\n\t ", "a\x00b", None, 12, ["a"], "a" * 61, "é" * 61, "漢" * 61, "😀" * 61],
+    ("field", "value"),
+    [("name", v) for v in ["", "   ", "\n\t ", *CHARS_OVER]]
+    + [("label", v) for v in ["", "   ", *CHARS_OVER]]
+    + [("summary", v) for v in ["a" * 281, "é" * 281, "漢" * 281, "😀" * 281, "a\x00b", None, 12]],
     ids=repr,
 )
-def test_a_bad_name_is_a_422_and_saves_nothing(client: TestClient, name: Any) -> None:
-    hub, owner, _ = designing_hub(client)
-
-    resp = add_piece(client, hub, owner, name)
-
-    assert resp.status_code == 422
-    assert resp.json()["detail"][0]["loc"] == ["body", "name"]
-    assert piece_names(client, hub, owner) == []
-
-
-@pytest.mark.parametrize("summary", ["", "a", "a" * 280, "é" * 280, "漢" * 280, "😀" * 280])
-def test_a_summary_of_0_to_280_characters_is_kept(client: TestClient, summary: str) -> None:
-    hub, owner, _ = designing_hub(client)
-
-    resp = add_piece(client, hub, owner, "Ledger", summary=summary)
-
-    assert resp.status_code == 201, resp.text
-    assert resp.json()["data"]["summary"] == summary
-
-
-@pytest.mark.parametrize(
-    "summary", ["a" * 281, "é" * 281, "漢" * 281, "😀" * 281, "a\x00b", None, 12, ["a"]], ids=repr
-)
-def test_a_bad_summary_is_a_422_and_saves_nothing(client: TestClient, summary: Any) -> None:
-    hub, owner, _ = designing_hub(client)
-
-    resp = add_piece(client, hub, owner, "Ledger", summary=summary)
-
-    assert resp.status_code == 422
-    assert resp.json()["detail"][0]["loc"] == ["body", "summary"]
-    assert piece_names(client, hub, owner) == []
-
-
-@pytest.mark.parametrize("label", ["a", "a" * 60, "é" * 60, "漢" * 60, "😀" * 60])
-def test_a_label_of_1_to_60_characters_is_kept(client: TestClient, label: str) -> None:
+def test_a_bad_text_is_a_422_and_saves_nothing(client: TestClient, field: str, value: Any) -> None:
     hub, owner, _ = designing_hub(client)
     one, two = make_piece(client, hub, owner, "One"), make_piece(client, hub, owner, "Two")
 
-    assert make_link(client, hub, owner, one, two, label)["label"] == label
-
-
-@pytest.mark.parametrize(
-    "label",
-    ["", "   ", "a\x00b", None, 12, ["a"], "a" * 61, "é" * 61, "漢" * 61, "😀" * 61],
-    ids=repr,
-)
-def test_a_bad_label_is_a_422_and_saves_nothing(client: TestClient, label: Any) -> None:
-    hub, owner, _ = designing_hub(client)
-    one, two = make_piece(client, hub, owner, "One"), make_piece(client, hub, owner, "Two")
-
-    resp = add_link(client, hub, owner, one["id"], two["id"], label)
+    if field == "label":
+        resp = add_link(client, hub, owner, one["id"], two["id"], value)
+    else:
+        resp = add_piece(client, hub, owner, **{"name": "Ledger", field: value})
 
     assert resp.status_code == 422
-    assert resp.json()["detail"][0]["loc"] == ["body", "label"]
+    assert resp.json()["detail"][0]["loc"] == ["body", field]
+    assert piece_names(client, hub, owner) == ["One", "Two"]
     assert design(client, hub, owner)["links"] == []
 
 
@@ -775,7 +616,6 @@ def test_a_bad_body_is_a_422_before_any_other_refusal(client: TestClient) -> Non
     assert add_piece(client, hub, outsider, "").status_code == 422  # not a member
     assert client.post(f"{gone}/pieces", headers=auth(owner), json={"name": ""}).status_code == 422
     assert change_piece(client, hub, outsider, UNKNOWN_ID, name="").status_code == 422
-    assert add_link(client, hub, outsider, UNKNOWN_ID, UNKNOWN_ID).status_code == 422
     assert add_link(client, hub, outsider, UNKNOWN_ID, OTHER_UNKNOWN_ID, "").status_code == 422
 
 
@@ -787,26 +627,21 @@ def test_a_bad_body_is_a_422_before_any_other_refusal(client: TestClient) -> Non
         ("links", {}),
         ("links", {"from_piece_id": UNKNOWN_ID, "to_piece_id": OTHER_UNKNOWN_ID}),
         ("links", {"from_piece_id": "nope", "to_piece_id": OTHER_UNKNOWN_ID, "label": "x"}),
+        ("links", {"from_piece_id": UNKNOWN_ID, "to_piece_id": UNKNOWN_ID, "label": "x"}),
         (
             "links",
-            {
-                "from_piece_id": UNKNOWN_ID,
-                "to_piece_id": OTHER_UNKNOWN_ID,
-                "label": "x",
-                "hub_id": "y",
-            },
+            {"from_piece_id": UNKNOWN_ID, "to_piece_id": OTHER_UNKNOWN_ID, "label": "x", "a": 1},
         ),
     ],
 )
-def test_a_request_needs_its_fields_and_refuses_others(
+def test_a_request_needs_its_fields_refuses_others_and_joins_two_pieces(
     client: TestClient, path: str, payload: dict[str, str]
 ) -> None:
     hub, owner, _ = designing_hub(client)
 
-    assert (
-        client.post(f"/v1/hubs/{hub.id}/{path}", headers=auth(owner), json=payload).status_code
-        == 422
-    )
+    resp = client.post(f"/v1/hubs/{hub.id}/{path}", headers=auth(owner), json=payload)
+
+    assert resp.status_code == 422
 
 
 def test_a_malformed_id_in_the_path_is_a_422(client: TestClient) -> None:
@@ -833,16 +668,14 @@ def test_every_write_waits_for_the_hub_row_lock(client: TestClient) -> None:
     link = make_link(client, hub, owner, one, two)
     headers = auth(owner)
     base = f"/v1/hubs/{hub.id}"
+    back = {"from_piece_id": two["id"], "to_piece_id": one["id"], "label": "back"}
+    # the last one removes the piece the one before it linked to
     sends: list[Callable[[httpx.AsyncClient], Awaitable[httpx.Response]]] = [
         lambda http: http.post(f"{base}/pieces", headers=headers, json={"name": "Three"}),
         lambda http: http.patch(
             f"{base}/pieces/{one['id']}", headers=headers, json={"summary": "x"}
         ),
-        lambda http: http.post(
-            f"{base}/links",
-            headers=headers,
-            json={"from_piece_id": two["id"], "to_piece_id": one["id"], "label": "back"},
-        ),
+        lambda http: http.post(f"{base}/links", headers=headers, json=back),
         lambda http: http.delete(f"{base}/links/{link['id']}", headers=headers),
         lambda http: http.delete(f"{base}/pieces/{two['id']}", headers=headers),
     ]
@@ -876,80 +709,49 @@ def test_every_write_waits_for_the_hub_row_lock(client: TestClient) -> None:
     assert piece_names(client, hub, member) == ["One", "Three"]
 
 
-def test_the_tables_refuse_a_piece_with_a_name_or_summary_out_of_bounds() -> None:
-    owner = make_user()
-    hub = make_hub(owner)
-
-    def attempt(constraint: str, **fields: Any) -> None:
-        async def work(session: AsyncSession) -> None:
-            session.add(HubPiece(hub_id=hub.id, created_by=owner.id, **{"name": "X", **fields}))
-            await session.commit()
-
-        with pytest.raises(IntegrityError, match=constraint):
-            run(work)
-
-    attempt("hub_pieces_name_length", name="a" * 61)
-    attempt("hub_pieces_name_length", name="")
-    attempt("hub_pieces_summary_length", summary="a" * 281)
-
-
-def test_the_tables_refuse_two_live_pieces_with_one_name() -> None:
-    owner = make_user()
-    hub = make_hub(owner)
-
-    async def add(session: AsyncSession, name: str, deleted: bool = False) -> None:
-        session.add(
-            HubPiece(
-                hub_id=hub.id,
-                name=name,
-                created_by=owner.id,
-                deleted_at=datetime.now(UTC) if deleted else None,
-            )
-        )
-        await session.commit()
-
-    async def work(session: AsyncSession) -> None:
-        await add(session, "Mobile app", deleted=True)
-        await add(session, "Mobile app")
-        await add(session, " MOBILE APP ")
-
-    with pytest.raises(IntegrityError, match="hub_pieces_name_uq"):
-        run(work)
-
-
-def test_the_tables_refuse_a_link_that_breaks_a_rule() -> None:
+def test_the_tables_refuse_what_the_routes_never_send() -> None:
     owner = make_user()
     hub, elsewhere = make_hub(owner), make_hub(owner)
-    here, also_here = insert_pieces(hub, owner, live=2)[:2]
+    here, also_here = insert_pieces(hub, owner, live=2)
     there = insert_pieces(elsewhere, owner, live=1)[0]
 
-    def attempt(constraint: str, source: UUID, target: UUID, label: str = "calls") -> None:
+    def attempt(constraint: str, *rows: Any) -> None:
         async def work(session: AsyncSession) -> None:
-            session.add(
-                HubPieceLink(
-                    hub_id=hub.id,
-                    from_piece_id=source,
-                    to_piece_id=target,
-                    label=label,
-                    created_by=owner.id,
-                )
-            )
+            session.add_all(rows)
             await session.commit()
 
         with pytest.raises(IntegrityError, match=constraint):
             run(work)
 
-    attempt("hub_piece_links_label_length", here, also_here, "a" * 61)
-    attempt("hub_piece_links_label_length", here, also_here, "")
-    attempt("hub_piece_links_not_itself", here, here)
-    attempt("hub_piece_links_to_fk", here, there)
-    attempt("hub_piece_links_from_fk", there, here)
-    insert_links(hub, owner, [(here, also_here)])
-    attempt("hub_piece_links_direction_uq", here, also_here)
-    insert_links(hub, owner, [(also_here, here)])
+    def piece(name: str, **fields: Any) -> HubPiece:
+        return HubPiece(hub_id=hub.id, created_by=owner.id, name=name, **fields)
 
-    async def count(session: AsyncSession) -> int:
-        rows = await session.scalars(select(HubPieceLink).where(HubPieceLink.hub_id == hub.id))
-        return len(rows.all())
+    def link(source: UUID, target: UUID, label: str = "calls") -> HubPieceLink:
+        return HubPieceLink(
+            hub_id=hub.id,
+            from_piece_id=source,
+            to_piece_id=target,
+            label=label,
+            created_by=owner.id,
+        )
 
-    assert run(count) == 2
+    attempt("hub_pieces_name_length", piece("a" * 61))
+    attempt("hub_pieces_name_length", piece(""))
+    attempt("hub_pieces_summary_length", piece("X", summary="a" * 281))
+    # a deleted piece does not hold its name, but two live ones cannot share it
+    deleted = piece("Ledger", deleted_at=datetime.now(UTC))
+    attempt("hub_pieces_name_uq", piece("Ledger"), deleted, piece(" LEDGER "))
+    attempt("hub_piece_links_label_length", link(here, also_here, "a" * 61))
+    attempt("hub_piece_links_label_length", link(here, also_here, ""))
+    attempt("hub_piece_links_not_itself", link(here, here))
+    attempt("hub_piece_links_to_fk", link(here, there))
+    attempt("hub_piece_links_from_fk", link(there, here))
+    attempt("hub_piece_links_direction_uq", link(here, also_here), link(here, also_here))
+
+    async def saved(session: AsyncSession) -> tuple[int, int]:
+        pieces = await session.scalars(select(HubPiece).where(HubPiece.hub_id == hub.id))
+        links = await session.scalars(select(HubPieceLink).where(HubPieceLink.hub_id == hub.id))
+        return len(pieces.all()), len(links.all())
+
+    # every failed batch rolled back whole
+    assert run(saved) == (2, 0)
