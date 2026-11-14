@@ -29,7 +29,7 @@ const full = {
   codebase_analysis: {
     score: 76,
     summary: "Two small services.",
-    criteria: [
+    criterion_assessments: [
       { criterion: "error_handling", score: 20, rationale: "Clear boundaries.", evidence: ["app/ledger.py", "app/routes.py"] },
     ],
   },
