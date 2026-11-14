@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 
 import { SignedOutError, apiFetch } from "../session/session";
+import { ALPHA2 } from "./options";
 import type { Answers } from "./steps";
 
 const send = (method: string, path: string, body: unknown) =>
   apiFetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 // Saves the main role, then the stack, then the technologies the feed should show, then the
-// sectors. Each call is safe to send again, which is what makes "Try again" safe: a role the
-// developer already has is only made the main one. The country has nowhere to go yet. Throws
-// when any call fails. Only call it with a role.
+// sectors, then the country if one was chosen. Each call is safe to send again, which is what
+// makes "Try again" safe: a role the developer already has is only made the main one, and the
+// same country is set again. A skipped country sends nothing, so it never clears one already
+// on the profile. Throws when any call fails. Only call it with a role.
 export async function saveAnswers(answers: Answers): Promise<void> {
   const claimed = await send("POST", "/v1/me/roles", { role: answers.role, is_primary: true });
   if (claimed.status === 409 && (await claimed.json().catch(() => null))?.detail?.code === "ROLE_ALREADY_CLAIMED") {
@@ -26,6 +28,11 @@ export async function saveAnswers(answers: Answers): Promise<void> {
   // the answers call them topics, from before the API had a name for them
   const sectors = await send("PUT", "/v1/me/sectors", { sectors: answers.topics });
   if (!sectors.ok) throw new Error(`PUT /v1/me/sectors answered ${sectors.status}`);
+  if (answers.country) {
+    // the answer is kept under the three-letter code, the API wants two letters
+    const country = await send("PATCH", "/v1/me", { country_code: ALPHA2[answers.country] });
+    if (!country.ok) throw new Error(`PATCH /v1/me answered ${country.status}`);
+  }
 }
 
 // Saves started together share one run. React mounts twice in development, and two stack
