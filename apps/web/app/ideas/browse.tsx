@@ -9,7 +9,6 @@ import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { Check, Lightbulb, Users } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
-import { ROLES, TECHNOLOGIES, TOPICS } from "../onboarding/options";
 import { useMe, type Me } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
@@ -19,15 +18,9 @@ import { loadOpenIdeas, type PublicIdea } from "./ideas-api";
 import styles from "./ideas.module.css";
 import { IdeasTabs } from "./ideas-tabs";
 import { IdeasSkeleton } from "./my-ideas";
+import { roleName, sectorName, technologyName } from "./names";
 
-export const roleName = (lang: Lang, role: { slug: string; name: string }) =>
-  ROLES.find((known) => known.slug === role.slug)?.name[lang] ?? role.name;
-
-export const technologyName = (lang: Lang, tech: { slug: string; name: string }) =>
-  TECHNOLOGIES.find((known) => known.slug === tech.slug)?.name[lang] ?? tech.name;
-
-export const sectorName = (lang: Lang, sector: { slug: string; name: string }) =>
-  TOPICS.find((known) => known.slug === sector.slug)?.name[lang] ?? sector.name;
+export { roleName, sectorName, technologyName };
 
 // GitHub accounts without a name get the username as their name: show it once.
 export const authorName = (author: PublicIdea["author"]) =>

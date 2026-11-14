@@ -8,7 +8,7 @@ from sqlalchemy import delete, func, select, text, update
 from app import config, database
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.demo_seed import FOR_YOU_IDEAS, OWN_HUB, PEOPLE, main, seed
-from app.models import Hub, HubNote, HubPhaseMove, Idea, User
+from app.models import Hub, HubNote, HubPhaseMove, HubPiece, HubPieceLink, Idea, User
 from tests.conftest import test_async_session as db_session
 
 
@@ -250,6 +250,66 @@ def test_a_rerun_adds_the_notes_only_when_the_hub_has_none(
     assert _hub_notes(client, visitor) == []
     _seed()
     assert [note["body"] for note in _hub_notes(client, visitor)] == [n["body"] for n in notes]
+
+
+def _hub_design(client: TestClient, visitor: dict) -> dict:
+    resp = client.get(f"/v1/hubs/{_own_hub(client, visitor)['id']}/design", headers=visitor)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]
+
+
+def test_the_demo_hub_has_a_design_sketch_the_visitor_can_read_but_not_change(
+    client: TestClient, visitor: dict
+) -> None:
+    hub_id = _own_hub(client, visitor)["id"]
+    sketch = _hub_design(client, visitor)
+    pieces, links = sketch["pieces"], sketch["links"]
+
+    assert len(pieces) == 5 and len(links) == 6
+    members = client.get(f"/v1/hubs/{hub_id}/members", headers=visitor).json()["data"]
+    active = {m["user"]["id"] for m in members if m["status"] == "active"}
+    assert {item["created_by"]["id"] for item in pieces + links} == active
+    ends = {piece["id"] for piece in pieces}
+    assert all({link["from_piece_id"], link["to_piece_id"]} <= ends for link in links)
+    assert all(link["label"] for link in links)
+    now = datetime.now(UTC)
+    for items in (pieces, links):
+        times = [datetime.fromisoformat(item["created_at"]) for item in items]
+        assert times == sorted(times)
+        assert all(now - timedelta(days=6) < moment < now - timedelta(days=3) for moment in times)
+    assert all(item["can_delete"] is False for item in pieces + links)  # the hub is in build
+
+    for resp in (
+        client.post(f"/v1/hubs/{hub_id}/pieces", headers=visitor, json={"name": "Hello"}),
+        client.delete(f"/v1/hubs/{hub_id}/pieces/{pieces[0]['id']}", headers=visitor),
+        client.delete(f"/v1/hubs/{hub_id}/links/{links[0]['id']}", headers=visitor),
+    ):
+        assert resp.status_code == 403
+        assert resp.json()["detail"]["code"] == "DEMO_READ_ONLY"
+    assert _hub_design(client, visitor) == sketch
+
+
+def test_a_rerun_adds_the_sketch_only_when_the_hub_has_no_pieces(
+    client: TestClient, visitor: dict
+) -> None:
+    sketch = _hub_design(client, visitor)
+
+    _seed()
+    assert _hub_design(client, visitor) == sketch
+
+    async def clear() -> None:
+        async with db_session() as session:
+            hub_id = _own_hub(client, visitor)["id"]
+            await session.execute(delete(HubPieceLink).where(HubPieceLink.hub_id == hub_id))
+            await session.execute(delete(HubPiece).where(HubPiece.hub_id == hub_id))
+            await session.commit()
+
+    asyncio.run(clear())
+    assert _hub_design(client, visitor) == {"pieces": [], "links": []}
+    _seed()
+    again = _hub_design(client, visitor)
+    assert [piece["name"] for piece in again["pieces"]] == [p["name"] for p in sketch["pieces"]]
+    assert [link["label"] for link in again["links"]] == [k["label"] for k in sketch["links"]]
 
 
 def _my_open_idea(client: TestClient, visitor: dict) -> str:

@@ -178,8 +178,7 @@
   font: var(--type-caption);
 }
 
-.roles,
-.chips {
+.roles {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -364,13 +363,11 @@
   font: var(--type-label);
 }
 
-.place,
-.shared {
+.place {
   color: var(--text-muted);
   font: var(--type-body-s);
 }
 
-.role,
 .signed {
   display: flex;
   align-items: flex-start;
@@ -378,7 +375,6 @@
   font: var(--type-body-s);
 }
 
-.verifiedIcon,
 .signedIcon {
   flex: none;
   inline-size: var(--space-4);
@@ -389,18 +385,6 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.shared {
-  margin-block-start: var(--space-1);
-  font: var(--type-caption);
-}
-
-.chips li {
-  padding: 0 var(--space-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-full);
-  font: var(--type-mono-row);
 }
 
 .signed {
@@ -414,77 +398,28 @@
   animation: draw var(--dur-modal) var(--ease-out) both;
 }
 
-/* ---------- the simulated match score (components.md "Match score") ---------- */
-/* On a phone it sits on its own row under the person; from tablets in a column at the end. */
-.score {
-  --step: var(--text);
-  display: flex;
+/* ---------- the match score (ideas/match-score.tsx, the app's own) ---------- */
+/* On a phone the score and its reasons each sit on a row of their own under the person; from
+   tablets the score is a column at the end and the reasons run under the name. */
+.scoreCell,
+.reasons {
   grid-column: 1 / -1;
-  align-items: center;
+  min-inline-size: 0;
+}
+
+.reasons {
+  display: grid;
   gap: var(--space-2);
-  margin: 0;
-}
-
-.score[data-step="0"] {
-  --step: var(--success);
-}
-
-.score[data-step="2"] {
-  --step: var(--warning);
-}
-
-.score[data-step="3"] {
-  --step: var(--error);
 }
 
 @media (min-width: 600px) {
-  .score {
-    display: grid;
+  .scoreCell {
     grid-column: auto;
-    justify-items: end;
-    align-content: start;
-    gap: var(--space-1);
   }
-}
 
-.scoreValue {
-  display: inline-block;
-  color: var(--step);
-  font: var(--type-score);
-  font-variant-numeric: tabular-nums;
-}
-
-/* a strong score swells a little once it has counted up */
-.scoreValue[data-swell] {
-  animation: swell var(--dur-modal) var(--ease-out) var(--dur-moment) both;
-}
-
-.scorePill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--step) 12%, transparent);
-  color: var(--step);
-  font: var(--type-caption);
-  white-space: nowrap;
-}
-
-.scoreIcon {
-  inline-size: var(--space-3);
-  block-size: var(--space-3);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.simulated {
-  margin: 0;
-  color: var(--text-muted);
-  font: var(--type-caption);
+  .reasons {
+    grid-column: 3 / -1;
+  }
 }
 
 /* ---------- the owner's turn, and the win ---------- */
@@ -596,12 +531,6 @@
   }
 }
 
-@keyframes swell {
-  50% {
-    transform: scale(1.08);
-  }
-}
-
 @keyframes fade {
   from {
     opacity: 0;
@@ -619,7 +548,6 @@
     animation-name: fade;
   }
 
-  .scoreValue[data-swell],
   .matches::before,
   .team::after,
   .signedIcon path,

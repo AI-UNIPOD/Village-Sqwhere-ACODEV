@@ -907,18 +907,27 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
 | `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team or move the phase. |
-| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list or the notes. |
+| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list, the notes or the design sketch. |
 | `403` | `NOT_NOTE_AUTHOR` | Only a note's author or the hub's owner can remove it. |
+| `403` | `NOT_PIECE_AUTHOR` | Only a piece's creator or the hub's owner can remove it. |
+| `403` | `NOT_LINK_AUTHOR` | Only a link's creator or the hub's owner can remove it. |
 | `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
 | `404` | `NOTE_NOT_FOUND` | The note does not exist, is already removed, or belongs to another hub. |
+| `404` | `PIECE_NOT_FOUND` | The piece does not exist, is already removed, or belongs to another hub. For a link, either of its two pieces. |
+| `404` | `LINK_NOT_FOUND` | The link does not exist, is already removed, or belongs to another hub. |
 | `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
 | `409` | `ALREADY_MEMBER` | The person is already an active member. |
 | `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
-| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes added or removed. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes, pieces or links changed. |
 | `409` | `TEAM_ALREADY_CONFIRMED` | The owner already confirmed the team. Move the phase instead. |
-| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes cannot be read or written, before the owner confirms the team. |
-| `409` | `PHASE_CLOSED` | The hub is past brainstorm, so notes can no longer be added or removed. They stay readable. |
+| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes and the design sketch cannot be read or written, before the owner confirms the team. |
+| `409` | `PHASE_NOT_STARTED` | The hub is still in brainstorm, so the design sketch cannot be read or written yet. |
+| `409` | `PHASE_CLOSED` | The hub is past brainstorm, so notes can no longer be added or removed, or past design, so the sketch can no longer change. They stay readable. |
 | `409` | `NOTES_FULL` | The hub already has 200 notes that are not removed. |
+| `409` | `PIECES_FULL` | The hub already has 30 pieces that are not removed. |
+| `409` | `LINKS_FULL` | The hub already has 60 links that are not removed. |
+| `409` | `PIECE_NAME_TAKEN` | Another piece of the hub that is not removed has the same name, ignoring case and outer spaces. |
+| `409` | `LINK_EXISTS` | A link that is not removed already goes from that piece to that piece. |
 | `409` | `PHASE_NOT_ADJACENT` | The phase asked for is not the one just before or just after the hub's current phase. This includes the current phase itself. |
 | `409` | `TEAM_FULL` | The hub already has 5 active members, the owner included. |
 | `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
@@ -1351,6 +1360,120 @@ The note's author or the hub's owner removes a note. Answers `204`.
   `409 TEAM_NOT_CONFIRMED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `404 NOTE_NOT_FOUND`,
   `403 NOT_NOTE_AUTHOR` (another member's note). The checks run in that order, so a closed phase
   is reported before a missing note.
+
+#### Design sketch
+
+The pieces of the system and the labelled links between them, which the web draws as boxes and
+arrows. A piece has a name of 1 to 60 characters and a summary of 0 to 280. A link goes from one
+piece to another and has a label of 1 to 60 characters, such as "sends payouts to". All text is
+plain, trimmed and counted as characters, and a null character is refused, like in notes. There
+are no positions: the web lays the sketch out itself, and nothing pushes changes to a browser.
+Only active members read or write. Reading opens when the hub reaches `design` and stays open in
+`build` and `review`. Writing works only while the hub is active and in `design`. Every write
+locks the hub row first, so two requests cannot take the last place together, and nothing changes
+while the owner moves the phase. The sketch is confidential to the team: only these routes return
+it, and the hub card does not change. A removed piece or link keeps its row (`deleted_at`) but is
+never listed. Why these rules: `docs/decisions/2026-11-14-hub-design-sketch.md`.
+
+* Any active member may add and correct a piece, because the sketch is shared.
+* A hub holds at most 30 pieces and 60 links that are not removed. Two pieces that are not
+  removed cannot share a name, ignoring case and outer spaces.
+* A link joins two different pieces of this hub that are not removed. It has a direction: a link
+  from A to B and one from B to A are different links, but two from A to B are not allowed.
+* Removing a piece removes its links with it, in one transaction.
+
+A piece and a link:
+
+```json
+{
+  "id": "…",
+  "name": "Payouts API",
+  "summary": "Takes an approved batch and refuses a transfer with no key.",
+  "created_by": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": true },
+  "created_at": "2026-11-14T10:15:00Z",
+  "updated_at": "2026-11-14T10:15:00Z",
+  "can_delete": true
+}
+```
+
+```json
+{
+  "id": "…",
+  "from_piece_id": "…",
+  "to_piece_id": "…",
+  "label": "records the batch",
+  "created_by": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": true },
+  "created_at": "2026-11-14T10:20:00Z",
+  "can_delete": false
+}
+```
+
+`can_delete` is true when the viewer created the piece or link, or owns the hub, and the hub is
+active and in `design`, so the web can show a remove button without working it out.
+
+#### `GET /v1/hubs/{hub_id}/design`
+
+Everything in one answer, with no paging: the pieces and the links that are not removed, each
+oldest first.
+
+* **Success Response (200 OK):** `{"data": {"pieces": [<piece>], "links": [<link>]}}`.
+* **Errors:** `401`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED` (the hub is in brainstorm). The checks run in that order.
+
+#### `POST /v1/hubs/{hub_id}/pieces`
+
+Adds a piece, as the signed-in member.
+
+* **Request Body:** `{ "name": "…", "summary": "…" }`. `summary` is optional and defaults to an
+  empty text. The other fields are refused.
+* **Success Response (201 Created):** the piece, in `data`.
+* **Errors:** `401`, `422` (an empty or too long name, a summary over 280 characters, a null
+  character, or an unknown field), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `409 PIECES_FULL`, `409 PIECE_NAME_TAKEN`. A body that fails validation gets `422` before any
+  other check. After that the checks run in the order listed.
+
+#### `PATCH /v1/hubs/{hub_id}/pieces/{piece_id}`
+
+Corrects a piece. Any active member may do it.
+
+* **Request Body:** `name` and or `summary`. A field left out stays as it is, and a summary sent
+  as an empty text clears it. Sending neither, a `null`, or another field is refused.
+* **Success Response (200 OK):** the piece, in `data`.
+* **Errors:** `401`, `422`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `404 PIECE_NOT_FOUND`,
+  `409 PIECE_NAME_TAKEN` (a piece may take its own name again in other letters).
+
+#### `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}`
+
+The piece's creator or the hub's owner removes a piece and its links. Answers `204`.
+
+* **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `404 PIECE_NOT_FOUND`, `403 NOT_PIECE_AUTHOR`. The checks run in that order, so a closed phase
+  is reported before a missing piece.
+
+#### `POST /v1/hubs/{hub_id}/links`
+
+Adds a link between two pieces of this hub that are not removed.
+
+* **Request Body:** `{ "from_piece_id": "…", "to_piece_id": "…", "label": "…" }`. The other
+  fields are refused.
+* **Success Response (201 Created):** the link, in `data`.
+* **Errors:** `401`, `422` (the two ids are the same, an empty or too long label, a null
+  character, a malformed id, or an unknown field), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `404 PIECE_NOT_FOUND` (either piece is unknown, removed or in another hub), `409 LINK_EXISTS`,
+  `409 LINKS_FULL`. A body that fails validation gets `422` before any other check. After that
+  the checks run in the order listed.
+
+#### `DELETE /v1/hubs/{hub_id}/links/{link_id}`
+
+The link's creator or the hub's owner removes a link. Answers `204`.
+
+* **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `404 LINK_NOT_FOUND`, `403 NOT_LINK_AUTHOR`. The checks run in that order.
 
 ---
 

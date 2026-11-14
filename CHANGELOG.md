@@ -8,9 +8,14 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
-## 2026-11-14
+## 2026-11-15
 
 - feat(web): let the team edit the design sketch
+- fix(web): show the real score and live brainstorm notes on the landing (#181)
+
+## 2026-11-14
+
+- feat(api): add the design sketch of pieces and links to a hub (#174)
 - fix(web): say what the AI checker looks at in a verification (#179)
 - feat(web): show the design sketch on the hub page (#178)
 - feat(api): add hub chat for active members (#177)
