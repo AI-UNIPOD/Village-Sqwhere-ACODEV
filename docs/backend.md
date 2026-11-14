@@ -536,6 +536,13 @@ the session is waiting for or receiving repository analysis, `technical_defence`
 analysis is complete and the interview can begin, and `report_generation` while the final
 review brief is being prepared. It is `null` for terminal states and `awaiting_review`.
 
+Each attempt has a `language`, `en` or `fr`, chosen when it starts and never changed. The AI
+interviewer asks its questions in it, and the final report is written in it, so a reviewer who
+reads only English can be given a French report. The applicant's attempt and the reviewer's queue
+and case all carry `language`. The instruction that sets the language comes from a fixed list in
+the code, keyed by the stored value, and never from anything the applicant typed. When no AI
+provider answers, the built-in interviewer speaks the same language.
+
 The codebase analysis service reads public GitHub repository metadata, languages, a bounded file
 tree, test paths and recent commits. `GITHUB_API_TOKEN` is optional. Without it, public
 repositories use GitHub's unauthenticated rate limit. Repository code is never executed.
@@ -609,7 +616,9 @@ It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each 
 with a database row lock, and a failed job is logged while the loop continues.
 
 Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
-`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape.
+`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape. The
+summary, findings and concerns are written in the attempt's `language`. The JSON keys,
+`security_flags` codes, `model` and numbers do not change.
 
 #### `POST /v1/me/verifications/{role_slug}`
 
@@ -619,9 +628,12 @@ Starts a verification attempt for one of the signed-in developer's claimed roles
 * **Request Body:**
   ```json
   {
-    "repositories": ["https://github.com/example/project"]
+    "repositories": ["https://github.com/example/project"],
+    "language": "fr"
   }
   ```
+  `language` is optional: `en` (the default) or `fr`. Anything else is a `422` that names the
+  field.
 * **Success Response (201 Created):** Returns the new verification session in `data`.
 * **Errors:** `404 ROLE_NOT_CLAIMED`, `409 VERIFICATION_IN_PROGRESS`,
   `409 ROLE_ALREADY_VERIFIED` or `409 VERIFICATION_ATTEMPTS_EXHAUSTED`.

@@ -20,11 +20,11 @@ class GroqReportEvaluator:
         self.timeout = timeout
 
     async def evaluate(
-        self, role_slug: str, codebase_result: dict, interview_turns: list[dict]
+        self, role_slug: str, codebase_result: dict, interview_turns: list[dict], language: str
     ) -> VerificationReport:
         if not self.api_key or not self.model:
             raise RuntimeError("Groq evaluation is not configured.")
-        system, user = build_report_prompt(role_slug, codebase_result, interview_turns)
+        system, user = build_report_prompt(role_slug, codebase_result, interview_turns, language)
         response = await asyncio.to_thread(self._post_json_sync, system, user)
         try:
             content = response["choices"][0]["message"]["content"]

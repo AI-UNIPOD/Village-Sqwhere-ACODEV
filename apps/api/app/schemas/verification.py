@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 class StartVerificationRequest(BaseModel):
     source: Literal["github"] = "github"
     repositories: list[str] = Field(min_length=1, max_length=10)
+    language: Literal["en", "fr"] = "en"
 
     @field_validator("repositories")
     @classmethod
@@ -33,6 +34,7 @@ class VerificationResponse(BaseModel):
     role: str
     role_name: str
     attempt_number: int
+    language: str
     status: str
     current_phase: str | None = None
     analysis_attempts: int = 0

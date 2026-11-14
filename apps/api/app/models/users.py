@@ -267,6 +267,8 @@ class VerificationSession(Base):
         ),
         nullable=True,
     )
+    # 'en' or 'fr', set when the attempt starts and never changed; see 015-verification-language.sql
+    language: Mapped[str] = mapped_column(Text, default="en", nullable=False)
     analysis_attempts: Mapped[int] = mapped_column(SmallInteger, default=0, nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     source: Mapped[AuthProvider | None] = mapped_column(
