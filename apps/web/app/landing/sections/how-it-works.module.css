@@ -1,0 +1,468 @@
+/* ---------- layout ---------- */
+.story {
+  margin-block-start: var(--space-10);
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Below 1100px every step carries its own view, stacked under its text. */
+.step {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-8);
+  border-block-start: 1px solid var(--line);
+}
+
+.step:last-child {
+  padding-block-end: 0;
+}
+
+.stepNum {
+  color: var(--text-muted);
+  font: var(--type-mono-label);
+  letter-spacing: 0.04em;
+}
+
+.stepTitle {
+  margin: 0;
+  font: var(--type-step-title);
+}
+
+.stepText {
+  max-inline-size: 44ch;
+  margin: 0;
+  color: var(--text-muted);
+  font: var(--type-body-l);
+  text-wrap: pretty;
+}
+
+.inline {
+  margin-block-start: var(--space-4);
+}
+
+.stage {
+  display: none;
+}
+
+/* The stage the views sit on: the real app's screens on a sunken surface. */
+.frame {
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background: var(--surface-sunken);
+}
+
+@media (min-width: 768px) {
+  .frame {
+    padding: var(--space-6);
+  }
+}
+
+/* From 1100px the steps read as a list on the left and one sticky stage follows the one being
+   read; the step is found by an IntersectionObserver, which sets data-active. */
+@media (min-width: 1100px) {
+  .story {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--space-16);
+    align-items: start;
+  }
+
+  .step {
+    position: relative;
+    align-content: center;
+    min-block-size: 60vh;
+    padding-block: var(--space-8);
+    padding-inline-start: var(--space-8);
+    border-block-start: 0;
+  }
+
+  /* the ledger line: a hairline down the list, darker along the step being read */
+  .step::before,
+  .step::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    border-inline-start: 1px solid var(--line);
+  }
+
+  .step::after {
+    border-inline-start: 2px solid var(--text);
+    opacity: 0;
+    transition: opacity var(--dur-modal) var(--ease-out);
+  }
+
+  .step[data-active="true"]::after {
+    opacity: 1;
+  }
+
+  .step:last-child {
+    padding-block-end: var(--space-8);
+  }
+
+  .stepTitle,
+  .stepText {
+    transition: color var(--dur-modal) var(--ease-out);
+  }
+
+  .step:not([data-active="true"]) .stepTitle,
+  .step:not([data-active="true"]) .stepText {
+    color: var(--text-muted);
+  }
+
+  .inline {
+    display: none;
+  }
+
+  .stage {
+    position: sticky;
+    top: calc(var(--pill-top) + var(--pill-height) + var(--space-6));
+    display: grid;
+  }
+
+  /* the four views share one cell, so the stage is as tall as the tallest and never jumps */
+  .stage {
+    align-content: center;
+  }
+
+  .stage .layer {
+    grid-area: 1 / 1;
+    align-self: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(var(--space-2));
+    transition:
+      opacity var(--dur-modal) var(--ease-out),
+      transform var(--dur-modal) var(--ease-out),
+      visibility 0s linear var(--dur-modal);
+  }
+
+  .stage .layer[data-active="true"] {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition-delay: 0s;
+  }
+}
+
+.layer {
+  margin: 0;
+}
+
+.caption {
+  margin-block-start: var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-caption);
+  text-align: center;
+}
+
+/* ---------- the product views ---------- */
+.card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
+}
+
+@media (min-width: 768px) {
+  .card {
+    padding: var(--space-5);
+  }
+}
+
+.meta {
+  margin: 0;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.name {
+  margin: 0;
+  font: var(--type-label);
+  overflow-wrap: anywhere;
+}
+
+.fieldLabel {
+  margin: var(--space-1) 0 0;
+  font: var(--type-label);
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  color: var(--text);
+  font: var(--type-caption);
+  font-weight: 600;
+}
+
+.check {
+  flex: none;
+  inline-size: 1em;
+  block-size: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.verified {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--success);
+  font: var(--type-caption);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.verified .check {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+
+/* 1: the draft idea */
+.draft {
+  justify-self: start;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font: var(--type-caption);
+  line-height: var(--space-6);
+}
+
+.ideaTitle {
+  margin: 0;
+  font: var(--type-title);
+  text-wrap: balance;
+}
+
+.pitch {
+  margin: 0;
+  font: var(--type-body-s);
+  color: var(--text);
+}
+
+.roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.role {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-m);
+  font: var(--type-body-s);
+  font-weight: 500;
+}
+
+.role .check {
+  margin-block-start: 2px;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  color: var(--success);
+}
+
+/* 2: the suggestions. The one place on this section that is Lagoon: the matcher's line. */
+.matcherTag {
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--ai-tint);
+  color: var(--ai);
+  font: var(--type-caption);
+  font-weight: 600;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.match,
+.member {
+  display: grid;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  border-block-start: 1px solid var(--line);
+}
+
+.match {
+  grid-template-columns: var(--space-8) minmax(0, 1fr);
+  align-items: start;
+}
+
+.matchBody,
+.memberBody {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.nameLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-3);
+  margin: 0;
+}
+
+.techs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tech {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  font: var(--type-caption);
+  font-family: var(--mono);
+}
+
+.why {
+  margin: var(--space-1) 0 0;
+  font: var(--type-body-s);
+}
+
+/* 3: the team */
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cardTitle {
+  margin: 0;
+  font: var(--type-title);
+  text-wrap: balance;
+}
+
+.member {
+  grid-template-columns: var(--space-8) minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.agreement {
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--line);
+}
+
+/* 4: the hub */
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  font: var(--type-caption);
+  line-height: var(--space-6);
+}
+
+.pillActive {
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.pillActive .check {
+  inline-size: var(--space-3);
+  block-size: var(--space-3);
+}
+
+.pillSample {
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
+}
+
+.rail {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-1);
+}
+
+.rail span {
+  block-size: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--line);
+}
+
+.rail span[data-on] {
+  background: var(--text);
+}
+
+.phases {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phase {
+  display: grid;
+  grid-template-columns: var(--space-6) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--line);
+}
+
+.num {
+  color: var(--text-muted);
+  font: var(--type-mono-row);
+}
+
+.phaseName {
+  font: var(--type-label);
+  font-weight: 500;
+}
+
+.phase[data-on] .phaseName,
+.phase[data-on] .meta {
+  color: var(--text);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step::after {
+    transition: opacity var(--dur-modal) var(--ease-out);
+  }
+
+  .stage .layer {
+    transform: none;
+    transition-property: opacity, visibility;
+  }
+}

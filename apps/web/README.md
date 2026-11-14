@@ -17,7 +17,8 @@ The site is bilingual by address: pages live in `app/[lang]/` and are served at 
 `proxy.ts` sends the bare `/`, and any address typed without a language, to the visitor's
 language, `app/locales.ts` lists the languages,
 and each page's text lives in English and French together (see `app/landing/copy.ts`). The
-landing page is `app/landing/`, and the onboarding page shown after the first sign-in is
+landing page is `app/landing/`: the hero, then one file per section in `app/landing/sections/`
+(each with its own copy, styles and tests), and the onboarding page shown after the first sign-in is
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
 technologies the feed should show and the sectors (`POST /v1/me/roles`,
 `PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`); the country stays
@@ -144,7 +145,7 @@ nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` noti
 answer for every screen, and `AppFrame` shows the demo account a line under the header that
 says what the demo is, says so when a change was refused, and offers the way out.
 
-"Start the tour" opens the same demo with the guided tour on (`app/tour/`): a start on the
+The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
 village, then four stops on the demo account's own open idea and hub (the composer, the matches,
 the hub's team, the hub's phases). `AppFrame` shows the tour's panel under the demo line; it
 sticks to the top of the screen, shrinks to one line on a screen that is not the stop, and keeps

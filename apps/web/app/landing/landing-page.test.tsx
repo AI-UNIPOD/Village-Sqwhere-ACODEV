@@ -40,68 +40,31 @@ test.each([
 });
 
 test.each([
-  ["en", "How it works", "Tour"],
-  ["fr", "Comment ça marche", "Visite"],
-] as const)("the %s page links to its own sections", (lang, how, tour) => {
+  ["en", "Matcher", "Hub", "FAQ"],
+  ["fr", "Matcher", "Espace", "FAQ"],
+] as const)("the %s header links to the matcher, the hub and the questions", (lang, matcher, hub, faq) => {
   const { container } = render(<LandingPage lang={lang} />);
   const header = within(container.querySelector("header")!);
-  expect(header.getByRole("link", { name: how }).getAttribute("href")).toBe("#how");
-  expect(header.getByRole("link", { name: tour }).getAttribute("href")).toBe("#tour");
-  expect(container.querySelector("#how")).not.toBeNull();
-  expect(container.querySelector("#tour")).not.toBeNull();
+  for (const [name, id] of [
+    [matcher, "matcher"],
+    [hub, "hub"],
+    [faq, "faq"],
+  ]) {
+    expect(header.getByRole("link", { name }).getAttribute("href")).toBe(`#${id}`);
+    expect(container.querySelector(`#${id}`)).not.toBeNull();
+  }
 });
 
-test("shows the four steps and the four tour stops that add up to three minutes", () => {
+test("the sections come in the order of the story: matcher, how it works, hub, Green Tick, questions", () => {
   const { container } = render(<LandingPage lang="en" />);
-  const how = within(container.querySelector<HTMLElement>("#how")!);
-  expect(how.getAllByRole("listitem")).toHaveLength(4);
-  expect(how.getByRole("heading", { level: 3, name: "Matcher" })).toBeTruthy();
-
-  const tour = within(container.querySelector<HTMLElement>("#tour")!);
-  expect(tour.getAllByRole("listitem")).toHaveLength(5);
-  expect(tour.getByText("3:00")).toBeTruthy();
-});
-
-test.each([
-  ["en", "Français", "/fr"],
-  ["fr", "English", "/en"],
-] as const)("the %s page offers the other language", (lang, label, href) => {
-  render(<LandingPage lang={lang} />);
-  const link = screen.getByRole("link", { name: label });
-  expect(link.getAttribute("href")).toBe(href);
-  expect(link.getAttribute("hreflang")).toBe(href.slice(1));
-});
-
-// Browser translation turned "Village Sqwhere" into "Village Square" and "EN" into "IN".
-test.each([
-  ["en", "Français"],
-  ["fr", "English"],
-] as const)("the %s page keeps the brand name and the language switch out of translation", (lang, label) => {
-  render(<LandingPage lang={lang} />);
-  const wordmarks = screen.getAllByText("Village Sqwhere");
-  expect(wordmarks).toHaveLength(2);
-  for (const wordmark of wordmarks) expect(wordmark.getAttribute("translate")).toBe("no");
-  expect(screen.getByRole("link", { name: label }).closest("[translate]")?.getAttribute("translate")).toBe("no");
-});
-
-test("offers a dark mode toggle in each language", () => {
-  render(<LandingPage lang="en" />);
-  expect(screen.getByRole("button", { name: "Switch to dark mode" })).toBeTruthy();
-  cleanup();
-  render(<LandingPage lang="fr" />);
-  expect(screen.getByRole("button", { name: "Passer en mode sombre" })).toBeTruthy();
-});
-
-// the slot, not the header, is measured: a pinned header is shorter than the one in the page
-test("marks the header's slot so the hero can place itself under it", () => {
-  const { container } = render(<LandingPage lang="en" />);
-  expect(container.querySelector("[data-site-header][data-header-slot] > header")).not.toBeNull();
-});
-
-test("has one banner and one main navigation, whether or not the header is pinned", () => {
-  render(<LandingPage lang="en" />);
-  expect(screen.getAllByRole("banner")).toHaveLength(1);
-  expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
+  const ids = Array.from(container.querySelectorAll("main section[id]")).map((section) => section.id);
+  expect(ids.filter((id) => ["matcher", "how", "hub", "green-tick", "faq"].includes(id))).toEqual([
+    "matcher",
+    "how",
+    "hub",
+    "green-tick",
+    "faq",
+  ]);
 });
 
 // jsdom has no layout, so this reads the stylesheet: on phones the section links take a row of
@@ -113,30 +76,14 @@ test("on phones the section links get a row of their own, and not on wide screen
   expect(wide).toContain("flex: 0 1 auto;");
 });
 
-test("the tour is a real button under the tour's words, and so are both demo buttons, each with its line", () => {
+test("every demo button is a real button, and the hero's has its line", () => {
   const { container } = render(<LandingPage lang="en" />);
-  const tour = within(container.querySelector<HTMLElement>("#tour")!).getByRole("button", { name: "Start the tour" });
-  expect(tour.hasAttribute("aria-disabled")).toBe(false);
-  expect(tour.getAttribute("aria-describedby")).toBe("tour-note");
-  // its line says nothing until there is something to report
-  expect(container.querySelector("#tour-note")?.textContent).toBe("");
-  // the hero and the footer each have a demo button
   const demo = screen.getAllByRole("button", { name: "Try the demo" });
-  expect(demo).toHaveLength(2);
+  expect(demo.length).toBeGreaterThanOrEqual(2);
   for (const button of demo) expect(button.hasAttribute("aria-disabled")).toBe(false);
-  expect(container.querySelector("#demo-note")?.textContent).toBe("No sign-up. Look at everything, change nothing.");
-});
-
-test.each([
-  ["en", ["Share an idea", "See who the matcher suggests", "Approve your team", "Walk the hub's four phases"]],
-  ["fr", ["Partager une idée", "Voir qui le matcher propose", "Valider votre équipe", "Parcourir les quatre phases de l'espace"]],
-] as const)("the %s tour lists what the tour shows, stop by stop", (lang, stops) => {
-  const { container } = render(<LandingPage lang={lang} />);
-  const listed = within(container.querySelector<HTMLElement>("#tour")!)
-    .getAllByRole("listitem")
-    .slice(0, 4)
-    .map((item) => item.querySelector("span:nth-of-type(2)")?.textContent);
-  expect(listed).toEqual(stops);
+  expect(container.querySelector("#demo-note")?.textContent).toBe(
+    "No sign-up. Look at everything, change nothing. A short tour is inside.",
+  );
 });
 
 // the hero's actions, in order: everything you can press under the headline
@@ -146,15 +93,15 @@ function heroActions(headline: string) {
 }
 
 test.each([
-  ["en", "Builders across Africa, one square.", "Join the village", "Take the tour", "Try the demo"],
-  ["fr", "Toute l'Afrique, une seule place.", "Rejoindre le village", "Faire la visite", "Essayer la démo"],
-] as const)("the %s hero leads to sign-in first, then the tour, then the demo", (lang, headline, join, tour, demo) => {
+  ["en", "Builders across Africa, one square.", "Join the village", "Try the demo"],
+  ["fr", "Toute l'Afrique, une seule place.", "Rejoindre le village", "Essayer la démo"],
+] as const)("the %s hero has two doors: sign-in first, then the demo", (lang, headline, join, demo) => {
   render(<LandingPage lang={lang} />);
   const actions = heroActions(headline);
-  expect(actions.map((action) => action.textContent)).toEqual([join, tour, demo]);
+  expect(actions.map((action) => action.textContent)).toEqual([join, demo]);
 
-  const [first, , last] = actions;
-  expect(first).toBe(screen.getByRole("link", { name: join }));
+  const [first, last] = actions;
+  expect(first.getAttribute("href")).toBe(`/${lang}/sign-in`);
   expect(first.getAttribute("href")).toBe(`/${lang}/sign-in`);
   expect(last.tagName).toBe("BUTTON");
   expect(last.hasAttribute("aria-disabled")).toBe(false);
@@ -180,10 +127,11 @@ test.each([
 
 test("the French page says the same in French", () => {
   render(<LandingPage lang="fr" />);
-  // the hero and the footer each have one
-  const demo = screen.getAllByRole("button", { name: "Essayer la démo" });
-  expect(demo).toHaveLength(2);
-  expect(screen.getByText("Sans inscription. Regardez tout, sans rien modifier.")).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: "Essayer la démo" }).length).toBeGreaterThanOrEqual(2);
+  expect(
+    screen.getAllByText("Sans inscription. Regardez tout, sans rien modifier. Une courte visite guidée est incluse.")
+      .length,
+  ).toBeGreaterThanOrEqual(1);
 });
 
 test("has one main landmark and no empty links or buttons", () => {

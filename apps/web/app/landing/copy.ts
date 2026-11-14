@@ -1,13 +1,12 @@
 import type { Lang } from "../locales";
 
-type Step = { title: string; text: string };
-type Stop = { text: string; time: string };
-
 type Copy = {
   description: string;
   navLabel: string;
   navHow: string;
-  navTour: string;
+  navMatcher: string;
+  navHub: string;
+  navFaq: string;
   signIn: string;
   signOut: string;
   /** Under "Try the demo": what it is, then how opening it is going. */
@@ -20,34 +19,27 @@ type Copy = {
   sub: string;
   ctaJoin: string;
   ctaDemo: string;
-  ctaTour: string;
-  howTitle: string;
-  howLead: string;
-  steps: Step[];
-  tourTitle: string;
-  tourLead: string;
-  tourButton: string;
-  stops: Stop[];
-  total: Stop;
   footLabel: string;
   footTag: string;
   footDemo: string;
   footCopy: string;
+  footMadeUp: string;
   footLang: string;
   footCredit: string;
 };
 
-// U+2060 (word joiner) after "co-" keeps "co-builders" on one line.
 const en: Copy = {
   description:
     "The village square for African developers: share ideas, get matched with collaborators, and build together.",
   navLabel: "Main",
   navHow: "How it works",
-  navTour: "Tour",
+  navMatcher: "Matcher",
+  navHub: "Hub",
+  navFaq: "FAQ",
   signIn: "Sign in",
   signOut: "Sign out",
   demo: {
-    idle: "No sign-up. Look at everything, change nothing.",
+    idle: "No sign-up. Look at everything, change nothing. A short tour is inside.",
     opening: "Opening the demo",
     unavailable: "The demo is not available right now. You can still sign in with GitHub.",
     network: "We couldn't reach Village Sqwhere. Check your connection and try again.",
@@ -58,46 +50,14 @@ const en: Copy = {
   pause: "Pause animation",
   play: "Play animation",
   headline: "Builders across Africa, one square.",
-  sub: "Share an idea. Get matched with co-⁠builders. Build it together.",
+  sub: "Share an idea. The matcher suggests who fits. You choose your team and build together.",
   ctaJoin: "Join the village",
   ctaDemo: "Try the demo",
-  ctaTour: "Take the tour",
-  howTitle: "From an idea to a team, in four steps.",
-  howLead:
-    "Builders from anywhere on the continent, one square to meet in. Here is what happens between sharing an idea and building it together.",
-  steps: [
-    {
-      title: "Idea",
-      text: "Share what you want to build, in English or French. Say which skills you bring and which ones the idea is missing.",
-    },
-    {
-      title: "Matcher",
-      text: "The matcher reads your idea and suggests developers across the continent whose skills fill the gaps, each with a fit score from 0 to 100.",
-    },
-    {
-      title: "Team",
-      text: "You decide who joins, from 2 to 5 builders. Nobody is hired: it is a team of equals, building together.",
-    },
-    {
-      title: "Hub",
-      text: "The team builds in one hub, in four phases: brainstorm, design and architecture, build, then review and test.",
-    },
-  ],
-  tourTitle: "See the whole product in three minutes.",
-  tourLead:
-    "A guided route through a live demo account. No sign-up, and you can leave the route at any stop to look around.",
-  tourButton: "Start the tour",
-  stops: [
-    { text: "Share an idea", time: "0:30" },
-    { text: "See who the matcher suggests", time: "0:45" },
-    { text: "Approve your team", time: "0:30" },
-    { text: "Walk the hub's four phases", time: "1:15" },
-  ],
-  total: { text: "Total", time: "3:00" },
   footLabel: "Footer",
   footTag: "Where African developers turn ideas into teams.",
   footDemo: "Try the demo",
   footCopy: "© 2026 Village Sqwhere.",
+  footMadeUp: "People and ideas on this page are made up.",
   footLang: "Available in English and French.",
   footCredit: "Made for ACODev 2026.",
 };
@@ -108,11 +68,13 @@ const fr: Copy = {
     "La place du village des développeurs africains. Partagez vos idées, trouvez des partenaires et construisez ensemble.",
   navLabel: "Principale",
   navHow: "Comment ça marche",
-  navTour: "Visite",
+  navMatcher: "Matcher",
+  navHub: "Espace",
+  navFaq: "FAQ",
   signIn: "Connexion",
   signOut: "Déconnexion",
   demo: {
-    idle: "Sans inscription. Regardez tout, sans rien modifier.",
+    idle: "Sans inscription. Regardez tout, sans rien modifier. Une courte visite guidée est incluse.",
     opening: "Ouverture de la démo",
     unavailable: "La démo n'est pas disponible pour le moment. Vous pouvez toujours vous connecter avec GitHub.",
     network: "Nous n'avons pas pu joindre Village Sqwhere. Vérifiez votre connexion et réessayez.",
@@ -123,46 +85,14 @@ const fr: Copy = {
   pause: "Mettre l'animation en pause",
   play: "Lire l'animation",
   headline: "Toute l'Afrique, une seule place.",
-  sub: "Partagez une idée. Trouvez vos partenaires. Construisez ensemble.",
+  sub: "Partagez une idée. Le matcher propose qui lui manque. Vous composez l'équipe et construisez ensemble.",
   ctaJoin: "Rejoindre le village",
   ctaDemo: "Essayer la démo",
-  ctaTour: "Faire la visite",
-  howTitle: "D'une idée à une équipe, en quatre étapes.",
-  howLead:
-    "Des développeurs de tout le continent, une seule place pour se retrouver. Voici ce qui se passe entre le partage d'une idée et sa construction en équipe.",
-  steps: [
-    {
-      title: "Idée",
-      text: "Partagez ce que vous voulez construire, en anglais ou en français. Dites quelles compétences vous apportez et lesquelles manquent à l'idée.",
-    },
-    {
-      title: "Le matcher",
-      text: "Le matcher lit votre idée et propose des développeurs de tout le continent dont les compétences comblent les manques, chacun avec un score de 0 à 100.",
-    },
-    {
-      title: "Équipe",
-      text: "Vous décidez qui rejoint l'équipe, de 2 à 5 développeurs. Personne n'est recruté. C'est une équipe d'égaux, qui construit ensemble.",
-    },
-    {
-      title: "Espace",
-      text: "L'équipe construit dans un seul espace, en quatre phases. D'abord le brainstorm, puis la conception et l'architecture, la construction, et enfin la revue et les tests.",
-    },
-  ],
-  tourTitle: "Découvrez tout le produit en trois minutes.",
-  tourLead:
-    "Un parcours guidé dans un compte de démo en direct. Sans inscription, et vous pouvez quitter le parcours à chaque étape pour explorer.",
-  tourButton: "Commencer la visite",
-  stops: [
-    { text: "Partager une idée", time: "0:30" },
-    { text: "Voir qui le matcher propose", time: "0:45" },
-    { text: "Valider votre équipe", time: "0:30" },
-    { text: "Parcourir les quatre phases de l'espace", time: "1:15" },
-  ],
-  total: { text: "Total", time: "3:00" },
   footLabel: "Pied de page",
   footTag: "Là où les développeurs africains transforment leurs idées en équipes.",
   footDemo: "Essayer la démo",
   footCopy: "© 2026 Village Sqwhere.",
+  footMadeUp: "Les personnes et les idées présentées sur cette page sont fictives.",
   footLang: "Disponible en anglais et en français.",
   footCredit: "Conçu pour l'ACODev 2026.",
 };
