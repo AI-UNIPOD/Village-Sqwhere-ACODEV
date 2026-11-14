@@ -215,6 +215,39 @@ class HubNote(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class HubMessage(Base):
+    """A hub chat message, optionally quoting another in the same hub. Deleting one sets
+    deleted_at; the row stays. The database lets only active members of an active hub post, and
+    sets edited_at when the body changes (002-schema.sql)."""
+
+    __tablename__ = "hub_messages"
+    __mapper_args__ = {"eager_defaults": True}
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), nullable=False
+    )
+    author_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    reply_to_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    # set by triggers: hub_messages_set_updated_at and hub_messages_before_update
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        server_onupdate=FetchedValue(),
+        nullable=False,
+    )
+    edited_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_onupdate=FetchedValue(), nullable=True
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class HubPiece(Base):
     """A piece of the hub's design sketch. Deleting one sets deleted_at; the row stays."""
 

@@ -11,6 +11,10 @@ its number:
 ## 2026-11-14
 
 - feat(api): add the design sketch of pieces and links to a hub (#174)
+- feat(web): show the design sketch on the hub page (#178)
+- feat(api): add hub chat for active members (#177)
+- feat(api): show another developer's public profile (#175)
+- feat(api): let an author delete an idea that has no hub (#173)
 - feat(api): seed the demo with a range of match scores (#172)
 - feat(web): show the match score and its reasons on match cards (#171)
 - fix(web): make three French lines on the landing page read plainly (#168)

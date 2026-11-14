@@ -47,6 +47,10 @@ PieceSummary = Annotated[
 LinkLabel = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60, pattern=NO_NULL)
 ]
+# the hub_messages_body_length CHECK, counted in characters
+MessageBody = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10000, pattern=NO_NULL)
+]
 # the users_username_format CHECK
 Username = Annotated[
     str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z0-9_-]{3,39}$")
@@ -346,6 +350,50 @@ class HubNoteCard(BaseModel):
     author: HubOwner
     created_at: datetime
     can_delete: bool
+
+
+class QuotedMessage(BaseModel):
+    """The message a reply quotes. `body` is null once that message was deleted."""
+
+    id: UUID
+    author: HubOwner
+    body: str | None = None
+
+
+class HubMessageCard(BaseModel):
+    """`can_edit` is true for the author, and `can_delete` for the author and the hub's owner,
+    while the hub is active."""
+
+    id: UUID
+    body: str
+    author: HubOwner
+    reply_to: QuotedMessage | None = None
+    created_at: datetime
+    edited_at: datetime | None = None
+    can_edit: bool
+    can_delete: bool
+
+
+class HubMessageResponse(BaseModel):
+    data: HubMessageCard
+
+
+class HubMessageListResponse(BaseModel):
+    data: list[HubMessageCard]
+    next_offset: int | None = None
+
+
+class PostMessageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: MessageBody
+    reply_to_id: UUID | None = None
+
+
+class EditMessageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: MessageBody
 
 
 class HubNoteResponse(BaseModel):
