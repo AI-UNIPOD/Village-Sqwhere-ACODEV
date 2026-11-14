@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-14
 
-- docs: record the match score that decides the order
+- docs: record the match score that decides the order (#150)
 - fix(web): say only what is true today on the landing page (#149)
 - feat(web): edit the hero headline into shape, once, on the landing page (#148)
 - feat(web): show simulated match scores in the landing matcher demo (#147)
