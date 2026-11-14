@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-14
 
-- fix(web): show the hub phases and the language choice that now ship
+- fix(web): show the hub phases and the language choice that now ship (#164)
 - feat(api): score every match and order both lists by it (#160)
 - feat(web): save the country from onboarding and the profile (#159)
 - feat(web): show a hub's real phases and let its owner move them (#158)
