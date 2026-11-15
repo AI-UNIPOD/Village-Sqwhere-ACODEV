@@ -18,7 +18,8 @@ type Copy = {
   next: string;
   skip: string;
   role: Question & { error: string };
-  stack: Question & { error: string; filter: string; selected: string };
+  // `note` says what leaves the server for the meaning part of the match score
+  stack: Question & { note: string; error: string; filter: string; selected: string };
   country: Question & { note: string; filter: string; selected: string };
   topics: Question;
   feed: Question & { useStack: string };
@@ -67,6 +68,7 @@ const en: Copy = {
   stack: {
     title: "What do you build with?",
     why: "We match people whose skills fit together.",
+    note: "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to Google's Gemini. Your name, your username and your email are never sent.",
     error: "Pick at least one technology to continue.",
     filter: "Filter technologies",
     selected: "{n} selected",
@@ -143,6 +145,7 @@ const fr: Copy = {
   stack: {
     title: "Avec quoi construisez-vous\u202f?",
     why: "Nous réunissons des développeurs aux compétences complémentaires.",
+    note: "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à Gemini, de Google. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés.",
     error: "Choisissez au moins une technologie pour continuer.",
     filter: "Filtrer les technologies",
     selected: "Sélection\u202f: {n}",

@@ -129,6 +129,61 @@ test("each idea shows the score with its parts, and the page says the order", as
   expect(screen.getByText("Open ideas that need a role you are verified in, best score first. Each one says which role.")).toBeTruthy();
 });
 
+test("one list can hold a compared idea and one not compared: each card tells its own story", async () => {
+  api({
+    "/v1/me/matches": {
+      data: [match({}, [backend], [go], scored(88, [40, 8, 10], [fintech], 30)), match({ id: "idea-2", title: "Water points" })],
+      next_offset: null,
+    },
+    "/v1/me": verifiedMe,
+  });
+  render(<ForYouIdeas lang="en" />);
+  const first = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  const parts = (card: HTMLElement) => within(within(card).getByRole("list", { name: "Why this score" })).getAllByRole("listitem").at(-1)!.textContent;
+  expect(within(first).getByText("Match score: 88 out of 100, Strong match.")).toBeTruthy();
+  expect(parts(first)).toBe("Meaning30 of 30How close what the idea says is to what the developer's profile says.");
+  expect(within(first).queryByText(/Partial score/)).toBeNull();
+
+  const other = screen.getByRole("link", { name: "Water points" }).closest("li")!;
+  expect(within(other).getByText("Match score: 43 out of 100, Weak match. Partial score.")).toBeTruthy();
+  expect(parts(other)).toBe("MeaningNot compared yet");
+  expect(within(other).getByText(/^Partial score: it counts roles, technologies and sectors/)).toBeTruthy();
+});
+
+test("an idea close to one of yours says so, with a link to your own idea, and the others say nothing", async () => {
+  api({
+    "/v1/me/matches": {
+      data: [
+        { ...match(), similar_idea: { id: "mine-1", title: "Queue app for clinics" } },
+        { ...match({ id: "idea-2", title: "Water points" }), similar_idea: null },
+        match({ id: "idea-3", title: "Seed bank" }),
+      ],
+      next_offset: null,
+    },
+    "/v1/me": verifiedMe,
+  });
+  render(<ForYouIdeas lang="en" />);
+  const shown = (await screen.findByRole("link", { name: "Clinic queue for Kano" })).closest("li")!;
+  const line = within(shown).getByRole("link", { name: "Queue app for clinics" });
+  expect(line.getAttribute("href")).toBe("/en/ideas/compose?id=mine-1");
+  expect(line.closest("p")!.textContent).toBe("Close to your idea: Queue app for clinics");
+  for (const title of ["Water points", "Seed bank"]) {
+    expect(within(screen.getByRole("link", { name: title }).closest("li")!).queryByText(/Close to your idea/)).toBeNull();
+  }
+});
+
+test("the title of an idea close to yours is shown as text, and the line is in French", async () => {
+  api({
+    "/v1/me/matches": { data: [{ ...match(), similar_idea: { id: "mine-1", title: "<script>alert(1)</script>" } }], next_offset: null },
+    "/v1/me": verifiedMe,
+  });
+  const { container } = render(<ForYouIdeas lang="fr" />);
+  const link = await screen.findByRole("link", { name: "<script>alert(1)</script>" });
+  expect(container.querySelector("script")).toBeNull();
+  expect(link.closest("p")!.textContent).toBe("Proche de votre idée\u202f: <script>alert(1)</script>");
+  expect(link.getAttribute("href")).toBe("/fr/ideas/compose?id=mine-1");
+});
+
 test("an idea with no score fields shows its reasons and no score", async () => {
   const old = { idea: idea(), matched_roles: [backend], shared_technologies: [go] };
   api({ "/v1/me/matches": { data: [old], next_offset: null }, "/v1/me": verifiedMe });

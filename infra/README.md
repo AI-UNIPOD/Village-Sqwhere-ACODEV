@@ -121,9 +121,57 @@ CI uses the same image and credentials, and applies the same `db/init/` scripts 
 order before the API tests (see the `api` job in `.github/workflows/ci.yml`). A new init
 script therefore runs in CI too, and it must work on an empty database.
 
-## Deployment (Systalink)
+## Deployment (Vercel)
 
-ACODev 2026 requires the app to run on Systalink's platform (platform.systalink.com).
-The deployment setup is still to be written: hosting for `apps/web` and `apps/api`, a
-managed Postgres with pgvector, and environment variables. Add it here, under
-`infra/systalink/`, once the team has platform access.
+The whole app deploys as one Vercel project, from [`vercel.json`](../vercel.json) at the
+repository root: the web app, the API and the verification worker, on one domain.
+
+```mermaid
+flowchart LR
+  user["Browser"] --> domain["villagesqwhere domain<br />(Namecheap DNS to Vercel)"]
+  domain -->|"/v1/*, /health, /docs"| api["service: api<br />apps/api, app.main:app"]
+  domain -->|"everything else"| web["service: web<br />apps/web, Next.js"]
+  worker["daemon: worker<br />apps/api/Dockerfile.worker"] --> db
+  api --> db[("Postgres + pgvector<br />(Neon, for example)")]
+```
+
+Because the web app and the API share one domain, there is no cross-origin call: the browser
+reaches the API at `https://<domain>/v1/...`.
+
+### Set it up
+
+1. **Create the project** on the AI UniPod's Vercel team, importing this repository. Leave the
+   root directory at the repository root and the framework on what Vercel detects from
+   `vercel.json` (Services).
+2. **Add a Postgres database with pgvector**, for example Neon from the Vercel Marketplace,
+   in a European region close to `cdg1`, where the worker runs.
+3. **Build the schema once**, from your computer, with the direct connection string:
+
+   ```bash
+   for f in infra/db/init/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f" || break; done
+   ```
+
+4. **Set the environment variables** (Production, and Preview if wanted):
+
+   | Variable | Value |
+   |---|---|
+   | `DATABASE_URL` | The **direct** (not pooled) URL, starting `postgresql://` and ending `?ssl=require`. asyncpg rejects `sslmode=require` and breaks on transaction pooling. |
+   | `JWT_SECRET_KEY` | A new random value of 32 characters or more, never the local one |
+   | `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ORIGINS` | `https://<domain>` |
+   | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | A GitHub OAuth app for the real domain, with the callback `https://<domain>/v1/auth/oauth/github/callback` |
+   | `GROQ_API_KEY`, `GEMINI_API_KEY` and the model names | As in `.env.example` |
+   | `DEMO_ENABLED` | `true` to offer "Try the demo"; then run `python -m app.demo_seed` once against the database |
+
+5. **Deploy**, then open `https://<deployment>/health`: it answers `{"status":"ok", ...}`.
+6. **Add the domain** under the project's Domains settings, then at Namecheap (Domain List,
+   Manage, Advanced DNS) add the records Vercel shows: usually an `A` record for `@` and a
+   `CNAME` for `www`. Update the four URL variables above if they still name the
+   `vercel.app` address, and redeploy.
+
+### Known limits on Vercel
+
+| Limit | Effect | Plan |
+|---|---|---|
+| OAuth states and login codes are kept in API memory | Each request can reach a different instance, so GitHub sign-in can fail and come back with `INVALID_STATE`. The demo is not affected. | Keep them in the database (Endpoints tracker row 102) |
+| The interview runs over a WebSocket | A function's maximum duration caps one interview | Raise the API function's duration if interviews are cut short |
+| The API logs every SQL statement (`echo=True` in `app/database.py`) | Noisy, costly logs | Turn it off outside development |

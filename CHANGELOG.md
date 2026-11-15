@@ -11,6 +11,9 @@ its number:
 ## 2026-11-15
 
 - feat(api): push hub chat messages live over a websocket (#219)
+- fix(api): make the demo world's review case and chats consistent (#224)
+- feat(web): show the meaning part of the score and similar ideas (#222)
+- chore: deploy the web app, api and worker as one vercel project (#226)
 - feat(api): open the interview socket with a one-use ticket (#216)
 - fix(web): mark the village steps a developer has already done (#215)
 - feat(api): show the owner the match score on join requests (#214)

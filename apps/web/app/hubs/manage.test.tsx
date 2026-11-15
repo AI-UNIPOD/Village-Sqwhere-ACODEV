@@ -134,7 +134,8 @@ test("archiving asks first, then shows the hub archived with no owner tools", as
   fireEvent.click(within(archiveDialog()).getByRole("button", { name: "Archive the hub" }));
   const done = await screen.findByText("The hub was archived. It stays here to read.");
   expect(done.getAttribute("role")).toBe("status");
-  expect(document.activeElement).toBe(done);
+  // focus moves once the dialog has closed
+  await waitFor(() => expect(document.activeElement).toBe(done));
   expect(posted()).toEqual([["/v1/hubs/hub-1/archive", null]]);
   expect(screen.getByText("Archived")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Archive this hub" })).toBeNull();

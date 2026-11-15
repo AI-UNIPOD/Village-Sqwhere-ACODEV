@@ -186,6 +186,9 @@ export function StackStep({ lang, answers, update, error }: StepProps) {
   return (
     <>
       <Head id="stack" title={t.stack.title} why={t.stack.why} />
+      <p id="stack-note" className={styles.why}>
+        {t.stack.note}
+      </p>
       <Filter id="stack" label={t.stack.filter} value={query} onChange={setQuery} />
       <p className={styles.selected} role="status">
         {fill(t.stack.selected, { n: answers.stack.length })}
@@ -197,7 +200,7 @@ export function StackStep({ lang, answers, update, error }: StepProps) {
           options={options}
           selected={answers.stack}
           onToggle={(slug) => update({ stack: toggle(answers.stack, slug) })}
-          describedBy={describedBy("stack", error)}
+          describedBy={`stack-why stack-note${error ? " stack-error" : ""}`}
         />
       ) : (
         <NoMatch lang={lang} text={t.empty.stack} query={query} onClear={() => setQuery("")} />
