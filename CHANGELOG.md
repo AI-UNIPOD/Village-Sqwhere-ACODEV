@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- docs: name the live address for sign-in settings and add a check (#228)
 - feat(api): post to the feed when a hub moves to a new phase (#218)
 - feat(web): open the interview socket with a one-use ticket (#217)
 - fix(api): make the demo world's review case and chats consistent (#224)
