@@ -116,6 +116,8 @@ type Copy = {
     showSome: string;
     showOne: string;
     showMore: string;
+    continueThread: string;
+    allComments: string;
     more: string;
     moreFailed: string;
     repliesFailed: string;
@@ -303,6 +305,8 @@ export const copy: Record<Lang, Copy> = {
       showSome: "Show {n} replies",
       showOne: "Show 1 reply",
       showMore: "Show more replies",
+      continueThread: "Continue this thread",
+      allComments: "Back to all comments",
       more: "Show more comments",
       moreFailed: "We couldn't load more comments. The ones above are still here, so try again.",
       repliesFailed: "We couldn't load the replies. Try again.",
@@ -500,6 +504,8 @@ export const copy: Record<Lang, Copy> = {
       showSome: "Afficher {n} réponses",
       showOne: "Afficher 1 réponse",
       showMore: "Afficher plus de réponses",
+      continueThread: "Continuer ce fil",
+      allComments: "Retour à tous les commentaires",
       more: "Afficher plus de commentaires",
       moreFailed: "Nous n'avons pas pu charger d'autres commentaires. Ceux du dessus sont toujours là, réessayez.",
       repliesFailed: "Nous n'avons pas pu charger les réponses. Réessayez.",
