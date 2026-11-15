@@ -21,7 +21,7 @@ from uuid import UUID, uuid4
 import asyncpg
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 from sqlalchemy.exc import DBAPIError
 
 from app.models import (
@@ -83,10 +83,18 @@ def embed_everything(embedder: Any) -> int:
     return asyncio.run(worker.embed_missing(embedder, limit=10_000))
 
 
-def make_idea(tag: str, *, status: IdeaStatus = IdeaStatus.OPEN, deleted: bool = False) -> Idea:
+def make_idea(
+    tag: str,
+    *,
+    status: IdeaStatus = IdeaStatus.OPEN,
+    deleted: bool = False,
+    is_demo: bool = False,
+) -> Idea:
     author = make_user()
 
     async def work(session: Any) -> Idea:
+        if is_demo:
+            await session.execute(update(User).where(User.id == author.id).values(is_demo=True))
         idea = Idea(
             author_id=author.id,
             title=f"Offline farm ledger {tag}",
@@ -230,7 +238,17 @@ def test_only_open_ideas_are_embedded() -> None:
     assert [idea_vector(idea) for idea in skipped] == [None, None, None]
 
 
-def test_only_developers_with_a_verified_role_on_a_live_account_are_embedded() -> None:
+def test_an_open_idea_by_a_demo_account_is_never_embedded() -> None:
+    tag = uuid4().hex
+    real, demo = make_idea(tag), make_idea(tag, is_demo=True)
+
+    embed_everything(FakeEmbedder())
+
+    assert idea_vector(real) is not None
+    assert idea_vector(demo) is None
+
+
+def test_only_developers_with_a_verified_role_on_a_live_real_account_are_embedded() -> None:
     tag = uuid4().hex
     developer = make_developer(tag)
     demo = make_developer(tag, is_demo=True)
@@ -240,7 +258,7 @@ def test_only_developers_with_a_verified_role_on_a_live_account_are_embedded() -
     embed_everything(FakeEmbedder())
 
     assert user_vector(developer) is not None
-    assert user_vector(demo) is not None
+    assert user_vector(demo) is None
     assert user_vector(unverified) is None
     assert user_vector(deleted) is None
 
