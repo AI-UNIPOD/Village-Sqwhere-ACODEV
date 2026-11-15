@@ -27,7 +27,8 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   changes, a database trigger removes the vector and the next run makes a new one. Without
   `GEMINI_API_KEY` the step does nothing. Why:
   `docs/decisions/2026-11-15-embeddings-on-gemini.md`.
-- **Hosting**: everything is deployed on Systalink (see `infra/README.md`).
+- **Hosting**: one Vercel project, from `vercel.json`: the web app, the API and the verification
+  worker on one domain (see `infra/README.md`).
 
 ## What the API does today
 
