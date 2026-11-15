@@ -123,6 +123,34 @@ async def upload_post_image(
     )
 
 
+@router.delete("/uploads/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_post_image(attachment_id: UUID, current_user: CurrentUser, db: DbSession) -> None:
+    """Removes one image of a post, so an edit can take a picture out without deleting the post."""
+    attachment = await db.scalar(select(PostAttachment).where(PostAttachment.id == attachment_id))
+    if attachment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "IMAGE_NOT_FOUND", "message": "That image does not exist"},
+        )
+    # a post the viewer cannot see is a missing image to them: this answers 404 for it
+    post = await get_visible_post(attachment.post_id, db, current_user, lock=True)
+    if post.author_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "NOT_POST_AUTHOR", "message": "Only the post author may remove images"},
+        )
+    if post.type == PostType.HUB_MILESTONE:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "MILESTONE_NOT_EDITABLE",
+                "message": "A hub's milestone post cannot be edited. Delete it instead.",
+            },
+        )
+    await db.delete(attachment)
+    await db.commit()
+
+
 @router.get(
     "/post-images/{attachment_id}",
     response_class=Response,
