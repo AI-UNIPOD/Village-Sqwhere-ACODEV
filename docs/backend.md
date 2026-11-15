@@ -906,28 +906,33 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | --- | --- | --- |
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
-| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team or move the phase. |
-| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list, the notes or the design sketch. |
+| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team, move the phase or set the repository. |
+| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list, the notes, the design sketch or the build tab. |
 | `403` | `NOT_NOTE_AUTHOR` | Only a note's author or the hub's owner can remove it. |
 | `403` | `NOT_PIECE_AUTHOR` | Only a piece's creator or the hub's owner can remove it. |
 | `403` | `NOT_LINK_AUTHOR` | Only a link's creator or the hub's owner can remove it. |
+| `403` | `NOT_PIECE_HOLDER` | Only the member who holds a piece or the hub's owner can free it. |
 | `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
 | `404` | `NOTE_NOT_FOUND` | The note does not exist, is already removed, or belongs to another hub. |
-| `404` | `PIECE_NOT_FOUND` | The piece does not exist, is already removed, or belongs to another hub. For a link, either of its two pieces. |
+| `404` | `PIECE_NOT_FOUND` | The piece does not exist, is already removed, or belongs to another hub. For a link, either of its two pieces. Also when claiming or freeing. |
 | `404` | `LINK_NOT_FOUND` | The link does not exist, is already removed, or belongs to another hub. |
 | `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
 | `409` | `ALREADY_MEMBER` | The person is already an active member. |
 | `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
-| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes, pieces or links changed. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes, pieces, links, claims or repository changed, nor its commits refreshed. |
 | `409` | `TEAM_ALREADY_CONFIRMED` | The owner already confirmed the team. Move the phase instead. |
-| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes and the design sketch cannot be read or written, before the owner confirms the team. |
-| `409` | `PHASE_NOT_STARTED` | The hub is still in brainstorm, so the design sketch cannot be read or written yet. |
-| `409` | `PHASE_CLOSED` | The hub is past brainstorm, so notes can no longer be added or removed, or past design, so the sketch can no longer change. They stay readable. |
+| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes, the design sketch and the build tab cannot be read or written, before the owner confirms the team. |
+| `409` | `PHASE_NOT_STARTED` | The hub is still in brainstorm, so the design sketch cannot be read or written yet, or still in brainstorm or design, so the build tab cannot. |
+| `409` | `PHASE_CLOSED` | The hub is past brainstorm, so notes can no longer be added or removed, past design, so the sketch can no longer change, or past build, so pieces can no longer be claimed or freed and the repository can no longer change. They stay readable. |
 | `409` | `NOTES_FULL` | The hub already has 200 notes that are not removed. |
 | `409` | `PIECES_FULL` | The hub already has 30 pieces that are not removed. |
 | `409` | `LINKS_FULL` | The hub already has 60 links that are not removed. |
 | `409` | `PIECE_NAME_TAKEN` | Another piece of the hub that is not removed has the same name, ignoring case and outer spaces. |
 | `409` | `LINK_EXISTS` | A link that is not removed already goes from that piece to that piece. |
+| `409` | `PIECE_CLAIMED` | Another active member already holds the piece. |
+| `409` | `REPOSITORY_NOT_SET` | The hub has no repository address, so there are no commits to refresh. |
+| `409` | `REFRESH_TOO_SOON` | The commits were refreshed less than a minute ago. The message says how many seconds to wait. |
+| `409` | `REPOSITORY_CHANGED` | The owner changed the repository while a refresh was waiting for GitHub, so its commits were not kept. Refresh again. |
 | `409` | `PHASE_NOT_ADJACENT` | The phase asked for is not the one just before or just after the hub's current phase. This includes the current phase itself. |
 | `409` | `TEAM_FULL` | The hub already has 5 active members, the owner included. |
 | `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
@@ -935,6 +940,7 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | `409` | `HUB_ALREADY_EXISTS` | The idea already has a hub (one hub per idea). |
 | `409` | `AGREEMENT_MISMATCH` | The signed `template_id` or `template_sha256` is not the agreement being signed: the current one when creating a hub, the hub's own one when accepting. Fetch it again and show it before signing. |
 | `422` | (FastAPI's list) | A field or query parameter breaks a rule. `detail` is a list, and each item's `loc` names it. |
+| `502` | `REPOSITORY_UNAVAILABLE` | GitHub could not give the commits: the repository is not found or private, GitHub is rate limiting the server or is down, it did not answer within 10 seconds, or its answer was not a list of commits. The stored commits stay as they were. |
 | `503` | `AGREEMENT_NOT_PUBLISHED` | No agreement is published on this server, so no hub can be created. A setup problem, not something the person can fix. |
 
 #### `GET /v1/agreements/current`
@@ -1474,6 +1480,126 @@ The link's creator or the hub's owner removes a link. Answers `204`.
 * **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
   `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
   `404 LINK_NOT_FOUND`, `403 NOT_LINK_AUTHOR`. The checks run in that order.
+
+#### Build tab
+
+Who builds which piece of the design sketch, and the latest commits of the team's repository.
+Only active members read or write. Reading opens when the hub reaches `build` and stays open in
+`review`. Claiming and freeing a piece and setting the repository work only while the hub is
+active and in `build`. Refreshing the commits works while it is active and in `build` or `review`,
+because the team keeps committing fixes during review. Why these rules:
+`docs/decisions/2026-11-15-hub-build-tab.md`.
+
+* A piece has at most one holder, and a member may hold several pieces. Claiming a piece you
+  already hold changes nothing and answers `200`.
+* The holder or the hub's owner frees a piece.
+* A claim whose holder is no longer an active member (they left or were removed) counts as no
+  claim: the answer shows `claimed_by` and `claimed_at` as `null`, and any active member may
+  claim the piece.
+* The repository is a public GitHub repository whose address the owner pastes. The address is
+  trimmed, and a trailing `/` and a trailing `.git` are dropped. What is left must be
+  `https://github.com/<owner>/<repository>` with letters, digits, `.`, `_` and `-` in each part,
+  and at most 200 characters. The API does not call GitHub when the address is set. A new or
+  cleared address deletes the stored commits and empties `commits_refreshed_at`. Sending the
+  address the hub already has changes nothing.
+* A refresh reads the 20 latest commits of the repository's default branch from GitHub with the
+  server's optional `GITHUB_API_TOKEN` (without it GitHub allows about 60 requests an hour from
+  the server) and replaces the stored copy. Any active member may refresh, at most once a minute
+  per hub. The hub row is not locked while the API waits for GitHub, which has 10 seconds to
+  answer. If GitHub cannot be read, the stored commits stay and nothing is counted as a refresh.
+* A commit keeps the first line of its message (cut to 200 characters, and the first 7
+  characters of its `sha` when that line is empty), the author's name as the commit records it
+  (cut to 100) and the commit date. Both texts come from outside, so they are stored as plain
+  text without null characters: the web shows them as text and never as markup or links.
+
+The answer to every build route that is not a claim:
+
+```json
+{
+  "data": {
+    "repository_url": "https://github.com/acodev/village-ledger",
+    "commits_refreshed_at": "2026-11-15T09:30:00Z",
+    "can_set_repository": true,
+    "can_refresh": true,
+    "pieces": [
+      {
+        "id": "…",
+        "name": "Payouts API",
+        "summary": "Takes an approved batch and refuses a transfer with no key.",
+        "claimed_by": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": true },
+        "claimed_at": "2026-11-15T08:00:00Z",
+        "can_claim": false,
+        "can_release": true
+      }
+    ],
+    "commits": [
+      {
+        "sha": "9fceb02d0ae598e95dc970b74767f19372d61af8",
+        "message": "Retry a failed transfer once with the same key",
+        "author_name": "Amina Bello",
+        "committed_at": "2026-11-15T07:41:00Z"
+      }
+    ]
+  }
+}
+```
+
+`claimed_by` is `null` for a piece nobody holds. The four `can_` flags say what the viewer may do
+now: `can_claim` (the piece is free and the hub is in build), `can_release` (the viewer holds the
+piece or owns the hub, and the hub is in build), `can_set_repository` (the viewer owns the hub
+and it is in build) and `can_refresh` (the hub is active, in build or review, and has a
+repository; it ignores the wait of a minute).
+
+#### `GET /v1/hubs/{hub_id}/build`
+
+Everything in one answer, with no paging. `pieces` are the ones not removed, oldest first, and
+`commits` are newest first.
+
+* **Success Response (200 OK):** the answer above.
+* **Errors:** `401`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED` (the hub is in brainstorm or design). The checks run in that order.
+
+#### `POST /v1/hubs/{hub_id}/pieces/{piece_id}/claim`
+
+The signed-in member takes a piece nobody holds.
+
+* **Success Response (200 OK):** the piece, in `data`, as in the answer above.
+* **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `404 PIECE_NOT_FOUND`, `409 PIECE_CLAIMED`. The checks run in that order.
+
+#### `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}/claim`
+
+The holder or the hub's owner frees a piece. A piece nobody holds is already free, so freeing it
+answers `204` too.
+
+* **Success Response (204 No Content).**
+* **Errors:** `401`, `422`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `404 PIECE_NOT_FOUND`,
+  `403 NOT_PIECE_HOLDER`. The checks run in that order.
+
+#### `PUT /v1/hubs/{hub_id}/repository`
+
+The hub's owner sets, changes or clears the repository address.
+
+* **Request Body:** `{ "repository_url": "https://github.com/owner/repo" }`, or `null` to clear
+  it. The field is required and the other fields are refused.
+* **Success Response (200 OK):** the build answer.
+* **Errors:** `401`, `422` (an address that is not an HTTPS github.com address with exactly an
+  owner and a repository, which names `repository_url`), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `403 NOT_HUB_OWNER`, `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`,
+  `409 HUB_ARCHIVED`. A body that fails validation gets `422` before any other check. After that
+  the checks run in the order listed.
+
+#### `POST /v1/hubs/{hub_id}/commits/refresh`
+
+Any active member copies the repository's latest commits from GitHub.
+
+* **Success Response (200 OK):** the build answer.
+* **Errors:** `401`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 HUB_ARCHIVED`, `409 REPOSITORY_NOT_SET`, `409 REFRESH_TOO_SOON`,
+  `502 REPOSITORY_UNAVAILABLE`, `409 REPOSITORY_CHANGED` (the owner changed the address while
+  GitHub was answering). The checks run in that order, and they run again after GitHub answers.
 
 ---
 

@@ -79,7 +79,14 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   labelled links between them in design, build and review, `POST /v1/hubs/{hub_id}/pieces`,
   `PATCH /v1/hubs/{hub_id}/pieces/{piece_id}` and `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}`
   change the pieces, and `POST /v1/hubs/{hub_id}/links` and
-  `DELETE /v1/hubs/{hub_id}/links/{link_id}` change the links, all only during design.
+  `DELETE /v1/hubs/{hub_id}/links/{link_id}` change the links, all only during design. In the
+  build phase they split the work and follow the code: `GET /v1/hubs/{hub_id}/build` reads who
+  holds each piece, the repository address and the latest commits in build and review,
+  `POST /v1/hubs/{hub_id}/pieces/{piece_id}/claim` and
+  `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}/claim` take and free a piece, and
+  `PUT /v1/hubs/{hub_id}/repository` (the owner) sets the public GitHub address, all only during
+  build. `POST /v1/hubs/{hub_id}/commits/refresh` copies the repository's latest 20 commits from
+  GitHub, at most once a minute per hub, in build and review.
   Active members also chat, in any phase: `GET /v1/hubs/{hub_id}/messages` (newest first),
   `POST /v1/hubs/{hub_id}/messages` (optionally quoting one),
   `PATCH /v1/hubs/{hub_id}/messages/{message_id}` (the author) and

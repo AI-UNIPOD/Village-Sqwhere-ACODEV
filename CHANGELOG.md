@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-15
+
+- feat(api): add the build tab of claims and commits to a hub
+
 ## 2026-11-14
 
 - feat(api): add the design sketch of pieces and links to a hub (#174)
