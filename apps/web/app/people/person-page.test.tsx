@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { Component, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -70,6 +70,14 @@ test("shows another developer's public profile", async () => {
   expect(github.getAttribute("href")).toBe("https://github.com/ama-mensah");
   expect(screen.queryByRole("link", { name: "Edit your profile" })).toBeNull();
   expect(asked()).toContain("GET /v1/users/ama-mensah");
+});
+
+test("the demo's people have no GitHub button, since their username is not on GitHub", async () => {
+  open("ama-mensah", { data: person() }, "en", { ...me(), is_demo: true } as ReturnType<typeof me>);
+  expect(await screen.findByRole("heading", { level: 1, name: "Ama Mensah" })).toBeTruthy();
+  await waitFor(() => expect(asked()).toContain("GET /v1/me"));
+  expect(screen.queryByRole("link", { name: /GitHub/ })).toBeNull();
+  expect(screen.getByText("@ama-mensah")).toBeTruthy();
 });
 
 test("a profile with little in it says so, and a GitHub name is shown once", async () => {

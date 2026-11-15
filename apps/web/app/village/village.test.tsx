@@ -7,7 +7,8 @@ import { copy } from "./copy";
 import { Village } from "./village";
 
 const route = vi.hoisted(() => ({ lang: "en" }));
-vi.mock("next/navigation", () => ({ useParams: () => ({ lang: route.lang }) }));
+// useRouter is for the demo bar, which the frame draws for the demo account
+vi.mock("next/navigation", () => ({ useParams: () => ({ lang: route.lang }), useRouter: () => ({ push: vi.fn() }) }));
 
 const fetchMock = vi.fn();
 
@@ -19,7 +20,7 @@ const role = (slug: string, name: string, verified = false) => ({
 });
 
 // what GET /v1/me answers for a made-up developer
-function signedInAs(me: { roles?: unknown[]; technologies?: unknown[]; display_name?: string }, invitations: unknown[] = []) {
+function signedInAs(me: { roles?: unknown[]; technologies?: unknown[]; display_name?: string; is_demo?: boolean }, invitations: unknown[] = []) {
   fetchMock.mockImplementation((url: string) =>
     Promise.resolve(
       new Response(
@@ -157,6 +158,13 @@ test("a role the web app does not know keeps the API's name", async () => {
   signedInAs({ roles: [role("game-engineer", "Game Engineer")] });
   render(<Village lang="fr" />);
   expect(await screen.findByText("Game Engineer")).toBeTruthy();
+});
+
+test("the demo account's username is plain text, since it is not on GitHub", async () => {
+  signedInAs({ is_demo: true });
+  render(<Village lang="en" />);
+  expect(await screen.findByText("@aminata-n")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: /GitHub profile/ })).toBeNull();
 });
 
 test("without a real name the username is shown once, linked to GitHub", async () => {
