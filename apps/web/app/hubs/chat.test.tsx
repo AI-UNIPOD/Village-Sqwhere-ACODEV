@@ -210,3 +210,78 @@ test("the chat speaks French", async () => {
   expect(await within(section()).findByText("Pas encore de messages. Dites bonjour à votre équipe.")).toBeTruthy();
   expect(within(section()).getByRole("button", { name: "Envoyer" })).toBeTruthy();
 });
+
+const mine = (id: string, body: string, hours: number, over: Record<string, unknown> = {}) =>
+  message(id, body, hours, { author: tendai, can_edit: true, can_delete: true, ...over });
+const changed = (method: string) => fetchMock.mock.calls.filter(([, init]) => init?.method === method).map(([url, init]) => [String(url).replace("http://localhost:8000", ""), init.body ? JSON.parse(init.body) : null]);
+const confirmDelete = () => fireEvent.click(within(screen.getByRole("dialog", { name: "Delete this message?" })).getByRole("button", { name: "Delete the message" }));
+
+test("only the actions the API allows are offered on each message", async () => {
+  await open(asMember, { [MESSAGES]: page([message("m-1", "Theirs", 3), mine("m-2", "Mine", 1)]) });
+  await waitFor(() => expect(items()).toHaveLength(2));
+  expect(within(items()[0]).queryByRole("button", { name: "Edit your message" })).toBeNull();
+  expect(within(items()[0]).queryByRole("button", { name: /^Delete/ })).toBeNull();
+  expect(within(items()[1]).getByRole("button", { name: "Edit your message" })).toBeTruthy();
+  expect(within(items()[1]).getByRole("button", { name: "Delete the message by Tendai Moyo" })).toBeTruthy();
+});
+
+test("the author edits a message in place, and replies that quote it follow", async () => {
+  await open(asMember, {
+    [MESSAGES]: page([message("m-2", "Agreed", 1, { reply_to: { id: "m-1", author: tendai, body: "Standup at 9" } }), mine("m-1", "Standup at 9", 3)]),
+    "PATCH /v1/hubs/hub-1/messages/m-1": { data: mine("m-1", "Standup at 10", 3, { edited_at: new Date().toISOString() }) },
+  });
+  await waitFor(() => expect(items()).toHaveLength(2));
+  fireEvent.click(within(items()[0]).getByRole("button", { name: "Edit your message" }));
+  const box = within(items()[0]).getByRole<HTMLTextAreaElement>("textbox", { name: "Your changed message" });
+  expect(box.value).toBe("Standup at 9");
+  fireEvent.change(box, { target: { value: " Standup at 10 " } });
+  fireEvent.click(within(items()[0]).getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(changed("PATCH")).toEqual([["/v1/hubs/hub-1/messages/m-1", { body: "Standup at 10" }]]));
+  await waitFor(() => expect(items()[0].textContent).toContain("edited"));
+  expect(items()[0].textContent).toContain("Standup at 10");
+  expect(items()[1].querySelector("blockquote")!.textContent).toBe("Tendai Moyo wroteStandup at 10");
+  expect(within(section()).getByRole("status").textContent).toBe("Your message was changed.");
+});
+
+test("an edit that fails keeps the form and the text", async () => {
+  await open(asMember, { [MESSAGES]: page([mine("m-1", "Draft", 1)]), "PATCH /v1/hubs/hub-1/messages/m-1": reply(500) });
+  await waitFor(() => expect(items()).toHaveLength(1));
+  fireEvent.click(within(items()[0]).getByRole("button", { name: "Edit your message" }));
+  const box = within(items()[0]).getByRole<HTMLTextAreaElement>("textbox", { name: "Your changed message" });
+  fireEvent.change(box, { target: { value: "Better draft" } });
+  fireEvent.click(within(items()[0]).getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(within(section()).getAllByRole("alert").at(-1)!.textContent).toContain("We couldn't save that."));
+  expect(within(items()[0]).getByRole<HTMLTextAreaElement>("textbox", { name: "Your changed message" }).value).toBe("Better draft");
+});
+
+test("a message is deleted after a confirmation, and replies that quoted it say so", async () => {
+  await open(asMember, {
+    [MESSAGES]: page([message("m-2", "Agreed", 1, { reply_to: { id: "m-1", author: tendai, body: "Standup at 9" } }), mine("m-1", "Standup at 9", 3)]),
+    "DELETE /v1/hubs/hub-1/messages/m-1": new Response(null, { status: 204 }),
+  });
+  await waitFor(() => expect(items()).toHaveLength(2));
+  fireEvent.click(within(items()[0]).getByRole("button", { name: "Delete the message by Tendai Moyo" }));
+  confirmDelete();
+  await waitFor(() => expect(items()).toHaveLength(1));
+  expect(changed("DELETE")).toEqual([["/v1/hubs/hub-1/messages/m-1", null]]);
+  expect(items()[0].querySelector("blockquote")!.textContent).toBe("Tendai Moyo wroteThis message was deleted.");
+  expect(within(section()).getByRole("status").textContent).toBe("The message was deleted.");
+});
+
+test("a message already deleted elsewhere leaves the list with a line that says so", async () => {
+  await open(asMember, { [MESSAGES]: page([mine("m-1", "Old", 3)]), "DELETE /v1/hubs/hub-1/messages/m-1": refusal(404, "MESSAGE_NOT_FOUND") });
+  await waitFor(() => expect(items()).toHaveLength(1));
+  fireEvent.click(within(items()[0]).getByRole("button", { name: "Delete the message by Tendai Moyo" }));
+  confirmDelete();
+  await waitFor(() => expect(items()).toHaveLength(0));
+  expect(within(section()).getByRole("status").textContent).toBe("That message was already deleted.");
+});
+
+test("a delete refused to someone else says who may delete", async () => {
+  await open(asMember, { [MESSAGES]: page([mine("m-1", "Old", 3)]), "DELETE /v1/hubs/hub-1/messages/m-1": refusal(403, "NOT_MESSAGE_AUTHOR") });
+  await waitFor(() => expect(items()).toHaveLength(1));
+  fireEvent.click(within(items()[0]).getByRole("button", { name: "Delete the message by Tendai Moyo" }));
+  confirmDelete();
+  await waitFor(() => expect(alertText()).toContain("only the author or the hub's owner can delete it"));
+  expect(items()).toHaveLength(1);
+});

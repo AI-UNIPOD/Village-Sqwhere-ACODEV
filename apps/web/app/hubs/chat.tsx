@@ -12,9 +12,11 @@ import { fill } from "../onboarding/copy";
 import { AlertCircle, Check, X } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { SignedOutError } from "../session/session";
+import { Tooltip } from "../tooltip";
 import { copy } from "./copy";
 import { LoadFailed } from "./form-parts";
-import { loadHub, loadMessages, MESSAGE_MAX, sendMessage, type Hub, type Message } from "./hubs-api";
+import { ConfirmDialog } from "../confirm-dialog";
+import { deleteMessage, editMessage, loadHub, loadMessages, MESSAGE_MAX, sendMessage, type Hub, type Message } from "./hubs-api";
 import styles from "./hubs.module.css";
 
 // The person was removed or the hub was archived while the page was open: the chat is read only now.
@@ -30,6 +32,15 @@ type Line = { text: string; problem?: boolean; focus?: boolean };
 function merge(have: Message[], more: Message[]): Message[] {
   const known = new Set(have.map((message) => message.id));
   return [...have, ...more.filter((message) => !known.has(message.id))].sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+// Puts a changed message in its place, and its new text, or null once deleted, in the replies that quote it.
+function settle(have: Message[], id: string, changed: Message | null): Message[] {
+  return have.flatMap((message) => {
+    if (message.id === id) return changed ? [changed] : [];
+    if (message.reply_to?.id !== id) return [message];
+    return [{ ...message, reply_to: { ...message.reply_to, body: changed ? changed.body : null } }];
+  });
 }
 
 // The hub's chat, for its active members in every phase. The API sends the newest page first;
@@ -52,6 +63,10 @@ export function Chat({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: 
   const [quoting, setQuoting] = useState<Message | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  // the one message being edited, and the one the person is being asked about deleting
+  const [editing, setEditing] = useState<string | null>(null);
+  const [target, setTarget] = useState<Message | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
   const said = useRef<HTMLParagraphElement>(null);
   const moveFocus = useRef(false);
@@ -121,7 +136,60 @@ export function Chat({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: 
       loadHub(hub.id).then(onChange, () => {});
       return { text: c.errors.changed, problem: true, focus: true };
     }
+    if (code === "NOT_MESSAGE_AUTHOR") return { text: c.errors.notAuthor, problem: true };
     return { text: c.errors.failed, problem: true };
+  }
+
+  // A message deleted elsewhere meanwhile: it leaves the list, and the line says so.
+  function vanished(id: string) {
+    setMessages((have) => have && settle(have, id, null));
+    setEarlier((offset) => (offset === null ? null : Math.max(0, offset - 1)));
+    say({ text: c.delete.gone, focus: true });
+  }
+
+  // Answers whether the edit is over, so the form closes only once the text is saved or gone.
+  async function save(message: Message, body: string): Promise<boolean> {
+    setLine(null);
+    try {
+      const changed = await editMessage(hub.id, message.id, body);
+      setMessages((have) => have && settle(have, message.id, changed));
+      setEditing(null);
+      say({ text: c.edit.saved });
+      return true;
+    } catch (reason) {
+      if (reason instanceof IdeaError && reason.code === "MESSAGE_NOT_FOUND") {
+        setEditing(null);
+        vanished(message.id);
+        return true;
+      }
+      const sentence = refused(reason);
+      if (sentence) say(sentence);
+      return false;
+    }
+  }
+
+  async function remove() {
+    if (!target || deleting) return;
+    const gone = target;
+    setDeleting(true);
+    setLine(null);
+    try {
+      await deleteMessage(hub.id, gone.id);
+      setMessages((have) => have && settle(have, gone.id, null));
+      // one message fewer before the earlier ones
+      setEarlier((offset) => (offset === null ? null : Math.max(0, offset - 1)));
+      if (quoting?.id === gone.id) setQuoting(null);
+      say({ text: c.delete.done, focus: true });
+    } catch (reason) {
+      if (reason instanceof IdeaError && reason.code === "MESSAGE_NOT_FOUND") vanished(gone.id);
+      else {
+        const sentence = refused(reason);
+        if (sentence) say(sentence);
+      }
+    } finally {
+      setDeleting(false);
+      setTarget(null);
+    }
   }
 
   const problem = (value: string) => (size(value) === 0 ? c.errors.empty : size(value) > MESSAGE_MAX ? fill(c.errors.long, { max: MESSAGE_MAX }) : null);
@@ -210,8 +278,12 @@ export function Chat({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: 
                     {message.edited_at && <span>{c.edited}</span>}
                   </p>
                   {message.reply_to && <Quote lang={lang} quote={message.reply_to} />}
-                  <p className={styles.noteText}>{message.body}</p>
-                  {writable && (
+                  {editing === message.id ? (
+                    <EditForm lang={lang} message={message} problem={problem} onSave={(body) => save(message, body)} onCancel={() => setEditing(null)} />
+                  ) : (
+                    <p className={styles.noteText}>{message.body}</p>
+                  )}
+                  {writable && editing !== message.id && (
                     <div className={styles.messageActions}>
                       <button
                         type="button"
@@ -221,6 +293,22 @@ export function Chat({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: 
                       >
                         {c.reply.button}
                       </button>
+                      {message.can_edit && (
+                        <button type="button" className={landing.ghost} aria-label={c.edit.label} onClick={() => setEditing(message.id)}>
+                          {c.edit.button}
+                        </button>
+                      )}
+                      {message.can_delete && (
+                        <button
+                          type="button"
+                          className={styles.noteRemove}
+                          aria-label={fill(c.delete.label, { name: message.author.display_name })}
+                          onClick={() => setTarget(message)}
+                        >
+                          <X />
+                          <Tooltip label={fill(c.delete.label, { name: message.author.display_name })} />
+                        </button>
+                      )}
                     </div>
                   )}
                 </li>
@@ -281,7 +369,80 @@ export function Chat({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: 
           </div>
         </form>
       )}
+      <ConfirmDialog
+        open={!!target}
+        title={c.delete.title}
+        confirm={c.delete.confirm}
+        cancel={c.delete.cancel}
+        danger
+        busy={deleting}
+        onConfirm={remove}
+        onCancel={() => setTarget(null)}
+      >
+        <p>{c.delete.text}</p>
+      </ConfirmDialog>
     </section>
+  );
+}
+
+// The author's own message, opened for a change in its place. Saving the same text is allowed.
+function EditForm(props: {
+  lang: Lang;
+  message: Message;
+  problem: (value: string) => string | null;
+  onSave: (body: string) => Promise<boolean>;
+  onCancel: () => void;
+}) {
+  const { lang, message, problem, onSave, onCancel } = props;
+  const c = copy[lang].hubChat;
+  const [text, setText] = useState(message.body);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const area = useRef<HTMLTextAreaElement>(null);
+  const id = `chat-edit-${message.id}`;
+
+  useEffect(() => area.current?.focus(), []);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    const found = problem(text);
+    setError(found);
+    if (found) {
+      area.current?.focus();
+      return;
+    }
+    setSaving(true);
+    // the form stays when the save fails, so the text is not lost
+    if (!(await onSave(text.trim()))) setSaving(false);
+  }
+
+  return (
+    <form noValidate onSubmit={submit}>
+      <Field id={id} label={c.edit.field} help={c.write.help} error={error ?? undefined} count={fill(c.write.left, { n: MESSAGE_MAX - size(text) })}>
+        <textarea
+          ref={area}
+          id={id}
+          className={`${onboarding.input} ${ideas.area}`}
+          rows={3}
+          value={text}
+          aria-invalid={!!error || undefined}
+          aria-describedby={`${id}-help${error ? ` ${id}-error` : ""}`}
+          onChange={(event) => {
+            setText(event.target.value);
+            if (error && !problem(event.target.value)) setError(null);
+          }}
+        />
+      </Field>
+      <div className={styles.messageActions}>
+        <button type="submit" className={landing.ghost} aria-busy={saving || undefined}>
+          {c.edit.save}
+        </button>
+        <button type="button" className={landing.ghost} onClick={onCancel}>
+          {c.edit.cancel}
+        </button>
+      </div>
+    </form>
   );
 }
 
