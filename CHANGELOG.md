@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- test(web): wait for the dialog to close in three hub tests
 - feat(web): add the review checklist to the hub page (#210)
 - fix(infra): date the demo's signatures when each member joined (#209)
 - fix(web): say the build tab is live on the landing page (#208)
