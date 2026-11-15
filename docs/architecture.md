@@ -16,8 +16,17 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
   and `JWT_SECRET_KEY`. The API will not start without `JWT_SECRET_KEY`.
 - **PostgreSQL + pgvector**: the main data store, set up by the scripts in `infra/db/init/`.
-  The schema has an `idea_embeddings` table with a pgvector column, for finding similar
-  ideas. Nothing writes to it yet.
+  `idea_embeddings` and `user_embeddings` hold what an idea and a developer mean, as 768
+  numbers each from Google's `gemini-embedding-2`. The worker writes them, never a request
+  (see "The worker" below). Nothing reads them yet: the match score does not use them.
+- **The worker** (`python -m app.workers.runner`): the slow steps that must not hold a request.
+  It runs the role verification (reading repositories, writing the report) and, each run,
+  embeds up to 20 open ideas and 20 developers that have no vector. Only public text leaves the
+  server for that: an idea's title and summary, and a developer's verified roles, technologies,
+  sectors and bio. Never an idea's private brief, an email, a name or a username. When the text
+  changes, a database trigger removes the vector and the next run makes a new one. Without
+  `GEMINI_API_KEY` the step does nothing. Why:
+  `docs/decisions/2026-11-15-embeddings-on-gemini.md`.
 - **Hosting**: everything is deployed on Systalink (see `infra/README.md`).
 
 ## What the API does today
@@ -47,9 +56,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/me/verifications/{role_slug}` (start, with GitHub repositories as evidence),
   `GET /v1/me/verifications`, `GET /v1/me/verifications/{session_id}` (poll one attempt)
   and `POST /v1/me/verifications/{session_id}/abandon`. The technical defence runs over a
-  WebSocket, `WS /v1/me/verifications/{session_id}/interview`, which takes the access token in
-  the `token` query parameter. It is not in the OpenAPI schema, so the route test does not
-  cover it.
+  WebSocket, `WS /v1/me/verifications/{session_id}/interview`, opened with a one-use ticket
+  from `POST /v1/me/verifications/{session_id}/interview-ticket` in the `ticket` query
+  parameter (the older `token` parameter is deprecated). The socket is not in the OpenAPI
+  schema, so the route test does not cover it.
 - **Peer review** (Bearer token, for developers verified in the attempt's role, never their
   own attempt): `GET /v1/reviews/verifications`, `GET /v1/reviews/verifications/{session_id}`
   and `POST /v1/reviews/verifications/{session_id}/decision` (`passed` or `failed`).
