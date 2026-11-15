@@ -11,7 +11,6 @@ its number:
 ## 2026-11-15
 
 - feat(web): continue a deep reply's thread on its own (#231)
-
 - feat(web): add a waving Nigeria flag to the landing footer
 - feat(api): let a developer pause matching (#213)
 - docs: name the live address for sign-in settings and add a check (#228)
