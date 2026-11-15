@@ -22,6 +22,7 @@ import { copy } from "./copy";
 import { deletePost, loadPost, type Post } from "./feed-api";
 import { FeedSkeleton } from "./feed";
 import styles from "./feed.module.css";
+import { PostImages } from "./post-images";
 import { PostActions, PostBody, PostHead, PostLink, PostTopics, when } from "./post-parts";
 
 // The whole page while it loads, for the route's Suspense boundary.
@@ -125,6 +126,7 @@ function PostView({ lang, id }: { lang: Lang; id: string | null }) {
         <PostHead lang={lang} post={post} now={now} />
         {post.edited_at && <p className={ideas.meta}>{fill(t.post.edited, { time: when(post.edited_at, now, lang) })}</p>}
         <PostBody post={post} />
+        <PostImages lang={lang} images={post.attachments} />
         {post.link_url && <PostLink lang={lang} url={post.link_url} />}
         <PostTopics lang={lang} topics={post.topics} />
         <PostActions lang={lang} post={post} onChange={(change) => setPost((have) => have && { ...have, ...change })} />
