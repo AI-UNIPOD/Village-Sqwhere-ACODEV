@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- docs: link the live site in both readmes (#227)
 - fix(api): make the demo world's review case and chats consistent (#224)
 - feat(web): show the meaning part of the score and similar ideas (#222)
 - chore: deploy the web app, api and worker as one vercel project (#226)
