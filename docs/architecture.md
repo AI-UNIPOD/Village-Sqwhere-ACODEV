@@ -18,7 +18,7 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
 - **PostgreSQL + pgvector**: the main data store, set up by the scripts in `infra/db/init/`.
   `idea_embeddings` and `user_embeddings` hold what an idea and a developer mean, as 768
   numbers each from Google's `gemini-embedding-2`. The worker writes them, never a request
-  (see "The worker" below). Nothing reads them yet: the match score does not use them.
+  (see "The worker" below). The match score and similar ideas read them.
 - **The worker** (`python -m app.workers.runner`): the slow steps that must not hold a request.
   It runs the role verification (reading repositories, writing the report) and, each run,
   embeds up to 20 open ideas and 20 developers that have no vector. Only public text leaves the
@@ -112,19 +112,23 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   Active members also chat, in any phase: `GET /v1/hubs/{hub_id}/messages` (newest first),
   `POST /v1/hubs/{hub_id}/messages` (optionally quoting one),
   `PATCH /v1/hubs/{hub_id}/messages/{message_id}` (the author) and
-  `DELETE /v1/hubs/{hub_id}/messages/{message_id}` (the author or the owner).
+  `DELETE /v1/hubs/{hub_id}/messages/{message_id}` (the author or the owner). They hear
+  changes live on the WebSocket `WS /v1/hubs/{hub_id}/messages/live` (the token goes in its
+  first frame, never the URL; one API process only).
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
   `POST /v1/me/ideas/{idea_id}/publish`, `POST /v1/me/ideas/{idea_id}/close` and
   `DELETE /v1/me/ideas/{idea_id}` (only while it has no hub) create and manage the owner's
   private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
-  open idea cards to signed-in developers. A card has the summary and roles needed, never the
-  confidential brief. Guide: `docs/backend.md`.
+  open idea cards to signed-in developers, and `GET /v1/ideas/{idea_id}/similar` gives up to
+  five other open ideas that read close to one. A card has the summary and roles needed, never
+  the confidential brief. Guide: `docs/backend.md`.
 - **Matching** (Bearer token): `GET /v1/me/ideas/{idea_id}/matches` ranks developers verified
   in the roles one of my open ideas needs, and `GET /v1/me/matches` ranks open ideas that need
-  my verified roles. Every match has a score out of 100, counted from roles, shared technologies
-  and shared sectors, and both lists are ordered by it. No AI model and no idea details are
-  involved.
+  my verified roles. Every match has a score out of 100, counted from roles, shared technologies,
+  shared sectors and, when both vectors exist, how close the idea and the profile read, and both
+  lists are ordered by it. A match can also name the closest idea of the other person or of mine
+  (`similar_idea`). No AI model is called at request time and no idea details are involved.
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
   `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
   `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics

@@ -690,7 +690,7 @@ with a database row lock, and a failed job is logged while the loop continues.
 
 **Embeddings.** The same loop also embeds, each run, up to 20 ideas and 20 developers that have
 no vector, with Google's `gemini-embedding-2` and the `GEMINI_API_KEY` the API already has. No
-route reads or writes them and the match score does not use them yet. Why:
+route writes them. The match score and similar ideas read them (see "Matching"). Why:
 `docs/decisions/2026-11-15-embeddings-on-gemini.md`.
 
 * **What is sent.** For an idea, its title and summary, never `details`. For a developer, their
@@ -858,41 +858,71 @@ roles needed, author, `hub_id` (the idea's hub, or `null` before it has one) and
 never contains the confidential `details` field. A developer asks to join through `hub_id`.
 `GET /v1/ideas` accepts `offset` and `limit`, with `next_offset` when another page exists.
 
+#### `GET /v1/ideas/{idea_id}/similar`
+
+Up to 5 other open ideas that read close to this one, closest first, in the same card shape as
+`GET /v1/ideas`: `{"data": [<public idea card>], "next_offset": null}`. An idea is close when
+its vector and this idea's vector have a similarity of at least 0.80 (see "Matching"). Drafts,
+closed ideas, deleted ideas and the idea itself never appear. No similarity number is returned:
+being in the list is the fact. An idea with no vector yet, or with nothing close, gives an empty
+list, not an error. The caller must be able to read the idea, as for `GET /v1/ideas/{idea_id}`:
+it is open and on the caller's side of the demo wall. Nothing is written.
+
+* **Authentication:** Bearer token required.
+* **Errors:** `404 NOT_FOUND` when the idea does not exist, is a draft, closed or deleted, or is
+  on the other side of the demo wall.
+
 ### Matching
 
 Matching pairs open ideas with developers through the roles an idea needs and the roles a
 developer has passed verification in. Self-claimed and inactive roles never match. It is
-deterministic: no AI model is called and an idea's `details` are never read. The worker stores
-embeddings of ideas and profiles (see "Embeddings" above), but the score does not use them
-yet. Both routes take `offset` (0 or more) and `limit` (1 to 50, default 20) and return
+deterministic: no AI model is called and an idea's `details` are never read. The score reads the
+embeddings the worker stores for ideas and profiles (see "Embeddings" above), and nothing is
+sent anywhere or written. Both routes take `offset` (0 or more) and `limit` (1 to 50, default 20) and return
 `next_offset` when another page exists. Why:
 `docs/decisions/2026-11-13-role-based-idea-matching.md`.
 
 **The score.** Every match has a score out of 100 and both lists are ordered by it. Why:
-`docs/decisions/2026-11-14-match-score.md`. It is counted from stored facts, in four parts:
+`docs/decisions/2026-11-14-match-score.md` and `docs/decisions/2026-11-15-match-score-meaning.md`.
+It is counted from stored facts, in four parts:
 
 | Part | Points | How it is counted |
 | --- | --- | --- |
 | Roles | 40 | 30 for one needed role the developer is verified in, 40 for two or more |
 | Technologies | 20 | 4 for each technology shared with the idea's author, at most 5 counted |
 | Sectors | 10 | 5 for each sector shared with the idea's author, at most 2 counted |
-| Meaning | 30 | Not built yet |
+| Meaning | 30 | How close the idea and the developer's profile read, from their vectors |
 
-Version 1 has no meaning part, so the 70 points that exist are scaled to 100 and rounded to a
-whole number, half up: `(raw * 100 + 35) // 70`. Raw 30 gives 43, 42 gives 60, 57 gives 81 and
-70 gives 100. Both lists add these fields to each item:
+There are two versions, and a list can hold both. Each row says which one it is.
+
+* **Version 2**, when both vectors exist for the pair (the idea's and the developer's): the plain
+  sum of the four parts, out of 100. The meaning points are
+  `round(30 * clamp((similarity - 0.70) / (0.82 - 0.70), 0, 1))`, a whole number from 0 to 30,
+  where `similarity` is 1 minus the cosine distance of the two vectors. The band is narrow on
+  purpose: an idea and a profile read 0.71 to 0.82 apart, so the raw number is not a percentage.
+  Rounding is half up.
+* **Version 1**, when either vector is missing (not made yet): the 70 points that exist are scaled
+  to 100 and rounded to a whole number, half up: `(raw * 100 + 35) // 70`. Raw 30 gives 43, 42
+  gives 60, 57 gives 81 and 70 gives 100.
+
+Both lists add these fields to each item:
 
 * `score`: a whole number from 0 to 100.
-* `score_version`: `1`.
-* `partial`: `true` while the meaning part is missing.
+* `score_version`: `2` when the meaning part is in the score, otherwise `1`.
+* `partial`: `true` while the meaning part is missing (version 1).
 * `breakdown`: `roles`, `technologies`, `sectors` and `meaning`, each `{"points", "max"}` with
   `max` 40, 20, 10 and 30. `points` are the raw points before scaling, so a card can say
   "30 of 40". `meaning.points` is `null` in version 1.
+* `similar_idea`: `{"id", "title"}` or `null`. On the developer list it is the developer's own
+  open idea that reads closest to the caller's idea. On the idea list it is the caller's own open
+  idea that reads closest to the listed idea. It is set only when their similarity is at least
+  0.80, never for a draft, a closed or a deleted idea, and never across the demo wall. No
+  similarity number is returned: 0.83 would read as "83% alike", which it does not mean.
 * `shared_sectors`: the sectors both people have, sorted by name like `shared_technologies`
   (`[]` when none). On the developer list it is the developer's sectors that the idea's author
   also has; on the idea list, the caller's sectors that the idea's author also has.
 
-The order is the raw points, highest first. Ties are broken by the earlier rules: for
+The order is the score shown, highest first. Ties are broken by the earlier rules: for
 developers the earliest verification, then the user id; for ideas the newest publication, then
 the idea id (highest first). The order is computed in SQL, so `offset` and `limit` page through
 it correctly.
@@ -927,6 +957,7 @@ roles needed returns an empty list, so the page should prompt the owner to add r
         "shared_technology_count": 1,
         "shared_sectors": [{ "slug": "fintech", "name": "Fintech" }],
         "country_code": "GH",
+        "similar_idea": null,
         "score": 56,
         "score_version": 1,
         "partial": true,
@@ -958,7 +989,8 @@ the page should point them to role verification.
 * **Authentication:** Bearer token required.
 * **Success Response (200 OK):** `{"data": [{"idea": <public idea card>, "matched_roles":
   [<role>], "shared_technologies": [<technology>], "shared_sectors": [<sector>], "score": 60,
-  "score_version": 1, "partial": true, "breakdown": {...}}], "next_offset": null}`. The idea card
+  "score_version": 1, "partial": true, "breakdown": {...}, "similar_idea": null}],
+  "next_offset": null}`. The idea card
   is the same as `GET /v1/ideas/{idea_id}`. `shared_technologies` and `shared_sectors` name the
   technologies and sectors the caller shares with the idea's author, sorted by name. They are
   empty when none are shared. The card has no author country.
@@ -1451,6 +1483,11 @@ The owner moves the hub to the phase just after or just before its current one.
   `409 TEAM_NOT_CONFIRMED`, `409 HUB_FINISHED`, `409 PHASE_NOT_ADJACENT`, `422`. Skipping a phase, or asking for the
   phase the hub is already in, is `PHASE_NOT_ADJACENT`, so a request sent twice moves the hub
   once. Nothing comes before `brainstorm`: the team stays confirmed.
+* **Feed post:** confirming the team and every move forward add one post to the feed, in the
+  same transaction: `type: "hub_milestone"`, written by the owner, with the body
+  "Farm Ledger Hub moved to Build." and `milestone: {"hub_id", "hub_name", "phase"}`. Only the
+  hub's name (already on its public card) and the phase, never the idea. Moving back adds
+  nothing. Why: `docs/decisions/2026-11-15-hub-milestone-posts.md`.
 
 #### Brainstorm notes
 
@@ -1873,7 +1910,7 @@ The hub's owner finishes the hub. No body.
 
 A flat chat for the team, in any phase, once someone is an active member (the team need not be
 confirmed). A message is 1 to 10,000 characters, trimmed, and may quote one earlier message in
-the same hub. There are no live updates: the page loads the chat again to see new messages.
+the same hub. Members can also listen live over `WS /v1/hubs/{hub_id}/messages/live` (below).
 Every route answers `403 NOT_HUB_MEMBER` to anyone who is not an active member, and an
 archived hub's chat is read only (`409 HUB_ARCHIVED`). Why: `docs/decisions/2026-11-14-hub-chat.md`.
 
@@ -1923,6 +1960,30 @@ The author or the hub's owner deletes a message. Answers `204`. The row stays wi
 `deleted_at`, and replies that quoted it keep showing who wrote it, without the text.
 
 * **Errors:** `403 NOT_MESSAGE_AUTHOR`, `404 MESSAGE_NOT_FOUND`, `409 HUB_ARCHIVED`.
+
+#### `WS /v1/hubs/{hub_id}/messages/live`
+
+A WebSocket that pushes the hub's chat as it changes, so the page needs no refresh.
+
+1. Open the socket, then send this first frame within 5 seconds:
+   `{"type": "auth", "token": "<access token>"}`. The token never goes in the URL, where
+   servers and proxies log it.
+2. An active member of the hub (the demo account too, in a demo hub) gets `{"type": "ready"}`.
+   Anyone else, a bad token or a late or missing frame gets the socket closed with code `1008`.
+3. After each change is saved, every listener gets one event:
+   * `{"type": "message.created", "message": <message card>}`
+   * `{"type": "message.edited", "message": <message card>}`
+   * `{"type": "message.deleted", "message": {"id": "..."}}`
+
+   The card is the same one the routes above return, built for each listener, so `can_edit`
+   and `can_delete` are theirs.
+4. Membership is checked again before every event. Someone who left or was removed gets the
+   socket closed with `1008` and hears nothing more.
+
+The client sends nothing after the first frame. Reconnect, and load
+`GET /v1/hubs/{hub_id}/messages` again, after a drop: events missed while away are not replayed.
+This works while the API runs as one process; more would need a pub-sub between them. Why:
+`docs/decisions/2026-11-15-live-hub-chat.md`.
 
 ### How the Sign-In Flow Works for End Users (100% Automated)
 In production and regular use, **the user never touches or sees a `login_code`**. The frontend coordinates the handshake automatically:
@@ -2048,7 +2109,8 @@ The Developer Exchange allows developers to share knowledge, questions, releases
 | :--- | :--- | :--- |
 | `POST_NOT_FOUND` | 404 | Post does not exist, is soft-deleted, or belongs to a hub |
 | `NOT_POST_AUTHOR` | 403 | Attempt to edit or delete another user's post |
-| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Creating a post with `type = "hub_milestone"`, or asking the post list for that type |
+| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Creating a post with `type = "hub_milestone"`: only a hub writes those |
+| `MILESTONE_NOT_EDITABLE` | 409 | Editing a hub's milestone post (it can be deleted) |
 | `UNKNOWN_TOPIC` | 422 | A topic slug does not exist in the technologies table |
 | `EMPTY_UPDATE` | 422 | PATCH body contains no fields |
 | `TOO_MANY_TOPICS` | 422 | More than 5 topics submitted |
@@ -2063,7 +2125,7 @@ Create a new feed post.
 
 * **Authentication:** Required (Bearer token)
 * **Topic rules:** Maximum 5 topics. No duplicate slugs. Each slug must match a technology in the technologies table.
-* **Hub milestone:** `type = "hub_milestone"` is currently deferred and returns HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`.
+* **Hub milestone:** people cannot create `type = "hub_milestone"` (HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`). A hub posts one itself when its owner moves it forward a phase (see the hub phase routes).
 * **Link:** `link_url` must start with `http://` or `https://` and is at most 2048 characters (HTTP 422 otherwise).
 * **Text:** the title, body, link and topics cannot contain a null character (HTTP 422).
 * **Request Body:**
@@ -2163,12 +2225,15 @@ Soft-delete a post.
 
 ### `GET /v1/posts`
 
-List visible posts, newest first. Deleted posts and hub posts never appear.
+List visible posts, newest first. Deleted posts never appear. A hub's milestone posts do
+(`type: "hub_milestone"`): they carry `milestone: {"hub_id", "hub_name", "phase"}` so the web
+can say them in English or French, and only the hub's name and phase, never the idea.
+`milestone` is `null` on every other post.
 
 * **Authentication:** Required (Bearer token)
 * **Query parameters (all optional, combine freely):**
-  * `type`: one post type, for example `question`. An unknown type returns 422, and
-    `type=hub_milestone` returns 422 `HUB_MILESTONE_NOT_SUPPORTED`, the same as creating one.
+  * `type`: one post type, for example `question` or `hub_milestone`. An unknown type
+    returns 422.
   * `topic`: a technology slug, for example `python`. Repeat it to match any of several:
     `?topic=python&topic=react`. A post appears once if it has any of them, and a request
     may give at most 10 topics.

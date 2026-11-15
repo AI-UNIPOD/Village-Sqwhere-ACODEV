@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { API_URL, SignedOutError, accessToken } from "../session/session";
+import { API_URL, SignedOutError, apiFetch } from "../session/session";
 
 export const MAX_ANSWER = 10_000;
 
@@ -79,18 +79,25 @@ export function useInterview(attemptId: string) {
 
   const begin = async () => {
     setStatus("connecting");
-    let token: string;
+    const attempt = `/v1/me/verifications/${encodeURIComponent(attemptId)}`;
+    // A one-use ticket opens the socket, so the access token never goes in a URL, where
+    // servers and proxies log it.
+    let ticket: string;
     try {
-      token = await accessToken();
+      const response = await apiFetch(`${attempt}/interview-ticket`, { method: "POST" });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || typeof body?.data?.ticket !== "string") {
+        if (alive.current) setStatus("refused");
+        return;
+      }
+      ticket = body.data.ticket;
     } catch (error) {
       // a signed-out person is already being sent to sign-in
-      if (!(error instanceof SignedOutError)) setStatus("refused");
+      if (!(error instanceof SignedOutError) && alive.current) setStatus("refused");
       return;
     }
     if (!alive.current) return;
-    const ws = new WebSocket(
-      `${API_URL.replace(/^http/, "ws")}/v1/me/verifications/${encodeURIComponent(attemptId)}/interview?token=${encodeURIComponent(token)}`,
-    );
+    const ws = new WebSocket(`${API_URL.replace(/^http/, "ws")}${attempt}/interview?ticket=${encodeURIComponent(ticket)}`);
     socket.current = ws;
     ws.onmessage = (event) => {
       received.current = true;

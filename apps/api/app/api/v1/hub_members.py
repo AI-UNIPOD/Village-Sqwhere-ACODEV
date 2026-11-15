@@ -290,7 +290,10 @@ async def add_fit(db: AsyncSession, hub: Hub, cards: list[HubMemberCard]) -> Non
         .where(User.id.in_(asking))
     )
     for user in requesters:
-        asking[user.id].fit = matched_developer(user, needed, author_technologies, author_sectors)
+        # a join request's fit is not compared by meaning: no read-alike and no similar idea
+        asking[user.id].fit = matched_developer(
+            user, needed, author_technologies, author_sectors, read_alike=None, similar_idea=None
+        )
 
 
 @router.post(

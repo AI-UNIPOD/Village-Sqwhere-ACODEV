@@ -8,9 +8,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 
 from app.main import app
-from app.models import Comment, CommentRevision, PlatformRole, Post, PostType
+from app.models import Comment, CommentRevision, PlatformRole
 from tests.conftest import test_async_session as db_session
-from tests.test_hub_models import create_committed_hub
 from tests.test_posts import _bearer, _create, _set_user_role, _while_a_delete_is_uncommitted
 
 
@@ -48,25 +47,15 @@ def _stored(comment_id: str) -> Comment:
     return asyncio.run(load())
 
 
-def _hub_post(author_id: str) -> str:
-    async def add() -> str:
-        hub_id = await create_committed_hub()
-        async with db_session() as session:
-            post = Post(
-                author_id=UUID(author_id),
-                type=PostType.HUB_MILESTONE,
-                body="Hub only",
-                hub_id=hub_id,
-            )
-            session.add(post)
-            await session.commit()
-            return str(post.id)
-
-    return asyncio.run(add())
+def _comment_on_a_deleted_post(client: TestClient, auth: dict[str, str], author_id: str) -> str:
+    post_id = _create(client, auth, "Soon gone")
+    comment_id = _insert_comment(post_id, author_id)
+    assert client.delete(f"/v1/posts/{post_id}", headers=auth).status_code == 204
+    return comment_id
 
 
 def _insert_comment(post_id: str, author_id: str) -> str:
-    """A comment the API would refuse to create, such as one on a hub post."""
+    """A comment written straight to the database, under the API's checks."""
 
     async def add() -> str:
         async with db_session() as session:
@@ -136,13 +125,13 @@ def test_a_reply_needs_a_live_parent_on_the_same_post(client: TestClient, sign_i
         assert _error(resp, 422) == "PARENT_NOT_FOUND", parent
 
 
-def test_comments_are_refused_on_missing_deleted_and_hub_posts(client: TestClient, sign_in) -> None:
+def test_comments_are_refused_on_missing_and_deleted_posts(client: TestClient, sign_in) -> None:
     ada = sign_in("github-code-ada")
     auth = _bearer(ada["access_token"])
     deleted = _create(client, auth, "Gone")
     assert client.delete(f"/v1/posts/{deleted}", headers=auth).status_code == 204
 
-    for post_id in (str(uuid4()), deleted, _hub_post(ada["user"]["id"])):
+    for post_id in (str(uuid4()), deleted):
         assert _error(_comment(client, auth, post_id, "Hello"), 404) == "POST_NOT_FOUND"
 
 
@@ -220,15 +209,14 @@ def test_deleting_a_comment_by_author_or_moderator(client: TestClient, sign_in) 
     assert _error(gone_edit, 404) == "COMMENT_NOT_FOUND"
 
 
-def test_comments_on_deleted_and_hub_posts_are_gone(client: TestClient, sign_in) -> None:
+def test_comments_on_deleted_posts_are_gone(client: TestClient, sign_in) -> None:
     ada = sign_in("github-code-ada")
     auth = _bearer(ada["access_token"])
     post_id = _create(client, auth, "Soon deleted")
     on_deleted_post = _comment_id(client, auth, post_id, "Still here?")
     assert client.delete(f"/v1/posts/{post_id}", headers=auth).status_code == 204
-    on_hub_post = _insert_comment(_hub_post(ada["user"]["id"]), ada["user"]["id"])
 
-    for comment_id in (on_deleted_post, on_hub_post):
+    for comment_id in (on_deleted_post,):
         url = f"/v1/comments/{comment_id}"
         assert _error(client.get(url, headers=auth), 404) == "COMMENT_NOT_FOUND"
         edit = client.patch(url, headers=auth, json={"body": "Edited"})
@@ -401,19 +389,17 @@ def test_replies_page_oldest_first(client: TestClient, sign_in) -> None:
     assert rest.json()["next_offset"] is None
 
 
-def test_comment_lists_hide_deleted_and_hub_posts(client: TestClient, sign_in) -> None:
+def test_comment_lists_hide_deleted_posts(client: TestClient, sign_in) -> None:
     ada = sign_in("github-code-ada")
     auth = _bearer(ada["access_token"])
     post_id = _create(client, auth, "Soon deleted")
     comment_id = _comment_id(client, auth, post_id, "On it")
     assert client.delete(f"/v1/posts/{post_id}", headers=auth).status_code == 204
-    hub_post = _hub_post(ada["user"]["id"])
-    hub_comment = _insert_comment(hub_post, ada["user"]["id"])
 
-    for gone in (post_id, hub_post, str(uuid4())):
+    for gone in (post_id, str(uuid4())):
         resp = client.get(f"/v1/posts/{gone}/comments", headers=auth)
         assert _error(resp, 404) == "POST_NOT_FOUND"
-    for gone in (comment_id, hub_comment, str(uuid4())):
+    for gone in (comment_id, str(uuid4())):
         resp = client.get(f"/v1/comments/{gone}/replies", headers=auth)
         assert _error(resp, 404) == "COMMENT_NOT_FOUND"
 
@@ -455,9 +441,9 @@ def test_a_thread_needs_a_listed_comment_on_a_visible_post(client: TestClient, s
     post_id = _create(client, auth, "Threads")
     alone = _comment_id(client, auth, post_id, "No replies")
     assert client.delete(f"/v1/comments/{alone}", headers=auth).status_code == 204
-    hub_comment = _insert_comment(_hub_post(ada["user"]["id"]), ada["user"]["id"])
+    hidden_comment = _comment_on_a_deleted_post(client, auth, ada["user"]["id"])
 
-    for gone in (alone, hub_comment, str(uuid4())):
+    for gone in (alone, hidden_comment, str(uuid4())):
         resp = client.get(f"/v1/comments/{gone}/thread", headers=auth)
         assert _error(resp, 404) == "COMMENT_NOT_FOUND"
 
@@ -488,9 +474,9 @@ def test_likes_need_a_live_comment_on_a_visible_post(client: TestClient, sign_in
     post_id = _create(client, auth, "No likes here")
     removed = _comment_id(client, auth, post_id, "Removed")
     assert client.delete(f"/v1/comments/{removed}", headers=auth).status_code == 204
-    hub_comment = _insert_comment(_hub_post(ada["user"]["id"]), ada["user"]["id"])
+    hidden_comment = _comment_on_a_deleted_post(client, auth, ada["user"]["id"])
 
-    for gone in (removed, hub_comment, str(uuid4())):
+    for gone in (removed, hidden_comment, str(uuid4())):
         for request in (client.put, client.delete):
             resp = request(f"/v1/comments/{gone}/like", headers=auth)
             assert _error(resp, 404) == "COMMENT_NOT_FOUND"
