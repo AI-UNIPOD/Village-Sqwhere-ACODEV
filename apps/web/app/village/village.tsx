@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
+import { loadMyHubs } from "../hubs/hubs-api";
 import { refreshInvitations, useKeptInvitations } from "../hubs/invitations";
+import { hasSharedIdea } from "../ideas/ideas-api";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -49,19 +51,35 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
   const role = me.roles.find((r) => r.is_primary) ?? me.roles[0];
   const verified = !!role?.verified_at;
   const attemptUnderWay = ["pending", "in_progress", "awaiting_review"].includes(role?.verification?.latest_status ?? "");
-  // Invitations to a hub wait on Your hubs, where nobody looks unprompted: say so here. A failed
-  // load only means the step says nothing.
+  // Invitations to a hub wait on Your hubs, where nobody looks unprompted: say so here. What the
+  // developer has already done comes from their ideas and hubs. The steps stay a skeleton until
+  // all three reads settle, so no step shows as Next and then moves to Done under the pointer. A
+  // read that fails counts as nothing known: its step says what it says without it.
   const invited = useKeptInvitations()?.length ?? 0;
+  const [done, setDone] = useState<{ idea: boolean; hub: boolean } | null>(null);
   useEffect(() => {
-    refreshInvitations().catch(() => {});
+    let current = true;
+    Promise.all([
+      hasSharedIdea().catch(() => false),
+      // every hub listed here is one the developer is an active member of, archived ones included:
+      // a hub they built in stays done
+      loadMyHubs().then((page) => page.data.length > 0, () => false),
+      refreshInvitations().catch(() => {}),
+    ]).then(([idea, hub]) => {
+      if (current) setDone({ idea, hub });
+    });
+    return () => {
+      current = false;
+    };
   }, []);
-  // Sharing an idea needs a role but not a Green Tick, so it opens beside verifying. The hub
-  // step opens when someone has invited the developer.
+  // Sharing an idea needs a role but not a Green Tick, so it opens beside verifying. Being in a
+  // hub finishes it too: joining someone's idea is the other way through this step. The hub step
+  // opens when someone has invited the developer.
   const states: Record<(typeof STEPS)[number], StepState> = {
     profile: role ? "done" : "next",
     verify: !role ? "later" : verified ? "done" : "next",
-    idea: role ? "next" : "later",
-    hub: invited ? "next" : "later",
+    idea: done?.idea || done?.hub ? "done" : role ? "next" : "later",
+    hub: done?.hub ? "done" : invited ? "next" : "later",
   };
   // one main button on the screen: an invitation someone is waiting on, else the first step
   // still to do. The others that can start are "open".
@@ -118,70 +136,88 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
 
         <h2 className={styles.subtitle}>{t.pathTitle}</h2>
         <p className={styles.lead}>{t.pathLead}</p>
-        <ol className={styles.path}>
-          {STEPS.map((id, i) => {
-            const state = states[id];
-            const StateIcon = ICONS[state];
-            return (
-              <li key={id} className={styles.step} data-state={state}>
-                <span className={styles.num} aria-hidden="true">
-                  {state === "done" ? <Check /> : String(i + 1).padStart(2, "0")}
-                </span>
-                <div className={styles.body}>
-                  <div className={styles.stepHead}>
-                    <h3>{t.steps[id].title}</h3>
-                    <span className={styles.pill} data-state={state}>
-                      <StateIcon />
-                      {t[state]}
-                    </span>
-                  </div>
-                  <p>{t.steps[id].text}</p>
-                  {id === "profile" && (
-                    <Link
-                      className={`${role ? landing.ghost : landing.btn} ${styles.action}`}
-                      // the profile page changes a profile; onboarding makes the first one
-                      href={role ? `/${lang}/profile` : `/${lang}/onboarding?step=role`}
-                    >
-                      {role ? t.change : t.setUp}
-                    </Link>
-                  )}
-                  {id === "verify" && (state === "next" || state === "open") && (
-                    <Link className={button(id)} href={`/${lang}/verification`}>
-                      {attemptUnderWay ? t.verifyContinue : t.verifyStart}
-                    </Link>
-                  )}
-                  {id === "idea" && (state === "next" || state === "open") && (
-                    <div className={styles.actions}>
-                      <Link className={button(id)} href={`/${lang}/ideas/mine`}>
-                        {t.ideas}
-                      </Link>
-                      <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/ideas`}>
-                        {t.browse}
-                      </Link>
+        {!done && (
+          <div className={`${onboarding.skeleton} ${styles.path}`} aria-busy="true">
+            <p className={landing.srOnly} role="status">
+              {t.checking}
+            </p>
+            <div className={onboarding.block} aria-hidden="true" />
+            <div className={onboarding.block} aria-hidden="true" />
+            <div className={onboarding.block} aria-hidden="true" />
+            <div className={onboarding.block} aria-hidden="true" />
+          </div>
+        )}
+        {done && (
+          <ol className={styles.path}>
+            {STEPS.map((id, i) => {
+              const state = states[id];
+              const StateIcon = ICONS[state];
+              return (
+                <li key={id} className={styles.step} data-state={state}>
+                  <span className={styles.num} aria-hidden="true">
+                    {state === "done" ? <Check /> : String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className={styles.body}>
+                    <div className={styles.stepHead}>
+                      <h3>{t.steps[id].title}</h3>
+                      <span className={styles.pill} data-state={state}>
+                        <StateIcon />
+                        {t[state]}
+                      </span>
                     </div>
-                  )}
-                  {/* a hub is created from an open idea; this leads to the ones you are in */}
-                  {id === "hub" && invited > 0 && (
-                    <Link className={button(id)} href={`/${lang}/hubs`}>
-                      {invited === 1 ? t.invitation : fill(t.invitations, { n: invited })}
-                    </Link>
-                  )}
-                  {id === "hub" && role && invited === 0 && (
-                    <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/hubs`}>
-                      {t.hubs}
-                    </Link>
-                  )}
-                  {/* a Green Tick is also the right to decide other developers' attempts */}
-                  {id === "verify" && state === "done" && (
-                    <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/reviews`}>
-                      {t.review}
-                    </Link>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+                    <p>{t.steps[id].text}</p>
+                    {id === "profile" && (
+                      <Link
+                        className={`${role ? landing.ghost : landing.btn} ${styles.action}`}
+                        // the profile page changes a profile; onboarding makes the first one
+                        href={role ? `/${lang}/profile` : `/${lang}/onboarding?step=role`}
+                      >
+                        {role ? t.change : t.setUp}
+                      </Link>
+                    )}
+                    {id === "verify" && (state === "next" || state === "open") && (
+                      <Link className={button(id)} href={`/${lang}/verification`}>
+                        {attemptUnderWay ? t.verifyContinue : t.verifyStart}
+                      </Link>
+                    )}
+                    {id === "idea" && state === "done" && (
+                      <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/ideas/mine`}>
+                        {t.yourIdeas}
+                      </Link>
+                    )}
+                    {id === "idea" && (state === "next" || state === "open") && (
+                      <div className={styles.actions}>
+                        <Link className={button(id)} href={`/${lang}/ideas/mine`}>
+                          {t.ideas}
+                        </Link>
+                        <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/ideas`}>
+                          {t.browse}
+                        </Link>
+                      </div>
+                    )}
+                    {/* a hub is created from an open idea; this leads to the ones you are in */}
+                    {id === "hub" && invited > 0 && (
+                      <Link className={button(id)} href={`/${lang}/hubs`}>
+                        {invited === 1 ? t.invitation : fill(t.invitations, { n: invited })}
+                      </Link>
+                    )}
+                    {id === "hub" && role && invited === 0 && (
+                      <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/hubs`}>
+                        {t.hubs}
+                      </Link>
+                    )}
+                    {/* a Green Tick is also the right to decide other developers' attempts */}
+                    {id === "verify" && state === "done" && (
+                      <Link className={`${landing.ghost} ${styles.action}`} href={`/${lang}/reviews`}>
+                        {t.review}
+                      </Link>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </main>
     </AppFrame>
   );
