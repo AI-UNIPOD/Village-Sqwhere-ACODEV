@@ -536,7 +536,11 @@
   font: var(--type-code);
 }
 
-.commits td:last-child { font: var(--type-mono-row); }
+/* a sha is seven characters and is not cut */
+.commits td:last-child {
+  font: var(--type-mono-row);
+  white-space: nowrap;
+}
 
 @media (min-width: 768px) {
   .commits {

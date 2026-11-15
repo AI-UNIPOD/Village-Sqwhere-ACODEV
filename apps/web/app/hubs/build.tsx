@@ -176,51 +176,55 @@ export function BuildTab({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
         )
       ) : (
         <>
-          <h3 className={styles.formTitle}>{b.pieces.heading}</h3>
-          {build.pieces.length === 0 ? (
-            <p className={`${ideas.meta} ${styles.line}`}>{b.pieces.empty}</p>
-          ) : (
-            <ul className={styles.pieces}>
-              {build.pieces.map((piece) => {
-                const key = `piece-${piece.id}`;
-                const holder = piece.claimed_by;
-                return (
-                  <li key={piece.id} className={styles.piece}>
-                    <h4 className={styles.pieceName}>{piece.name}</h4>
-                    {piece.summary && <p className={styles.pieceSummary}>{piece.summary}</p>}
-                    <p className={styles.holder} data-free={!holder || undefined}>
-                      {!holder ? b.pieces.nobody : holder.username === me.username ? b.pieces.you : fill(b.pieces.other, { name: holder.display_name })}
-                    </p>
-                    {(piece.can_claim || piece.can_release) && (
-                      <div className={styles.phaseActions}>
-                        <button
-                          type="button"
-                          className={landing.ghost}
-                          aria-label={fill(piece.can_claim ? b.pieces.claimLabel : b.pieces.freeLabel, { name: piece.name })}
-                          aria-busy={busy === key || undefined}
-                          aria-disabled={(!!busy && busy !== key) || undefined}
-                          onClick={() =>
-                            send("pieces", key, async () => {
-                              if (piece.can_claim) {
-                                replace(await claimPiece(hub.id, piece.id));
-                                return { text: fill(b.pieces.claimed, { name: piece.name }), focus: true };
-                              }
-                              await releasePiece(hub.id, piece.id);
-                              replace({ ...piece, claimed_by: null, claimed_at: null, can_claim: true, can_release: false });
-                              return { text: fill(b.pieces.freed, { name: piece.name }), focus: true };
-                            })
-                          }
-                        >
-                          {piece.can_claim ? b.pieces.claim : b.pieces.free}
-                        </button>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {says("pieces")}
+          <section aria-labelledby="build-pieces" className={styles.buildPart}>
+            <h3 id="build-pieces" className={styles.formTitle}>
+              {b.pieces.heading}
+            </h3>
+            {build.pieces.length === 0 ? (
+              <p className={`${ideas.meta} ${styles.line}`}>{b.pieces.empty}</p>
+            ) : (
+              <ul className={styles.pieces}>
+                {build.pieces.map((piece) => {
+                  const key = `piece-${piece.id}`;
+                  const holder = piece.claimed_by;
+                  return (
+                    <li key={piece.id} className={styles.piece}>
+                      <h4 className={styles.pieceName}>{piece.name}</h4>
+                      {piece.summary && <p className={styles.pieceSummary}>{piece.summary}</p>}
+                      <p className={styles.holder} data-free={!holder || undefined}>
+                        {!holder ? b.pieces.nobody : holder.username === me.username ? b.pieces.you : fill(b.pieces.other, { name: holder.display_name })}
+                      </p>
+                      {(piece.can_claim || piece.can_release) && (
+                        <div className={styles.phaseActions}>
+                          <button
+                            type="button"
+                            className={landing.ghost}
+                            aria-label={fill(piece.can_claim ? b.pieces.claimLabel : b.pieces.freeLabel, { name: piece.name })}
+                            aria-busy={busy === key || undefined}
+                            aria-disabled={(!!busy && busy !== key) || undefined}
+                            onClick={() =>
+                              send("pieces", key, async () => {
+                                if (piece.can_claim) {
+                                  replace(await claimPiece(hub.id, piece.id));
+                                  return { text: fill(b.pieces.claimed, { name: piece.name }), focus: true };
+                                }
+                                await releasePiece(hub.id, piece.id);
+                                replace({ ...piece, claimed_by: null, claimed_at: null, can_claim: true, can_release: false });
+                                return { text: fill(b.pieces.freed, { name: piece.name }), focus: true };
+                              })
+                            }
+                          >
+                            {piece.can_claim ? b.pieces.claim : b.pieces.free}
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {says("pieces")}
+          </section>
           <Repository shared={{ ...shared, send: sendIn("repository") }} build={build} linkable={linkable} said={says("repository")} />
           <Commits shared={{ ...shared, send: sendIn("commits") }} build={build} linkable={linkable} now={now} said={says("commits")} />
         </>
