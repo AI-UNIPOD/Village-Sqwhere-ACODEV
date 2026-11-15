@@ -6,12 +6,10 @@ Why: docs/decisions/2026-11-15-hub-milestone-posts.md
 from io import BytesIO
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 from sqlalchemy import func, select, update
 
-from app import config
 from app.models import Hub, Idea, Post, PostType, User
 from tests.hub_support import auth, make_hub, make_user, run
 
@@ -115,12 +113,7 @@ def _png() -> bytes:
     return buffer.getvalue()
 
 
-def test_people_cannot_post_or_edit_a_milestone(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # storage configured, so the upload reaches the milestone check
-    monkeypatch.setattr(config, "UPLOADS_S3_BUCKET", "test-images")
-    monkeypatch.setattr(config, "UPLOADS_PUBLIC_BASE_URL", "https://images.example.test")
+def test_people_cannot_post_or_edit_a_milestone(client: TestClient) -> None:
     owner = make_user()
     hub = make_hub(owner)
     confirm(client, hub, owner)

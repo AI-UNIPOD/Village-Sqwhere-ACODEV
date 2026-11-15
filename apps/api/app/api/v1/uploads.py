@@ -1,28 +1,26 @@
-"""Post image uploads."""
+"""Post image uploads, kept in Postgres and served back from it."""
 
-import logging
 import warnings
 from io import BytesIO
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.api.v1.posts import get_visible_post
-from app.models.posts import PostAttachment, PostType
+from app.models.posts import Post, PostAttachment, PostType
 from app.schemas.posts import PostAttachmentItemResponse, PostAttachmentResponse
 from app.services import uploads as image_storage
-from app.services.uploads import IMAGE_TYPES, MAX_IMAGE_BYTES, UploadStorageUnavailable
+from app.services.uploads import IMAGE_TYPES, MAX_IMAGE_BYTES
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 MAX_IMAGE_PIXELS = 40_000_000
 
 
-def inspect_image(data: bytes) -> tuple[str, str, int, int]:
+def inspect_image(data: bytes) -> tuple[str, int, int]:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
@@ -46,8 +44,7 @@ def inspect_image(data: bytes) -> tuple[str, str, int, int]:
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "INVALID_IMAGE", "message": "Upload a valid JPEG, PNG, or WebP image"},
         )
-    mime_type, extension = IMAGE_TYPES[image_format]
-    return mime_type, extension, width, height
+    return IMAGE_TYPES[image_format], width, height
 
 
 @router.post(
@@ -61,17 +58,6 @@ async def upload_post_image(
     current_user: CurrentUser,
     db: DbSession,
 ) -> PostAttachmentItemResponse:
-    try:
-        image_storage.ensure_upload_storage_configured()
-    except UploadStorageUnavailable:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "code": "UPLOAD_STORAGE_UNAVAILABLE",
-                "message": "Image uploads are not configured",
-            },
-        ) from None
-
     data = await file.read(MAX_IMAGE_BYTES + 1)
     if not data:
         raise HTTPException(
@@ -81,10 +67,10 @@ async def upload_post_image(
     if len(data) > MAX_IMAGE_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail={"code": "IMAGE_TOO_LARGE", "message": "Images must be 5 MB or smaller"},
+            detail={"code": "IMAGE_TOO_LARGE", "message": "Images must be 4 MB or smaller"},
         )
 
-    mime_type, extension, width, height = inspect_image(data)
+    mime_type, width, height = inspect_image(data)
     post = await get_visible_post(post_id, db, current_user, lock=True)
     if post.author_id != current_user.id:
         raise HTTPException(
@@ -111,21 +97,9 @@ async def upload_post_image(
             detail={"code": "POST_IMAGE_LIMIT", "message": "A post may have at most 10 images"},
         )
 
-    try:
-        storage_key = await image_storage.store_image(str(post_id), data, mime_type, extension)
-    except Exception:
-        logger.exception("Post image storage failed for post %s", post_id)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "code": "IMAGE_STORAGE_FAILED",
-                "message": "The image could not be stored; try again",
-            },
-        ) from None
-
     attachment = PostAttachment(
         post_id=post_id,
-        storage_key=storage_key,
+        data=data,
         mime_type=mime_type,
         byte_size=len(data),
         width=width,
@@ -133,26 +107,12 @@ async def upload_post_image(
         position=position,
     )
     db.add(attachment)
-    try:
-        await db.commit()
-    except Exception:
-        await db.rollback()
-        try:
-            await image_storage.remove_image(storage_key)
-        except Exception:
-            logger.exception("Could not remove unrecorded post image %s", storage_key)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "code": "IMAGE_RECORD_FAILED",
-                "message": "The image could not be attached; try again",
-            },
-        ) from None
+    await db.commit()
 
     return PostAttachmentItemResponse(
         data=PostAttachmentResponse(
             id=attachment.id,
-            url=image_storage.public_image_url(storage_key),
+            url=image_storage.image_url(attachment.id),
             mime_type=attachment.mime_type,
             byte_size=attachment.byte_size,
             width=attachment.width,
@@ -160,4 +120,34 @@ async def upload_post_image(
             position=attachment.position,
             created_at=attachment.created_at,
         )
+    )
+
+
+@router.get(
+    "/post-images/{attachment_id}",
+    response_class=Response,
+    responses={200: {"content": {mime: {} for mime in IMAGE_TYPES.values()}}},
+)
+async def get_post_image(attachment_id: UUID, db: DbSession) -> Response:
+    # no sign-in: an <img> tag cannot send the Bearer token, so the random ID is the key
+    row = (
+        await db.execute(
+            select(PostAttachment.data, PostAttachment.mime_type)
+            .join(Post, Post.id == PostAttachment.post_id)
+            .where(PostAttachment.id == attachment_id, Post.deleted_at.is_(None))
+        )
+    ).first()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "IMAGE_NOT_FOUND", "message": "That image does not exist"},
+        )
+    return Response(
+        content=row.data,
+        media_type=row.mime_type,
+        # an hour, so the CDN answers repeat views but a deleted post's image goes soon after
+        headers={
+            "Cache-Control": "public, max-age=3600, s-maxage=3600",
+            "X-Content-Type-Options": "nosniff",
+        },
     )

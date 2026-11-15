@@ -5,9 +5,6 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from app import config
-from app.services import uploads as image_storage
-
 
 def _bearer(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
@@ -19,23 +16,8 @@ def _image_bytes(image_format: str = "PNG", size: tuple[int, int] = (3, 2)) -> b
     return buffer.getvalue()
 
 
-@pytest.fixture
-def storage(monkeypatch: pytest.MonkeyPatch) -> dict[str, bytes]:
-    monkeypatch.setattr(config, "UPLOADS_S3_BUCKET", "test-images")
-    monkeypatch.setattr(config, "UPLOADS_PUBLIC_BASE_URL", "https://images.example.test")
-    stored: dict[str, bytes] = {}
-
-    async def fake_store(post_id: str, data: bytes, content_type: str, extension: str) -> str:
-        key = f"posts/{post_id}/test-{len(stored)}.{extension}"
-        stored[key] = data
-        return key
-
-    async def fake_remove(key: str) -> None:
-        stored.pop(key, None)
-
-    monkeypatch.setattr(image_storage, "store_image", fake_store)
-    monkeypatch.setattr(image_storage, "remove_image", fake_remove)
-    return stored
+def _attachments(client: TestClient, post_id: str, auth: dict[str, str]) -> list[dict]:
+    return client.get(f"/v1/posts/{post_id}", headers=auth).json()["data"]["attachments"]
 
 
 def _create_post(client: TestClient, auth: dict[str, str]) -> str:
@@ -63,7 +45,7 @@ def _upload(
 
 
 def test_upload_image_returns_metadata_and_post_reads_include_it(
-    client: TestClient, sign_in: Callable, storage: dict[str, bytes]
+    client: TestClient, sign_in: Callable
 ) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
     post_id = _create_post(client, auth)
@@ -72,27 +54,22 @@ def test_upload_image_returns_metadata_and_post_reads_include_it(
 
     assert response.status_code == 201, response.text
     data = response.json()["data"]
-    assert data["url"].startswith("https://images.example.test/posts/")
+    assert data["url"] == f"/v1/post-images/{data['id']}"
     assert data["mime_type"] == "image/png"
     assert data["byte_size"] == len(_image_bytes())
     assert (data["width"], data["height"], data["position"]) == (3, 2, 0)
-    assert len(storage) == 1
-
-    post = client.get(f"/v1/posts/{post_id}", headers=auth).json()["data"]
-    assert post["attachments"] == [data]
+    assert _attachments(client, post_id, auth) == [data]
 
 
 @pytest.mark.parametrize(
-    ("image_format", "content_type", "extension"),
-    [("JPEG", "image/jpeg", ".jpg"), ("PNG", "image/png", ".png"), ("WEBP", "image/webp", ".webp")],
+    ("image_format", "content_type"),
+    [("JPEG", "image/jpeg"), ("PNG", "image/png"), ("WEBP", "image/webp")],
 )
 def test_upload_accepts_supported_image_formats(
     client: TestClient,
     sign_in: Callable,
-    storage: dict[str, bytes],
     image_format: str,
     content_type: str,
-    extension: str,
 ) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
     post_id = _create_post(client, auth)
@@ -108,10 +85,11 @@ def test_upload_accepts_supported_image_formats(
 
     assert response.status_code == 201, response.text
     assert response.json()["data"]["mime_type"] == content_type
-    assert next(iter(storage)).endswith(extension)
+    image = client.get(response.json()["data"]["url"])
+    assert image.headers["content-type"] == content_type
 
 
-def test_upload_requires_authentication(client: TestClient, sign_in: Callable, storage) -> None:
+def test_upload_requires_authentication(client: TestClient, sign_in: Callable) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
     post_id = _create_post(client, auth)
 
@@ -124,7 +102,7 @@ def test_upload_requires_authentication(client: TestClient, sign_in: Callable, s
     assert response.status_code == 401
 
 
-def test_upload_only_allows_the_post_author(client: TestClient, sign_in: Callable, storage) -> None:
+def test_upload_only_allows_the_post_author(client: TestClient, sign_in: Callable) -> None:
     ada = _bearer(sign_in("github-code-ada")["access_token"])
     moussa = _bearer(sign_in("github-code-moussa")["access_token"])
     post_id = _create_post(client, ada)
@@ -133,10 +111,10 @@ def test_upload_only_allows_the_post_author(client: TestClient, sign_in: Callabl
 
     assert response.status_code == 403
     assert response.json()["detail"]["code"] == "NOT_POST_AUTHOR"
-    assert storage == {}
+    assert _attachments(client, post_id, ada) == []
 
 
-def test_upload_requires_existing_post(client: TestClient, sign_in: Callable, storage) -> None:
+def test_upload_requires_existing_post(client: TestClient, sign_in: Callable) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
 
     response = _upload(client, "00000000-0000-0000-0000-000000000001", auth)
@@ -147,7 +125,7 @@ def test_upload_requires_existing_post(client: TestClient, sign_in: Callable, st
 
 @pytest.mark.parametrize("content", [b"", b"not an image", b"GIF89a fake"])
 def test_upload_rejects_empty_or_invalid_image(
-    client: TestClient, sign_in: Callable, storage, content: bytes
+    client: TestClient, sign_in: Callable, content: bytes
 ) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
     post_id = _create_post(client, auth)
@@ -156,25 +134,21 @@ def test_upload_rejects_empty_or_invalid_image(
 
     assert response.status_code == 422
     assert response.json()["detail"]["code"] in {"EMPTY_IMAGE", "INVALID_IMAGE"}
-    assert storage == {}
+    assert _attachments(client, post_id, auth) == []
 
 
-def test_upload_rejects_image_over_five_megabytes(
-    client: TestClient, sign_in: Callable, storage
-) -> None:
+def test_upload_rejects_image_over_four_megabytes(client: TestClient, sign_in: Callable) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
     post_id = _create_post(client, auth)
 
-    response = _upload(client, post_id, auth, b"x" * (5 * 1024 * 1024 + 1))
+    response = _upload(client, post_id, auth, b"x" * (4 * 1024 * 1024 + 1))
 
     assert response.status_code == 413
     assert response.json()["detail"]["code"] == "IMAGE_TOO_LARGE"
-    assert storage == {}
+    assert _attachments(client, post_id, auth) == []
 
 
-def test_upload_rejects_more_than_ten_images(
-    client: TestClient, sign_in: Callable, storage
-) -> None:
+def test_upload_rejects_more_than_ten_images(client: TestClient, sign_in: Callable) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
     post_id = _create_post(client, auth)
 
@@ -187,53 +161,35 @@ def test_upload_rejects_more_than_ten_images(
 
     assert rejected.status_code == 409
     assert rejected.json()["detail"]["code"] == "POST_IMAGE_LIMIT"
-    assert len(storage) == 10
+    assert len(_attachments(client, post_id, auth)) == 10
 
 
-def test_upload_returns_503_until_storage_is_configured(
-    client: TestClient, sign_in: Callable, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(config, "UPLOADS_S3_BUCKET", None)
-    monkeypatch.setattr(config, "UPLOADS_PUBLIC_BASE_URL", None)
-    auth = _bearer(sign_in("github-code-ada")["access_token"])
-    post_id = _create_post(client, auth)
-
-    response = _upload(client, post_id, auth)
-
-    assert response.status_code == 503
-    assert response.json()["detail"]["code"] == "UPLOAD_STORAGE_UNAVAILABLE"
-
-
-def test_upload_returns_502_when_object_storage_fails(
-    client: TestClient,
-    sign_in: Callable,
-    storage,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def fail_store(post_id: str, data: bytes, content_type: str, extension: str) -> str:
-        raise RuntimeError("storage unavailable")
-
-    monkeypatch.setattr(image_storage, "store_image", fail_store)
-    auth = _bearer(sign_in("github-code-ada")["access_token"])
-    post_id = _create_post(client, auth)
-
-    response = _upload(client, post_id, auth)
-
-    assert response.status_code == 502
-    assert response.json()["detail"]["code"] == "IMAGE_STORAGE_FAILED"
-    assert storage == {}
-
-
-def test_posts_still_read_when_storage_settings_go_away(
-    client: TestClient, sign_in: Callable, storage, monkeypatch: pytest.MonkeyPatch
+def test_image_is_served_from_the_database_without_sign_in(
+    client: TestClient, sign_in: Callable
 ) -> None:
     auth = _bearer(sign_in("github-code-ada")["access_token"])
     post_id = _create_post(client, auth)
-    assert _upload(client, post_id, auth).status_code == 201
+    content = _image_bytes("WEBP")
+    url = _upload(client, post_id, auth, content).json()["data"]["url"]
 
-    monkeypatch.setattr(config, "UPLOADS_PUBLIC_BASE_URL", None)
+    # an <img> tag sends no token, so the image answers without one
+    image = client.get(url)
 
-    response = client.get(f"/v1/posts/{post_id}", headers=auth)
-    assert response.status_code == 200, response.text
-    assert response.json()["data"]["attachments"] == []
-    assert client.get("/v1/feed", headers=auth).status_code == 200
+    assert image.status_code == 200
+    assert image.content == content
+    assert image.headers["content-type"] == "image/webp"
+    assert image.headers["cache-control"] == "public, max-age=3600, s-maxage=3600"
+    assert image.headers["x-content-type-options"] == "nosniff"
+
+
+def test_image_is_gone_with_its_post_or_when_unknown(client: TestClient, sign_in: Callable) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create_post(client, auth)
+    url = _upload(client, post_id, auth).json()["data"]["url"]
+
+    assert client.get("/v1/post-images/00000000-0000-0000-0000-000000000001").status_code == 404
+    assert client.delete(f"/v1/posts/{post_id}", headers=auth).status_code == 204
+
+    gone = client.get(url)
+    assert gone.status_code == 404
+    assert gone.json()["detail"]["code"] == "IMAGE_NOT_FOUND"
