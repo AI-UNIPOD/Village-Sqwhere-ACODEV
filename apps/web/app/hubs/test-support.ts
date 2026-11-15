@@ -87,12 +87,17 @@ export const membership = (over: Record<string, unknown> = {}) => ({
 });
 
 // Answers each address by its longest matching start; a list of answers is used one per call.
-// Every hub page asks for the viewer's membership, and every member's page reads the chat,
-// so both have an answer unless a test names its own.
+// Every hub page asks for the viewer's membership, every member's page reads the chat, and a hub
+// in build or review reads its build tab and the viewer's profile, so each has an answer unless a
+// test names its own.
 export function api(given: Record<string, unknown>) {
   const routes: Record<string, unknown> = {
     "GET /v1/hubs/hub-1/membership": { data: membership() },
     "GET /v1/hubs/hub-1/messages": { data: [], next_offset: null },
+    "GET /v1/hubs/hub-1/build": {
+      data: { repository_url: null, commits_refreshed_at: null, can_set_repository: false, can_refresh: false, pieces: [], commits: [] },
+    },
+    "GET /v1/me": { data: { username: "amina-ndiaye", display_name: "Amina Ndiaye", roles: [], technologies: [] } },
     ...given,
   };
   const used: Record<string, number> = {};

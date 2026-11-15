@@ -63,11 +63,15 @@ function Field(props: {
 function Person({ lang, me }: { lang: Lang; me: Me }) {
   const profile = toProfile(me);
   const shown = profile.displayName ?? profile.username;
-  const github = (text: string) => (
-    <a href={`https://github.com/${encodeURIComponent(profile.username)}`} target="_blank" rel="noopener noreferrer">
-      {text} <span className={landing.srOnly}>({copy[lang].githubProfile})</span>
-    </a>
-  );
+  // the demo's people are not on GitHub, so their username would lead nowhere there
+  const github = (text: string) =>
+    me.is_demo ? (
+      text
+    ) : (
+      <a href={`https://github.com/${encodeURIComponent(profile.username)}`} target="_blank" rel="noopener noreferrer">
+        {text} <span className={landing.srOnly}>({copy[lang].githubProfile})</span>
+      </a>
+    );
   return (
     <div className={`${village.person} ${styles.person}`}>
       <span className={village.avatar} aria-hidden="true">

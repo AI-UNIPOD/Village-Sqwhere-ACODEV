@@ -10,6 +10,7 @@ from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.demo_seed import (
     BRIEF,
     FOR_YOU_IDEAS,
+    OLD_OWN_HUB_REPOSITORY,
     OWN_HUB,
     OWN_HUB_CLAIMS,
     OWN_HUB_COMMITS,
@@ -157,7 +158,7 @@ def test_the_seed_gives_each_person_the_country_in_their_bio(
 ) -> None:
     assert client.get("/v1/me", headers=visitor).json()["data"]["country_code"] == "NG"
     assert _countries() == {
-        "olaoluwa_demo": "NG",
+        "olaoluwa_adebayo": "NG",
         "aminata_ndiaye": "SN",
         "kwabena_owusu": "GH",
         "danladi_kabir": "NG",
@@ -357,7 +358,9 @@ def test_the_demo_hub_has_claims_a_repository_and_commits_the_visitor_can_read_n
             claimed = datetime.fromisoformat(piece["claimed_at"])
             assert now - timedelta(days=3) < claimed < now
     # the address cannot be a real repository, and eight commits by the two members
-    assert seen["repository_url"] == OWN_HUB_REPOSITORY == "https://github.com/payouts_demo/payouts"
+    assert (
+        seen["repository_url"] == OWN_HUB_REPOSITORY == "https://github.com/naira_payouts/payouts"
+    )
     commits = seen["commits"]
     assert len(commits) == len(OWN_HUB_COMMITS) == 8
     assert all(commit["message"] and len(commit["sha"]) == 40 for commit in commits)
@@ -544,8 +547,8 @@ def _make_the_world_the_old_way() -> None:
                 " WHERE ut.user_id = u.id AND ut.technology_id = t.id AND (u.username, t.slug) IN"
                 " (('aminata_ndiaye', 'react'), ('aminata_ndiaye', 'nodejs'),"
                 " ('aminata_ndiaye', 'ci-cd'), ('tendai_moyo', 'ci-cd'),"
-                " ('tendai_moyo', 'postgresql'), ('olaoluwa_demo', 'nodejs'),"
-                " ('olaoluwa_demo', 'ci-cd'))",
+                " ('tendai_moyo', 'postgresql'), ('olaoluwa_adebayo', 'nodejs'),"
+                " ('olaoluwa_adebayo', 'ci-cd'))",
                 "DELETE FROM users WHERE username = 'uwase_mutoni'",
                 "UPDATE users SET bio = 'Développeuse mobile à Dakar.'"
                 " WHERE username = 'aminata_ndiaye'",
@@ -607,6 +610,69 @@ def test_no_demo_brief_says_it_is_made_up_after_a_run_or_a_rerun(
     assert _briefs(old) == {old}
     assert _seed() is False
     assert _briefs() == {BRIEF}
+
+
+def _seen_by_the_visitor(client: TestClient, visitor: dict) -> str:
+    """What the demo's main screens are given, as one text. The agreement is left out: which
+    one is current depends on the templates other tests leave in this database."""
+    hub = _own_hub(client, visitor)["id"]
+    paths = (
+        "/v1/me",
+        "/v1/me/ideas",
+        "/v1/me/hubs",
+        "/v1/feed",
+        f"/v1/hubs/{hub}",
+        f"/v1/hubs/{hub}/idea",
+        f"/v1/hubs/{hub}/members",
+        f"/v1/hubs/{hub}/notes",
+        f"/v1/hubs/{hub}/design",
+        f"/v1/hubs/{hub}/build",
+    )
+    answers = [client.get(path, headers=visitor) for path in paths]
+    assert [answer.status_code for answer in answers] == [200] * len(paths)
+    return "\n".join(answer.text for answer in answers).lower()
+
+
+def test_nothing_the_seed_wrote_calls_itself_demo_sample_or_made_up(
+    client: TestClient, visitor: dict
+) -> None:
+    seen = _seen_by_the_visitor(client, visitor)
+    assert "olaoluwa_adebayo" in seen and "naira_payouts" in seen
+    for word in (
+        "olaoluwa_demo",
+        "payouts_demo",
+        "made-up",
+        "made up",
+        "sample",
+        "placeholder",
+        "example.com",
+        "lorem",
+    ):
+        assert word not in seen, word
+
+
+def test_a_rerun_renames_the_account_and_the_repository_of_an_older_world(
+    client: TestClient, visitor: dict
+) -> None:
+    async def age() -> None:
+        async with db_session() as session:
+            await session.execute(
+                update(User).where(User.id == DEMO_ACCOUNT_ID).values(username="olaoluwa_demo")
+            )
+            await session.execute(
+                update(Hub)
+                .where(Hub.id == _own_hub(client, visitor)["id"])
+                .values(repository_url=OLD_OWN_HUB_REPOSITORY)
+            )
+            await session.commit()
+
+    counts = _counts()
+    asyncio.run(age())
+    assert client.get("/v1/me", headers=visitor).json()["data"]["username"] == "olaoluwa_demo"
+    assert _seed() is False
+    assert client.get("/v1/me", headers=visitor).json()["data"]["username"] == "olaoluwa_adebayo"
+    assert _hub_build(client, visitor)["repository_url"] == OWN_HUB_REPOSITORY
+    assert _counts() == counts  # the account was renamed, not made a second time
 
 
 def test_the_script_writes_nothing_where_the_demo_is_off(

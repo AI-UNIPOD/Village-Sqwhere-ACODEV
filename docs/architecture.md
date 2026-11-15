@@ -145,6 +145,6 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 
 - Monorepo with one folder per app (`apps/web`, `apps/api`), shared tooling at the root.
 - pnpm workspace for JavaScript, uv for Python, Docker Compose for local services.
-- GitHub Flow with squash merges (see `AGENTS.md` and `CONTRIBUTING.md`).
+- GitHub Flow with squash merges (see `CONTRIBUTING.md`).
 
 Each decision someone might question gets a record in `docs/decisions/`.
