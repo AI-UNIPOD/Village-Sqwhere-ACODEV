@@ -3,7 +3,7 @@
 Read this first. Update "Current state" and "What's next" in place after meaningful work.
 Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions/`.
 
-## Current state (2026-11-14)
+## Current state (2026-11-15)
 
 - Monorepo: `apps/web` (Next.js 16, landing page in English and French), `apps/api` (FastAPI
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
@@ -18,7 +18,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   `docs/decisions/2026-11-14-match-score.md`), and cards name the shared technologies and the
   developer's country (profiles hold a country, no city).
 - A hub has a real phase: the owner confirms the team (any size), which opens brainstorm, then
-  moves it one phase forward or back (`2026-11-14-hub-phases.md`). The hub page shows it.
+  moves it one phase forward or back (`2026-11-14-hub-phases.md`). The hub page shows it,
+  with its brainstorm notes, design sketch and a team chat for members (no live updates).
 - A verification attempt stores a language (the page's): the AI interview, the repositories
   check and the report are written in it. Posts, the feed, saved posts, comments, replies and
   likes are in place. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.

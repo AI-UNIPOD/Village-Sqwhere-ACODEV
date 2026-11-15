@@ -206,6 +206,33 @@ export const addLink = async (id: string, link: { from_piece_id: string; to_piec
 
 export const deleteLink = (id: string, linkId: string) => call<null>(`${hubPath(id)}/links/${encodeURIComponent(linkId)}`, "DELETE");
 
+// One message of a hub's chat. `reply_to.body` is null once the quoted message is deleted.
+export type Message = {
+  id: string;
+  body: string;
+  author: Note["author"];
+  reply_to: { id: string; author: Note["author"]; body: string | null } | null;
+  created_at: string;
+  edited_at: string | null;
+  can_edit: boolean;
+  can_delete: boolean;
+};
+
+export const MESSAGE_MAX = 10_000;
+
+// One page of the chat, newest first, as the API sends it.
+export const loadMessages = (id: string, offset = 0) =>
+  call<{ data: Message[]; next_offset: number | null }>(`${hubPath(id)}/messages?offset=${offset}&limit=50`);
+
+export const sendMessage = async (id: string, message: { body: string; reply_to_id?: string }) =>
+  (await call<{ data: Message }>(`${hubPath(id)}/messages`, "POST", message)).data;
+
+export const editMessage = async (id: string, messageId: string, body: string) =>
+  (await call<{ data: Message }>(`${hubPath(id)}/messages/${encodeURIComponent(messageId)}`, "PATCH", { body })).data;
+
+export const deleteMessage = (id: string, messageId: string) =>
+  call<null>(`${hubPath(id)}/messages/${encodeURIComponent(messageId)}`, "DELETE");
+
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
 

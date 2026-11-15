@@ -154,6 +154,16 @@ on (`PHASE_CLOSED`, `PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`, `HUB_ARCHIVED`, `
 loads the hub again and the section follows it. In build, review and an archived hub the sketch is for
 reading only. The tools for build and review are not built yet.
 
+At the end of the page, every active member sees the team chat (`hubs/chat.tsx`, `id="chat"`), in any
+phase and before the team is confirmed. The API sends the newest 50 messages first
+(`GET /v1/hubs/{id}/messages`); the page shows them oldest first, and Show earlier messages reads the
+next page. A member sends 1 to 10,000 characters (`POST`), and Reply quotes one message (`reply_to_id`).
+A quote of a deleted message says so. The author edits a message in place (`PATCH`, marked edited), and
+the author or the hub's owner deletes one behind a confirm dialog (`DELETE`); quotes of it follow both. In
+an archived hub the chat is for reading only. There are no live updates: a Refresh button reads the
+newest page again. When the API says the hub changed (`HUB_ARCHIVED`, `HUB_CHANGED`, `NOT_HUB_MEMBER`),
+the page loads the hub again and says so.
+
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares
 the agreement block and the signature checks with the create-hub page (`agreement-block.tsx`),

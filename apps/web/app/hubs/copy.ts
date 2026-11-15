@@ -162,6 +162,28 @@ type Copy = {
       failed: string;
     };
   };
+  // the team's chat, for active members in every phase
+  hubChat: {
+    heading: string;
+    intro: string;
+    loading: string;
+    loadFailed: string;
+    empty: string;
+    emptyArchived: string;
+    archived: string;
+    refresh: string;
+    refreshed: string;
+    earlier: string;
+    earlierFailed: string;
+    edited: string;
+    quoteBy: string;
+    quoteGone: string;
+    write: { label: string; help: string; left: string; send: string; sent: string };
+    reply: { button: string; label: string; replying: string; cancel: string };
+    edit: { button: string; label: string; field: string; save: string; cancel: string; saved: string };
+    delete: { label: string; title: string; text: string; confirm: string; cancel: string; done: string; gone: string };
+    errors: { empty: string; long: string; changed: string; quoteGone: string; notAuthor: string; failed: string };
+  };
   missingHub: Screen;
   // the team and the brief on a hub's page
   team: {
@@ -480,6 +502,60 @@ const en: Copy = {
       changed: "Someone else changed the sketch. This is how it stands now.",
       moved: "This hub has moved on, so the sketch can no longer be changed.",
       notAuthor: "Only the person who added it, or the hub's owner, can delete it.",
+      failed: "We couldn't save that. Nothing changed, so try again.",
+    },
+  },
+  hubChat: {
+    heading: "Team chat",
+    intro: "Talk things through with your team. Only the hub's members can read it. New messages do not appear on their own: refresh to see them.",
+    loading: "Getting the chat",
+    loadFailed: "We couldn't load the chat. Nothing was changed, so check your connection and try again.",
+    empty: "No messages yet. Say hello to your team.",
+    emptyArchived: "Nobody wrote in this chat.",
+    archived: "This hub is archived. The chat stays here to read.",
+    refresh: "Refresh",
+    refreshed: "The chat is up to date.",
+    earlier: "Show earlier messages",
+    earlierFailed: "We couldn't load the earlier messages. Check your connection and try again.",
+    edited: "edited",
+    quoteBy: "{name} wrote",
+    quoteGone: "This message was deleted.",
+    write: {
+      label: "Your message",
+      help: "Plain text. Everyone in the hub can read it.",
+      left: "Characters left: {n}",
+      send: "Send",
+      sent: "Your message was sent.",
+    },
+    reply: {
+      button: "Reply",
+      label: "Reply to the message by {name}",
+      replying: "Replying to {name}",
+      cancel: "Cancel the reply",
+    },
+    edit: {
+      button: "Edit",
+      label: "Edit your message",
+      field: "Your changed message",
+      save: "Save",
+      cancel: "Cancel",
+      saved: "Your message was changed.",
+    },
+    delete: {
+      label: "Delete the message by {name}",
+      title: "Delete this message?",
+      text: "The message is removed for everyone in the hub. Replies that quoted it still show who wrote it. This cannot be undone.",
+      confirm: "Delete the message",
+      cancel: "Cancel",
+      done: "The message was deleted.",
+      gone: "That message was already deleted.",
+    },
+    errors: {
+      empty: "Write a message before sending it.",
+      long: "A message can have at most {max} characters. Shorten it and try again.",
+      changed: "This hub changed, so you can no longer write in its chat. This is how it stands now.",
+      quoteGone: "The message you replied to was deleted, so yours was not sent. Send it again without the quote.",
+      notAuthor: "Only a message's author can change it, and only the author or the hub's owner can delete it.",
       failed: "We couldn't save that. Nothing changed, so try again.",
     },
   },
@@ -858,6 +934,60 @@ const fr: Copy = {
       changed: "Quelqu'un d'autre a modifié le schéma. Voici où il en est maintenant.",
       moved: "Cet espace a avancé, le schéma ne peut donc plus être modifié.",
       notAuthor: "Seule la personne qui l'a ajouté, ou le porteur de l'espace, peut le supprimer.",
+      failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
+    },
+  },
+  hubChat: {
+    heading: "Discussion de l'équipe",
+    intro: "Échangez avec votre équipe. Seuls les membres de l'espace peuvent la lire. Les nouveaux messages n'apparaissent pas d'eux-mêmes\u202f: actualisez pour les voir.",
+    loading: "Chargement de la discussion",
+    loadFailed: "Nous n'avons pas pu charger la discussion. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
+    empty: "Pas encore de messages. Dites bonjour à votre équipe.",
+    emptyArchived: "Personne n'a écrit dans cette discussion.",
+    archived: "Cet espace est archivé. La discussion reste ici à lire.",
+    refresh: "Actualiser",
+    refreshed: "La discussion est à jour.",
+    earlier: "Voir les messages précédents",
+    earlierFailed: "Nous n'avons pas pu charger les messages précédents. Vérifiez votre connexion et réessayez.",
+    edited: "modifié",
+    quoteBy: "{name} a écrit",
+    quoteGone: "Ce message a été supprimé.",
+    write: {
+      label: "Votre message",
+      help: "Texte simple. Tous les membres de l'espace peuvent le lire.",
+      left: "Caractères restants\u202f: {n}",
+      send: "Envoyer",
+      sent: "Votre message a été envoyé.",
+    },
+    reply: {
+      button: "Répondre",
+      label: "Répondre au message de {name}",
+      replying: "En réponse à {name}",
+      cancel: "Annuler la réponse",
+    },
+    edit: {
+      button: "Modifier",
+      label: "Modifier votre message",
+      field: "Votre message modifié",
+      save: "Enregistrer",
+      cancel: "Annuler",
+      saved: "Votre message a été modifié.",
+    },
+    delete: {
+      label: "Supprimer le message de {name}",
+      title: "Supprimer ce message\u202f?",
+      text: "Le message est supprimé pour tous les membres de l'espace. Les réponses qui le citaient montrent toujours qui l'a écrit. Cette action est définitive.",
+      confirm: "Supprimer le message",
+      cancel: "Annuler",
+      done: "Le message a été supprimé.",
+      gone: "Ce message était déjà supprimé.",
+    },
+    errors: {
+      empty: "Écrivez un message avant de l'envoyer.",
+      long: "Un message peut contenir {max} caractères au maximum. Raccourcissez-le puis réessayez.",
+      changed: "Cet espace a changé, vous ne pouvez donc plus écrire dans sa discussion. Voici où il en est maintenant.",
+      quoteGone: "Le message auquel vous répondiez a été supprimé, le vôtre n'a donc pas été envoyé. Renvoyez-le sans la citation.",
+      notAuthor: "Seul l'auteur d'un message peut le modifier, et seuls l'auteur ou le porteur de l'espace peuvent le supprimer.",
       failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
     },
   },
