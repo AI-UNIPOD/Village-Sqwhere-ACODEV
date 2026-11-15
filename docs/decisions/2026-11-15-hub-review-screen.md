@@ -16,7 +16,7 @@ only place that says the demo's content is made up. We settled the rest:
 
 - **The buttons come from the API's flags.** `can_add`, `can_finish` and, on each check, `can_tick`,
   `can_untick` and `can_delete` say what the viewer may do now. The page never works out who built a
-  piece or who ticked a check. A stale flag is fixed by the refusal, which reads the checklist again.
+  piece or who ticked a check. A stale flag is fixed by a refusal that says the checklist or the hub has changed: that refusal reads it again. The refusals about who may do what (own piece, not the ticker, not the author, the limit, not the owner) only say the sentence.
 - **Buttons with state text, not checkboxes.** A check shows "Ticked by Amina, 3 hours ago" or "Not
   ticked yet" as an icon and words, and a Tick or Untick button changes it. A bare checkbox would
   leave its meaning to its colour and to a label that says nothing of who ticked it, and a screen

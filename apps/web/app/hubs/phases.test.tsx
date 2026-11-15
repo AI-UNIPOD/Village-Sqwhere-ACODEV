@@ -89,7 +89,7 @@ test.each([
 
 test("once the team is confirmed, everyone reads that the owner moves the hub", async () => {
   await open({ ...asMember, ...at("brainstorm") });
-  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. Each phase has its tool on this page, below the phases: the brainstorm notes, the design sketch, the build tab and the review checklist.")).toBeTruthy();
+  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. Each phase has its tool on this page, which opens as the hub reaches that phase: the brainstorm notes, the design sketch, the build tab and the review checklist.")).toBeTruthy();
 });
 
 test.each([
@@ -105,7 +105,7 @@ test.each([
 });
 
 test.each([
-  ["a member", asMember, "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, sous les phases\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue."],
+  ["a member", asMember, "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, qui s'ouvre quand l'espace atteint cette phase\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue."],
   [
     "someone outside the hub",
     asOutsider,

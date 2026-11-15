@@ -509,7 +509,7 @@ const en: Copy = {
   phasesNote: {
     toConfirm: "Confirm the team when you are ready to start. Brainstorm opens, and you can still invite people after, up to five.",
     waiting: "The phases open when the owner confirms the team.",
-    confirmed: "The owner moves the hub from one phase to the next. Each phase has its tool on this page, below the phases: the brainstorm notes, the design sketch, the build tab and the review checklist.",
+    confirmed: "The owner moves the hub from one phase to the next. Each phase has its tool on this page, which opens as the hub reaches that phase: the brainstorm notes, the design sketch, the build tab and the review checklist.",
     confirmedOutside: "The owner moves the hub from one phase to the next. Each phase has its tool on this page, for the hub's members: the brainstorm notes, the design sketch, the build tab and the review checklist.",
     archived: "This hub is archived, so its phases will not start.",
   },
@@ -1100,7 +1100,7 @@ const fr: Copy = {
   phasesNote: {
     toConfirm: "Confirmez l'équipe quand vous êtes prêt à commencer. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
     waiting: "Les phases s'ouvrent quand le porteur confirme l'équipe.",
-    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, sous les phases\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue.",
+    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, qui s'ouvre quand l'espace atteint cette phase\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue.",
     confirmedOutside: "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, réservé aux membres de l'espace\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue.",
     archived: "Cet espace est archivé, ses phases ne démarreront donc pas.",
   },

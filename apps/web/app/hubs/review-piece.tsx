@@ -38,7 +38,7 @@ function CheckRow({ shared, piece, check, now, onDelete }: Props & { check: Revi
   const remove = `delete-${check.id}`;
 
   return (
-    <li className={styles.check}>
+    <li className={styles.reviewCheck}>
       <p className={styles.checkText}>{check.text}</p>
       <p className={styles.checkMeta}>{fill(r.check.addedBy, { name: check.created_by.display_name })}</p>
       {check.ticked_by && check.ticked_at ? (
