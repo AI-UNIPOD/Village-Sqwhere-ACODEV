@@ -94,6 +94,7 @@ They run in file name order, once, on an empty database:
 | `019-hub-build.sql` | The build tab of a hub: who holds a piece (`hub_pieces.claimed_by` and `claimed_at`), the public GitHub address the owner pastes (`hubs.repository_url`, with `commits_refreshed_at`), and `hub_commits`, a copy of the repository's latest commits that every refresh replaces, so its rows are really deleted. Running it twice is safe. |
 | `020-hub-agreement-v2.sql` | The hub agreement, version 2, published: the text every new hub is created on, in English and then in French. Version 1 stays for the hubs that signed it. Running it twice is safe. |
 | `021-hub-review.sql` | The review checklist of a hub: `hub_checks`, short checks written against a piece and ticked by a teammate, removed softly with `deleted_at` and `deleted_by`, and `hubs.finished_at`, empty until the owner finishes the hub. Running it twice is safe. |
+| `022-demo-hubs-agreement-v2.sql` | Moves the demo's hubs, and the made-up signatures in them, from version 1 of the agreement to version 2, so the demo stops showing the test text. Only hubs owned and signed by demo accounts (`users.is_demo`); nothing is deleted. It needs 020 first and stops with an error without it. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
@@ -106,7 +107,9 @@ pnpm db:up
 **New hubs use the agreement in `020-hub-agreement-v2.sql`.** Published templates cannot be
 edited (the database refuses it), so a change to the text is always a new version in a new
 script. `004-test-agreement.sql` holds version 1, a test text: it stays because hubs created
-on it keep pointing at it, and no new hub takes it.
+on it keep pointing at it, and no new hub takes it. The one exception is the demo:
+`022-demo-hubs-agreement-v2.sql` moves the demo accounts' hubs to version 2, because their
+signatures are made up (`docs/decisions/2026-11-15-demo-hubs-on-agreement-v2.md`).
 
 The local credentials (`village` / `village`) are for development only. They match
 `DATABASE_URL` in the root `.env.example`.

@@ -101,6 +101,8 @@ function Profile({ lang, username }: { lang: Lang; username: string | null }) {
   const named = person.display_name !== person.username;
   const country = countriesFor(lang).find((known) => known.alpha2 === person.country_code)?.name;
   const yours = me?.username.toLowerCase() === person.username.toLowerCase();
+  // the demo's people are not on GitHub, so their username would lead nowhere there
+  const onGithub = !!me && !me.is_demo;
   return (
     <main className={`${onboarding.column} ${ideas.main}`}>
       <Link className={`${onboarding.back} ${ideas.backLink}`} href={`/${lang}/village`}>
@@ -153,21 +155,25 @@ function Profile({ lang, username }: { lang: Lang; username: string | null }) {
         </>
       )}
 
-      <div className={onboarding.actions}>
-        <a
-          className={landing.ghost}
-          href={`https://github.com/${encodeURIComponent(person.username)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t.github} <span className={landing.srOnly}>({t.newTab})</span>
-        </a>
-        {yours && (
-          <Link className={landing.btn} href={`/${lang}/profile`}>
-            {t.editYours}
-          </Link>
-        )}
-      </div>
+      {(onGithub || yours) && (
+        <div className={onboarding.actions}>
+          {onGithub && (
+            <a
+              className={landing.ghost}
+              href={`https://github.com/${encodeURIComponent(person.username)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.github} <span className={landing.srOnly}>({t.newTab})</span>
+            </a>
+          )}
+          {yours && (
+            <Link className={landing.btn} href={`/${lang}/profile`}>
+              {t.editYours}
+            </Link>
+          )}
+        </div>
+      )}
       {yours && <p className={ideas.note}>{t.yours}</p>}
     </main>
   );
