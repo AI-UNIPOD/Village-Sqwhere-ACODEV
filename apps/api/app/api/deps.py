@@ -85,6 +85,7 @@ def user_to_profile(user: User) -> UserProfile:
         avatar_url=user.avatar_url,
         bio=user.bio,
         country_code=user.country_code,
+        onboarding_completed_at=user.onboarding_completed_at,
         is_verified=user.is_verified,
         verified_at=user.verified_at,
         platform_role=(

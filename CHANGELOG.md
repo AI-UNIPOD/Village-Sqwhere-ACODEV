@@ -11,6 +11,10 @@ its number:
 ## 2026-11-15
 
 - docs: name the live address for sign-in settings and add a check (#228)
+- feat(api): record when a developer finishes onboarding (#212)
+- docs: link the live site in both readmes (#227)
+- feat(api): add the meaning part to the match score and similar ideas (#225)
+- fix(web): say every hub phase has its tool on the landing page (#223)
 - fix(web): draw no repository link in the demo's review case (#221)
 - feat(api): push hub chat messages live over a websocket (#219)
 - feat(api): post to the feed when a hub moves to a new phase (#218)
