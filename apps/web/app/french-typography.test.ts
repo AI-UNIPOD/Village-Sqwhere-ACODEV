@@ -15,6 +15,7 @@ import { copy as hubPhases } from "./landing/sections/hub-phases-copy";
 import { copy as principles } from "./landing/sections/principles-copy";
 import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
+import { copy as people } from "./people/copy";
 import { copy as profile } from "./profile/copy";
 import { copy as reviews } from "./reviews/copy";
 import { copy as signIn } from "./sign-in/copy";
@@ -52,6 +53,7 @@ const french = strings([
   hubPhases.fr,
   principles.fr,
   onboarding.fr,
+  people.fr,
   profile.fr,
   reviews.fr,
   signIn.fr,

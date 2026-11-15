@@ -399,6 +399,30 @@ Updates editable fields on the user's profile.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
 * **Error Responses:** `422` when a field breaks a limit (the error names the field). `409` `EMAIL_TAKEN` when another account already uses the email, in any mix of upper and lower case.
 
+#### `POST /v1/me/deletion`
+
+Deletes the signed-in account. The person types their username to confirm (any capital
+letters): `{"username": "kofi-b"}`. Answers `204` with no body, and every token stops working
+at once.
+
+What happens, in one transaction:
+* The account is anonymised: the username becomes `deleted-` and 12 characters of the id, the
+  display name "Deleted account", and the names, email, avatar, bio and country are cleared.
+  The GitHub link, technologies, sectors and feed topics are removed. Signing in with the same
+  GitHub account later makes a new, empty account.
+* Posts, comments and likes stay, shown under "Deleted account". Signatures stay: they are
+  append-only legal records.
+* Open ideas are closed. Hubs the person owns are archived (only possible when nobody else is
+  in them). In other hubs, an active membership becomes `left`, an invitation is removed and a
+  request is withdrawn.
+* Verifications still in progress or waiting for review are abandoned, so no reviewer gets a
+  case nobody will hear back about. Finished verification records stay for the review audit.
+
+* **Errors:** `409 OWNS_HUB_WITH_TEAM` (an active hub you own still has other active members),
+  `422 CONFIRMATION_MISMATCH` (the username does not match), `422` (no username),
+  `403 DEMO_READ_ONLY` (the demo account).
+* Why: `docs/decisions/2026-11-14-account-deletion.md`.
+
 #### `POST /v1/me/roles`
 Claims a developer role for the authenticated user (e.g. during onboarding or profile editing).
 
@@ -1075,6 +1099,26 @@ see the hub before answering. Archived hubs can still be read.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
   id), `422` (the id is not a UUID).
 
+#### `PATCH /v1/hubs/{hub_id}`
+
+The owner renames or describes the hub. Send `name` (1 to 120 characters, trimmed),
+`description` (up to 2,000 characters, `null` clears it) or both; a left-out field keeps its
+value. Answers `200` with the hub card.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED`, `422` (no field, a null
+  or blank name, a field too long, or any other field).
+
+#### `POST /v1/hubs/{hub_id}/archive`
+
+The owner archives the hub when the work is over. No body. Answers `200` with the hub card,
+`status: "archived"` and `archived_at`. There is no way back. Members keep reading the hub,
+the team, the brief and its notes, but nothing changes any more: no invitations, requests,
+approvals, phase moves, notes or edits (`409 HUB_ARCHIVED`). A member may still leave, and a
+pending request may still be withdrawn or declined.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED` (already archived).
+* Why: `docs/decisions/2026-11-14-hub-edit-and-archive.md`.
+
 #### `GET /v1/me/hubs`
 
 Lists the hubs the signed-in person is in, newest hub first. Archived hubs stay in the list.
@@ -1250,6 +1294,40 @@ also sees `requested`, `invited` and `declined` people, to answer, follow up or 
 left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
 
 * **Errors:** `403 NOT_HUB_MEMBER`.
+
+#### `GET /v1/hubs/{hub_id}/membership`
+
+The caller's own membership in this hub, in any status, with the signature it rests on. The
+hub card's `viewer` says only the status and role; this adds the dates and what was signed, so
+a person can see what they agreed to, even after leaving.
+
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "member_role": "member",
+      "status": "active",
+      "decline_kind": null,
+      "can_ask_again_at": null,
+      "created_at": "2026-11-14T09:00:00Z",
+      "joined_at": "2026-11-14T09:30:00Z",
+      "left_at": null,
+      "signature": {
+        "template_id": "0193f2e0-4a5c-7f6e-9b54-0000000000a1",
+        "version": 1,
+        "template_sha256": "<64 hex characters>",
+        "signed_legal_name": "Kwame Mensah",
+        "terms_snapshot": { "ownership_model": "equal_split" },
+        "signed_at": "2026-11-14T09:30:00Z"
+      }
+    }
+  }
+  ```
+  `signature` is `null` until the person signs (requested, invited, or a declined invitation),
+  and stays after they leave or are removed. `can_ask_again_at` shows only while the wait is
+  ahead. The address and browser a signature came from are stored but never returned.
+* **Errors:** `404 NOT_FOUND` (no such hub), `404 MEMBERSHIP_NOT_FOUND` (you have never been
+  invited or asked to join).
 
 #### `GET /v1/hubs/{hub_id}/idea`
 

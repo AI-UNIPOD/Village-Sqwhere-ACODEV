@@ -117,6 +117,14 @@ class UserRoleResponse(BaseModel):
     data: UserRoleDetail
 
 
+class DeleteAccountRequest(BaseModel):
+    """The person types their username to confirm, so a stray request cannot delete an account."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    username: str = Field(..., min_length=1, max_length=39)
+
+
 class ClaimRoleRequest(BaseModel):
     role: str = Field(..., max_length=64, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")
     is_primary: bool = False

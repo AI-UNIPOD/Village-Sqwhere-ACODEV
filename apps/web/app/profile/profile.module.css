@@ -131,3 +131,29 @@
 @media (prefers-reduced-motion: reduce) {
   .row[data-arrived] { animation-name: fade; }
 }
+
+/* ---------- deleting the account ---------- */
+.consequences {
+  display: grid;
+  gap: var(--space-1);
+  padding-inline-start: var(--space-5);
+}
+
+.understand {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-block-size: var(--tap-min);
+  margin-block: var(--space-5) var(--space-4);
+  font: var(--type-body-s);
+  cursor: pointer;
+}
+
+.understand input {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  margin-block-start: calc((1lh - var(--space-5)) / 2);
+  accent-color: var(--action);
+  cursor: pointer;
+}

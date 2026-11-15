@@ -35,8 +35,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `JWT_SECRET_KEY`. Bitbucket is not built and returns `503`. A new account also gets a
   verified email from GitHub when there is one (`apps/api/app/services/provider_emails.py`).
   A missing, clashing or unreadable email never blocks sign-in.
-- **Profile** (Bearer token): `GET /v1/me` and `PATCH /v1/me`. Another developer's public
-  profile (card fields and bio, never email or names) is `GET /v1/users/{username}`.
+- **Profile** (Bearer token): `GET /v1/me`, `PATCH /v1/me` and `POST /v1/me/deletion`
+  (anonymises the account and keeps its posts). Another developer's public profile (card
+  fields and bio, never email or names) is `GET /v1/users/{username}`.
 - **Roles, technologies, feed topics and sectors** (Bearer token): `POST /v1/me/roles`,
   `PATCH /v1/me/roles/{role_slug}` (make it the primary role), `DELETE /v1/me/roles/{role_slug}`
   (refused with `409` once the role has verification attempts), `PUT /v1/me/technologies`
@@ -67,8 +68,12 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/members/{user_id}/approve` (an invitation, signed the same way) or
   `POST /v1/hubs/{hub_id}/members/{user_id}/decline`. Only active members read
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
+  Anyone with a membership row reads their own, with what they signed, at
+  `GET /v1/hubs/{hub_id}/membership`.
   A member leaves with `POST /v1/hubs/{hub_id}/membership/leave`, and the owner removes one
   with `POST /v1/hubs/{hub_id}/members/{user_id}/remove`.
+  The owner renames or describes the hub with `PATCH /v1/hubs/{hub_id}` and archives it, for
+  good, with `POST /v1/hubs/{hub_id}/archive`.
   The owner starts the work with `POST /v1/hubs/{hub_id}/team/confirm` (any team size, which
   opens brainstorm) and moves the hub one phase forward or back with
   `POST /v1/hubs/{hub_id}/phase`; the hub card says which phase it is in. Active members write

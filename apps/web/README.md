@@ -68,6 +68,10 @@ Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/i
 apart from the private brief, saves only the fields that changed, and asks before publishing or
 closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
+"Delete the idea" at the end of a saved idea's form (`app/ideas/delete-idea.tsx`,
+`DELETE /v1/me/ideas/{id}`) asks first, then returns to Your ideas with a line saying it went.
+An idea with a hub is refused (`IDEA_HAS_HUB`, its members signed an agreement about it), and
+the page says to close it instead.
 Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=`: the public
 part only, a "Needs your role" line when a role slug matches, and "Ask to join" when the idea
 has a hub (`hubs/ask-to-join.tsx`, `POST /v1/hubs/{id}/join-requests`). The page reads the
@@ -108,11 +112,19 @@ paragraphs only, never as markup.
 The hub page shows a member the team (`GET /v1/hubs/{id}/members`) and the private brief
 (`GET /v1/hubs/{id}/idea`). The owner invites by GitHub username, withdraws an invitation and
 invites again after a decline (`team.tsx`); an invited developer sees the invitation, not the
-team's brief. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
+team's brief. In an active hub the owner removes an active member behind a confirm dialog
+(`POST /v1/hubs/{id}/members/{user_id}/remove`), and a member who is not the owner leaves the same
+way (`POST /v1/hubs/{id}/membership/leave`); the page then shows the hub as someone who left, or
+was removed, with a line that says so. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
 The village and Your hubs keep that list for the visit (`app/hubs/invitations.ts`): the village
 makes a waiting invitation its next step, and the places bar marks Hubs with a dot. Signing or
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
 page of the developer's hubs (`loadHubsByIdea`), because the API cannot look one up by idea.
+
+Under the hub's terms, "Your signature" (`hubs/my-signature.tsx`, `GET /v1/hubs/{id}/membership`)
+tells a member, or someone who left or was removed, which version they signed, the name they typed
+and the day. "Read the agreement you signed" loads the hub's agreement and compares its hash with
+the one in the signature, so the page says whether it is the exact text signed.
 
 The hub card carries `phase`, `team_confirmed_at` and `phases` (each phase with its state). The
 page lists the four phases with their real state for everyone who sees the hub and marks the one
@@ -139,10 +151,27 @@ assistive technology. The page lays the drawing out itself from the links (`hubs
 pure function): columns from the direction of the links, boxes stacked in each column, text cut by the
 estimated width of its letters so it stays in its box, each arrow label put beside its own arrow and
 clear of the others where there is room, no saved positions, no drawing library. The drawing is wider
-than the text column (up to 64rem, never past the page margins) so its writing stays readable. The sketch is read only here, and there are no live updates: a Refresh
-button reads it again. When the API says the hub changed (`PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`,
-`NOT_HUB_MEMBER`), the page loads the hub again and the section follows it. The tools for build and
-review are not built yet.
+than the text column (up to 64rem, never past the page margins) so its writing stays readable. There
+are no live updates: a Refresh button reads the sketch again. While the hub is active and in design,
+the forms under the sketch (`hubs/design-forms.tsx`) let a member add a piece (`POST /v1/hubs/{id}/pieces`,
+name 1 to 60 characters, summary up to 280), correct one in place with Edit (`PATCH`, only the fields that
+changed are sent), add a link between two pieces (`POST /v1/hubs/{id}/links`, label 1 to 60) and delete a
+link (its outgoing line has the one delete button) or a piece (`DELETE`, for its creator or the hub's owner,
+behind a confirm dialog; the sketch is then read again). The API's refusals become sentences in the page's
+language: a taken name is a field error, a vanished piece or link reloads the sketch, and when the hub moved
+on (`PHASE_CLOSED`, `PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`, `HUB_ARCHIVED`, `NOT_HUB_MEMBER`) the page
+loads the hub again and the section follows it. In build, review and an archived hub the sketch is for
+reading only. The tools for build and review are not built yet.
+
+At the end of the page, every active member sees the team chat (`hubs/chat.tsx`, `id="chat"`), in any
+phase and before the team is confirmed. The API sends the newest 50 messages first
+(`GET /v1/hubs/{id}/messages`); the page shows them oldest first, and Show earlier messages reads the
+next page. A member sends 1 to 10,000 characters (`POST`), and Reply quotes one message (`reply_to_id`).
+A quote of a deleted message says so. The author edits a message in place (`PATCH`, marked edited), and
+the author or the hub's owner deletes one behind a confirm dialog (`DELETE`); quotes of it follow both. In
+an archived hub the chat is for reading only. There are no live updates: a Refresh button reads the
+newest page again. When the API says the hub changed (`HUB_ARCHIVED`, `HUB_CHANGED`, `NOT_HUB_MEMBER`),
+the page loads the hub again and says so.
 
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares
@@ -185,6 +214,19 @@ other signed-in developers can see it), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
+
+"Delete your account" ends the profile (`profile/delete-account.tsx`, `POST /v1/me/deletion`).
+It cannot be undone, so it opens a dialog that lists what goes and what stays, and its delete
+button does nothing until the person ticks that they understand and types their username (any
+capital letters). Closing the dialog clears both. On success the session is forgotten and the
+page is `/en/goodbye`. An owner of a hub others are still in is refused (`OWNS_HUB_WITH_TEAM`)
+and pointed to Your hubs.
+
+Another developer's profile is `app/people/`, at `/en/people/view?username=...`
+(`GET /v1/users/{username}`): the name, country, bio, verified roles, stack and sectors, and a
+link to their GitHub. Names on team lists, match cards, posts and an idea's author lead there.
+An unknown or deleted account says the developer can't be found. Opened on yourself, it offers
+"Edit your profile".
 
 "Try the demo" on the landing page (`landing/demo-button.tsx`, `session/demo.ts`) signs in as the
 shared demo account with `POST /v1/auth/demo` and opens the village. The account can change

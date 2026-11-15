@@ -11,9 +11,20 @@ its number:
 ## 2026-11-15
 
 - feat(api): add the build tab of claims and commits to a hub
+- feat(web): show members the agreement they signed (#189)
+- feat(web): let a developer delete their account (#188)
+- feat(web): let the author delete an idea with no hub (#187)
+- feat(web): show another developer's public profile (#186)
+- feat(web): let members leave a hub and owners remove them (#184)
+- feat(web): add the team chat to the hub page (#183)
+- feat(web): let the team edit the design sketch (#182)
+- fix(web): show the real score and live brainstorm notes on the landing (#181)
 
 ## 2026-11-14
 
+- feat(api): let a developer delete their account (#176)
+- feat(api): show my hub membership and the agreement I signed (#170)
+- feat(api): let the owner rename, describe and archive a hub (#169)
 - feat(api): add the design sketch of pieces and links to a hub (#174)
 - fix(web): say what the AI checker looks at in a verification (#179)
 - feat(web): show the design sketch on the hub page (#178)

@@ -207,7 +207,7 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
   api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
   render(<HubPage lang="en" />);
   expect(await screen.findByRole("heading", { level: 1, name: "Borehole map hub" })).toBeTruthy();
-  expect(screen.getByRole("status").textContent).toContain("Your hub is ready. You are its owner and first member.");
+  expect(screen.getByText("Your hub is ready. You are its owner and first member.").getAttribute("role")).toBe("status");
   expect(screen.getByText("Active")).toBeTruthy();
   expect(screen.getByText("1 of 5 members")).toBeTruthy();
   expect(screen.getByText("Custom")).toBeTruthy();
@@ -215,8 +215,9 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
   expect(screen.getByText("Version 1 of the hub agreement")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Edit the idea" }).getAttribute("href")).toBe("/en/ideas/compose?id=idea-1");
   for (const phase of ["Brainstorm", "Design and architecture", "Build", "Review and test"]) expect(screen.getByText(phase)).toBeTruthy();
-  const github = await screen.findByRole("link", { name: "@kwabena-owusu (GitHub profile, opens in a new tab)" });
-  expect(github.getAttribute("href")).toBe("https://github.com/kwabena-owusu");
+  const profile = await screen.findByRole("link", { name: "Kwabena Owusu" });
+  expect(profile.getAttribute("href")).toBe("/en/people/view?username=kwabena-owusu");
+  expect(screen.getByText("@kwabena-owusu")).toBeTruthy();
 });
 
 // The hub arrives after the page, so the browser's own jump to an address's hash finds nothing,
