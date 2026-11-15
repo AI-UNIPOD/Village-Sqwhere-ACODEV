@@ -57,6 +57,13 @@ set was written.
 - **A rerun writes the feed again.** A post cannot change its own time, so a run deletes the
   new members' posts and writes them again with the same ids, dated back from the moment it
   runs. The members, roles, skills and sectors stay.
+- **The worker re-dates it daily.** The worker that already runs all the time on Vercel
+  (`vercel.json`, the `worker` daemon) checks once a pass, with one query, whether the newest demo
+  post is more than 22 hours old, and if so runs the seed's rerun (`redate_if_stale`). It never
+  makes a demo that is not there and never runs where `DEMO_ENABLED` is not true. A failed run is
+  logged and tried again an hour later, and never stops the verification and embedding steps.
+  The rewrite takes about fifteen seconds and happens in one transaction, so a visitor sees the
+  old feed until the new one is complete.
 
 ## Options we considered
 
@@ -64,6 +71,10 @@ set was written.
   could have read it, it would cost on every reset, and it would fail when a service is down.
 - **Template-built posts.** Cheap, but a feed of a thousand posts built from a dozen templates
   reads as machine-made within a minute of scrolling.
+- **Vercel Cron calling an endpoint.** It would need a new variable (a secret for the route) and a
+  public route that rewrites the database, which is what a read-only demo must not offer. The
+  daemon is already running, so it needs no paid feature and no new variable.
+- **GitHub Actions on a schedule.** Actions are off for this repository.
 - **Embed the demo too.** About 200 one-time embeddings, and the tour's matcher would show the
   meaning part. Tanny chose not to send made-up profiles to a provider.
 - **A follow feature for the light members.** There is none in the product, so the lighter
@@ -74,7 +85,8 @@ set was written.
 ## Consequences
 
 - The demo's database grows by about 1,150 users, 1,500 posts, 6,000 comments and 22,000 likes.
-- A rerun takes seconds, not milliseconds, because every post is written again.
+- A rerun takes seconds, not milliseconds, because every post is written again. The worker
+  needs `DEMO_ENABLED=true` in its own environment, as the API does; without it the feed ages.
 - A new post type, topic or language needs new text written and read before it is in the demo.
 - The light members' bios repeat shapes ("Backend developer in Kisumu."). They are short on
   purpose, and the full members' bios are all different.

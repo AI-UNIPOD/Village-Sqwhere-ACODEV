@@ -935,6 +935,31 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
     db.add(CommentLike(comment_id=top.id, user_id=you.id))
 
 
+# The demo is written again when its newest post is older than this. A little under a day, so
+# the run happens about once a day without the worker having to remember when it last ran.
+STALE_AFTER = timedelta(hours=22)
+
+
+async def redate_if_stale(db: AsyncSession) -> bool:
+    """Writes the demo's posts and comments again, dated back from now, when the newest one has
+    grown old, so the live demo never reads "3 weeks ago". Only where the demo is on and has been
+    seeded: this never makes the demo, and never runs where DEMO_ENABLED is not true. Returns True
+    when it wrote. docs/decisions/2026-11-15-lived-in-demo.md"""
+    if not config.DEMO_ENABLED or await db.get(User, DEMO_ACCOUNT_ID) is None:
+        return False
+    newest = await db.scalar(
+        select(func.max(Post.created_at)).where(
+            Post.author_id.in_(select(User.id).where(User.is_demo))
+        )
+    )
+    if newest is not None and datetime.now(UTC) - newest < STALE_AFTER:
+        return False
+    await seed(db)
+    await write_world(db)
+    await db.commit()
+    return True
+
+
 async def main() -> int:
     # Made-up developers on a server without the demo would be content nobody can reach, and
     # usually means DATABASE_URL points at the wrong server.
