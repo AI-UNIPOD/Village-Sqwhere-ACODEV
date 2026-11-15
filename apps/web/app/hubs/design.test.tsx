@@ -26,6 +26,8 @@ const at = (phase: string, over: Record<string, unknown> = {}) => ({
   ...over,
 });
 const inDesign = { ...asMember, ...at("design") };
+// the sketch to read, with no form and no button on its cards
+const reading = { ...asMember, ...at("build") };
 
 const person = { id: "id-amina", username: "amina-ndiaye", display_name: "Amina Ndiaye", avatar_url: null, is_verified: false };
 const piece = (id: string, name: string, summary = "") => ({
@@ -73,7 +75,12 @@ async function open(over: Record<string, unknown>, routes: Record<string, unknow
 
 const section = () => document.querySelector<HTMLElement>("section#design")!;
 const ready = () => screen.findByRole("heading", { name: /^(Design sketch|Schéma de conception)$/ });
-const cards = () => within(section()).queryAllByRole("heading", { level: 3 }).map((heading) => heading.closest("li")!);
+// the forms have headings too, but only a piece's heading sits in a list
+const cards = () =>
+  within(section())
+    .queryAllByRole("heading", { level: 3 })
+    .map((heading) => heading.closest("li"))
+    .filter((card) => card !== null);
 const alertText = () => within(section()).getByRole("alert").textContent;
 const drawing = () => section().querySelector("svg");
 
@@ -154,7 +161,7 @@ test("a skeleton stands in while the sketch loads", async () => {
 });
 
 test("every piece is a card with its name, its summary and its links in words, both ways", async () => {
-  await open(inDesign, { [DESIGN]: payoutsSketch });
+  await open(reading, { [DESIGN]: payoutsSketch });
   await ready();
   await waitFor(() => expect(cards()).toHaveLength(3));
   const [app, api, gateway] = cards();
@@ -169,7 +176,7 @@ test("every piece is a card with its name, its summary and its links in words, b
 
 test("names, summaries and labels are plain text, and a long name wraps instead of widening the card", async () => {
   const long = "A".repeat(60);
-  await open(inDesign, {
+  await open(reading, {
     [DESIGN]: sketch([piece("p-1", "<b>Bold</b> API", "<i>Soft</i> summary"), piece("p-2", long)], [link("l-1", "p-1", "p-2", "<u>calls</u>")]),
   });
   await ready();
@@ -246,7 +253,6 @@ test("Refresh reads the sketch again, keeps the focus on the button and says so"
 });
 
 test.each([
-  ["design", { ...asMember, ...at("design") }, "This is the team's sketch of the system: its pieces and how they talk."],
   ["build", { ...asOwner, ...at("build") }, "Design and architecture is over. The sketch stays here to read."],
   ["review", { ...asMember, ...at("review") }, "Design and architecture is over. The sketch stays here to read."],
   ["an archived hub", { ...asOwner, ...at("design"), status: "archived" }, "This hub is archived. The sketch stays here to read."],
@@ -314,7 +320,7 @@ test("in French the heading, the lines and the links are French", async () => {
   await ready();
   await waitFor(() => expect(cards()).toHaveLength(3));
   // the text as the page holds it, so the narrow no-break space before the colon is checked
-  expect(section().textContent).toContain("Voici le schéma du système réalisé par l'équipe\u202f: ses composants et la façon dont ils communiquent.");
+  expect(section().textContent).toContain("Voici le schéma du système réalisé par l'équipe\u202f: ses composants et la façon dont ils communiquent. Chaque membre peut ajouter un composant ou en corriger un.");
   expect(within(cards()[0]).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
     "Vers Payouts API\u202f: approves a batch",
     "Depuis Payouts API\u202f: returns the status",
