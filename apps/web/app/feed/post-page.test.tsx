@@ -120,6 +120,52 @@ test("like and save work on the page as on a card", async () => {
   expect(screen.getByRole("button", { name: "Like (3)" }).getAttribute("aria-pressed")).toBe("true");
 });
 
+// ---------- the demo ----------
+
+const demo = { data: { username: "demo", display_name: "Demo Developer", bio: null, roles: [], technologies: [], is_demo: true } };
+const WORDS = {
+  en: {
+    line: "You are in the demo. The people, ideas and posts here are made up, and nothing can be changed.",
+    notSaved: "Nothing was saved. The demo cannot be changed.",
+    like: "Like (2)",
+    save: "Save",
+  },
+  fr: {
+    line: "Vous êtes dans la démo. Les personnes, les idées et les publications sont fictives, et rien ne peut être modifié.",
+    notSaved: "Rien n'a été enregistré. La démo ne peut pas être modifiée.",
+    like: "J'aime (2)",
+    save: "Enregistrer",
+  },
+};
+
+test.each(["en", "fr"] as const)("the demo account sees the demo line on a single post's page, in %s", async (lang) => {
+  api({ "GET /v1/me": demo, "GET /v1/posts/post-1": { data: post() } });
+  render(<PostPage lang={lang} />);
+  expect(await screen.findByText(WORDS[lang].line)).toBeTruthy();
+  expect(await screen.findByRole("heading", { level: 1 })).toBeTruthy();
+});
+
+test.each(["en", "fr"] as const)("in the demo a refused like or save says nothing was saved beside them, in %s", async (lang) => {
+  const w = WORDS[lang];
+  api({
+    "GET /v1/me": demo,
+    "GET /v1/posts/post-1": { data: post() },
+    "PUT /v1/posts/post-1/like": refusal(403, "DEMO_READ_ONLY"),
+    "PUT /v1/posts/post-1/save": refusal(403, "DEMO_READ_ONLY"),
+  });
+  render(<PostPage lang={lang} />);
+  fireEvent.click(await screen.findByRole("button", { name: w.like }));
+  const said = await screen.findByText(w.notSaved);
+  expect(said.getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByRole("button", { name: w.like }).getAttribute("aria-pressed")).toBe("false");
+
+  // pressing the other control starts a new answer
+  fireEvent.click(screen.getByRole("button", { name: w.save }));
+  expect(screen.queryByText(w.notSaved)).toBeNull();
+  expect(await screen.findByText(w.notSaved)).toBeTruthy();
+});
+
 // ---------- delete ----------
 
 test("only the author is offered Delete", async () => {

@@ -118,8 +118,14 @@
   gap: 0 var(--space-4);
 }
 
-/* a change was refused: the line says so, in the text colour, and arrives again */
-.demo[data-refused] p {
+/* the line, and under it the sentence for a change that was refused */
+.demoText {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* a change was refused: the sentence says so, in the text colour, and arrives again */
+.demoRefused {
   color: var(--text);
   animation: demo-said var(--dur-reveal) var(--ease-out) both;
 }
@@ -132,7 +138,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .demo[data-refused] p { animation: none; }
+  .demoRefused { animation: none; }
 }
 
 /* an invitation is waiting in Hubs: a dot beside the name */

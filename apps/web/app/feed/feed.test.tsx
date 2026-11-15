@@ -211,13 +211,22 @@ test("pressing a liked post's like takes it back with DELETE", async () => {
   await waitFor(() => expect(asked()).toContain("DELETE /v1/posts/post-1/like"));
 });
 
-test("in the demo a refused like goes back without asking to try again", async () => {
+test("in the demo a refused like goes back and says nothing was saved beside the card's buttons", async () => {
   api({ "GET /v1/feed": page([post()]), "PUT /v1/posts/post-1/like": reply(403, { detail: { code: "DEMO_READ_ONLY", message: "English" } }) });
   render(<Feed lang="en" tab="for-you" />);
   fireEvent.click(await screen.findByRole("button", { name: "Like (2)" }));
   await waitFor(() => expect(asked()).toContain("PUT /v1/posts/post-1/like"));
   await waitFor(() => expect(screen.getByRole("button", { name: "Like (2)" }).getAttribute("aria-pressed")).toBe("false"));
-  // the frame's demo line says why
+  expect(within(card("Pooling with asyncpg")).getByText("Nothing was saved. The demo cannot be changed.").getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("in the demo a refused save on a card says nothing was saved, in French", async () => {
+  api({ "GET /v1/feed": page([post()]), "PUT /v1/posts/post-1/save": reply(403, { detail: { code: "DEMO_READ_ONLY", message: "English" } }) });
+  render(<Feed lang="fr" tab="for-you" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Enregistrer" }));
+  expect(await screen.findByText("Rien n'a été enregistré. La démo ne peut pas être modifiée.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Enregistrer" }).getAttribute("aria-pressed")).toBe("false");
   expect(screen.queryByRole("alert")).toBeNull();
 });
 

@@ -43,20 +43,26 @@ type AppFrameProps = {
   children: ReactNode;
 };
 
-// Under the header for the shared demo account: what the demo is, and the way out of it. When
-// the API refuses a change, the line says so, and a screen reader hears it each time. Beside
-// the way out it offers the guided tour, until the tour is on.
+// Under the header for the shared demo account: what the demo is, and the way out of it. The line
+// never changes, so it is on every screen. When the API refuses a change, a second line says so,
+// and a screen reader hears it each time. Beside the way out it offers the guided tour, until
+// the tour is on.
 function DemoLine({ lang }: { lang: Lang }) {
   const t = copy[lang].demo;
   const refusals = useDemoRefusals();
   const router = useRouter();
   const touring = useTour().tour !== null;
   return (
-    <div className={styles.demo} data-refused={refusals > 0 || undefined}>
-      {/* the key makes each refusal a new line, so it is announced and drawn again */}
-      <p key={refusals} role="status">
-        {refusals > 0 ? t.refused : t.line}
-      </p>
+    <div className={styles.demo}>
+      <div className={styles.demoText}>
+        <p>{t.line}</p>
+        {/* the key makes each refusal a new line, so it is announced and drawn again */}
+        {refusals > 0 && (
+          <p key={refusals} role="status" className={styles.demoRefused}>
+            {t.refused}
+          </p>
+        )}
+      </div>
       <div className={styles.demoActions}>
         {!touring && (
           <button

@@ -304,6 +304,26 @@ test("any other failure says nothing was lost, keeps the text and lets the perso
   await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/en/posts/view?id=new-6&done=published"));
 });
 
+test.each([
+  ["en", "Text", "Publish", "Nothing was saved. The demo cannot be changed."],
+  ["fr", "Texte", "Publier", "Rien n'a été enregistré. La démo ne peut pas être modifiée."],
+] as const)("in the demo a refused post says nothing was saved beside the button, in %s", async (lang, body, publish, line) => {
+  api({ "POST /v1/posts": refusal(403, "DEMO_READ_ONLY") });
+  render(<PostComposer lang={lang} />);
+  typeInto(body, "Keep me");
+  press(publish);
+  const said = await screen.findByText(line);
+  expect(said.getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect((screen.getByLabelText(body) as HTMLTextAreaElement).value).toBe("Keep me");
+  // it goes when the text is edited, and when the button is pressed again
+  typeInto(body, "Keep me please");
+  expect(screen.queryByText(line)).toBeNull();
+  press(publish);
+  await screen.findByText(line);
+  expect(requests("POST")).toBe(2);
+});
+
 // ---------- leaving ----------
 
 test("closing the tab with unsent text asks first, as the idea composer does, and not when nothing was typed", () => {

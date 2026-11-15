@@ -372,6 +372,91 @@ test("a like that fails goes back and says so, and a second press while sending 
   expect(like().getAttribute("aria-label")).toBe("Like (2)");
 });
 
+// ---------- the demo: a refused write says so beside the control ----------
+
+const WORDS = {
+  en: {
+    notSaved: "Nothing was saved. The demo cannot be changed.",
+    write: "Write a comment",
+    post: "Comment",
+    replyTo: "Reply to Kwabena Owusu",
+    reply: "Reply",
+    edit: "Edit",
+    editLabel: "Edit your comment",
+    save: "Save",
+    like: "Like (0)",
+  },
+  fr: {
+    notSaved: "Rien n'a été enregistré. La démo ne peut pas être modifiée.",
+    write: "Écrire un commentaire",
+    post: "Commenter",
+    replyTo: "Répondre à Kwabena Owusu",
+    reply: "Répondre",
+    edit: "Modifier",
+    editLabel: "Modifier votre commentaire",
+    save: "Enregistrer",
+    like: "J'aime (0)",
+  },
+};
+const readOnly = () => refusal(403, "DEMO_READ_ONLY");
+const line = (lang: "en" | "fr") => screen.findByText(WORDS[lang].notSaved);
+
+test.each(["en", "fr"] as const)("a refused comment says nothing was saved, keeps the text and clears when it is edited, in %s", async (lang) => {
+  const w = WORDS[lang];
+  open({ "POST /v1/posts/post-1/comments": readOnly() }, lang);
+  await screen.findByRole("textbox", { name: w.write });
+  type(w.write, "Keep me");
+  press(w.post);
+  expect((await line(lang)).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect((box(w.write) as HTMLTextAreaElement).value).toBe("Keep me");
+  type(w.write, "Keep me please");
+  expect(screen.queryByText(w.notSaved)).toBeNull();
+});
+
+test.each(["en", "fr"] as const)("a refused reply says nothing was saved and stays open, in %s", async (lang) => {
+  const w = WORDS[lang];
+  open({ "GET /v1/posts/post-1/comments": page([top("c1")]), "POST /v1/posts/post-1/comments": readOnly() }, lang);
+  await screen.findByText("Body of c1");
+  press(w.replyTo);
+  type(w.replyTo, "Good point");
+  press(w.reply);
+  await line(lang);
+  expect((box(w.replyTo) as HTMLTextAreaElement).value).toBe("Good point");
+  // a second press starts a new answer
+  press(w.reply);
+  expect(screen.queryByText(w.notSaved)).toBeNull();
+  await line(lang);
+});
+
+test.each(["en", "fr"] as const)("a refused edit says nothing was saved and keeps the box open, in %s", async (lang) => {
+  const w = WORDS[lang];
+  open({ "GET /v1/posts/post-1/comments": page([top("c1")]), "PATCH /v1/comments/c1": readOnly() }, lang, "kwabena-owusu");
+  await screen.findByText("Body of c1");
+  press(w.edit);
+  type(w.editLabel, "Changed");
+  fireEvent.click(within(document.getElementById("comment-c1-editing-form")!).getByRole("button", { name: w.save }));
+  expect((await line(lang)).getAttribute("role")).toBe("status");
+  expect((box(w.editLabel) as HTMLTextAreaElement).value).toBe("Changed");
+});
+
+test.each(["en", "fr"] as const)("a refused like on a comment says nothing was saved beside it, in %s", async (lang) => {
+  const w = WORDS[lang];
+  open({ "GET /v1/posts/post-1/comments": page([top("c1"), top("c2")]), "PUT /v1/comments/": readOnly() }, lang);
+  await screen.findByText("Body of c1");
+  const like = (id: string) => within(document.getElementById(`comment-${id}`)!).getByRole("button", { name: w.like });
+  fireEvent.click(like("c1"));
+  const said = await line(lang);
+  expect(said.getAttribute("role")).toBe("status");
+  expect(document.getElementById("comment-c1")!.contains(said)).toBe(true);
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(like("c1").getAttribute("aria-pressed")).toBe("false");
+  // the line belongs to one comment: pressing another moves it
+  fireEvent.click(like("c2"));
+  await waitFor(() => expect(document.getElementById("comment-c2")!.textContent).toContain(w.notSaved));
+  expect(document.getElementById("comment-c1")!.textContent).not.toContain(w.notSaved);
+});
+
 // ---------- writing ----------
 
 test("a comment is sent as typed, appears after the others, empties the box, and is announced", async () => {

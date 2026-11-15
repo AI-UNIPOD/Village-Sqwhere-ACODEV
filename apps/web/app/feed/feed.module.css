@@ -250,3 +250,9 @@
     .topicsPanel { transform: none; }
   }
 }
+
+/* said beside a control the demo account pressed: what happened to the press, in the text colour */
+.notSaved {
+  color: var(--text);
+  font: var(--type-body-s);
+}
