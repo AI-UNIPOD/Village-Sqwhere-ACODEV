@@ -40,7 +40,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 2. The hub's four phase tools: brainstorm notes (in review), the design sketch as boxes and
    arrows, the build tab (pieces, and the commits of a public repository the owner pastes),
    the review checklist and finishing a hub. Then embeddings for the score's meaning part, the
-   score on join requests, leaving and removing members, and a "pause matching" setting.
+   score on join requests and a "pause matching" setting.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
 4. Save an onboarding completion flag once the API has a field (the country, the sectors and

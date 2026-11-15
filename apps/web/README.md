@@ -108,7 +108,10 @@ paragraphs only, never as markup.
 The hub page shows a member the team (`GET /v1/hubs/{id}/members`) and the private brief
 (`GET /v1/hubs/{id}/idea`). The owner invites by GitHub username, withdraws an invitation and
 invites again after a decline (`team.tsx`); an invited developer sees the invitation, not the
-team's brief. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
+team's brief. In an active hub the owner removes an active member behind a confirm dialog
+(`POST /v1/hubs/{id}/members/{user_id}/remove`), and a member who is not the owner leaves the same
+way (`POST /v1/hubs/{id}/membership/leave`); the page then shows the hub as someone who left, or
+was removed, with a line that says so. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
 The village and Your hubs keep that list for the visit (`app/hubs/invitations.ts`): the village
 makes a waiting invitation its next step, and the places bar marks Hubs with a dot. Signing or
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
