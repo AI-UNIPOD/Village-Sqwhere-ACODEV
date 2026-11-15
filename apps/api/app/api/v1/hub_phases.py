@@ -12,6 +12,7 @@ from fastapi import APIRouter, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.api.v1.hub_members import find_hub, require_active_hub, require_owner
+from app.api.v1.hub_review import require_not_finished
 from app.api.v1.hubs import hub_error
 from app.models import Hub, HubPhase, HubPhaseMove
 from app.schemas.hubs import HubResponse, MovePhaseRequest
@@ -63,6 +64,7 @@ async def move_phase(
             "TEAM_NOT_CONFIRMED",
             "Confirm the team first with POST /v1/hubs/{hub_id}/team/confirm.",
         )
+    require_not_finished(hub, "This hub is finished, so it cannot move to another phase.")
     # Exactly one step either way. Asking for the phase the hub is already in is refused too,
     # so a request sent twice moves the hub once.
     if abs(PHASES.index(payload.phase) - PHASES.index(hub.phase)) != 1:
