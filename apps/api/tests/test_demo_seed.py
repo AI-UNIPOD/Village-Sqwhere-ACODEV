@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, func, select, text, update
 
-from app import config, database
+from app import config, database, demo_seed
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.demo_seed import (
     BRIEF,
@@ -1314,7 +1314,11 @@ def test_the_script_writes_nothing_where_the_demo_is_off(
 
 
 def test_the_script_seeds_where_the_demo_is_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def community_written_elsewhere(db) -> tuple[int, int]:
+        return 0, 0  # test_demo_world.py writes the wider community and checks it
+
     monkeypatch.setattr(config, "DEMO_ENABLED", True)
     monkeypatch.setattr(database, "async_session", db_session)
+    monkeypatch.setattr(demo_seed, "write_world", community_written_elsewhere)
 
     assert asyncio.run(main()) == 0
