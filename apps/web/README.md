@@ -126,10 +126,11 @@ under the three-letter code of `landing/gather.ts` and sent as the API's two-let
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
 team. Onboarding's last screen leads there, and the bare onboarding address sends a developer
-who already has a role there too. The steps are marked from what the developer has done:
-the third is done with an idea that is not a draft (`GET /v1/me/ideas`) or a hub they are in, the
-fourth with a hub they are in (`GET /v1/me/hubs`, archived ones too). The steps show as a skeleton
-until those reads and the invitations settle, and a read that fails leaves its step as it was. Screens for signed-in people share one frame, `AppFrame` in
+who already has a role there too. The steps are marked from what the developer has done: the
+third is done with an idea that is not a draft (`GET /v1/me/ideas`) or a hub they are in, the
+fourth with a hub they are in (`GET /v1/me/hubs`, archived ones too). The steps show as a
+skeleton until those reads and the invitations settle, and a read that fails leaves its step as
+it was. Screens for signed-in people share one frame, `AppFrame` in
 `app/app-frame.tsx`: pass it the screen's address so the language link opens the same screen.
 The frame also holds the places (village, feed, ideas, hubs, reviews for a verified developer,
 profile): a bar at the bottom of a phone, links in the header from 768px. A new place is one
