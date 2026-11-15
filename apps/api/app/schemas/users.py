@@ -2,7 +2,14 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StringConstraints,
+    field_validator,
+)
 
 from app.countries import AFRICAN_COUNTRY_CODES
 from app.schemas.lookups import RoleRef, SectorRef, TechnologyRef
@@ -46,6 +53,8 @@ class UserProfile(BaseModel):
     bio: str | None = None
     country_code: str | None = None
     onboarding_completed_at: datetime | None = None
+    matching_paused: bool = False
+    matching_paused_at: datetime | None = None
     is_verified: bool = False
     verified_at: datetime | None = None
     platform_role: str = "member"
@@ -114,6 +123,16 @@ class UserProfileUpdate(BaseModel):
         # strict: 1 or "true" would otherwise pass as true
         if value is not True:
             raise ValueError("send true to record that onboarding is finished, or leave it out")
+        return value
+
+    # true leaves owners' developer matches, false comes back; null is refused
+    matching_paused: StrictBool | None = None
+
+    @field_validator("matching_paused", mode="before")
+    @classmethod
+    def matching_paused_is_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("send true to pause matching or false to resume it, or leave it out")
         return value
 
     @field_validator("country_code")

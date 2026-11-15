@@ -11,6 +11,8 @@ its number:
 ## 2026-11-15
 
 - feat(web): add a waving Nigeria flag to the landing footer
+- feat(api): let a developer pause matching (#213)
+- docs: name the live address for sign-in settings and add a check (#228)
 - feat(api): record when a developer finishes onboarding (#212)
 - docs: link the live site in both readmes (#227)
 - feat(api): add the meaning part to the match score and similar ideas (#225)

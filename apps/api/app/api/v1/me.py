@@ -59,6 +59,12 @@ async def update_my_profile(
     if payload.onboarding_completed and current_user.onboarding_completed_at is None:
         # the first time counts; a repeat keeps it, so the web can send it on every finish
         current_user.onboarding_completed_at = datetime.now(UTC)
+    if payload.matching_paused is not None:
+        # pausing again keeps the first moment
+        if not payload.matching_paused:
+            current_user.matching_paused_at = None
+        elif current_user.matching_paused_at is None:
+            current_user.matching_paused_at = datetime.now(UTC)
     if payload.email is not None and payload.email != current_user.email:
         current_user.email = payload.email
         # The new address has not been verified yet.

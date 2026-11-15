@@ -97,6 +97,7 @@ They run in file name order, once, on an empty database:
 | `021-hub-review.sql` | The review checklist of a hub: `hub_checks`, short checks written against a piece and ticked by a teammate, removed softly with `deleted_at` and `deleted_by`, and `hubs.finished_at`, empty until the owner finishes the hub. Running it twice is safe. |
 | `022-demo-hubs-agreement-v2.sql` | Moves the demo's hubs, and the made-up signatures in them, from version 1 of the agreement to version 2, so the demo stops showing the test text. Only hubs owned and signed by demo accounts (`users.is_demo`); nothing is deleted. It needs 020 first and stops with an error without it. Running it twice is safe. |
 | `023-user-onboarding-done.sql` | `users.onboarding_completed_at`: when a developer finished onboarding, empty until then. The API sets it once and never clears it. Running it twice is safe. |
+| `024-user-matching-pause.sql` | `users.matching_paused_at`: set while a developer has paused matching, so owners are not shown them as a match; empty while matching is on. Running it twice is safe. |
 | `025-embeddings.sql` | `idea_embeddings` moves to `gemini-embedding-2` and 768 numbers (it removes rows of another model first, since the worker makes them again), and `user_embeddings` is new. Triggers remove a developer's vector when their bio, verified roles, technologies or sectors change. Numbers 021 to 024 belong to other work. Running it twice is safe. |
 | `026-demo-signature-dates.sql` | Dates the demo's made-up signatures at the moment each member joined, where the seed had left them at the day it ran. Only signatures of demo accounts (`users.is_demo`) in hubs a demo account owns; nothing is deleted. Running it twice is safe. |
 
@@ -168,6 +169,31 @@ reaches the API at `https://<domain>/v1/...`.
    Manage, Advanced DNS) add the records Vercel shows: usually an `A` record for `@` and a
    `CNAME` for `www`. Update the four URL variables above if they still name the
    `vercel.app` address, and redeploy.
+
+   **Use the address people end up on.** When the domain redirects one name to the other (the
+   apex to `www`, for example), put that final address in `NEXT_PUBLIC_API_URL`,
+   `FRONTEND_URL`, `CORS_ORIGINS` and the GitHub callback. An address on the other name makes
+   every API call cross-site: `CORS_ORIGINS` matches one exact address, and a redirect on a
+   call from the browser breaks it. `NEXT_PUBLIC_API_URL` is fixed when the site is built, so
+   change it, then redeploy without the build cache.
+
+### Check that sign-in works
+
+Each check is an effect you can see, and none needs a secret.
+
+1. `https://<domain>/health` answers `{"status":"ok", ...}`. A 500 with
+   `FUNCTION_INVOCATION_FAILED` means the API did not start: look for a missing
+   `JWT_SECRET_KEY` first.
+2. On `/en/sign-in`, the browser's network panel shows the call to
+   `/v1/auth/oauth/github/start` going to the site's own address, not `localhost:8000`.
+3. The GitHub button leads to GitHub's approval screen for the app. "redirect_uri is not
+   associated with this application" means the callback address does not match the one
+   registered in the OAuth app.
+4. After you approve, the browser comes back to `/en/auth/callback?login_code=...` and then
+   lands on `/en/onboarding`. `?error=INVALID_STATE` is the known limit below.
+5. A reload keeps you signed in, and `GET /v1/me` answers 200.
+6. "Try the demo" opens the feed. It does not use GitHub, so it works while sign-in is still
+   being set up.
 
 ### Known limits on Vercel
 
