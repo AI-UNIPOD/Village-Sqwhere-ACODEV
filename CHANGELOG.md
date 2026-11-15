@@ -11,10 +11,13 @@ its number:
 ## 2026-11-15
 
 - feat(web): add the build tab to the hub page
+- feat(infra): publish the hub agreement as version 2 (#195)
+- fix(api): remove the made-up label from the demo private brief (#198)
+- fix(web): drop the made-up and sample labels from the landing page (#196)
 - feat(web): credit the ai unipod in the landing footer (#194)
+- fix(web): say the design sketch is live on the landing page (#190)
 - docs: rewrite the readmes for the public repository (#192)
 - feat(api): add the build tab of claims and commits to a hub (#193)
-- fix(web): say the design sketch is live on the landing page (#190)
 - feat(web): let the owner rename, describe and archive a hub (#185)
 - test(web): wait for the dialog to close in a design sketch test (#191)
 - feat(web): show members the agreement they signed (#189)

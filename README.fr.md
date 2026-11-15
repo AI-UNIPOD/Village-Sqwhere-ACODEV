@@ -320,7 +320,7 @@ langues et l'affichage sur téléphone à 360px.
 | # | Problème | Conséquence | Plan |
 |---|---|---|---|
 | 1 | La partie « sens » du score (30 points sur 100) n'est pas construite ; les cartes affichent « Sens : pas encore comparé » | Les correspondances se classent sur les rôles, les technologies et les secteurs | Écrire les vecteurs des idées et des profils dans `idea_embeddings` (pgvector) |
-| 2 | Chaque espace signe un accord provisoire intitulé « TEST AGREEMENT (NOT LEGAL TEXT) » | Il n'a aucune valeur juridique | Le vrai texte arrive en version 2 avant le lancement |
+| 2 | L'accord d'espace (version 2) a été rédigé par l'équipe et n'a pas été relu par un juriste | Sa portée juridique n'est pas vérifiée | Une personne qualifiée le relit ; les changements arrivent en version 3 |
 | 3 | Les phases de développement et de revue n'ont pas encore d'outils | Les équipes utilisent la discussion pendant ces phases | Une vue du dépôt et des commits pour le développement, une liste de contrôle pour la revue |
 | 4 | Aucune limite de débit | Un déploiement public peut être saturé | Des limites par client, plus strictes sur la connexion, la démo et les appels à l'IA |
 | 5 | L'état de connexion est gardé en mémoire dans l'API | Un seul processus d'API ; un redémarrage oublie les déconnexions | Une table `refresh_tokens` |

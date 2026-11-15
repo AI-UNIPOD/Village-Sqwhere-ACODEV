@@ -48,5 +48,6 @@ to `infra/`.
   `pnpm db:up`). The steps are in `infra/README.md`.
 - A mistake in a hub's terms cannot be fixed by editing them. Today that means a new hub.
 - The test agreement must be replaced before launch. Hubs created on version 1 keep pointing at
-  the test text, so any hub made before launch is test data.
+  the test text, so any hub made before launch is test data. Changed on 2026-11-15: version 2
+  is published and new hubs use it (`2026-11-15-hub-agreement-v2.md`).
 - The API has no hub models, schemas or routes yet. They come in the next pull request.

@@ -20,7 +20,7 @@ import hashlib
 import sys
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
@@ -133,6 +133,12 @@ FOR_YOU_IDEAS = [
 
 
 # the hub the visitor owns, which the seed puts in the build phase
+# The private brief of every demo idea. It reads as a real one: the demo bar's line is the only
+# place that says the demo is made up.
+BRIEF = (
+    "Milestones for the first three months, a budget in naira and CFA, "
+    "and the partners to approach first."
+)
 OWN_HUB = "Payouts Hub"
 # what its two active members wrote on the brainstorm board, as (who, days ago, text)
 OWN_HUB_NOTES = [
@@ -206,6 +212,12 @@ async def seed(db: AsyncSession) -> bool:
     else:
         # comments, likes, saves and topics go with their posts
         await db.execute(delete(Post).where(Post.author_id.in_([u.id for u in people.values()])))
+        # a world seeded while the brief still began "Made-up plan for the demo"
+        await db.execute(
+            update(Idea)
+            .where(Idea.author_id.in_([u.id for u in people.values()]), Idea.details != BRIEF)
+            .values(details=BRIEF)
+        )
     await _write_open_ideas(db, people)
     await _start_own_hub(db, people["you"])
     await _write_own_hub_notes(db, people)
@@ -295,7 +307,7 @@ def _add_idea(
         author_id=author.id,
         title=title,
         summary=summary,
-        details="Made-up plan for the demo: milestones, budget in naira and CFA, partners.",
+        details=BRIEF,
         stage=IdeaStage.PROTOTYPE,
         status=status,
         published_at=None if status == IdeaStatus.DRAFT else ago(days=days),

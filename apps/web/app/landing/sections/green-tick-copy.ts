@@ -42,7 +42,7 @@ const en: Copy = {
   attempts: "You get three attempts for each role.",
   noTickNeeded: "You can share an idea before you have a Green Tick.",
   demo: {
-    caption: "Sample: Thandiwe Mokoena earns a Green Tick as a Mobile Engineer.",
+    caption: "Thandiwe Mokoena earns a Green Tick as a Mobile Engineer.",
     name: "Thandiwe Mokoena",
     initials: "TM",
     role: "Mobile Engineer",
@@ -75,7 +75,7 @@ const fr: Copy = {
   attempts: "Vous avez trois tentatives par rôle.",
   noTickNeeded: "Vous pouvez partager une idée avant d'avoir un Green Tick.",
   demo: {
-    caption: "Exemple\u202f: Thandiwe Mokoena obtient un Green Tick en tant qu'ingénieure mobile.",
+    caption: "Thandiwe Mokoena obtient un Green Tick en tant qu'ingénieure mobile.",
     name: "Thandiwe Mokoena",
     initials: "TM",
     role: "Ingénieure mobile",
