@@ -12,6 +12,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 - The API has GitHub sign-in with PKCE, profiles, roles, technologies, feed topics, sectors and
   verification (GitHub analysis, five-question AI interview, report, peer review), Groq
   and Gemini fallbacks and a separate worker. Guide: `docs/backend.md`.
+- Developer Exchange posts accept image uploads through `POST /v1/uploads`; an S3-compatible
+  bucket and public base URL must be configured before uploads are available.
 - Ideas, matching and hubs are in place (drafts, cards, agreements, invitations, join
   requests). Every match has a score out of 100 that decides the order (roles, shared
   technologies, shared sectors; version 1 is partial until embeddings add the meaning part:

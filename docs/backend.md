@@ -1773,6 +1773,7 @@ Create a new feed post.
       "title": "Async Python with PostgreSQL",
       "body": "Tips and patterns for async connection pooling with asyncpg and PostgreSQL.",
       "link_url": "https://github.com/example/async-postgres-guide",
+      "attachments": [],
       "author": {
         "id": "908fdc10-d867-4279-bb7d-b6a2f7c00e12",
         "username": "ada-lagos",
@@ -1794,6 +1795,37 @@ Create a new feed post.
     }
   }
   ```
+
+---
+
+### `POST /v1/uploads`
+
+Upload one image and attach it to a post. Create the post first, then upload each image with its
+post ID. The API stores image bytes in configured S3-compatible storage and records metadata in
+`post_attachments`.
+
+* **Authentication:** Required (Bearer token). Demo accounts are read-only.
+* **Form fields:** `post_id` (UUID) and `file` (one image).
+* **Allowed images:** JPEG, PNG, or WebP, detected from file content. Maximum size is 5 MB and
+  maximum dimensions are 40 million pixels. The original filename is ignored.
+* **Ownership:** Only the post author may upload. A post accepts at most 10 images.
+* **Storage configuration:** Set `UPLOADS_S3_BUCKET` and `UPLOADS_PUBLIC_BASE_URL`. Region,
+  endpoint and credentials use `UPLOADS_S3_REGION`, `UPLOADS_S3_ENDPOINT_URL`,
+  `UPLOADS_S3_ACCESS_KEY_ID` and `UPLOADS_S3_SECRET_ACCESS_KEY`. When credentials are empty,
+  the AWS SDK credential chain is used. Without a bucket or public URL, the endpoint returns 503.
+* **Success:** HTTP 201 with the attachment ID, public URL, detected MIME type, byte size,
+  dimensions and display position, wrapped in `data`. Post read and list responses include these
+  attachment objects in position order.
+* **Errors:** 401 unauthenticated, 403 `NOT_POST_AUTHOR`, 404 `POST_NOT_FOUND`, 409
+  `POST_IMAGE_LIMIT`, 413 `IMAGE_TOO_LARGE`, 422 `INVALID_IMAGE` or `EMPTY_IMAGE`, 502
+  `IMAGE_STORAGE_FAILED`, and 503 `UPLOAD_STORAGE_UNAVAILABLE`.
+
+```bash
+curl -X POST http://localhost:8000/v1/uploads \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -F "post_id=$POST_ID" \
+  -F "file=@image.webp"
+```
 
 ---
 

@@ -17,6 +17,7 @@ from app.api.v1.matches import router as matches_router
 from app.api.v1.me import router as me_router
 from app.api.v1.posts import router as posts_router
 from app.api.v1.reviews import router as reviews_router
+from app.api.v1.uploads import router as uploads_router
 from app.api.v1.users import router as users_router
 from app.api.v1.verifications import router as verifications_router
 
@@ -28,6 +29,7 @@ api_v1_router.include_router(auth_router, tags=["Auth"])
 api_v1_router.include_router(me_router, tags=["Me"])
 api_v1_router.include_router(users_router, tags=["Profiles"])
 api_v1_router.include_router(posts_router, tags=["Posts"])
+api_v1_router.include_router(uploads_router, tags=["Uploads"])
 api_v1_router.include_router(comments_router, tags=["Comments"])
 api_v1_router.include_router(verifications_router, tags=["Verifications"])
 api_v1_router.include_router(reviews_router, tags=["Reviews"])

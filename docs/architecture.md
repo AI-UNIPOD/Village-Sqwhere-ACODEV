@@ -15,6 +15,9 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   Settings come from environment variables or a root `.env` file (`apps/api/app/config.py`):
   `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
   and `JWT_SECRET_KEY`. The API will not start without `JWT_SECRET_KEY`.
+- **Post image storage**: image bytes use an S3-compatible object store. `post_attachments`
+  stores object keys and image metadata. Uploads stay disabled until bucket and public URL
+  settings are supplied.
 - **PostgreSQL + pgvector**: the main data store, set up by the scripts in `infra/db/init/`.
   The schema has an `idea_embeddings` table with a pgvector column, for finding similar
   ideas. Nothing writes to it yet.

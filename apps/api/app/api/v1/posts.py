@@ -19,6 +19,7 @@ from app.models import (
     DeletionReason,
     PlatformRole,
     Post,
+    PostAttachment,
     PostLike,
     PostTopic,
     PostType,
@@ -28,6 +29,7 @@ from app.models import (
 )
 from app.schemas.lookups import TechnologyRef
 from app.schemas.posts import (
+    PostAttachmentResponse,
     PostAuthorRef,
     PostCreateRequest,
     PostItemResponse,
@@ -35,6 +37,7 @@ from app.schemas.posts import (
     PostResponse,
     PostUpdateRequest,
 )
+from app.services import uploads as image_storage
 
 router = APIRouter()
 
@@ -94,6 +97,25 @@ async def _post_responses(
     )
     for post_id, slug, name in topic_rows:
         topics[post_id].append(TechnologyRef(slug=slug, name=name))
+    attachment_rows = await db.execute(
+        select(PostAttachment)
+        .where(PostAttachment.post_id.in_(post_ids))
+        .order_by(PostAttachment.position)
+    )
+    attachments: dict[UUID, list[PostAttachmentResponse]] = defaultdict(list)
+    for attachment in attachment_rows.scalars():
+        attachments[attachment.post_id].append(
+            PostAttachmentResponse(
+                id=attachment.id,
+                url=image_storage.public_image_url(attachment.storage_key),
+                mime_type=attachment.mime_type,
+                byte_size=attachment.byte_size,
+                width=attachment.width,
+                height=attachment.height,
+                position=attachment.position,
+                created_at=attachment.created_at,
+            )
+        )
     liked = set(
         await db.scalars(
             select(PostLike.post_id).where(
@@ -115,6 +137,7 @@ async def _post_responses(
             title=post.title,
             body=post.body,
             link_url=post.link_url,
+            attachments=attachments[post.id],
             author=authors[post.author_id],
             topics=topics[post.id],
             like_count=post.like_count,

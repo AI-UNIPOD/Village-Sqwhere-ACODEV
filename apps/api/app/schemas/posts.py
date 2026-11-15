@@ -91,6 +91,21 @@ class PostAuthorRef(BaseModel):
     is_verified: bool
 
 
+class PostAttachmentResponse(BaseModel):
+    id: UUID
+    url: str
+    mime_type: str
+    byte_size: int
+    width: int
+    height: int
+    position: int
+    created_at: datetime
+
+
+class PostAttachmentItemResponse(BaseModel):
+    data: PostAttachmentResponse
+
+
 class PostResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -99,6 +114,7 @@ class PostResponse(BaseModel):
     title: str | None
     body: str
     link_url: str | None
+    attachments: list[PostAttachmentResponse]
     author: PostAuthorRef
     topics: list[TechnologyRef]
     like_count: int
