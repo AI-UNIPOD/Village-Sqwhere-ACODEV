@@ -175,9 +175,6 @@ code.
 | Collaboration | Discussion d'équipe, quatre phases, notes de brainstorming, schéma de conception en blocs et liens | `/v1/hubs/{id}/messages`, `/phase`, `/notes`, `/design` |
 | Fil communautaire | Publications, commentaires, réponses, j'aime, enregistrements, sujets | `/v1/feed`, `/v1/posts/*`, `/v1/comments/*` |
 
-94 des 112 routes du suivi de l'équipe sont construites. Les principaux manques sont dans
-[Problèmes connus](#problèmes-connus), et le plan dans [`docs/PROGRESS.md`](docs/PROGRESS.md).
-
 <p>
   <img src="https://skillicons.dev/icons?i=nextjs,react,ts,python,fastapi,postgres,docker,github&perline=8" alt="Next.js, React, TypeScript, Python, FastAPI, PostgreSQL, Docker et GitHub" />
 </p>
@@ -315,21 +312,10 @@ langues et l'affichage sur téléphone à 360px.
 | Suppression du compte | Confirmée en saisissant son nom d'utilisateur ; le compte est anonymisé et ses publications restent sous « Compte supprimé » | `apps/api/app/services/account_deletion.py` |
 | Secrets | Aucun dans le dépôt ; les réglages viennent de l'environnement | `.env.example` |
 
-### Problèmes connus
-
-| # | Problème | Conséquence | Plan |
-|---|---|---|---|
-| 1 | La partie « sens » du score (30 points sur 100) n'est pas construite ; les cartes affichent « Sens : pas encore comparé » | Les correspondances se classent sur les rôles, les technologies et les secteurs | Écrire les vecteurs des idées et des profils dans `idea_embeddings` (pgvector) |
-| 2 | L'accord d'espace (version 2) a été rédigé par l'équipe et n'a pas été relu par un juriste | Sa portée juridique n'est pas vérifiée | Une personne qualifiée le relit ; les changements arrivent en version 3 |
-| 3 | Les phases de développement et de revue n'ont pas encore d'outils | Les équipes utilisent la discussion pendant ces phases | Une vue du dépôt et des commits pour le développement, une liste de contrôle pour la revue |
-| 4 | Aucune limite de débit | Un déploiement public peut être saturé | Des limites par client, plus strictes sur la connexion, la démo et les appels à l'IA |
-| 5 | L'état de connexion est gardé en mémoire dans l'API | Un seul processus d'API ; un redémarrage oublie les déconnexions | Une table `refresh_tokens` |
-| 6 | La connexion Bitbucket répond 503 | GitHub seulement pour l'instant | Prévue après GitHub |
-
 ### Contribuer
 
 Lisez [CONTRIBUTING.md](CONTRIBUTING.md) pour l'installation et le parcours d'un changement
-jusqu'à `main`, et [AGENTS.md](AGENTS.md) pour les règles de l'équipe. Vous travaillez sur
+jusqu'à `main`, avec la règle des commits. Vous travaillez sur
 l'interface ? Commencez par le [design system](docs/design-system/README.md).
 
 ## Licence

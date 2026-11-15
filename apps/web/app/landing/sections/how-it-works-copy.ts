@@ -117,7 +117,7 @@ const en: Copy = {
       { name: "Thandiwe Mokoena", initials: "TM", line: "Mobile Engineer", signed: "Signed" },
       { name: "Kidist Alemayehu", initials: "KA", line: "Cybersecurity and Smart Contract Auditor", signed: "Signed" },
     ],
-    agreement: "Version 1 of the hub agreement",
+    agreement: "Version 2 of the hub agreement",
     signedByAll: "Signed by every member.",
   },
   hub: {
@@ -202,7 +202,7 @@ const fr: Copy = {
       { name: "Thandiwe Mokoena", initials: "TM", line: "Ingénieur mobile", signed: "Signée" },
       { name: "Kidist Alemayehu", initials: "KA", line: "Auditeur cybersécurité et smart contracts", signed: "Signée" },
     ],
-    agreement: "Version 1 de l'accord de l'espace",
+    agreement: "Version 2 de l'accord de l'espace",
     signedByAll: "Signé par chaque membre.",
   },
   hub: {
