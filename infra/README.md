@@ -23,7 +23,7 @@ flowchart LR
 ## The schema at a glance
 
 The tables behind the main flow, from `db/init/002-schema.sql` and the scripts after it
-(33 tables in all):
+(35 tables in all):
 
 ```mermaid
 erDiagram
@@ -32,6 +32,7 @@ erDiagram
   users ||--o{ ideas : "writes"
   ideas ||--o{ idea_roles_needed : "needs"
   ideas ||--o| idea_embeddings : "vector"
+  users ||--o| user_embeddings : "vector"
   ideas ||--o| hubs : "becomes"
   agreement_templates ||--o{ hubs : "signed on"
   hubs ||--o{ hub_members : "has"
@@ -96,6 +97,7 @@ They run in file name order, once, on an empty database:
 | `021-hub-review.sql` | The review checklist of a hub: `hub_checks`, short checks written against a piece and ticked by a teammate, removed softly with `deleted_at` and `deleted_by`, and `hubs.finished_at`, empty until the owner finishes the hub. Running it twice is safe. |
 | `022-demo-hubs-agreement-v2.sql` | Moves the demo's hubs, and the made-up signatures in them, from version 1 of the agreement to version 2, so the demo stops showing the test text. Only hubs owned and signed by demo accounts (`users.is_demo`); nothing is deleted. It needs 020 first and stops with an error without it. Running it twice is safe. |
 | `023-user-onboarding-done.sql` | `users.onboarding_completed_at`: when a developer finished onboarding, empty until then. The API sets it once and never clears it. Running it twice is safe. |
+| `025-embeddings.sql` | `idea_embeddings` moves to `gemini-embedding-2` and 768 numbers (it removes rows of another model first, since the worker makes them again), and `user_embeddings` is new. Triggers remove a developer's vector when their bio, verified roles, technologies or sectors change. Numbers 021 to 024 belong to other work. Running it twice is safe. |
 | `026-demo-signature-dates.sql` | Dates the demo's made-up signatures at the moment each member joined, where the seed had left them at the day it ran. Only signatures of demo accounts (`users.is_demo`) in hubs a demo account owns; nothing is deleted. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
