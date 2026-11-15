@@ -47,6 +47,8 @@ PieceSummary = Annotated[
 LinkLabel = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60, pattern=NO_NULL)
 ]
+# the hubs_repository_url_format CHECK
+REPOSITORY_URL = r"^https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
 # the hub_messages_body_length CHECK, counted in characters
 MessageBody = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10000, pattern=NO_NULL)
@@ -170,6 +172,32 @@ class MovePhaseRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     phase: HubPhase
+
+
+class SetRepositoryRequest(BaseModel):
+    """The address is trimmed and a trailing slash and `.git` are dropped. It must then be an
+    HTTPS github.com address with exactly an owner and a repository, like the
+    hubs_repository_url_format CHECK. null clears it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    repository_url: Annotated[str, StringConstraints(pattern=REPOSITORY_URL, max_length=200)] | None
+
+    @field_validator("repository_url", mode="before")
+    @classmethod
+    def tidy(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip().removesuffix("/").removesuffix(".git")
+        return value
+
+    @field_validator("repository_url")
+    @classmethod
+    def no_dot_parts(cls, value: str | None) -> str | None:
+        # "." and ".." fit the pattern but are path steps, not names: the address is later put
+        # into a request to GitHub's API, so it must name one owner and one repository
+        if value is not None and {".", ".."} & set(value.rsplit("/", 2)[1:]):
+            raise ValueError("the owner and the repository cannot be . or ..")
+        return value
 
 
 class UpdateHubRequest(BaseModel):
@@ -474,3 +502,44 @@ class HubDesign(BaseModel):
 
 class HubDesignResponse(BaseModel):
     data: HubDesign
+
+
+class HubBuildPiece(BaseModel):
+    """`claimed_by` is null when nobody holds the piece, and also when the holder is no longer an
+    active member. `can_claim` and `can_release` say what the viewer may do now."""
+
+    id: UUID
+    name: str
+    summary: str
+    claimed_by: HubOwner | None
+    claimed_at: datetime | None
+    can_claim: bool
+    can_release: bool
+
+
+class HubBuildPieceResponse(BaseModel):
+    data: HubBuildPiece
+
+
+class HubCommitCard(BaseModel):
+    """Plain text from GitHub: show it as text, never as markup."""
+
+    sha: str
+    message: str
+    author_name: str
+    committed_at: datetime
+
+
+class HubBuild(BaseModel):
+    """`can_refresh` ignores the one minute wait between two refreshes."""
+
+    repository_url: str | None
+    commits_refreshed_at: datetime | None
+    can_set_repository: bool
+    can_refresh: bool
+    pieces: list[HubBuildPiece]
+    commits: list[HubCommitCard]
+
+
+class HubBuildResponse(BaseModel):
+    data: HubBuild
