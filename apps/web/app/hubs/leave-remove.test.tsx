@@ -93,7 +93,7 @@ test("someone who already left is not removed twice: the list is read again", as
   fireEvent.click(removeButton()!);
   fireEvent.click(within(dialog("Remove this member?")).getByRole("button", { name: "Remove" }));
   expect(await screen.findByText("Tendai Moyo is no longer an active member. The list is up to date.")).toBeTruthy();
-  expect(asked().filter((line) => line === "GET /v1/hubs/hub-1/members")).toHaveLength(2);
+  await waitFor(() => expect(asked().filter((line) => line === "GET /v1/hubs/hub-1/members")).toHaveLength(2));
 });
 
 test.each([

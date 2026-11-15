@@ -155,7 +155,7 @@ export function HubPhases({ lang }: { lang: Lang }) {
   ];
 
   return (
-    <section className={`${styles.block} ${styles.warm}`} id="hub" aria-labelledby="hub-title">
+    <section className={`${styles.block} ${styles.warm}`} data-tile-bg="" id="hub" aria-labelledby="hub-title">
       <div className={styles.wrap}>
         <h2 id="hub-title">
           <HeadingText text={t.title} />

@@ -61,7 +61,7 @@ export function Principles({ lang }: { lang: Lang }) {
   }, []);
 
   return (
-    <section className={`${styles.block} ${styles.warm}`} aria-labelledby="principles-title">
+    <section className={`${styles.block} ${styles.warm}`} data-tile-bg="" aria-labelledby="principles-title">
       <div className={styles.wrap}>
         <h2 id="principles-title">
           <HeadingText text={t.title} />
