@@ -621,10 +621,26 @@ failed run returns to `pending` and can be claimed again until
 `VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached. The primary Groq analyzer falls back to the
 configured Gemini analyzer after a Groq configuration or API error.
 
+#### `POST /v1/me/verifications/{session_id}/interview-ticket`
+
+The applicant asks for a one-use ticket just before opening the interview socket, so the access
+token never goes in a URL, where servers and proxies log it. No body. Answers `201` with
+`{"data": {"ticket": "...", "expires_at": "..."}}`. The ticket works once, for about 60
+seconds, only for this attempt and this person, and is kept in the API's memory (one process,
+like the sign-in codes).
+
+* **Errors:** `401`, `403 DEMO_READ_ONLY` (the demo cannot take an interview), `404 NOT_FOUND`
+  (no such attempt of yours), `409 INTERVIEW_NOT_AVAILABLE` (the attempt is not at its
+  interview).
+* Why: `docs/decisions/2026-11-15-interview-ticket.md`.
+
 #### `WS /v1/me/verifications/{session_id}/interview`
 
-The applicant opens this WebSocket after the session reaches `technical_defence`. The access
-token is supplied as the `token` query parameter during the connection handshake. The server
+The applicant opens this WebSocket after the session reaches `technical_defence`, with the
+ticket from `POST .../interview-ticket` as the `ticket` query parameter. A used, expired or
+unknown ticket, or one for another attempt, is refused like a bad token (close code `1008`).
+The older `token` query parameter (the access token itself) still works but is deprecated: it
+goes once the web sends tickets. The server
 sends `assistant_message`, `question`, `answer_saved`, `audio_buffered`, `error`,
 `interview_complete`, and `interview_incomplete` events. An `assistant_message` has a `kind` of
 `welcome`, `acknowledgement`, or `closing`, plus its text. The welcome explains the interview
@@ -675,6 +691,33 @@ uv run --directory apps/api python -m app.workers.runner
 
 It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each job is claimed
 with a database row lock, and a failed job is logged while the loop continues.
+
+**Embeddings.** The same loop also embeds, each run, up to 20 ideas and 20 developers that have
+no vector, with Google's `gemini-embedding-2` and the `GEMINI_API_KEY` the API already has. No
+route reads or writes them and the match score does not use them yet. Why:
+`docs/decisions/2026-11-15-embeddings-on-gemini.md`.
+
+* **What is sent.** For an idea, its title and summary, never `details`. For a developer, their
+  verified role names, technology names, sector names and bio, in a fixed order, never an email,
+  a legal name, a display name or a username.
+* **Who is embedded.** An idea that is `open` and not deleted, the same rule the match lists use.
+  A developer with at least one verified role whose account is not deleted. Demo accounts too.
+* **Where it is stored.** `idea_embeddings` and `user_embeddings` (`025-embeddings.sql`): one row
+  per idea or developer with a 768-wide `vector`, the `model`, and the SHA-256 of the exact text
+  that was sent. A missing row means the text needs embedding.
+* **When a vector goes stale.** A database trigger removes it when the idea's title or summary
+  changes, or a developer's bio changes, or a row in their `user_roles`, `user_technologies` or
+  `user_sectors` is added, removed or changed. The next run embeds it again. A text that changes
+  while Gemini answers is read again before it is stored, and gets no vector until the next run.
+  The one exception is a technology, a sector or a role changed in the moment between that check
+  and the commit: the vector is then stored with a hash that no longer matches the profile, and
+  stays until the profile changes again.
+* **When it fails.** An unreachable or bad answer from Gemini is logged without the text or the
+  key, nothing is written, and the next run tries again. If Gemini refuses a request of several
+  texts, each text is asked for alone, so one text it always refuses holds back only itself. An
+  error in the idea step does not stop the developer step. With no `GEMINI_API_KEY` the step does
+  nothing and the log says so once.
+* **Account deletion** removes the developer's vector with the rest of their profile.
 
 Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
 `GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape. The
@@ -823,9 +866,11 @@ never contains the confidential `details` field. A developer asks to join throug
 
 Matching pairs open ideas with developers through the roles an idea needs and the roles a
 developer has passed verification in. Self-claimed and inactive roles never match. It is
-deterministic: no AI model is called and an idea's `details` are never read. Both routes take
-`offset` (0 or more) and `limit` (1 to 50, default 20) and return `next_offset` when another
-page exists. Why: `docs/decisions/2026-11-13-role-based-idea-matching.md`.
+deterministic: no AI model is called and an idea's `details` are never read. The worker stores
+embeddings of ideas and profiles (see "Embeddings" above), but the score does not use them
+yet. Both routes take `offset` (0 or more) and `limit` (1 to 50, default 20) and return
+`next_offset` when another page exists. Why:
+`docs/decisions/2026-11-13-role-based-idea-matching.md`.
 
 **The score.** Every match has a score out of 100 and both lists are ordered by it. Why:
 `docs/decisions/2026-11-14-match-score.md`. It is counted from stored facts, in four parts:
@@ -1307,6 +1352,13 @@ Inviting a developer who has a pending request approves it too.
 The team, for active members only: the owner first, then members by joining time. The owner
 also sees `requested`, `invited` and `declined` people, to answer, follow up or withdraw. Nobody sees people who
 left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
+
+On each pending request (`status: "requested"`), and only for the owner, the card's `fit` is
+the same card `GET /v1/me/ideas/{idea_id}/matches` gives, scored against this hub's idea: the
+score with `score_version`, `partial` and `breakdown`, the matched roles, the technologies and
+sectors shared with the owner, and the developer's `country_code`. A requester verified in none
+of the needed roles still gets a fit, with a low score. `fit` is `null` on every other card and
+for every other caller. Why: `docs/decisions/2026-11-15-score-on-join-requests.md`.
 
 * **Errors:** `403 NOT_HUB_MEMBER`.
 

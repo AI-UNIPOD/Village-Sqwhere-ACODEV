@@ -58,16 +58,18 @@ export function useLeaveWarning(dirty: boolean) {
   }, [dirty]);
 }
 
-// A label, its control, the helper line and, once the text nears its limit, a count.
+// A label, its control, the helper line and, once the text nears its limit, a count. A `note` is
+// a second line of help, read with the first.
 export function Field(props: {
   id: string;
   label: ReactNode;
   help: string;
+  note?: string;
   error?: string;
   count?: string;
   children: ReactNode;
 }) {
-  const { id, label, help, error, count, children } = props;
+  const { id, label, help, note, error, count, children } = props;
   return (
     <div className={styles.field}>
       <label htmlFor={id} className={styles.label}>
@@ -78,6 +80,11 @@ export function Field(props: {
         {help}
         {count && <span className={styles.count}>{count}</span>}
       </p>
+      {note && (
+        <p id={`${id}-note`} className={styles.help}>
+          {note}
+        </p>
+      )}
       {error && (
         <p id={`${id}-error`} className={onboarding.error} role="alert">
           <AlertCircle />
@@ -224,7 +231,8 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
 
   const status = saved?.status ?? "draft";
   const closed = status === "closed";
-  const describe = (name: TextField) => `idea-${name}-help${errors[name] ? ` idea-${name}-error` : ""}`;
+  const describe = (name: TextField) =>
+    `idea-${name}-help${name === "summary" ? " idea-summary-note" : ""}${errors[name] ? ` idea-${name}-error` : ""}`;
   // quiet until the text is within a tenth of its limit
   const count = (length: number, max: number) => (length > max * 0.9 ? fill(t.count, { n: length, max }) : undefined);
 
@@ -275,6 +283,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
             id="idea-summary"
             label={t.summary.label}
             help={t.summary.help}
+            note={t.summary.note}
             error={errors.summary}
             count={count(fields.summary.length, LIMITS.summaryMax)}
           >

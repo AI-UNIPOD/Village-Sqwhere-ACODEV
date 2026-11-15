@@ -89,7 +89,7 @@ test.each([
 
 test("once the team is confirmed, everyone reads that the owner moves the hub", async () => {
   await open({ ...asMember, ...at("brainstorm") });
-  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are below; the review tool is still to come.")).toBeTruthy();
+  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. Each phase has its tool on this page, which opens as the hub reaches that phase: the brainstorm notes, the design sketch, the build tab and the review checklist.")).toBeTruthy();
 });
 
 test.each([
@@ -98,19 +98,20 @@ test.each([
 ])("once the team is confirmed, %s is not pointed to notes they cannot see", async (_who, viewer) => {
   await open({ ...viewer, ...at("brainstorm") });
   expect(
-    within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are for the hub's members; the review tool is still to come."),
+    within(phases()).getByText("The owner moves the hub from one phase to the next. Each phase has its tool on this page, for the hub's members: the brainstorm notes, the design sketch, the build tab and the review checklist."),
   ).toBeTruthy();
   expect(phases().textContent).not.toContain("notes below");
+  expect(phases().textContent).not.toContain("still to come");
 });
 
 test.each([
-  ["a member", asMember, "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont ci-dessous\u202f; l'outil de revue reste à venir."],
+  ["a member", asMember, "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, qui s'ouvre quand l'espace atteint cette phase\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue."],
   [
     "someone outside the hub",
     asOutsider,
-    "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont réservés aux membres de l'espace\u202f; l'outil de revue reste à venir.",
+    "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, réservé aux membres de l'espace\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue.",
   ],
-])("in French, once the team is confirmed, %s reads the build tab too", async (_who, viewer, line) => {
+])("in French, once the team is confirmed, %s reads where each tool is", async (_who, viewer, line) => {
   await open({ ...viewer, ...at("brainstorm") }, {}, "fr");
   // the text itself, not the page's normalised copy of it: the narrow no-break space before the semicolon is checked
   expect(phases().textContent).toContain(line);
@@ -164,6 +165,17 @@ test("the owner moves forward and back, each behind a dialog, and the body names
   await waitFor(() => expect(phases().querySelector("[aria-current='step']")?.textContent).toContain("Design and architecture"));
 });
 
+test("a finished hub shows Finished on its last phase and offers no way back", async () => {
+  await open({ ...asOwner, ...at("review"), finished_at: "2026-11-15T12:00:00Z" });
+  expect(rows()).toEqual(["01BrainstormDone", "02Design and architectureDone", "03BuildDone", "04Review and testFinished"]);
+  expect(within(phases()).queryAllByRole("button")).toHaveLength(0);
+});
+
+test("in French a finished hub says Terminée on its last phase", async () => {
+  await open({ ...asMember, ...at("review"), finished_at: "2026-11-15T12:00:00Z" }, {}, "fr");
+  expect(rows()[3]).toBe("04Revue et testsTerminée");
+});
+
 test("brainstorm has no way back, and review has no way forward", async () => {
   await open({ ...asOwner, ...at("brainstorm") });
   expect(within(phases()).queryByRole("button", { name: /^Back to/ })).toBeNull();
@@ -202,6 +214,18 @@ test.each(["TEAM_ALREADY_CONFIRMED", "PHASE_NOT_ADJACENT", "TEAM_NOT_CONFIRMED"]
   },
 );
 
+test("HUB_FINISHED on the way back: the hub is loaded again, shows Finished, and the button is gone", async () => {
+  await open({ ...asOwner, ...at("review") }, {
+    "POST /v1/hubs/hub-1/phase": refusal(409, "HUB_FINISHED"),
+    "GET /v1/hubs/hub-1": [{ data: hub({ ...asOwner, ...at("review") }) }, { data: hub({ ...asOwner, ...at("review"), finished_at: "2026-11-15T12:00:00Z" }) }],
+  });
+  press("Back to Build");
+  confirmIn("Go back to Build?", "Back to Build");
+  await waitFor(() => expect(within(phases()).getByRole("alert").textContent).toContain("That action is not available on this hub."));
+  expect(rows()[3]).toBe("04Review and testFinished");
+  expect(within(phases()).queryAllByRole("button")).toHaveLength(0);
+});
+
 test.each(["HUB_ARCHIVED", "NOT_HUB_OWNER"])("%s: the hub is loaded again and the page says the action is not available", async (code) => {
   await open(asOwner, {
     "POST /v1/hubs/hub-1/team/confirm": refusal(code === "HUB_ARCHIVED" ? 409 : 403, code),
@@ -228,7 +252,8 @@ test("any other failure says nothing changed and keeps the buttons", async () =>
   press("Confirm the team");
   confirmIn("Confirm the team?", "Confirm the team");
   await waitFor(() => expect(within(phases()).getByRole("alert").textContent).toContain("We couldn't save that. Nothing changed, so try again."));
-  expect(within(phases()).getByRole("button", { name: "Confirm the team" })).toBeTruthy();
+  // once the dialog has closed, the one button left with this name is the section's own
+  await waitFor(() => expect(within(phases()).getByRole("button", { name: "Confirm the team" })).toBeTruthy());
 });
 
 test("the owner of an archived hub that was never confirmed is not told to confirm", async () => {

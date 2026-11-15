@@ -1,4 +1,5 @@
 import asyncio
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -10,25 +11,34 @@ from app import config, database
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.demo_seed import (
     BRIEF,
+    COCOA_HUB,
     FOR_YOU_IDEAS,
+    OLD_OWN_HUB_NOTES,
     OLD_OWN_HUB_REPOSITORY,
     OWN_HUB,
     OWN_HUB_CLAIMS,
     OWN_HUB_COMMITS,
     OWN_HUB_REPOSITORY,
     PEOPLE,
+    TONTINE_HUB,
     main,
     seed,
 )
 from app.models import (
     Hub,
     HubCommit,
+    HubMember,
+    HubMessage,
     HubNote,
+    HubPhase,
     HubPhaseMove,
     HubPiece,
     HubPieceLink,
     Idea,
     User,
+    VerificationInterview,
+    VerificationSession,
+    VerificationStatus,
 )
 from tests.conftest import test_async_session as db_session
 
@@ -39,6 +49,12 @@ def _seed() -> bool:
             return await seed(session)
 
     return asyncio.run(go())
+
+
+def _in_french(body: str) -> bool:
+    """True when the text holds an accented letter or the narrow space French puts before ? and :,
+    which the English notes and messages never use."""
+    return re.search(r"[àâçéèêëîïôùûœ\u202f]", body.lower()) is not None
 
 
 @pytest.fixture
@@ -100,15 +116,22 @@ def test_running_the_seed_again_rewrites_only_the_feed(client: TestClient, visit
         feed = client.get("/v1/feed", headers=visitor, params={"limit": 50}).json()["data"]
         return {post["id"] for post in feed if post["author"]["username"] in seeded}
 
-    hubs = client.get("/v1/me/hubs", headers=visitor).json()["data"]
+    hubs = _hub_cards(client, visitor)
     before = seeded_posts()
 
     assert _seed() is False
 
-    assert client.get("/v1/me/hubs", headers=visitor).json()["data"] == hubs
+    assert _hub_cards(client, visitor) == hubs
     after = seeded_posts()
     assert len(after) == len(before) == 12
     assert after.isdisjoint(before)
+
+
+def _hub_cards(client: TestClient, visitor: dict, **params) -> list[dict]:
+    """The visitor's hubs, without `updated_at`: a rerun writes the commits of the build tab
+    again, and that touches the hub."""
+    cards = client.get("/v1/me/hubs", headers=visitor, params=params).json()["data"]
+    return [{key: value for key, value in card.items() if key != "updated_at"} for card in cards]
 
 
 def _countries() -> dict[str, str | None]:
@@ -239,7 +262,7 @@ def test_the_demo_hub_has_six_brainstorm_notes_the_visitor_can_read_but_not_chan
     times = [datetime.fromisoformat(note["created_at"]) for note in notes]
     assert times == sorted(times)
     assert all(now - timedelta(days=9) < moment < now - timedelta(days=6) for moment in times)
-    assert any("é" in note["body"] for note in notes)  # some French
+    assert not any(_in_french(note["body"]) for note in notes)  # Kumasi and Lagos write English
     assert all(note["can_delete"] is False for note in notes)  # the hub is in build
 
     for resp in (
@@ -339,6 +362,15 @@ def _hub_build(client: TestClient, visitor: dict) -> dict:
     return resp.json()["data"]
 
 
+def _without_times(build: dict) -> dict:
+    """The build tab as a rerun leaves it: the commits and their check are written again."""
+    commits = [
+        {key: value for key, value in commit.items() if key != "committed_at"}
+        for commit in build["commits"]
+    ]
+    return {**build, "commits": commits, "commits_refreshed_at": None}
+
+
 def test_the_demo_hub_has_claims_a_repository_and_commits_the_visitor_can_read_not_change(
     client: TestClient, visitor: dict
 ) -> None:
@@ -357,7 +389,8 @@ def test_the_demo_hub_has_claims_a_repository_and_commits_the_visitor_can_read_n
     for piece in pieces:
         if piece["claimed_by"]:
             claimed = datetime.fromisoformat(piece["claimed_at"])
-            assert now - timedelta(days=3) < claimed < now
+            # dated from the hub's move to build, so it ages with the hub and never leads it
+            assert claimed < now
     # the address cannot be a real repository, and eight commits by the two members
     assert (
         seen["repository_url"] == OWN_HUB_REPOSITORY == "https://github.com/naira_payouts/payouts"
@@ -391,7 +424,7 @@ def test_a_rerun_adds_claims_the_repository_and_commits_only_when_they_are_missi
     seen = _hub_build(client, visitor)
 
     _seed()
-    assert _hub_build(client, visitor) == seen
+    assert _without_times(_hub_build(client, visitor)) == _without_times(seen)
 
     async def clear() -> None:
         async with db_session() as session:
@@ -422,23 +455,26 @@ def test_a_rerun_adds_claims_the_repository_and_commits_only_when_they_are_missi
     assert [(p["name"], p["claimed_by"] and p["claimed_by"]["id"]) for p in again["pieces"]] == [
         (p["name"], p["claimed_by"] and p["claimed_by"]["id"]) for p in seen["pieces"]
     ]
+    # a claim written again gets the time it had, so the chat that mentions it still follows it
+    assert [p["claimed_at"] for p in again["pieces"]] == [p["claimed_at"] for p in seen["pieces"]]
 
     # a piece that is held is left as it is, even when the seed would give it to someone else
     kwabena = next(p for p in seen["pieces"] if p["name"] == "Mobile app")["claimed_by"]["id"]
 
-    async def hand_over() -> None:
+    async def hand_over(to: str) -> None:
         async with db_session() as session:
             await session.execute(
                 update(HubPiece)
                 .where(HubPiece.hub_id == _own_hub(client, visitor)["id"])
                 .where(HubPiece.name == OWN_HUB_CLAIMS[0][2])
-                .values(claimed_by=kwabena)
+                .values(claimed_by=to)
             )
             await session.commit()
 
-    asyncio.run(hand_over())
+    asyncio.run(hand_over(kwabena))
     _seed()
     assert _hub_build(client, visitor)["pieces"][1]["claimed_by"]["id"] == kwabena
+    asyncio.run(hand_over(seen["pieces"][1]["claimed_by"]["id"]))  # back, for the other tests
 
 
 def _my_open_idea(client: TestClient, visitor: dict) -> str:
@@ -565,7 +601,7 @@ def test_a_rerun_brings_a_world_made_the_old_way_to_the_same_state(
 ) -> None:
     profiles, counts = _profiles(), _counts()
     matches, for_you = _idea_matches(client, visitor), _for_you(client, visitor)
-    hubs = client.get("/v1/me/hubs", headers=visitor).json()["data"]
+    hubs = _hub_cards(client, visitor)
     assert len(profiles) == len(PEOPLE)
 
     _make_the_world_the_old_way()
@@ -578,7 +614,552 @@ def test_a_rerun_brings_a_world_made_the_old_way_to_the_same_state(
 
     assert [m["score"] for m in _idea_matches(client, visitor)] == [m["score"] for m in matches]
     assert [m["score"] for m in _for_you(client, visitor)] == [m["score"] for m in for_you]
-    assert client.get("/v1/me/hubs", headers=visitor).json()["data"] == hubs
+    assert _hub_cards(client, visitor) == hubs
+
+
+def _hubs(client: TestClient, visitor: dict) -> dict[str, dict]:
+    """The visitor's three hubs by name: the two they belong to and the one that invited them."""
+    cards = [
+        *client.get("/v1/me/hubs", headers=visitor).json()["data"],
+        *client.get("/v1/me/hubs", headers=visitor, params={"status": "invited"}).json()["data"],
+    ]
+    return {card["name"]: card for card in cards}
+
+
+def test_each_signature_is_dated_the_moment_its_member_joined(
+    client: TestClient, visitor: dict
+) -> None:
+    hubs = _hubs(client, visitor)
+    for name in (OWN_HUB, TONTINE_HUB):
+        resp = client.get(f"/v1/hubs/{hubs[name]['id']}/membership", headers=visitor)
+        membership = resp.json()["data"]
+        assert membership["signature"]["signed_at"] == membership["joined_at"]
+        joined = datetime.fromisoformat(membership["joined_at"])
+        assert datetime.now(UTC) - joined > timedelta(days=9)
+
+    async def later_than_joining() -> int:
+        async with db_session() as session:
+            return await session.scalar(
+                text(
+                    "SELECT count(*) FROM agreement_signatures s "
+                    "JOIN hub_members m ON m.signature_id = s.id "
+                    "JOIN users u ON u.id = s.user_id "
+                    "WHERE u.username = ANY(:names) AND s.signed_at > m.joined_at"
+                ),
+                {"names": _seeded_usernames()},
+            )
+
+    assert asyncio.run(later_than_joining()) == 0
+
+
+def _review_cases(client: TestClient, visitor: dict) -> list[dict]:
+    resp = client.get("/v1/reviews/verifications", headers=visitor)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]
+
+
+def test_the_review_case_has_repositories_an_interview_and_a_report_in_english(
+    client: TestClient, visitor: dict
+) -> None:
+    (card,) = _review_cases(client, visitor)
+    resp = client.get(f"/v1/reviews/verifications/{card['id']}", headers=visitor)
+    case = resp.json()["data"]
+
+    # the queue card counts them, and no address can be a real person's repository
+    addresses = [item["repository_url"] for item in card["evidence"]]
+    assert 2 <= len(addresses) <= 3 and card["evidence"] == case["evidence"]
+    for address in addresses:
+        assert re.fullmatch(r"https://github\.com/[a-z]+_[a-z]+/[a-z-]+", address), address
+
+    result = case["ai_result"]
+    report, analysis, transcript = (
+        result["final_report"],
+        result["codebase_analysis"],
+        result["interview_transcript"],
+    )
+    assert report["summary"] and report["codebase_findings"] and report["interview_findings"]
+    assert report["concerns"] and 0 < report["confidence"] <= 1
+    assert case["ai_score"] == report["score"] and case["language"] == "en"
+    assert analysis["summary"] and len(analysis["criterion_assessments"]) >= 3
+    for criterion in analysis["criterion_assessments"]:
+        assert criterion["criterion"] and criterion["rationale"] and criterion["evidence"]
+        assert isinstance(criterion["score"], int | float)
+    assert transcript["welcome"] and len(transcript["turns"]) >= 3
+    assert [turn["sequence"] for turn in transcript["turns"]] == list(
+        range(1, len(transcript["turns"]) + 1)
+    )
+    assert all(turn["question"] and turn["answer"] for turn in transcript["turns"])
+
+    # the review screen is anonymous: no name, and no French
+    everything = str(result).lower()
+    assert "tendai" not in everything and "moyo" not in everything
+    assert not _in_french(everything)
+
+
+def _change_the_review_case(**values) -> None:
+    """Changes the one attempt of the seed's applicant, whatever its status."""
+
+    async def go() -> None:
+        async with db_session() as session:
+            await session.execute(
+                update(VerificationSession)
+                .where(
+                    VerificationSession.user_id
+                    == select(User.id).where(User.username == "tendai_moyo").scalar_subquery()
+                )
+                .values(**values)
+            )
+            await session.commit()
+
+    asyncio.run(go())
+
+
+def _empty_the_review_case() -> None:
+    """The attempt as an older seed left it: a user and a role, nothing else."""
+
+    async def go() -> None:
+        async with db_session() as session:
+            await session.execute(delete(VerificationInterview))
+            await session.commit()
+
+    asyncio.run(go())
+    _change_the_review_case(evidence=[], ai_result=None, ai_score=None, source=None)
+
+
+def _interviews() -> int:
+    async def go() -> int:
+        async with db_session() as session:
+            return await session.scalar(select(func.count()).select_from(VerificationInterview))
+
+    return asyncio.run(go())
+
+
+def test_a_rerun_fills_an_empty_review_case_once_and_leaves_a_decided_one_alone(
+    client: TestClient, visitor: dict
+) -> None:
+    (filled,) = _review_cases(client, visitor)
+    interviews = _interviews()
+
+    _seed()
+    (again,) = _review_cases(client, visitor)
+    assert (again["evidence"], again["ai_result"]) == (filled["evidence"], filled["ai_result"])
+    assert _interviews() == interviews
+
+    _empty_the_review_case()
+    assert _review_cases(client, visitor)[0]["evidence"] == []
+    _seed()
+    (refilled,) = _review_cases(client, visitor)
+    assert (refilled["evidence"], refilled["ai_result"]) == (
+        filled["evidence"],
+        filled["ai_result"],
+    )
+    assert _interviews() == interviews
+
+    # an attempt that is no longer awaiting review stays as it is. In progress stands for it here
+    # because a decision is final in the database, and the other tests need the attempt back.
+    _empty_the_review_case()
+    _change_the_review_case(status=VerificationStatus.IN_PROGRESS)
+    _seed()
+    assert _review_cases(client, visitor) == []
+    assert _interviews() == interviews - 1
+    _change_the_review_case(status=VerificationStatus.AWAITING_REVIEW)
+    _seed()
+    assert _review_cases(client, visitor)[0]["evidence"] == filled["evidence"]
+
+
+def test_each_hub_has_its_own_description_in_the_language_of_its_owner(
+    client: TestClient, visitor: dict
+) -> None:
+    hubs = _hubs(client, visitor)
+    descriptions = {name: card["description"] for name, card in hubs.items()}
+
+    assert set(descriptions) == {OWN_HUB, TONTINE_HUB, COCOA_HUB}
+    assert len(set(descriptions.values())) == 3
+    for description in descriptions.values():
+        assert not re.fullmatch(r"Building .* together\.", description)
+        assert 2 <= len(re.findall(r"\.(?:\s|$)", description)) <= 3
+    assert _in_french(descriptions[TONTINE_HUB])
+    assert not _in_french(descriptions[OWN_HUB]) and not _in_french(descriptions[COCOA_HUB])
+
+
+def test_a_rerun_replaces_the_template_description_and_keeps_one_somebody_wrote(
+    client: TestClient, visitor: dict
+) -> None:
+    hubs = _hubs(client, visitor)
+    descriptions = {name: card["description"] for name, card in hubs.items()}
+    own_words = "Our own words, written by the owner."
+
+    async def write(new: dict[str, str]) -> None:
+        async with db_session() as session:
+            for name, description in new.items():
+                await session.execute(
+                    update(Hub).where(Hub.id == hubs[name]["id"]).values(description=description)
+                )
+            await session.commit()
+
+    asyncio.run(
+        write(
+            {
+                OWN_HUB: "Building naira payouts that never pay twice together.",
+                TONTINE_HUB: "Building tontine numérique pour dakar together.",
+                COCOA_HUB: own_words,
+            }
+        )
+    )
+    _seed()
+
+    after = {name: card["description"] for name, card in _hubs(client, visitor).items()}
+    assert after == descriptions | {COCOA_HUB: own_words}
+    asyncio.run(write({COCOA_HUB: descriptions[COCOA_HUB]}))
+
+
+def test_no_post_hires_and_the_french_one_tells_how_the_tontine_is_going(
+    client: TestClient, visitor: dict
+) -> None:
+    feed = client.get("/v1/feed", headers=visitor, params={"limit": 50}).json()["data"]
+    seeded = {username for username, _, _ in PEOPLE.values()}
+    posts = [post for post in feed if post["author"]["username"] in seeded]
+
+    assert len(posts) == 12
+    assert not any(re.search(r"recrut|hiring", post["body"].lower()) for post in posts)
+    aminata = [post["body"] for post in posts if post["author"]["username"] == "aminata_ndiaye"]
+    assert any("tontine" in body.lower() and _in_french(body) for body in aminata)
+
+    # the visitor lives in Lagos and answers Aminata's French question in English
+    question = next(post for post in posts if post["type"] == "question")
+    comments = client.get(f"/v1/posts/{question['id']}/comments", headers=visitor).json()["data"]
+    assert comments and not any(_in_french(comment["body"]) for comment in comments)
+
+
+def test_a_rerun_writes_the_notes_an_older_world_holds_in_french_in_english(
+    client: TestClient, visitor: dict
+) -> None:
+    notes = [note["body"] for note in _hub_notes(client, visitor)]
+
+    async def write_them_in_french() -> None:
+        async with db_session() as session:
+            for old, new in OLD_OWN_HUB_NOTES.items():
+                await session.execute(update(HubNote).where(HubNote.body == new).values(body=old))
+            await session.commit()
+
+    asyncio.run(write_them_in_french())
+    assert sum(_in_french(note["body"]) for note in _hub_notes(client, visitor)) == 2
+    _seed()
+    assert [note["body"] for note in _hub_notes(client, visitor)] == notes
+
+
+def _chat(client: TestClient, visitor: dict, name: str) -> list[dict]:
+    """The team chat of one of the visitor's hubs, oldest message first."""
+    hub_id = _hubs(client, visitor)[name]["id"]
+    resp = client.get(f"/v1/hubs/{hub_id}/messages", headers=visitor)
+    assert resp.status_code == 200, resp.text
+    return list(reversed(resp.json()["data"]))
+
+
+def _chats(client: TestClient, visitor: dict) -> dict[str, list[str]]:
+    return {
+        name: [message["body"] for message in _chat(client, visitor, name)]
+        for name in (OWN_HUB, TONTINE_HUB)
+    }
+
+
+def test_both_teams_have_been_talking_in_the_language_of_their_members(
+    client: TestClient, visitor: dict
+) -> None:
+    now = datetime.now(UTC)
+    hubs = _hubs(client, visitor)
+    for name, size in ((OWN_HUB, range(6, 9)), (TONTINE_HUB, range(4, 6))):
+        members = client.get(f"/v1/hubs/{hubs[name]['id']}/members", headers=visitor).json()["data"]
+        active = {m["user"]["id"] for m in members if m["status"] == "active"}
+        chat = _chat(client, visitor, name)
+
+        assert len(chat) in size
+        assert {message["author"]["id"] for message in chat} <= active
+        times = [datetime.fromisoformat(message["created_at"]) for message in chat]
+        assert times == sorted(times)
+        assert all(now - timedelta(days=10) < moment < now for moment in times)
+
+    # Lagos and Kumasi write English; the Tontine hub mixes French and English
+    payouts = _chat(client, visitor, OWN_HUB)
+    assert len({message["author"]["id"] for message in payouts}) == 2
+    assert not any(_in_french(message["body"]) for message in payouts)
+    # the message that says the claims are made comes after every claim of the person who wrote it
+    (reply,) = [m for m in payouts if m["body"].startswith("Works for me")]
+    claims = [
+        datetime.fromisoformat(piece["claimed_at"])
+        for piece in _hub_build(client, visitor)["pieces"]
+        if piece["claimed_by"] and piece["claimed_by"]["id"] == reply["author"]["id"]
+    ]
+    assert len(claims) == 2
+    assert all(claim < datetime.fromisoformat(reply["created_at"]) for claim in claims)
+    tontine = [_in_french(message["body"]) for message in _chat(client, visitor, TONTINE_HUB)]
+    assert any(tontine) and not all(tontine)
+
+
+def test_a_rerun_writes_a_chat_only_in_a_hub_whose_chat_is_empty(
+    client: TestClient, visitor: dict
+) -> None:
+    chats = _chats(client, visitor)
+    hubs = _hubs(client, visitor)
+
+    _seed()
+    assert _chats(client, visitor) == chats
+
+    async def say(only: str | None) -> None:
+        """Empties both chats, then puts one message from the hub's owner in the named hub."""
+        async with db_session() as session:
+            await session.execute(
+                delete(HubMessage).where(HubMessage.hub_id.in_([hubs[n]["id"] for n in chats]))
+            )
+            if only:
+                await session.execute(
+                    text(
+                        "INSERT INTO hub_messages (hub_id, author_id, body) "
+                        "VALUES (:hub, :author, 'We keep this.')"
+                    ),
+                    {"hub": hubs[only]["id"], "author": hubs[only]["owner"]["id"]},
+                )
+            await session.commit()
+
+    asyncio.run(say(only=OWN_HUB))
+    _seed()
+    assert _chats(client, visitor) == chats | {OWN_HUB: ["We keep this."]}
+
+    asyncio.run(say(only=None))
+    _seed()
+    assert _chats(client, visitor) == chats
+
+
+async def _history_of_the_hub(own: str) -> dict:
+    """The moments of the Payouts hub's history, and its chat by message text with its times."""
+    async with db_session() as session:
+        moves = dict(
+            (
+                await session.execute(
+                    select(HubPhaseMove.to_phase, func.min(HubPhaseMove.created_at))
+                    .where(HubPhaseMove.hub_id == own)
+                    .group_by(HubPhaseMove.to_phase)
+                )
+            ).all()
+        )
+        claims = list(
+            await session.scalars(
+                select(HubPiece.claimed_at).where(
+                    HubPiece.hub_id == own, HubPiece.claimed_at.is_not(None)
+                )
+            )
+        )
+        notes = list(await session.scalars(select(HubNote.created_at).where(HubNote.hub_id == own)))
+        joined = await session.scalar(
+            select(func.max(HubMember.joined_at)).where(HubMember.hub_id == own)
+        )
+        said = {
+            body: moment
+            for body, moment in (
+                await session.execute(
+                    select(HubMessage.body, HubMessage.created_at).where(HubMessage.hub_id == own)
+                )
+            ).all()
+        }
+    return {
+        "design": moves[HubPhase.DESIGN],
+        "build": moves[HubPhase.BUILD],
+        "first_claim": min(claims),
+        "last_claim": max(claims),
+        "first_note": min(notes),
+        "last_note": max(notes),
+        "joined": joined,
+        "said": said,
+    }
+
+
+def test_a_chat_written_on_a_rerun_days_later_fits_the_history_of_its_hub(
+    client: TestClient, visitor: dict
+) -> None:
+    """A world seeded five days ago has a hub history fixed five days back. Its chat, written
+    today because it is empty, is counted from that history and not from today."""
+    own = _hubs(client, visitor)[OWN_HUB]["id"]
+
+    async def move_the_history(days: int) -> None:
+        """Moves everything in the hubs' history by some days, the chat emptied. A hub's history
+        cannot be rewritten by a rerun, so the test puts it back when it is done."""
+        async with db_session() as session:
+            await session.execute(text("ALTER TABLE hub_phase_moves DISABLE TRIGGER USER"))
+            for table, columns in (
+                ("hub_members", ("joined_at",)),
+                ("hub_phase_moves", ("created_at",)),
+                ("hub_notes", ("created_at",)),
+                ("hub_pieces", ("created_at", "updated_at", "claimed_at")),
+            ):
+                for column in columns:
+                    await session.execute(
+                        text(
+                            f"UPDATE {table} "
+                            f"SET {column} = {column} + make_interval(days => :days) "
+                            f"WHERE {column} IS NOT NULL"
+                        ),
+                        {"days": days},
+                    )
+            await session.execute(text("ALTER TABLE hub_phase_moves ENABLE TRIGGER USER"))
+            await session.execute(delete(HubMessage))
+            await session.commit()
+
+    asyncio.run(move_the_history(-5))
+    try:
+        _seed()
+        found = asyncio.run(_history_of_the_hub(own))
+    finally:
+        asyncio.run(move_the_history(5))
+        _seed()
+
+    said = found["said"]
+
+    def at(start: str) -> datetime:
+        (moment,) = [moment for body, moment in said.items() if body.startswith(start)]
+        return moment
+
+    assert datetime.now(UTC) - found["joined"] > timedelta(days=14)
+    assert found["joined"] < at("Hi, glad to be on this") < at("Notes board first")
+    assert at("Notes board first") < found["first_note"]
+    assert found["last_note"] < at("The notes look complete") < found["design"]
+    assert at("Yes, go ahead") < found["design"]
+    assert found["build"] < at("We are in build now") < found["first_claim"]
+    # kwabena says he has claimed his pieces only after he has
+    assert at("Works for me") > found["last_claim"]
+    assert at("Works for me") < at("A failed transfer")
+    assert min(said.values()) > found["joined"]
+    assert max(said.values()) < datetime.now(UTC)
+
+
+def _claims_precede_the_first_commit_of_their_holder(build: dict) -> None:
+    first: dict[str, datetime] = {}
+    for commit in build["commits"]:
+        moment = datetime.fromisoformat(commit["committed_at"])
+        first[commit["author_name"]] = min(moment, first.get(commit["author_name"], moment))
+    held = [piece for piece in build["pieces"] if piece["claimed_by"]]
+    assert len(held) == 4
+    for piece in held:
+        claimed = datetime.fromisoformat(piece["claimed_at"])
+        assert claimed < first[piece["claimed_by"]["display_name"]], piece["name"]
+
+
+def test_every_claim_is_older_than_the_first_commit_of_its_holder(
+    client: TestClient, visitor: dict
+) -> None:
+    build = _hub_build(client, visitor)
+
+    _claims_precede_the_first_commit_of_their_holder(build)
+    # nobody holds the ledger piece, so no commit may say someone worked on the ledger
+    assert [p["name"] for p in build["pieces"] if not p["claimed_by"]] == ["Ledger database"]
+    assert not any("ledger" in commit["message"].lower() for commit in build["commits"])
+
+
+def test_a_rerun_writes_the_commits_and_their_check_again_with_fresh_times(
+    client: TestClient, visitor: dict
+) -> None:
+    hub_id = _own_hub(client, visitor)["id"]
+
+    async def age_them() -> None:
+        async with db_session() as session:
+            await session.execute(
+                update(HubCommit)
+                .where(HubCommit.hub_id == hub_id)
+                .values(committed_at=HubCommit.committed_at - timedelta(days=3))
+            )
+            await session.execute(
+                update(Hub)
+                .where(Hub.id == hub_id)
+                .values(commits_refreshed_at=datetime.now(UTC) - timedelta(days=3))
+            )
+            await session.commit()
+
+    asyncio.run(age_them())
+    checked = datetime.fromisoformat(_hub_build(client, visitor)["commits_refreshed_at"])
+    assert datetime.now(UTC) - checked > timedelta(days=2)
+
+    _seed()
+    build = _hub_build(client, visitor)
+    now = datetime.now(UTC)
+    refreshed = datetime.fromisoformat(build["commits_refreshed_at"])
+    assert timedelta(minutes=50) < now - refreshed < timedelta(minutes=70)
+    assert len(build["commits"]) == len(OWN_HUB_COMMITS)
+    assert all(
+        now - timedelta(days=3) < datetime.fromisoformat(commit["committed_at"]) < now
+        for commit in build["commits"]
+    )
+
+
+def _what_the_hubs_hold(client: TestClient, visitor: dict) -> dict:
+    """What the visitor's hubs, review queue and build tab hold, without their times."""
+    build = _hub_build(client, visitor)
+    (case,) = _review_cases(client, visitor)
+    return {
+        "descriptions": {
+            name: card["description"] for name, card in _hubs(client, visitor).items()
+        },
+        "notes": [note["body"] for note in _hub_notes(client, visitor)],
+        "chats": _chats(client, visitor),
+        "case": (case["evidence"], case["ai_result"], case["ai_score"]),
+        "claims": [(p["name"], p["claimed_by"] and p["claimed_by"]["id"]) for p in build["pieces"]],
+        "commits": [(c["message"], c["author_name"]) for c in build["commits"]],
+        "repository": build["repository_url"],
+    }
+
+
+def _make_the_hubs_the_old_way(client: TestClient, visitor: dict) -> None:
+    """What a demo made before this change holds: the template descriptions, two notes in
+    French, empty chats, an empty review case, claims made after their holder's first commit and
+    a build tab checked three days ago. Signatures are not here: only the script changes those."""
+    hubs = _hubs(client, visitor)
+    own = hubs[OWN_HUB]["id"]
+
+    async def go() -> None:
+        async with db_session() as session:
+            await session.execute(
+                text(
+                    "UPDATE hubs h SET description = 'Building ' || lower(i.title) || ' together.' "
+                    "FROM ideas i WHERE i.id = h.idea_id AND h.id = ANY(:hubs)"
+                ),
+                {"hubs": [card["id"] for card in hubs.values()]},
+            )
+            for old, new in OLD_OWN_HUB_NOTES.items():
+                await session.execute(update(HubNote).where(HubNote.body == new).values(body=old))
+            await session.execute(delete(HubMessage))
+            await session.execute(
+                update(HubPiece)
+                .where(HubPiece.hub_id == own, HubPiece.claimed_by.is_not(None))
+                .values(claimed_at=datetime.now(UTC) - timedelta(hours=20))
+            )
+            await session.execute(
+                update(HubCommit)
+                .where(HubCommit.hub_id == own, HubCommit.position == 0)
+                .values(message="Record every payout in the ledger with its time")
+            )
+            await session.execute(
+                update(Hub)
+                .where(Hub.id == own)
+                .values(commits_refreshed_at=datetime.now(UTC) - timedelta(days=3))
+            )
+            await session.commit()
+
+    asyncio.run(go())
+    _empty_the_review_case()
+
+
+def test_a_rerun_brings_the_hubs_of_a_world_made_the_old_way_to_the_same_state(
+    client: TestClient, visitor: dict
+) -> None:
+    current = _what_the_hubs_hold(client, visitor)
+
+    _make_the_hubs_the_old_way(client, visitor)
+    assert _what_the_hubs_hold(client, visitor) != current
+    with pytest.raises(AssertionError):
+        _claims_precede_the_first_commit_of_their_holder(_hub_build(client, visitor))
+
+    for _ in range(2):  # the second run adds nothing
+        assert _seed() is False
+        assert _what_the_hubs_hold(client, visitor) == current
+        _claims_precede_the_first_commit_of_their_holder(_hub_build(client, visitor))
 
 
 def _briefs(old: str | None = None) -> set[str | None]:

@@ -12,10 +12,11 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import raiseload
+from sqlalchemy.orm import raiseload, selectinload
 
 from app.api.deps import CurrentUser, DbSession, same_world
 from app.api.v1.hubs import client_ip, hub_error
+from app.api.v1.matches import matched_developer
 from app.models import (
     AgreementSignature,
     Hub,
@@ -24,8 +25,13 @@ from app.models import (
     HubMemberRole,
     HubMemberStatus,
     HubStatus,
+    IdeaRoleNeed,
     IdeaStatus,
+    Role,
     User,
+    UserRole,
+    UserSector,
+    UserTechnology,
 )
 from app.schemas.hubs import (
     Agreement,
@@ -246,7 +252,45 @@ async def list_hub_members(
             User.id,
         )
     )
-    return HubMembersResponse(data=[member_card(member, user) for member, user in result.all()])
+    cards = [member_card(member, user) for member, user in result.all()]
+    await add_fit(db, hub, cards)
+    return HubMembersResponse(data=cards)
+
+
+async def add_fit(db: AsyncSession, hub: Hub, cards: list[HubMemberCard]) -> None:
+    """Scores each pending request against the hub's idea, as the owner's matches do. Callers
+    pass only cards the owner may see, and only requested cards get a fit."""
+    asking = {card.user.id: card for card in cards if card.status == HubMemberStatus.REQUESTED}
+    if not asking:
+        return
+    needed = set(
+        await db.scalars(
+            select(IdeaRoleNeed.role_id)
+            .join(Role, Role.id == IdeaRoleNeed.role_id)
+            .where(IdeaRoleNeed.idea_id == hub.idea_id, Role.is_active)
+        )
+    )
+    author_technologies = set(
+        await db.scalars(
+            select(UserTechnology.technology_id).where(UserTechnology.user_id == hub.owner_id)
+        )
+    )
+    author_sectors = set(
+        await db.scalars(select(UserSector.sector_id).where(UserSector.user_id == hub.owner_id))
+    )
+    requesters = await db.scalars(
+        select(User)
+        .options(
+            selectinload(User.roles).selectinload(UserRole.role),
+            selectinload(User.technologies).selectinload(UserTechnology.technology),
+            selectinload(User.sectors).selectinload(UserSector.sector),
+            raiseload(User.identities),
+            raiseload(User.feed_topics),
+        )
+        .where(User.id.in_(asking))
+    )
+    for user in requesters:
+        asking[user.id].fit = matched_developer(user, needed, author_technologies, author_sectors)
 
 
 @router.post(
