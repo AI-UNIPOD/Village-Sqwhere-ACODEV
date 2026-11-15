@@ -1,6 +1,57 @@
 # infra
 
-Infrastructure for local development and deployment.
+The database Village Sqwhere runs on: PostgreSQL 17 with
+[pgvector](https://github.com/pgvector/pgvector), in Docker, and the SQL scripts that build its
+schema.
+
+```text
+infra/
+  docker-compose.yml   one service: db (pgvector/pgvector:0.8.7-pg17) on localhost:5432
+  db/init/             001 to 018: run once, in order, on an empty database
+```
+
+```mermaid
+flowchart LR
+  dev["pnpm db:up"] --> compose["docker-compose.yml"]
+  compose --> db[("db: Postgres 17 + pgvector<br />localhost:5432")]
+  init["db/init/*.sql<br />(first start only)"] --> db
+  vol[("db-data volume")] --- db
+  api["apps/api<br />DATABASE_URL"] --> db
+  tests["pytest<br />TEST_DATABASE_URL"] --> db
+```
+
+## The schema at a glance
+
+The tables behind the main flow, from `db/init/002-schema.sql` and the scripts after it
+(33 tables in all):
+
+```mermaid
+erDiagram
+  users ||--o{ user_roles : "holds"
+  users ||--o{ verification_sessions : "attempts"
+  users ||--o{ ideas : "writes"
+  ideas ||--o{ idea_roles_needed : "needs"
+  ideas ||--o| idea_embeddings : "vector"
+  ideas ||--o| hubs : "becomes"
+  agreement_templates ||--o{ hubs : "signed on"
+  hubs ||--o{ hub_members : "has"
+  hubs ||--o{ agreement_signatures : "signed by"
+  users ||--o{ agreement_signatures : "signs"
+  hubs ||--o{ hub_messages : "chat"
+  hubs ||--o{ hub_notes : "brainstorm"
+  hubs ||--o{ hub_pieces : "design"
+  hub_pieces ||--o{ hub_piece_links : "links"
+  users ||--o{ posts : "writes"
+  posts ||--o{ comments : "has"
+```
+
+The database guards the rules the API depends on, so a bug in the API cannot break them:
+
+```sql
+-- a hub's terms can never change once it exists (003-hub-terms.sql)
+UPDATE hubs SET terms = '{"ownership_model": "owner_majority"}' WHERE id = '...';
+-- ERROR:  hub terms are immutable; members signed them
+```
 
 ## Local database
 
