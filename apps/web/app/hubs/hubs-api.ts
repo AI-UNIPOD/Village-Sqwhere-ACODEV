@@ -243,5 +243,24 @@ export const deleteMessage = (id: string, messageId: string) =>
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
 
+// The signed-in person's own place in a hub and what they signed. A member who left or was
+// removed keeps their signature. `template_sha256` is the hash of the exact text they signed.
+export type Membership = {
+  member_role: "owner" | "member";
+  status: string;
+  created_at: string;
+  joined_at: string | null;
+  left_at: string | null;
+  signature: {
+    version: number;
+    template_sha256: string;
+    signed_legal_name: string;
+    terms_snapshot: Terms;
+    signed_at: string;
+  } | null;
+};
+
+export const loadMembership = async (id: string) => (await call<{ data: Membership }>(`${hubPath(id)}/membership`)).data;
+
 export const acceptInvitation = async (id: string, signature: { template_id: string; template_sha256: string; signed_legal_name: string }) =>
   (await call<{ data: Hub }>(`${hubPath(id)}/invitation/accept`, "POST", signature)).data;

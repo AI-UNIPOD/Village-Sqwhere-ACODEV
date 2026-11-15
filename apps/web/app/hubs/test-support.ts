@@ -69,10 +69,32 @@ export const owner = () =>
     user: { id: "id-kwabena-owusu", username: "kwabena-owusu", display_name: "Kwabena Owusu", is_verified: true },
   });
 
+// The signed-in person's own membership in hub-1, signed as the agreement() text is.
+export const membership = (over: Record<string, unknown> = {}) => ({
+  member_role: "member",
+  status: "active",
+  created_at: "2026-11-12T10:00:00Z",
+  joined_at: "2026-11-12T11:00:00Z",
+  left_at: null,
+  signature: {
+    version: 1,
+    template_sha256: "a".repeat(64),
+    signed_legal_name: "Kwabena Owusu",
+    terms_snapshot: {},
+    signed_at: "2026-11-12T11:00:00Z",
+  },
+  ...over,
+});
+
 // Answers each address by its longest matching start; a list of answers is used one per call.
-// Every member's hub page reads the chat, so an empty one is served unless a test names its own.
+// Every hub page asks for the viewer's membership, and every member's page reads the chat,
+// so both have an answer unless a test names its own.
 export function api(given: Record<string, unknown>) {
-  const routes: Record<string, unknown> = { "GET /v1/hubs/hub-1/messages": { data: [], next_offset: null }, ...given };
+  const routes: Record<string, unknown> = {
+    "GET /v1/hubs/hub-1/membership": { data: membership() },
+    "GET /v1/hubs/hub-1/messages": { data: [], next_offset: null },
+    ...given,
+  };
   const used: Record<string, number> = {};
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
     const path = `${init?.method ?? "GET"} ${String(url).replace("http://localhost:8000", "")}`;

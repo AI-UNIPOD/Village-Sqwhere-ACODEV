@@ -68,6 +68,10 @@ Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/i
 apart from the private brief, saves only the fields that changed, and asks before publishing or
 closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
+"Delete the idea" at the end of a saved idea's form (`app/ideas/delete-idea.tsx`,
+`DELETE /v1/me/ideas/{id}`) asks first, then returns to Your ideas with a line saying it went.
+An idea with a hub is refused (`IDEA_HAS_HUB`, its members signed an agreement about it), and
+the page says to close it instead.
 Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=`: the public
 part only, a "Needs your role" line when a role slug matches, and "Ask to join" when the idea
 has a hub (`hubs/ask-to-join.tsx`, `POST /v1/hubs/{id}/join-requests`). The page reads the
@@ -120,6 +124,11 @@ The village and Your hubs keep that list for the visit (`app/hubs/invitations.ts
 makes a waiting invitation its next step, and the places bar marks Hubs with a dot. Signing or
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
 page of the developer's hubs (`loadHubsByIdea`), because the API cannot look one up by idea.
+
+Under the hub's terms, "Your signature" (`hubs/my-signature.tsx`, `GET /v1/hubs/{id}/membership`)
+tells a member, or someone who left or was removed, which version they signed, the name they typed
+and the day. "Read the agreement you signed" loads the hub's agreement and compares its hash with
+the one in the signature, so the page says whether it is the exact text signed.
 
 The hub card carries `phase`, `team_confirmed_at` and `phases` (each phase with its state). The
 page lists the four phases with their real state for everyone who sees the hub and marks the one
@@ -209,6 +218,19 @@ other signed-in developers can see it), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
+
+"Delete your account" ends the profile (`profile/delete-account.tsx`, `POST /v1/me/deletion`).
+It cannot be undone, so it opens a dialog that lists what goes and what stays, and its delete
+button does nothing until the person ticks that they understand and types their username (any
+capital letters). Closing the dialog clears both. On success the session is forgotten and the
+page is `/en/goodbye`. An owner of a hub others are still in is refused (`OWNS_HUB_WITH_TEAM`)
+and pointed to Your hubs.
+
+Another developer's profile is `app/people/`, at `/en/people/view?username=...`
+(`GET /v1/users/{username}`): the name, country, bio, verified roles, stack and sectors, and a
+link to their GitHub. Names on team lists, match cards, posts and an idea's author lead there.
+An unknown or deleted account says the developer can't be found. Opened on yourself, it offers
+"Edit your profile".
 
 "Try the demo" on the landing page (`landing/demo-button.tsx`, `session/demo.ts`) signs in as the
 shared demo account with `POST /v1/auth/demo` and opens the village. The account can change

@@ -11,6 +11,11 @@ its number:
 ## 2026-11-15
 
 - feat(web): let the owner rename, describe and archive a hub (#185)
+- test(web): wait for the dialog to close in a design sketch test (#191)
+- feat(web): show members the agreement they signed (#189)
+- feat(web): let a developer delete their account (#188)
+- feat(web): let the author delete an idea with no hub (#187)
+- feat(web): show another developer's public profile (#186)
 - feat(web): let members leave a hub and owners remove them (#184)
 - feat(web): add the team chat to the hub page (#183)
 - feat(web): let the team edit the design sketch (#182)
