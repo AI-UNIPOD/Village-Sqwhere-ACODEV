@@ -24,10 +24,12 @@ type Copy = {
   review: string;
   ideas: string;
   browse: string;
+  yourIdeas: string;
   hubs: string;
   invitation: string;
   invitations: string;
   loading: string;
+  checking: string;
   errorTitle: string;
   errorText: string;
   retry: string;
@@ -72,10 +74,12 @@ const en: Copy = {
   review: "Review attempts in your role",
   ideas: "Share an idea",
   browse: "Browse open ideas",
+  yourIdeas: "Your ideas",
   hubs: "Your hubs",
   invitation: "See your invitation",
   invitations: "See your {n} invitations",
   loading: "Opening your village",
+  checking: "Checking where you are",
   errorTitle: "We couldn't open your village",
   errorText:
     "Something went wrong on our side. Nothing was changed, so you can safely try again. If it keeps happening, come back in a few minutes.",
@@ -122,10 +126,12 @@ const fr: Copy = {
   review: "Relire des tentatives dans votre rôle",
   ideas: "Partager une idée",
   browse: "Parcourir les idées ouvertes",
+  yourIdeas: "Vos idées",
   hubs: "Vos espaces",
   invitation: "Voir votre invitation",
   invitations: "Voir vos {n} invitations",
   loading: "Ouverture de votre village",
+  checking: "Vérification de votre avancement",
   errorTitle: "Nous n'avons pas pu ouvrir votre village",
   errorText:
     "Un problème est survenu de notre côté. Rien n'a été modifié, vous pouvez donc réessayer sans risque. Si cela se reproduit, revenez dans quelques minutes.",
