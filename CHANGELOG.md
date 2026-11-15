@@ -11,6 +11,7 @@ its number:
 ## 2026-11-15
 
 - fix(web): remove the placeholder warning and the tour's demo wording (#197)
+- fix(api): remove the made-up label from the demo private brief (#198)
 - feat(web): credit the ai unipod in the landing footer (#194)
 - docs: rewrite the readmes for the public repository (#192)
 - feat(api): add the build tab of claims and commits to a hub (#193)
