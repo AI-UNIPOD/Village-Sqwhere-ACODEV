@@ -1,4 +1,6 @@
 import asyncio
+import json
+import re
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -9,25 +11,34 @@ from app import config, database
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.demo_seed import (
     BRIEF,
+    COCOA_HUB,
     FOR_YOU_IDEAS,
+    OLD_OWN_HUB_NOTES,
     OLD_OWN_HUB_REPOSITORY,
     OWN_HUB,
     OWN_HUB_CLAIMS,
     OWN_HUB_COMMITS,
     OWN_HUB_REPOSITORY,
     PEOPLE,
+    TONTINE_HUB,
+    _find_or_create_people,
+    _write_review_case,
     main,
     seed,
 )
 from app.models import (
     Hub,
     HubCommit,
+    HubMessage,
     HubNote,
     HubPhaseMove,
     HubPiece,
     HubPieceLink,
     Idea,
     User,
+    VerificationInterview,
+    VerificationSession,
+    VerificationStatus,
 )
 from tests.conftest import test_async_session as db_session
 
@@ -99,15 +110,22 @@ def test_running_the_seed_again_rewrites_only_the_feed(client: TestClient, visit
         feed = client.get("/v1/feed", headers=visitor, params={"limit": 50}).json()["data"]
         return {post["id"] for post in feed if post["author"]["username"] in seeded}
 
-    hubs = client.get("/v1/me/hubs", headers=visitor).json()["data"]
+    hubs = _hub_cards(client, visitor)
     before = seeded_posts()
 
     assert _seed() is False
 
-    assert client.get("/v1/me/hubs", headers=visitor).json()["data"] == hubs
+    assert _hub_cards(client, visitor) == hubs
     after = seeded_posts()
     assert len(after) == len(before) == 12
     assert after.isdisjoint(before)
+
+
+def _hub_cards(client: TestClient, visitor: dict, **params) -> list[dict]:
+    """The visitor's hubs, without `updated_at`: a rerun writes the commits of the build tab
+    again, and that touches the hub."""
+    cards = client.get("/v1/me/hubs", headers=visitor, params=params).json()["data"]
+    return [{key: value for key, value in card.items() if key != "updated_at"} for card in cards]
 
 
 def _countries() -> dict[str, str | None]:
@@ -238,7 +256,7 @@ def test_the_demo_hub_has_six_brainstorm_notes_the_visitor_can_read_but_not_chan
     times = [datetime.fromisoformat(note["created_at"]) for note in notes]
     assert times == sorted(times)
     assert all(now - timedelta(days=9) < moment < now - timedelta(days=6) for moment in times)
-    assert any("é" in note["body"] for note in notes)  # some French
+    assert not any(_French(note["body"]) for note in notes)  # Kumasi and Lagos write English
     assert all(note["can_delete"] is False for note in notes)  # the hub is in build
 
     for resp in (
@@ -338,6 +356,15 @@ def _hub_build(client: TestClient, visitor: dict) -> dict:
     return resp.json()["data"]
 
 
+def _without_times(build: dict) -> dict:
+    """The build tab as a rerun leaves it: the commits and their check are written again."""
+    commits = [
+        {key: value for key, value in commit.items() if key != "committed_at"}
+        for commit in build["commits"]
+    ]
+    return {**build, "commits": commits, "commits_refreshed_at": None}
+
+
 def test_the_demo_hub_has_claims_a_repository_and_commits_the_visitor_can_read_not_change(
     client: TestClient, visitor: dict
 ) -> None:
@@ -390,7 +417,7 @@ def test_a_rerun_adds_claims_the_repository_and_commits_only_when_they_are_missi
     seen = _hub_build(client, visitor)
 
     _seed()
-    assert _hub_build(client, visitor) == seen
+    assert _without_times(_hub_build(client, visitor)) == _without_times(seen)
 
     async def clear() -> None:
         async with db_session() as session:
@@ -564,7 +591,7 @@ def test_a_rerun_brings_a_world_made_the_old_way_to_the_same_state(
 ) -> None:
     profiles, counts = _profiles(), _counts()
     matches, for_you = _idea_matches(client, visitor), _for_you(client, visitor)
-    hubs = client.get("/v1/me/hubs", headers=visitor).json()["data"]
+    hubs = _hub_cards(client, visitor)
     assert len(profiles) == len(PEOPLE)
 
     _make_the_world_the_old_way()
@@ -577,7 +604,7 @@ def test_a_rerun_brings_a_world_made_the_old_way_to_the_same_state(
 
     assert [m["score"] for m in _idea_matches(client, visitor)] == [m["score"] for m in matches]
     assert [m["score"] for m in _for_you(client, visitor)] == [m["score"] for m in for_you]
-    assert client.get("/v1/me/hubs", headers=visitor).json()["data"] == hubs
+    assert _hub_cards(client, visitor) == hubs
 
 
 def _briefs(old: str | None = None) -> set[str | None]:
