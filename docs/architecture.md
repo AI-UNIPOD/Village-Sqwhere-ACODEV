@@ -29,7 +29,8 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   sectors and bio. Never an idea's private brief, an email, a name or a username. When the text
   changes, a database trigger removes the vector and the next run makes a new one. Without
   `GEMINI_API_KEY` the step does nothing. Why:
-  `docs/decisions/2026-11-15-embeddings-on-gemini.md`.
+  `docs/decisions/2026-11-15-embeddings-on-gemini.md`. Where `DEMO_ENABLED` is true it also dates
+  the demo's feed back from now once a day (`docs/decisions/2026-11-15-lived-in-demo.md`).
 - **Hosting**: one Vercel project, from `vercel.json`: the web app, the API and the verification
   worker on one domain (see `infra/README.md`).
 

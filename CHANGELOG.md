@@ -11,6 +11,7 @@ its number:
 ## 2026-11-15
 
 - feat(web): grow the guided tour to six steps with feed and conversation (#235)
+- feat(api): date the demo's posts back from now again every day (#233)
 - feat(api): add post image uploads
 - feat(api): add a demo community of 1,150 members and 1,500 posts (#232)
 - feat(web): continue a deep reply's thread on its own (#231)
