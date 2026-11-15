@@ -26,8 +26,10 @@ from app.demo_seed import (
 from app.models import (
     Hub,
     HubCommit,
+    HubMember,
     HubMessage,
     HubNote,
+    HubPhase,
     HubPhaseMove,
     HubPiece,
     HubPieceLink,
@@ -877,6 +879,15 @@ def test_both_teams_have_been_talking_in_the_language_of_their_members(
     payouts = _chat(client, visitor, OWN_HUB)
     assert len({message["author"]["id"] for message in payouts}) == 2
     assert not any(_in_french(message["body"]) for message in payouts)
+    # the message that says the claims are made comes after every claim of the person who wrote it
+    (reply,) = [m for m in payouts if m["body"].startswith("Works for me")]
+    claims = [
+        datetime.fromisoformat(piece["claimed_at"])
+        for piece in _hub_build(client, visitor)["pieces"]
+        if piece["claimed_by"] and piece["claimed_by"]["id"] == reply["author"]["id"]
+    ]
+    assert len(claims) == 2
+    assert all(claim < datetime.fromisoformat(reply["created_at"]) for claim in claims)
     tontine = [_in_french(message["body"]) for message in _chat(client, visitor, TONTINE_HUB)]
     assert any(tontine) and not all(tontine)
 
@@ -913,6 +924,107 @@ def test_a_rerun_writes_a_chat_only_in_a_hub_whose_chat_is_empty(
     asyncio.run(say(only=None))
     _seed()
     assert _chats(client, visitor) == chats
+
+
+async def _history_of_the_hub(own: str) -> dict:
+    """The moments of the Payouts hub's history, and its chat by message text with its times."""
+    async with db_session() as session:
+        moves = dict(
+            (
+                await session.execute(
+                    select(HubPhaseMove.to_phase, func.min(HubPhaseMove.created_at))
+                    .where(HubPhaseMove.hub_id == own)
+                    .group_by(HubPhaseMove.to_phase)
+                )
+            ).all()
+        )
+        claims = list(
+            await session.scalars(
+                select(HubPiece.claimed_at).where(
+                    HubPiece.hub_id == own, HubPiece.claimed_at.is_not(None)
+                )
+            )
+        )
+        notes = list(await session.scalars(select(HubNote.created_at).where(HubNote.hub_id == own)))
+        joined = await session.scalar(
+            select(func.max(HubMember.joined_at)).where(HubMember.hub_id == own)
+        )
+        said = {
+            body: moment
+            for body, moment in (
+                await session.execute(
+                    select(HubMessage.body, HubMessage.created_at).where(HubMessage.hub_id == own)
+                )
+            ).all()
+        }
+    return {
+        "design": moves[HubPhase.DESIGN],
+        "build": moves[HubPhase.BUILD],
+        "first_claim": min(claims),
+        "last_claim": max(claims),
+        "first_note": min(notes),
+        "last_note": max(notes),
+        "joined": joined,
+        "said": said,
+    }
+
+
+def test_a_chat_written_on_a_rerun_days_later_fits_the_history_of_its_hub(
+    client: TestClient, visitor: dict
+) -> None:
+    """A world seeded five days ago has a hub history fixed five days back. Its chat, written
+    today because it is empty, is counted from that history and not from today."""
+    own = _hubs(client, visitor)[OWN_HUB]["id"]
+
+    async def move_the_history(days: int) -> None:
+        """Moves everything in the hubs' history by some days, the chat emptied. A hub's history
+        cannot be rewritten by a rerun, so the test puts it back when it is done."""
+        async with db_session() as session:
+            await session.execute(text("ALTER TABLE hub_phase_moves DISABLE TRIGGER USER"))
+            for table, columns in (
+                ("hub_members", ("joined_at",)),
+                ("hub_phase_moves", ("created_at",)),
+                ("hub_notes", ("created_at",)),
+                ("hub_pieces", ("created_at", "updated_at", "claimed_at")),
+            ):
+                for column in columns:
+                    await session.execute(
+                        text(
+                            f"UPDATE {table} "
+                            f"SET {column} = {column} + make_interval(days => :days) "
+                            f"WHERE {column} IS NOT NULL"
+                        ),
+                        {"days": days},
+                    )
+            await session.execute(text("ALTER TABLE hub_phase_moves ENABLE TRIGGER USER"))
+            await session.execute(delete(HubMessage))
+            await session.commit()
+
+    asyncio.run(move_the_history(-5))
+    try:
+        _seed()
+        found = asyncio.run(_history_of_the_hub(own))
+    finally:
+        asyncio.run(move_the_history(5))
+        _seed()
+
+    said = found["said"]
+
+    def at(start: str) -> datetime:
+        (moment,) = [moment for body, moment in said.items() if body.startswith(start)]
+        return moment
+
+    assert datetime.now(UTC) - found["joined"] > timedelta(days=14)
+    assert found["joined"] < at("Hi, glad to be on this") < at("Notes board first")
+    assert at("Notes board first") < found["first_note"]
+    assert found["last_note"] < at("The notes look complete") < found["design"]
+    assert at("Yes, go ahead") < found["design"]
+    assert found["build"] < at("We are in build now") < found["first_claim"]
+    # kwabena says he has claimed his pieces only after he has
+    assert at("Works for me") > found["last_claim"]
+    assert at("Works for me") < at("A failed transfer")
+    assert min(said.values()) > found["joined"]
+    assert max(said.values()) < datetime.now(UTC)
 
 
 def _claims_precede_the_first_commit_of_their_holder(build: dict) -> None:

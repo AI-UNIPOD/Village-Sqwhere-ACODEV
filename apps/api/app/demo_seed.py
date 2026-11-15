@@ -22,7 +22,7 @@ import hashlib
 import sys
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
@@ -229,35 +229,66 @@ OWN_HUB_COMMITS = [
     ("you", 58, "Pay a batch of wallets from the worker queue"),
     ("you", 64, "Start the payouts API with the batch endpoint"),
 ]
-# What the team of each of two hubs wrote in its chat, as (who, hours ago, text), against the
-# hub's history: the Payouts team joined 10 days ago and moved phase 9, 6 and 3 days ago.
+# What the team of each of two hubs wrote in its chat, as (who, when, hours, text). The time is
+# counted from a moment in the hub's own history, read from the hub when the chat is written: the
+# moment its members joined, the move to design, the move to build, the last claim on a piece, or
+# now (a negative number of hours, for what the commits above show). So a chat written on a
+# rerun days later still fits the hub's history.
 HUB_CHATS = {
     OWN_HUB: [
-        ("kwabena", 214, "Hi, glad to be on this. Should I start with the screens or the API?"),
-        ("you", 213, "Notes board first. We decide the API shape once we have the notes."),
-        ("you", 146, "The notes look complete to me. Okay to move the hub to design today?"),
-        ("kwabena", 145, "Yes, go ahead. I will sketch the mobile app first."),
-        ("you", 71.5, "We are in build now. I take the API and the worker, you the app and SMS?"),
-        ("kwabena", 71.2, "Works for me. I am claiming them now."),
+        (
+            "kwabena",
+            "joined",
+            26,
+            "Hi, glad to be on this. Should I start with the screens or the API?",
+        ),
+        ("you", "joined", 27, "Notes board first. We decide the API shape once we have the notes."),
         (
             "you",
-            8,
+            "design",
+            -2,
+            "The notes look complete to me. Okay to move the hub to design today?",
+        ),
+        ("kwabena", "design", -1, "Yes, go ahead. I will sketch the mobile app first."),
+        (
+            "you",
+            "build",
+            0.5,
+            "We are in build now. I take the API and the worker, you the app and SMS?",
+        ),
+        ("kwabena", "claimed", 0.1, "Works for me. I have claimed the app and the SMS gateway."),
+        (
+            "you",
+            "now",
+            -8,
             "A failed transfer now retries with the same key. Can you check the status screen?",
         ),
-        ("kwabena", 2.5, "Status is on the home screen now: pending, paid or failed."),
+        ("kwabena", "now", -2.5, "Status is on the home screen now: pending, paid or failed."),
     ],
     TONTINE_HUB: [
-        ("aminata", 228, "Bienvenue à tous les deux. Je commence par le registre des cotisations."),
-        ("you", 226, "Thanks, glad to join. I can take the ledger tables and the reminder job."),
-        ("tendai", 168, "Staging is up, and every merge to main deploys there."),
         (
             "aminata",
-            100,
+            "joined",
+            12,
+            "Bienvenue à tous les deux. Je commence par le registre des cotisations.",
+        ),
+        (
+            "you",
+            "joined",
+            14,
+            "Thanks, glad to join. I can take the ledger tables and the reminder job.",
+        ),
+        ("tendai", "joined", 72, "Staging is up, and every merge to main deploys there."),
+        (
+            "aminata",
+            "joined",
+            140,
             "Les rappels SMS partent avant chaque tour. Vous pouvez relire le registre\u202f?",
         ),
         (
             "you",
-            98,
+            "joined",
+            142,
             "Reading it now. A contribution sent twice must not count twice, so I add a reference.",
         ),
     ],
@@ -658,10 +689,44 @@ async def _write_hub_descriptions(db: AsyncSession, people: dict[str, User]) -> 
         )
 
 
+async def _hub_history(db: AsyncSession, hub: Hub) -> dict[str, datetime]:
+    """The moments of a hub's own history that its chat is counted from, as the hub holds them,
+    so a hub seeded days ago gets a chat that fits it. A moment the hub lacks falls back to where
+    the seed puts it."""
+    joined = await db.scalar(
+        select(func.max(HubMember.joined_at)).where(
+            HubMember.hub_id == hub.id, HubMember.status == HubMemberStatus.ACTIVE
+        )
+    )
+    # the first move into each phase, as a hub that was moved again holds more than one
+    moves = dict(
+        (
+            await db.execute(
+                select(HubPhaseMove.to_phase, func.min(HubPhaseMove.created_at))
+                .where(HubPhaseMove.hub_id == hub.id)
+                .group_by(HubPhaseMove.to_phase)
+            )
+        ).all()
+    )
+    claimed = await db.scalar(
+        select(func.max(HubPiece.claimed_at)).where(HubPiece.hub_id == hub.id)
+    )
+    design = moves.get(HubPhase.DESIGN) or joined + timedelta(hours=96)
+    build = moves.get(HubPhase.BUILD) or joined + timedelta(hours=168)
+    return {
+        "joined": joined,
+        "design": design,
+        "build": build,
+        "claimed": claimed or build + timedelta(hours=6),
+        "now": ago(),
+    }
+
+
 async def _write_hub_chats(db: AsyncSession, people: dict[str, User]) -> None:
     """The Payouts and Tontine teams have been talking for ten days. A hub's chat is written
     only when it is empty, so a rerun does not pile up copies or answer a real message. The
-    insert trigger lets only active members post, which these are."""
+    insert trigger lets only active members post, which these are. Each message is dated from
+    the hub's own history, not from the moment of the run."""
     for name, lines in HUB_CHATS.items():
         hub = await db.scalar(
             select(Hub).where(Hub.owner_id.in_([u.id for u in people.values()]), Hub.name == name)
@@ -670,8 +735,9 @@ async def _write_hub_chats(db: AsyncSession, people: dict[str, User]) -> None:
             select(HubMessage.id).where(HubMessage.hub_id == hub.id).limit(1)
         ):
             continue
-        for who, hours, body in lines:
-            said = ago(hours=hours)
+        history = await _hub_history(db, hub)
+        for who, since, hours, body in lines:
+            said = history[since] + timedelta(hours=hours)
             db.add(
                 HubMessage(
                     hub_id=hub.id,

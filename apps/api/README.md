@@ -170,7 +170,9 @@ also gives a world seeded earlier:
 
 - the description of a hub that still holds the old template ("Building ... together.");
 - the two brainstorm notes it wrote in French, in English, found by their text;
-- a chat to a hub whose chat is empty, never to one that has a message;
+- a chat to a hub whose chat is empty, never to one that has a message, with times counted from
+  the hub's own history (when its members joined, its phase moves, its claims), so a rerun days
+  later still reads in order;
 - the evidence, interview and report of a review case that is empty and still awaiting review.
 
 A signature cannot be rewritten, so a rerun cannot date it. The seed signs a new member's

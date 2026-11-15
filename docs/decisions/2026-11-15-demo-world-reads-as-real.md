@@ -37,7 +37,8 @@ rerun:
 5. **Languages.** Kwabena (Kumasi) and the visitor (Lagos) write English. Aminata (Dakar) and
    Uwase (Kigali) write French. A rerun rewrites the two old French notes by their text.
 6. **Team chats.** The Payouts hub and the Tontine hub each get a short conversation that fits
-   the hub's history. A rerun writes it only into a chat that is empty.
+   the hub's history. A rerun writes it only into a chat that is empty, and counts its times from
+   the hub's stored history (joining, phase moves, claims), not from the day of the rerun.
 7. **The build tab.** Every claim is older than the first commit of its holder, and no commit
    claims ledger work while nobody holds the "Ledger database" piece. A rerun brings an older
    world's claim times and commits to the same state.
