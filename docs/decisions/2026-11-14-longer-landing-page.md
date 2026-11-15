@@ -37,9 +37,10 @@ developers verified in the roles an idea needs, then by technologies in common, 
 reads the idea's text. So the demo's match scores are computed with the real formula from the
 demo's made-up facts and drawn with the app's own score component (`2026-11-14-match-score.md`), it never says the matcher "reads your idea", and uses the product's own steps (invite, read the agreement,
 sign). The hub's phases are real (the owner confirms the team and moves the hub, see
-`2026-11-14-hub-phases.md`) but their tools are not built, so the views in that section are labelled a
-sample. People are placed by country, because the product stores no city. Every person
-and idea on the page is made up, and the page says so.
+`2026-11-14-hub-phases.md`); brainstorm notes and the design sketch ship, and the page says the build
+and review tools are still to come. People are placed by country, because the product stores no city.
+Every person and idea on the page is made up. On 15 November 2026 Tanny chose to drop the "made up"
+and "sample" labels from the page, so it reads as finished copy; the data itself stays made up.
 
 **Motion:** one moment per section, started by the visitor or by the section's first scroll
 into view, never looping (the hero keeps its own loop and pause button). Durations and easings

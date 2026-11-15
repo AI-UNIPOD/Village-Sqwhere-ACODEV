@@ -98,7 +98,6 @@ test.each(["en", "fr"] as const)("each step's view shows its key text in %s", (l
   }
   expect(team.getByText(t.team.agreement, { exact: false })).toBeTruthy();
 
-  expect(hub.getByText(t.hub.sample)).toBeTruthy();
   for (const phase of t.hub.phases) expect(hub.getByText(phase)).toBeTruthy();
   // the sample hub is mid-way: the phases before the current one are done, the ones after not started
   const states = hub.getAllByRole("listitem").map((item) => item.lastElementChild!.textContent);
@@ -115,7 +114,7 @@ test.each(["en", "fr"] as const)("each step's view shows its key text in %s", (l
   expect(t.idea.sharedBy.endsWith("Nigeria")).toBe(true);
 });
 
-test("the Lagoon tag appears once in the views of a step, and the people are made up", () => {
+test("the Lagoon tag appears once in the views of a step", () => {
   const { container } = render(<HowItWorks lang="en" />);
   // once inline and once on the wide-screen stage, which is hidden from screen readers
   expect(screen.getAllByText(copy.en.matcher.tag)).toHaveLength(2);

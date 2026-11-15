@@ -979,9 +979,9 @@ old one here at once. Send its `template_id` and `body_sha256` back when creatin
   {
     "data": {
       "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
-      "version": 1,
-      "title": "TEST AGREEMENT (NOT LEGAL TEXT)",
-      "body": "# TEST AGREEMENT, NOT LEGAL TEXT\n\nThis text is a placeholder...",
+      "version": 2,
+      "title": "Village Sqwhere hub agreement",
+      "body": "# Village Sqwhere hub agreement\n\nVersion 2.\n\nThis is the agreement between the people who build one idea...",
       "body_sha256": "4f0c3a...64 lowercase hex characters",
       "published_at": "2026-11-11T09:12:44.120000Z",
       "hub_terms": {}
