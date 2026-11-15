@@ -181,21 +181,21 @@ test("the demo account sees, on every screen, that nothing is saved and the way 
   render(<AppFrame lang="en" path="hubs">screen</AppFrame>);
   expect(screen.queryByText(/You are in the demo/)).toBeNull();
   // Your hubs never asks for the profile: the frame does
-  await screen.findByText(/You are in the demo/);
-  expect(screen.getByRole("status").textContent).toBe("You are in the demo. The people, ideas and posts here are made up, and nothing can be changed.");
+  expect((await screen.findByText(/You are in the demo/)).textContent).toBe("You are in the demo. The people, ideas and posts here are made up, and nothing can be changed.");
   expect(screen.getByRole("button", { name: "Leave the demo" })).toBeTruthy();
 });
 
-test("when the API refuses a change, the demo line says it was not saved, each time", async () => {
+test("when the API refuses a change, a second line says it was not saved, each time, and the demo line stays", async () => {
   signIn();
   fetchMock.mockResolvedValue(demoAnswer());
   render(<AppFrame lang="fr" path="feed">screen</AppFrame>);
-  const first = await screen.findByRole("status");
-  expect(first.textContent).toMatch(/^Vous êtes dans la démo/);
+  await screen.findByText(/^Vous êtes dans la démo/);
+  expect(screen.queryByRole("status")).toBeNull();
 
   await act(() => noticeDemoRefusal(refused()));
   const said = screen.getByRole("status");
   expect(said.textContent).toMatch(/^Cela n'a pas été enregistré/);
+  expect(screen.getByText(/^Vous êtes dans la démo/)).toBeTruthy();
   // a second refusal is a new line, so it is announced again
   await act(() => noticeDemoRefusal(refused()));
   expect(screen.getByRole("status")).not.toBe(said);

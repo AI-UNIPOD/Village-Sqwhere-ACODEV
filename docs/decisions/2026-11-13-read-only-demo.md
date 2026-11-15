@@ -99,5 +99,6 @@ Changed on 15 November 2026 (Tanny's decision, "honest writes"):
   "We couldn't save...", which is wrong for a change that can never succeed, and likes and saves
   went back with no word. The line goes when the text is edited, when the control is pressed
   again or when the person leaves, and it never says "made up". Nothing is disabled up front,
-  and the frame still swaps its line to "That was not saved" when the API refuses a change. Any
-  other failure keeps its usual sentence.
+  and for any refused change, in the feed or elsewhere, the frame adds a second line under the
+  demo line, "That was not saved...". It no longer replaces the demo line, which therefore stays
+  on every screen. Any other failure keeps its usual sentence.

@@ -141,7 +141,7 @@ const WORDS = {
 test.each(["en", "fr"] as const)("the demo account sees the demo line on a single post's page, in %s", async (lang) => {
   api({ "GET /v1/me": demo, "GET /v1/posts/post-1": { data: post() } });
   render(<PostPage lang={lang} />);
-  expect((await screen.findByText(WORDS[lang].line)).getAttribute("role")).toBe("status");
+  expect(await screen.findByText(WORDS[lang].line)).toBeTruthy();
   expect(await screen.findByRole("heading", { level: 1 })).toBeTruthy();
 });
 
