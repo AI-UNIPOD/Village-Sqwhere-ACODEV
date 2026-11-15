@@ -108,7 +108,10 @@ paragraphs only, never as markup.
 The hub page shows a member the team (`GET /v1/hubs/{id}/members`) and the private brief
 (`GET /v1/hubs/{id}/idea`). The owner invites by GitHub username, withdraws an invitation and
 invites again after a decline (`team.tsx`); an invited developer sees the invitation, not the
-team's brief. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
+team's brief. The owner of an active hub edits its name and description in place under the title
+(`PATCH /v1/hubs/{id}`; an emptied description is sent as `null`) and archives it at the end of the
+page behind a confirm dialog (`POST /v1/hubs/{id}/archive`, `hubs/manage.tsx`). Archiving cannot be
+undone; the page then shows the hub as archived, read only, and the owner's tools go. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
 The village and Your hubs keep that list for the visit (`app/hubs/invitations.ts`): the village
 makes a waiting invitation its next step, and the places bar marks Hubs with a dot. Signing or
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
