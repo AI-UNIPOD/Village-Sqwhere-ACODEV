@@ -263,6 +263,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
     setFailed(null);
     setNotSaved(false);
     setPartial(null);
+    setImageNotes([]);
     try {
       const made = saved ? await updatePost(fields, saved) : await createPost(fields);
       // the post is safe from here: an image that does not go up must not lose it

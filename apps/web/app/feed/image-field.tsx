@@ -67,7 +67,7 @@ type Props = {
 export function ImagesField({ lang, existing, chosen, notes, progress, busy, removing, problem, onPick, onDrop, onRemove }: Props) {
   const t = copy[lang].compose.images;
   const add = useRef<HTMLInputElement>(null);
-  // the button that takes focus when the one that had it goes away
+  // the id of the button that takes focus when the one that had it goes away, "" for the add button
   const next = useRef<string | null>(null);
   useEffect(() => {
     if (next.current === null) return;
@@ -77,7 +77,7 @@ export function ImagesField({ lang, existing, chosen, notes, progress, busy, rem
 
   // the remove buttons in the order they appear, so the neighbour of the one pressed can be named
   const buttons = [...existing.map((image) => `remove-image-${image.id}`), ...chosen.map((item) => `remove-file-${item.key}`)];
-  const neighbour = (id: string) => buttons[buttons.indexOf(id) + 1] ?? buttons[buttons.indexOf(id) - 1] ?? null;
+  const neighbour = (id: string) => buttons[buttons.indexOf(id) + 1] ?? buttons[buttons.indexOf(id) - 1] ?? "";
 
   return (
     <div className={ideas.field}>
