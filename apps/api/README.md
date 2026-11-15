@@ -156,7 +156,7 @@ roles, technologies, sectors, people and open ideas that are missing are added, 
 visitor's own hub is put in the build phase if it has none yet, gets its six brainstorm notes
 if it has no notes, and gets a design sketch of five pieces and six links if it has no pieces.
 The same hub also gets, each only if it is missing, claims on four of its five pieces, a
-repository address that cannot belong to a real repository (`payouts_demo` has an underscore,
+repository address that cannot belong to a real repository (`naira_payouts` has an underscore,
 which a GitHub owner name never has) and eight made-up commits from the last three days.
 The visitor's own idea shows a Strong, a Possible and a Weak match, and "For you" holds two
 open ideas with different scores.
