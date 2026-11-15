@@ -166,8 +166,6 @@ The rest of this page is for people who want to read, run or contribute to the c
 | Collaboration | Team chat, four phases, brainstorm notes, a design sketch of pieces and links | `/v1/hubs/{id}/messages`, `/phase`, `/notes`, `/design` |
 | Community feed | Posts, comments, replies, likes, saves, topics | `/v1/feed`, `/v1/posts/*`, `/v1/comments/*` |
 
-94 of the 112 endpoints on the team's tracker are built. The main gaps are under
-[Known issues](#known-issues), and the plan is in [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 <p>
   <img src="https://skillicons.dev/icons?i=nextjs,react,ts,python,fastapi,postgres,docker,github&perline=8" alt="Next.js, React, TypeScript, Python, FastAPI, PostgreSQL, Docker and GitHub" />
@@ -304,16 +302,6 @@ success states, both languages and 360px phone layouts.
 | Account deletion | Confirmed by typing the username; the account is anonymised and its posts stay under "Deleted account" | `apps/api/app/services/account_deletion.py` |
 | Secrets | None in the repository; settings come from the environment | `.env.example` |
 
-### Known issues
-
-| # | Issue | Impact | Plan |
-|---|---|---|---|
-| 1 | The match score's meaning part (30 of 100 points) is not built; cards say "Meaning: not compared yet" | Matching ranks on roles, technologies and sectors only | Write idea and profile embeddings to `idea_embeddings` (pgvector) |
-| 2 | The hub agreement (version 2) was written by the team and has not been reviewed by a lawyer | Its legal effect is untested | A qualified person reviews it; changes go in as version 3 |
-| 3 | The build and review phases have no tools yet | Teams use the chat in those phases | A repository and commits view for build, a checklist for review |
-| 4 | No rate limiting | A public deployment can be flooded | Per-client limits, strictest on sign-in, the demo and AI calls |
-| 5 | Sign-in state is kept in API memory | Run one API process; a restart forgets sign-outs | A `refresh_tokens` table |
-| 6 | Bitbucket sign-in answers 503 | GitHub only for now | Planned after GitHub |
 
 ### Contributing
 
