@@ -134,8 +134,8 @@ Removing an `agent:` label makes it try the same commit again. Why it works this
 [`docs/decisions/2026-11-13-merge-agent.md`](docs/decisions/2026-11-13-merge-agent.md). Questions
 about it go to Tanny.
 
-There is no automatic deployment yet. A deploy job will be added once the team has access
-to the Systalink platform (see `infra/README.md`).
+The app deploys to Vercel from `vercel.json` at the repository root: the web app, the API and
+the verification worker as one project (see `infra/README.md`).
 
 ## Languages
 

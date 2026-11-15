@@ -230,7 +230,7 @@ decision records in [`docs/decisions/`](docs/decisions/).
 | Database | PostgreSQL 17 with pgvector | Relational data and vectors for idea similarity in one store |
 | AI | Groq and Gemini, one falling back to the other | The verification interview, speech to text and the report |
 | Tooling | pnpm, uv, Docker Compose, Vitest, pytest, Ruff, ESLint | Fast installs and one command per task |
-| Hosting | Systalink | Required by ACODev 2026 |
+| Hosting | Vercel (web, API and worker as one project) | One domain for the app and its API; see [`infra/README.md`](infra/README.md#deployment-vercel) |
 
 ### Run it locally
 

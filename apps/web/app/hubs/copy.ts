@@ -79,6 +79,8 @@ type Copy = {
   phasesHeading: string;
   phases: Record<Phase, string>;
   phaseStates: Record<PhaseState, string>;
+  // the last phase of a hub the owner has finished
+  phaseFinished: string;
   // where things stand, under the list
   phasesNote: { toConfirm: string; waiting: string; confirmed: string; confirmedOutside: string; archived: string };
   phaseActions: {
@@ -233,6 +235,49 @@ type Copy = {
       notOwner: string;
       tooSoon: string;
       unavailable: string;
+      moved: string;
+      failed: string;
+    };
+  };
+  // the review checklist under the build tab
+  reviewTab: {
+    heading: string;
+    loading: string;
+    loadFailed: string;
+    intro: string;
+    archived: string;
+    finished: string;
+    reloaded: string;
+    count: string;
+    countOne: string;
+    noChecks: string;
+    noPieces: string;
+    piece: { built: string; you: string; nobody: string; yours: string; noChecks: string };
+    check: {
+      addedBy: string;
+      ticked: string;
+      notTicked: string;
+      tick: string;
+      tickLabel: string;
+      untick: string;
+      untickLabel: string;
+      delete: string;
+      deleteLabel: string;
+    };
+    add: { label: string; labelFor: string; help: string; add: string; addLabel: string };
+    said: { added: string; ticked: string; unticked: string; deleted: string; finished: string };
+    finish: { button: string; title: string; text: string; confirm: string; open: string };
+    delete: { title: string; text: string; confirm: string };
+    cancel: string;
+    errors: {
+      length: string;
+      own: string;
+      changed: string;
+      limit: string;
+      notTicker: string;
+      notAuthor: string;
+      notOwner: string;
+      open: string;
       moved: string;
       failed: string;
     };
@@ -460,11 +505,12 @@ const en: Copy = {
   phasesHeading: "Phases",
   phases: { brainstorm: "Brainstorm", design: "Design and architecture", build: "Build", review: "Review and test" },
   phaseStates: { done: "Done", in_progress: "In progress", not_started: "Not started" },
+  phaseFinished: "Finished",
   phasesNote: {
     toConfirm: "Confirm the team when you are ready to start. Brainstorm opens, and you can still invite people after, up to five.",
     waiting: "The phases open when the owner confirms the team.",
-    confirmed: "The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are below; the review tool is still to come.",
-    confirmedOutside: "The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are for the hub's members; the review tool is still to come.",
+    confirmed: "The owner moves the hub from one phase to the next. Each phase has its tool on this page, which opens as the hub reaches that phase: the brainstorm notes, the design sketch, the build tab and the review checklist.",
+    confirmedOutside: "The owner moves the hub from one phase to the next. Each phase has its tool on this page, for the hub's members: the brainstorm notes, the design sketch, the build tab and the review checklist.",
     archived: "This hub is archived, so its phases will not start.",
   },
   phaseActions: {
@@ -657,6 +703,76 @@ const en: Copy = {
       tooSoon: "The commits were checked less than a minute ago. Try again in a moment.",
       unavailable: "We couldn't read that repository. Check that it exists and is public, then try again. The commits shown are from the last check.",
       moved: "This hub has moved on, so the build tab can no longer be changed.",
+      failed: "We couldn't save that. Nothing changed, so try again.",
+    },
+  },
+  reviewTab: {
+    heading: "Review and test",
+    loading: "Getting the checklist",
+    loadFailed: "We couldn't load the checklist. Nothing was changed, so check your connection and try again.",
+    intro: "Write what a teammate should read or try on each piece. A teammate ticks each check, and the owner finishes the hub once every check is ticked.",
+    archived: "This hub is archived. The checklist stays here to read.",
+    finished: "This hub was finished on {date}. The checklist stays here to read.",
+    reloaded: "The checklist is up to date.",
+    count: "{n} of {total} checks ticked.",
+    countOne: "{n} of {total} check ticked.",
+    noChecks: "No checks yet. Add what a teammate should read or try on each piece.",
+    noPieces: "The design sketch has no pieces, so there is nothing to review.",
+    piece: {
+      built: "{name} built this",
+      you: "You built this",
+      nobody: "Nobody claimed this piece",
+      yours: "A teammate ticks the checks on your piece.",
+      noChecks: "No checks yet.",
+    },
+    check: {
+      addedBy: "Added by {name}",
+      ticked: "Ticked by {name}, {when}",
+      notTicked: "Not ticked yet",
+      tick: "Tick",
+      tickLabel: "Tick the check: {text}",
+      untick: "Untick",
+      untickLabel: "Untick the check: {text}",
+      delete: "Delete",
+      deleteLabel: "Delete the check: {text}",
+    },
+    add: {
+      label: "Add a check",
+      labelFor: "for {name}",
+      help: "One thing a teammate should read or try, up to 200 characters.",
+      add: "Add",
+      addLabel: "Add the check to {name}",
+    },
+    said: {
+      added: "The check was added.",
+      ticked: "The check is ticked.",
+      unticked: "The check is no longer ticked.",
+      deleted: "The check was deleted.",
+      finished: "The hub is finished.",
+    },
+    finish: {
+      button: "Finish the hub",
+      title: "Finish this hub?",
+      text: "The checklist closes and the hub stays in Review and test. This cannot be undone.",
+      confirm: "Finish the hub",
+      open: "Every check must be ticked before the hub can be finished.",
+    },
+    delete: {
+      title: "Delete this check?",
+      text: "The check is removed for everyone in the hub. This cannot be undone.",
+      confirm: "Delete the check",
+    },
+    cancel: "Cancel",
+    errors: {
+      length: "Write the check in 1 to 200 characters.",
+      own: "You built this piece, so a teammate ticks its checks.",
+      changed: "The checklist was changed. This is how it stands now.",
+      limit: "A piece can have 10 checks. Delete one to add another.",
+      notTicker: "Only the person who ticked a check, or the hub's owner, can untick it.",
+      notAuthor: "Only the person who added a check, or the hub's owner, can delete it.",
+      notOwner: "Only the hub's owner can finish the hub.",
+      open: "Some checks are not ticked yet, so the hub cannot be finished.",
+      moved: "This hub has moved on, so the checklist can no longer be changed.",
       failed: "We couldn't save that. Nothing changed, so try again.",
     },
   },
@@ -980,11 +1096,12 @@ const fr: Copy = {
   phasesHeading: "Phases",
   phases: { brainstorm: "Brainstorm", design: "Conception et architecture", build: "Construction", review: "Revue et tests" },
   phaseStates: { done: "Terminée", in_progress: "En cours", not_started: "Pas commencée" },
+  phaseFinished: "Terminée",
   phasesNote: {
     toConfirm: "Confirmez l'équipe quand vous êtes prêt à commencer. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
     waiting: "Les phases s'ouvrent quand le porteur confirme l'équipe.",
-    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont ci-dessous\u202f; l'outil de revue reste à venir.",
-    confirmedOutside: "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont réservés aux membres de l'espace\u202f; l'outil de revue reste à venir.",
+    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, qui s'ouvre quand l'espace atteint cette phase\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue.",
+    confirmedOutside: "Le porteur fait passer l'espace d'une phase à la suivante. Chaque phase a son outil sur cette page, réservé aux membres de l'espace\u202f: les notes du brainstorm, le schéma de conception, l'onglet de construction et la liste de vérification de la revue.",
     archived: "Cet espace est archivé, ses phases ne démarreront donc pas.",
   },
   phaseActions: {
@@ -1177,6 +1294,76 @@ const fr: Copy = {
       tooSoon: "Les commits ont été vérifiés il y a moins d'une minute. Réessayez dans un instant.",
       unavailable: "Nous n'avons pas pu lire ce dépôt. Vérifiez qu'il existe et qu'il est public, puis réessayez. Les commits affichés datent de la dernière vérification.",
       moved: "Cet espace a avancé, l'onglet de construction ne peut donc plus être modifié.",
+      failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
+    },
+  },
+  reviewTab: {
+    heading: "Revue et tests",
+    loading: "Chargement de la liste de vérification",
+    loadFailed: "Nous n'avons pas pu charger la liste de vérification. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
+    intro: "Écrivez ce qu'un coéquipier doit lire ou essayer sur chaque composant. Un coéquipier coche chaque vérification, et le porteur termine l'espace quand tout est coché.",
+    archived: "Cet espace est archivé. La liste de vérification reste ici à lire.",
+    finished: "Cet espace a été terminé le {date}. La liste de vérification reste ici à lire.",
+    reloaded: "La liste de vérification est à jour.",
+    count: "Vérifications cochées\u202f: {n} sur {total}.",
+    countOne: "Vérifications cochées\u202f: {n} sur {total}.",
+    noChecks: "Pas encore de vérifications. Ajoutez ce qu'un coéquipier doit lire ou essayer sur chaque composant.",
+    noPieces: "Le schéma de conception n'a aucun composant, il n'y a donc rien à vérifier.",
+    piece: {
+      built: "{name} a construit ce composant",
+      you: "Vous avez construit ce composant",
+      nobody: "Personne n'a pris ce composant",
+      yours: "Un coéquipier coche les vérifications de votre composant.",
+      noChecks: "Pas encore de vérifications.",
+    },
+    check: {
+      addedBy: "Ajoutée par {name}",
+      ticked: "Cochée par {name}, {when}",
+      notTicked: "Pas encore cochée",
+      tick: "Cocher",
+      tickLabel: "Cocher la vérification\u202f: {text}",
+      untick: "Décocher",
+      untickLabel: "Décocher la vérification\u202f: {text}",
+      delete: "Supprimer",
+      deleteLabel: "Supprimer la vérification\u202f: {text}",
+    },
+    add: {
+      label: "Ajouter une vérification",
+      labelFor: "pour {name}",
+      help: "Une chose qu'un coéquipier doit lire ou essayer, 200 caractères au plus.",
+      add: "Ajouter",
+      addLabel: "Ajouter la vérification à {name}",
+    },
+    said: {
+      added: "La vérification a été ajoutée.",
+      ticked: "La vérification est cochée.",
+      unticked: "La vérification n'est plus cochée.",
+      deleted: "La vérification a été supprimée.",
+      finished: "L'espace est terminé.",
+    },
+    finish: {
+      button: "Terminer l'espace",
+      title: "Terminer cet espace\u202f?",
+      text: "La liste de vérification se ferme et l'espace reste en Revue et tests. Cette action est irréversible.",
+      confirm: "Terminer l'espace",
+      open: "Chaque vérification doit être cochée avant que l'espace puisse être terminé.",
+    },
+    delete: {
+      title: "Supprimer cette vérification\u202f?",
+      text: "La vérification est supprimée pour tous les membres de l'espace. Cette action est irréversible.",
+      confirm: "Supprimer la vérification",
+    },
+    cancel: "Annuler",
+    errors: {
+      length: "Écrivez la vérification en 1 à 200 caractères.",
+      own: "Vous avez construit ce composant, c'est donc un coéquipier qui coche ses vérifications.",
+      changed: "La liste de vérification a été modifiée. Voici où elle en est maintenant.",
+      limit: "Un composant peut avoir 10 vérifications. Supprimez-en une pour en ajouter une autre.",
+      notTicker: "Seule la personne qui a coché une vérification, ou le porteur de l'espace, peut la décocher.",
+      notAuthor: "Seule la personne qui a ajouté une vérification, ou le porteur de l'espace, peut la supprimer.",
+      notOwner: "Seul le porteur de l'espace peut terminer l'espace.",
+      open: "Certaines vérifications ne sont pas encore cochées, l'espace ne peut donc pas être terminé.",
+      moved: "Cet espace a avancé, la liste de vérification ne peut donc plus être modifiée.",
       failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
     },
   },
