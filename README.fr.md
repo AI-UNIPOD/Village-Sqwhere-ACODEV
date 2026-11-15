@@ -150,10 +150,11 @@ en anglais.
 
 ## L'essayer
 
-Le site en ligne arrive bientôt. En attendant, lancez-le sur votre ordinateur en quelques
-minutes (voir [Lancer en local](#lancer-en-local)) et cliquez sur **Essayer la démo** : une
-visite en lecture seule d'un village rempli de développeurs, d'idées et d'espaces inventés,
-sans compte.
+Le site en ligne est à l'adresse [www.villagesqwhere.online](https://www.villagesqwhere.online).
+Vous pouvez aussi le lancer sur votre ordinateur en quelques minutes (voir
+[Lancer en local](#lancer-en-local)) et cliquer sur **Essayer la démo** : une visite en
+lecture seule d'un village rempli de développeurs, d'idées et d'espaces inventés, sans
+compte.
 
 ---
 
