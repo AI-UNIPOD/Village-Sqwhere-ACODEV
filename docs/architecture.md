@@ -68,14 +68,27 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/members/{user_id}/approve` (an invitation, signed the same way) or
   `POST /v1/hubs/{hub_id}/members/{user_id}/decline`. Only active members read
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
+  Anyone with a membership row reads their own, with what they signed, at
+  `GET /v1/hubs/{hub_id}/membership`.
   A member leaves with `POST /v1/hubs/{hub_id}/membership/leave`, and the owner removes one
   with `POST /v1/hubs/{hub_id}/members/{user_id}/remove`.
+  The owner renames or describes the hub with `PATCH /v1/hubs/{hub_id}` and archives it, for
+  good, with `POST /v1/hubs/{hub_id}/archive`.
   The owner starts the work with `POST /v1/hubs/{hub_id}/team/confirm` (any team size, which
   opens brainstorm) and moves the hub one phase forward or back with
   `POST /v1/hubs/{hub_id}/phase`; the hub card says which phase it is in. Active members write
   short brainstorm notes: `GET /v1/hubs/{hub_id}/notes` reads them in every phase once the team
   is confirmed, `POST /v1/hubs/{hub_id}/notes` adds one and
-  `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm.
+  `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm. In the
+  design phase they sketch the system: `GET /v1/hubs/{hub_id}/design` reads the pieces and the
+  labelled links between them in design, build and review, `POST /v1/hubs/{hub_id}/pieces`,
+  `PATCH /v1/hubs/{hub_id}/pieces/{piece_id}` and `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}`
+  change the pieces, and `POST /v1/hubs/{hub_id}/links` and
+  `DELETE /v1/hubs/{hub_id}/links/{link_id}` change the links, all only during design.
+  Active members also chat, in any phase: `GET /v1/hubs/{hub_id}/messages` (newest first),
+  `POST /v1/hubs/{hub_id}/messages` (optionally quoting one),
+  `PATCH /v1/hubs/{hub_id}/messages/{message_id}` (the author) and
+  `DELETE /v1/hubs/{hub_id}/messages/{message_id}` (the author or the owner).
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
   `POST /v1/me/ideas/{idea_id}/publish`, `POST /v1/me/ideas/{idea_id}/close` and

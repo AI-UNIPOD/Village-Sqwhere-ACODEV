@@ -148,3 +148,12 @@ test("without IntersectionObserver the first step stays active and every step st
   expect(stepsOf(container)[0].dataset.active).toBe("true");
   expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(4);
 });
+
+test.each([
+  ["en", "Brainstorm has its notes already", "still to come"],
+  ["fr", "Le brainstorm a déjà ses notes", "restent à venir"],
+] as const)("the %s hub step says brainstorm has its notes and the other tools are still to come", (lang, notes, later) => {
+  const text = copy[lang].steps[3].text;
+  expect(text).toContain(notes);
+  expect(text).toContain(later);
+});

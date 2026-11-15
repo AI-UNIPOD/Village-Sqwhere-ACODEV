@@ -68,7 +68,7 @@ const en: Copy = {
     },
     {
       title: "Hub",
-      text: "Your team gets one hub: the agreement, the terms and the team, in one place. The owner confirms the team, Brainstorm opens, and the owner moves the hub through four phases, one at a time. The tools for each phase are still to come.",
+      text: "Your team gets one hub: the agreement, the terms and the team, in one place. The owner confirms the team, Brainstorm opens, and the owner moves the hub through four phases, one at a time. Brainstorm has its notes already; the tools for the other phases are still to come.",
       view: "A sample hub, each phase Done, In progress or Not started",
     },
   ],
@@ -153,7 +153,7 @@ const fr: Copy = {
     },
     {
       title: "Espace",
-      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis il fait passer l'espace par quatre phases, une à la fois. Les outils de chaque phase restent à venir.",
+      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis il fait passer l'espace par quatre phases, une à la fois. Le brainstorm a déjà ses notes\u202f; les outils des autres phases restent à venir.",
       view: "Un espace d'exemple, chaque phase Terminée, En cours ou Pas commencée",
     },
   ],

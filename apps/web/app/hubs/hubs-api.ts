@@ -154,6 +154,50 @@ export const addNote = async (id: string, body: string) => (await call<{ data: N
 
 export const deleteNote = (id: string, noteId: string) => call<null>(`${hubPath(id)}/notes/${encodeURIComponent(noteId)}`, "DELETE");
 
+// One part of the system in a hub's design sketch. `can_delete` is true for its creator and the hub's owner.
+export type Piece = {
+  id: string;
+  name: string;
+  summary: string;
+  created_by: { id: string; username: string; display_name: string; avatar_url: string | null; is_verified: boolean };
+  created_at: string;
+  updated_at: string;
+  can_delete: boolean;
+};
+
+// A labelled arrow from one piece to another: `from_piece_id` talks to `to_piece_id`.
+export type PieceLink = {
+  id: string;
+  from_piece_id: string;
+  to_piece_id: string;
+  label: string;
+  created_by: Piece["created_by"];
+  created_at: string;
+  can_delete: boolean;
+};
+
+// The whole sketch, oldest first. A hub holds at most 30 pieces and 60 links, so one answer has them all.
+export type Sketch = { pieces: Piece[]; links: PieceLink[] };
+
+export const loadSketch = async (id: string) => (await call<{ data: Sketch }>(`${hubPath(id)}/design`)).data;
+
+export const PIECE_LIMITS = { name: 60, summary: 280, label: 60 };
+
+export const addPiece = async (id: string, piece: { name: string; summary: string }) =>
+  (await call<{ data: Piece }>(`${hubPath(id)}/pieces`, "POST", piece)).data;
+
+// Only the fields that changed are sent.
+export const editPiece = async (id: string, pieceId: string, changes: { name?: string; summary?: string }) =>
+  (await call<{ data: Piece }>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}`, "PATCH", changes)).data;
+
+// The piece's links go with it.
+export const deletePiece = (id: string, pieceId: string) => call<null>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}`, "DELETE");
+
+export const addLink = async (id: string, link: { from_piece_id: string; to_piece_id: string; label: string }) =>
+  (await call<{ data: PieceLink }>(`${hubPath(id)}/links`, "POST", link)).data;
+
+export const deleteLink = (id: string, linkId: string) => call<null>(`${hubPath(id)}/links/${encodeURIComponent(linkId)}`, "DELETE");
+
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
 

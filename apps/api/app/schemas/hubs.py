@@ -37,6 +37,20 @@ TermsNotes = Annotated[str, StringConstraints(strip_whitespace=True, min_length=
 NoteBody = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=280, pattern=NO_NULL)
 ]
+# the hub_pieces and hub_piece_links CHECKs, counted in characters
+PieceName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60, pattern=NO_NULL)
+]
+PieceSummary = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=280, pattern=NO_NULL)
+]
+LinkLabel = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60, pattern=NO_NULL)
+]
+# the hub_messages_body_length CHECK, counted in characters
+MessageBody = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10000, pattern=NO_NULL)
+]
 # the users_username_format CHECK
 Username = Annotated[
     str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z0-9_-]{3,39}$")
@@ -105,6 +119,49 @@ class AddNoteRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     body: NoteBody
+
+
+class AddPieceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: PieceName
+    summary: PieceSummary = ""
+
+
+class UpdatePieceRequest(BaseModel):
+    """A field left out stays as it is. A summary sent empty clears it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: PieceName | None = None
+    summary: PieceSummary | None = None
+
+    @field_validator("name", "summary", mode="before")
+    @classmethod
+    def not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("leave the field out to keep the current value")
+        return value
+
+    @model_validator(mode="after")
+    def something_to_change(self) -> Self:
+        if not self.model_fields_set:
+            raise ValueError("send name or summary")
+        return self
+
+
+class AddLinkRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    from_piece_id: UUID
+    to_piece_id: UUID
+    label: LinkLabel
+
+    @model_validator(mode="after")
+    def joins_two_pieces(self) -> Self:
+        if self.from_piece_id == self.to_piece_id:
+            raise ValueError("a link joins two different pieces")
+        return self
 
 
 class MovePhaseRequest(BaseModel):
@@ -261,6 +318,35 @@ class HubMemberResponse(BaseModel):
     data: HubMemberCard
 
 
+class MySignature(BaseModel):
+    """What the person signed: the agreement version, its text's hash, the name they typed and
+    the hub's terms as they stood. The address and browser it came from are kept, not shown."""
+
+    template_id: UUID
+    version: int
+    template_sha256: str
+    signed_legal_name: str
+    terms_snapshot: dict[str, Any]
+    signed_at: datetime
+
+
+class MyMembership(BaseModel):
+    """The signed-in person's own membership row in a hub, with the signature it rests on."""
+
+    member_role: HubMemberRole
+    status: HubMemberStatus
+    decline_kind: HubDeclineKind | None = None
+    can_ask_again_at: datetime | None = None
+    created_at: datetime
+    joined_at: datetime | None = None
+    left_at: datetime | None = None
+    signature: MySignature | None = None
+
+
+class MyMembershipResponse(BaseModel):
+    data: MyMembership
+
+
 class HubMembersResponse(BaseModel):
     data: list[HubMemberCard]
 
@@ -295,6 +381,50 @@ class HubNoteCard(BaseModel):
     can_delete: bool
 
 
+class QuotedMessage(BaseModel):
+    """The message a reply quotes. `body` is null once that message was deleted."""
+
+    id: UUID
+    author: HubOwner
+    body: str | None = None
+
+
+class HubMessageCard(BaseModel):
+    """`can_edit` is true for the author, and `can_delete` for the author and the hub's owner,
+    while the hub is active."""
+
+    id: UUID
+    body: str
+    author: HubOwner
+    reply_to: QuotedMessage | None = None
+    created_at: datetime
+    edited_at: datetime | None = None
+    can_edit: bool
+    can_delete: bool
+
+
+class HubMessageResponse(BaseModel):
+    data: HubMessageCard
+
+
+class HubMessageListResponse(BaseModel):
+    data: list[HubMessageCard]
+    next_offset: int | None = None
+
+
+class PostMessageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: MessageBody
+    reply_to_id: UUID | None = None
+
+
+class EditMessageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: MessageBody
+
+
 class HubNoteResponse(BaseModel):
     data: HubNoteCard
 
@@ -302,3 +432,45 @@ class HubNoteResponse(BaseModel):
 class HubNoteListResponse(BaseModel):
     data: list[HubNoteCard]
     next_offset: int | None = None
+
+
+class HubPieceCard(BaseModel):
+    """`can_delete` is true for the piece's creator and the hub's owner while the hub is active
+    and in design, the only time a piece can be removed."""
+
+    id: UUID
+    name: str
+    summary: str
+    created_by: HubOwner
+    created_at: datetime
+    updated_at: datetime
+    can_delete: bool
+
+
+class HubPieceResponse(BaseModel):
+    data: HubPieceCard
+
+
+class HubLinkCard(BaseModel):
+    """`can_delete` follows the same rule as a piece's."""
+
+    id: UUID
+    from_piece_id: UUID
+    to_piece_id: UUID
+    label: str
+    created_by: HubOwner
+    created_at: datetime
+    can_delete: bool
+
+
+class HubLinkResponse(BaseModel):
+    data: HubLinkCard
+
+
+class HubDesign(BaseModel):
+    pieces: list[HubPieceCard]
+    links: list[HubLinkCard]
+
+
+class HubDesignResponse(BaseModel):
+    data: HubDesign

@@ -2,11 +2,14 @@
 
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 
+import { copy as ideasCopy } from "../../ideas/copy";
+import { MatchScore, ScoreReasons, sentenceList } from "../../ideas/match-score";
 import type { Lang } from "../../locales";
-import { parseSeconds } from "../gather";
+import { fill } from "../../onboarding/copy";
 import { HeadingText } from "../heading-text";
 import page from "../landing-page.module.css";
-import { copy } from "./matcher-demo-copy";
+import { copy, FACTS } from "./matcher-demo-copy";
+import { demoScore } from "./matcher-demo-score";
 import styles from "./matcher-demo.module.css";
 
 /**
@@ -33,8 +36,6 @@ function initials(name: string) {
     .join("");
 }
 
-const firstName = (name: string) => name.split(" ")[0];
-
 const at = (i: number) => ({ "--i": i }) as CSSProperties;
 
 function Check({ className }: { className?: string }) {
@@ -42,52 +43,6 @@ function Check({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
       <path d="M3.5 8.5l3 3 6-7" pathLength={1} />
     </svg>
-  );
-}
-
-// The match score's step (docs/design-system/components.md): 80 and above, 60 to 79, 40 to 59,
-// below 40.
-const stepOf = (score: number) => (score >= 80 ? 0 : score >= 60 ? 1 : score >= 40 ? 2 : 3);
-
-type ScoreProps = {
-  value: number;
-  count: boolean;
-  steps: readonly string[];
-  line: (score: number, step: string) => string;
-};
-
-// A simulated match score, drawn as the design system's match score: the number, its step as a
-// pill underneath. Match scores are planned; today's matcher has none, and the panel says so.
-// Right after the matcher has run it counts up once (a strong one swells a little at the end);
-// otherwise, and with reduced motion, it shows at once.
-function Score({ value, count, steps, line }: ScoreProps) {
-  const [counting] = useState(() => count && !still());
-  const [shown, setShown] = useState(counting ? 0 : value);
-  useEffect(() => {
-    if (!counting) return;
-    const ms = (parseSeconds(getComputedStyle(document.documentElement).getPropertyValue("--dur-moment")) ?? 0.52) * 1000;
-    const start = performance.now();
-    let raf = 0;
-    const tick = (now: number) => {
-      const k = Math.min(1, (now - start) / ms);
-      setShown(Math.round(value * (1 - (1 - k) ** 3)));
-      if (k < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [counting, value]);
-  const step = stepOf(value);
-  return (
-    <p className={styles.score} data-step={step}>
-      <span className={page.srOnly}>{line(value, steps[step])}</span>
-      <span className={styles.scoreValue} data-swell={(counting && step === 0) || undefined} aria-hidden="true">
-        {shown}
-      </span>
-      <span className={styles.scorePill} aria-hidden="true">
-        {step === 0 && <Check className={styles.scoreIcon} />}
-        {steps[step]}
-      </span>
-    </p>
   );
 }
 
@@ -105,6 +60,7 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
   const picker = useRef<HTMLFieldSetElement>(null);
   const id = useId();
   const idea = t.ideas[ideaIndex];
+  const found = ideasCopy[lang].matches;
 
   // Arm the first run: hide the server's suggestions and run them once the section is in view.
   useEffect(() => {
@@ -157,6 +113,8 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
     picker.current?.querySelector<HTMLInputElement>("input:checked")?.focus();
   }
 
+  // each suggestion's score, counted from the made-up facts as the API counts a real one
+  const scored = idea.matches.map((_, i) => demoScore(ideaIndex, i));
   const shown = phase === "results" || phase === "inviting" || phase === "won";
   const signedCount = phase === "won" ? idea.matches.length : phase === "inviting" ? Math.min(step, 3) : 0;
   const announcement =
@@ -244,18 +202,6 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
                     <div className={styles.who}>
                       <p className={styles.name}>{match.name}</p>
                       <p className={styles.place}>{match.place}</p>
-                      <p className={styles.role}>
-                        <Check className={styles.verifiedIcon} />
-                        <span>
-                          {t.verified}: {match.role}
-                        </span>
-                      </p>
-                      <p className={styles.shared}>{t.inCommon(firstName(idea.owner))}</p>
-                      <ul className={styles.chips} aria-label={t.inCommon(firstName(idea.owner))}>
-                        {match.shared.map((tech) => (
-                          <li key={tech}>{tech}</li>
-                        ))}
-                      </ul>
                       {i < signedCount && (
                         <p className={styles.signed}>
                           <Check className={styles.signedIcon} />
@@ -263,13 +209,24 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
                         </p>
                       )}
                     </div>
-                    <Score value={match.score} count={ran} steps={t.steps} line={t.scoreLine} />
+                    <div className={styles.scoreCell}>
+                      <MatchScore lang={lang} score={scored[i].score} partial={scored[i].partial} count={ran} />
+                    </div>
+                    <div className={styles.reasons}>
+                      <ScoreReasons
+                        lang={lang}
+                        scored={scored[i]}
+                        roles={fill(found.verifiedIn, {
+                          roles: sentenceList(lang, FACTS[ideaIndex].matches[i].roles.map((role) => idea.roles[role])),
+                        })}
+                        technologies={(names) => fill(found.inCommon, { technologies: names })}
+                        sectors={(names) => fill(found.sectors, { sectors: names })}
+                      />
+                    </div>
                   </li>
                 ))}
               </ol>
             )}
-
-            {shown && <p className={styles.simulated}>{t.simulated}</p>}
 
             {shown && (
               <div className={styles.foot}>

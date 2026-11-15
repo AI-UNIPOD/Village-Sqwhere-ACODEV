@@ -203,3 +203,22 @@ test("without IntersectionObserver the first phase shows at once", () => {
   const { container } = render(<HubPhases lang="en" />);
   expect(demo(container).dataset.waiting).toBe("false");
 });
+
+// Brainstorm notes ship (hubs/notes.tsx); the other three phases' tools do not.
+test.each([
+  ["en", "Brainstorm notes are live", "Brainstorm notes", "short notes of up to 280 characters", "are not built yet"],
+  ["fr", "Les notes de brainstorm sont disponibles", "Notes de brainstorm", "courtes notes de 280 caractères au maximum", "ne sont pas encore construits"],
+] as const)("the %s hub section says brainstorm notes are live and the other three tools are still to come", (lang, live, view, notes, notBuilt) => {
+  render(<HubPhases lang={lang} />);
+  const t = copy[lang];
+  expect(t.lead).toContain(live);
+  expect(t.sampleTag).toContain(live);
+  expect(t.closing).toContain(notes);
+  expect(t.closing).toContain(notBuilt);
+  expect(t.phases[0].view).toBe(view);
+  // the other three views are still samples, and the section says so
+  expect(t.sampleTag).toMatch(/Made-up|inventées/);
+  expect(t.sampleTag).toMatch(/still to come|restent à venir/);
+  expect(screen.getByText(t.sampleTag)).toBeTruthy();
+  expect(`${t.lead} ${t.closing} ${t.sampleTag}`).not.toMatch(/The tools are not built|Les outils ne sont pas/);
+});

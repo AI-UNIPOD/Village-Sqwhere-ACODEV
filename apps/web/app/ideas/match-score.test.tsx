@@ -132,6 +132,18 @@ test("with reduced motion the number shows at once and no frame is asked for", (
   expect(request).not.toHaveBeenCalled();
 });
 
+test("a card drawn on the server shows the number at once and does not read the browser", () => {
+  const request = vi.fn();
+  vi.stubGlobal("requestAnimationFrame", request);
+  vi.stubGlobal("matchMedia", () => {
+    throw new Error("no window on the server");
+  });
+  const { container } = render(<MatchScore lang="en" score={89} partial count={false} />);
+  expect(container.querySelector('[aria-hidden="true"]')!.textContent).toBe("89");
+  expect(container.querySelector("[data-swell]")).toBeNull();
+  expect(request).not.toHaveBeenCalled();
+});
+
 // ---------- the reasons ----------
 
 const go = { slug: "go", name: "Go" };

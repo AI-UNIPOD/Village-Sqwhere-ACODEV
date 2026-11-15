@@ -128,8 +128,28 @@ page, oldest first). While the hub is active and in brainstorm, the form adds a 
 characters (`POST /v1/hubs/{id}/notes`), and the author or the hub's owner can delete one behind a
 confirm dialog (`DELETE /v1/hubs/{id}/notes/{note_id}`). After brainstorm, or in an archived hub, the
 notes are for reading only. There are no live updates: a Refresh button reads the list again. When
-the API says the hub moved on, the page loads the hub again and says so. The tools for the other
-phases are not built yet.
+the API says the hub moved on, the page loads the hub again and says so.
+
+Under the notes, from the design phase on, an active member sees the design sketch
+(`hubs/design.tsx`, `id="design"`), read from `GET /v1/hubs/{id}/design`: the pieces of the system and the
+labelled links between them. The content is a list of cards, one for each piece, with its summary and
+its links in words ("To Payouts API: approves a batch", "From Mobile app: returns the status"). From
+768px wide the same pieces and links are also drawn as boxes and arrows in one SVG, hidden from
+assistive technology. The page lays the drawing out itself from the links (`hubs/design-layout.ts`, a
+pure function): columns from the direction of the links, boxes stacked in each column, text cut by the
+estimated width of its letters so it stays in its box, each arrow label put beside its own arrow and
+clear of the others where there is room, no saved positions, no drawing library. The drawing is wider
+than the text column (up to 64rem, never past the page margins) so its writing stays readable. There
+are no live updates: a Refresh button reads the sketch again. While the hub is active and in design,
+the forms under the sketch (`hubs/design-forms.tsx`) let a member add a piece (`POST /v1/hubs/{id}/pieces`,
+name 1 to 60 characters, summary up to 280), correct one in place with Edit (`PATCH`, only the fields that
+changed are sent), add a link between two pieces (`POST /v1/hubs/{id}/links`, label 1 to 60) and delete a
+link (its outgoing line has the one delete button) or a piece (`DELETE`, for its creator or the hub's owner,
+behind a confirm dialog; the sketch is then read again). The API's refusals become sentences in the page's
+language: a taken name is a field error, a vanished piece or link reloads the sketch, and when the hub moved
+on (`PHASE_CLOSED`, `PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`, `HUB_ARCHIVED`, `NOT_HUB_MEMBER`) the page
+loads the hub again and the section follows it. In build, review and an archived hub the sketch is for
+reading only. The tools for build and review are not built yet.
 
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares
