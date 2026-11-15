@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- fix(web): say every hub phase has its tool on the landing page
+- fix(web): say every hub phase has its tool on the landing page (#223)
 - feat(web): turn the theme in a wave of tiles from the centre (#180)
 - feat(web): add the review checklist to the hub page (#210)
 - fix(infra): date the demo's signatures when each member joined (#209)
