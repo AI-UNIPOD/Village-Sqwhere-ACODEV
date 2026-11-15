@@ -1333,6 +1333,13 @@ The team, for active members only: the owner first, then members by joining time
 also sees `requested`, `invited` and `declined` people, to answer, follow up or withdraw. Nobody sees people who
 left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
 
+On each pending request (`status: "requested"`), and only for the owner, the card's `fit` is
+the same card `GET /v1/me/ideas/{idea_id}/matches` gives, scored against this hub's idea: the
+score with `score_version`, `partial` and `breakdown`, the matched roles, the technologies and
+sectors shared with the owner, and the developer's `country_code`. A requester verified in none
+of the needed roles still gets a fit, with a low score. `fit` is `null` on every other card and
+for every other caller. Why: `docs/decisions/2026-11-15-score-on-join-requests.md`.
+
 * **Errors:** `403 NOT_HUB_MEMBER`.
 
 #### `GET /v1/hubs/{hub_id}/membership`

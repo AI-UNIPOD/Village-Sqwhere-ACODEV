@@ -22,6 +22,7 @@ from pydantic import (
 
 from app.models.hubs import HubDeclineKind, HubMemberRole, HubMemberStatus, HubPhase, HubStatus
 from app.models.ideas import IdeaStage, IdeaStatus
+from app.schemas.matches import MatchedDeveloper
 from app.schemas.posts import NO_NULL
 
 # Our own limit, not the database's: hub terms written as compact JSON may be at most this
@@ -344,6 +345,9 @@ class HubMemberCard(BaseModel):
 
     `decline_kind` says which "no" a "declined" status was, and is null for every other status
     and for rows declined before it was recorded.
+
+    `fit` is the same card the owner's developer matches give, scored against this hub's idea.
+    Only the owner gets it, and only on a pending request, to judge it before approving.
     """
 
     user: HubOwner
@@ -352,6 +356,7 @@ class HubMemberCard(BaseModel):
     decline_kind: HubDeclineKind | None = None
     joined_at: datetime | None = None
     updated_at: datetime
+    fit: MatchedDeveloper | None = None
 
 
 class HubMemberResponse(BaseModel):
