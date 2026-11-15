@@ -617,10 +617,26 @@ failed run returns to `pending` and can be claimed again until
 `VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached. The primary Groq analyzer falls back to the
 configured Gemini analyzer after a Groq configuration or API error.
 
+#### `POST /v1/me/verifications/{session_id}/interview-ticket`
+
+The applicant asks for a one-use ticket just before opening the interview socket, so the access
+token never goes in a URL, where servers and proxies log it. No body. Answers `201` with
+`{"data": {"ticket": "...", "expires_at": "..."}}`. The ticket works once, for about 60
+seconds, only for this attempt and this person, and is kept in the API's memory (one process,
+like the sign-in codes).
+
+* **Errors:** `401`, `403 DEMO_READ_ONLY` (the demo cannot take an interview), `404 NOT_FOUND`
+  (no such attempt of yours), `409 INTERVIEW_NOT_AVAILABLE` (the attempt is not at its
+  interview).
+* Why: `docs/decisions/2026-11-15-interview-ticket.md`.
+
 #### `WS /v1/me/verifications/{session_id}/interview`
 
-The applicant opens this WebSocket after the session reaches `technical_defence`. The access
-token is supplied as the `token` query parameter during the connection handshake. The server
+The applicant opens this WebSocket after the session reaches `technical_defence`, with the
+ticket from `POST .../interview-ticket` as the `ticket` query parameter. A used, expired or
+unknown ticket, or one for another attempt, is refused like a bad token (close code `1008`).
+The older `token` query parameter (the access token itself) still works but is deprecated: it
+goes once the web sends tickets. The server
 sends `assistant_message`, `question`, `answer_saved`, `audio_buffered`, `error`,
 `interview_complete`, and `interview_incomplete` events. An `assistant_message` has a `kind` of
 `welcome`, `acknowledgement`, or `closing`, plus its text. The welcome explains the interview
@@ -1364,6 +1380,13 @@ Inviting a developer who has a pending request approves it too.
 The team, for active members only: the owner first, then members by joining time. The owner
 also sees `requested`, `invited` and `declined` people, to answer, follow up or withdraw. Nobody sees people who
 left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
+
+On each pending request (`status: "requested"`), and only for the owner, the card's `fit` is
+the same card `GET /v1/me/ideas/{idea_id}/matches` gives, scored against this hub's idea: the
+score with `score_version`, `partial` and `breakdown`, the matched roles, the technologies and
+sectors shared with the owner, and the developer's `country_code`. A requester verified in none
+of the needed roles still gets a fit, with a low score. `fit` is `null` on every other card and
+for every other caller. Why: `docs/decisions/2026-11-15-score-on-join-requests.md`.
 
 * **Errors:** `403 NOT_HUB_MEMBER`.
 
