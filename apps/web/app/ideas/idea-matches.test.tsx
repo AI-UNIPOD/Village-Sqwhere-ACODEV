@@ -99,10 +99,8 @@ test("the page names the idea, leads back to Your ideas, and shows each develope
   expect(screen.getByRole("link", { name: "Your ideas" }).getAttribute("href")).toBe("/en/ideas/mine");
 
   const first = cardOf("Wanjiru Kamau");
-  const github = first.getByRole("link", { name: "@wanjiru-kamau (GitHub profile, opens in a new tab)" });
-  expect(github.getAttribute("href")).toBe("https://github.com/wanjiru-kamau");
-  expect(github.getAttribute("target")).toBe("_blank");
-  expect(github.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(first.getByRole("link", { name: "Wanjiru Kamau" }).getAttribute("href")).toBe("/en/people/view?username=wanjiru-kamau");
+  expect(first.getByText("@wanjiru-kamau")).toBeTruthy();
   expect(first.getByText("Verified")).toBeTruthy();
   expect(first.getByText("Verified in Backend and Systems Engineer")).toBeTruthy();
   expect(first.getByText("Kenya")).toBeTruthy();
@@ -112,7 +110,7 @@ test("the page names the idea, leads back to Your ideas, and shows each develope
   const second = cardOf("danladi");
   expect(second.getByText("Verified in Backend and Systems Engineer and Mobile Engineer")).toBeTruthy();
   expect(second.getByText("In common with you: React")).toBeTruthy();
-  expect(second.getByRole("link", { name: "danladi (GitHub profile, opens in a new tab)" })).toBeTruthy();
+  expect(second.getByRole("link", { name: "danladi" }).getAttribute("href")).toBe("/en/people/view?username=danladi");
   expect(second.queryByText("Verified")).toBeNull();
   // no percentage, and no claim to be AI
   expect(screen.queryByText(/\d%|\bAI\b/)).toBeNull();
@@ -153,7 +151,7 @@ test("the country sits under the name, before the invite button", async () => {
   await screen.findByText("Wanjiru Kamau");
   const card = cardOf("Wanjiru Kamau");
   const country = card.getByText("Kenya");
-  const name = screen.getByText("Wanjiru Kamau", { selector: "p" });
+  const name = screen.getByText("Wanjiru Kamau", { selector: "a" }).closest("p")!;
   expect(name.parentElement!.contains(country)).toBe(true);
   const invite = card.getByRole("button", { name: /^Invite to the hub/ });
   expect(country.compareDocumentPosition(invite) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -196,7 +194,7 @@ test("the country shows by name in the page's language, and nothing for no count
   expect(cardOf("Aya").getByText("Central African Republic")).toBeTruthy();
   expect(cardOf("Dele").getByText("São Tomé and Príncipe")).toBeTruthy();
   // a card with no country, or an unknown one, has the same lines as any other, and the country adds one
-  const lines = (name: string) => screen.getByText(name, { selector: "p" }).closest("li")!.querySelectorAll("p").length;
+  const lines = (name: string) => screen.getByText(name, { selector: "a" }).closest("li")!.querySelectorAll("p").length;
   expect(lines("Chidi")).toBe(lines("Bola"));
   expect(lines("Aya")).toBe(lines("Bola") + 1);
   expect(cardOf("Chidi").queryByText("XX")).toBeNull();
@@ -289,7 +287,7 @@ test("a sent invitation becomes an Invited pill and a status line, and the row s
   expect(row.getByText("Verified in Backend and Systems Engineer")).toBeTruthy();
   expect(posted()).toEqual([["/v1/hubs/hub-1/invitations", { username: "wanjiru-kamau" }]]);
   // the button left, so focus moved to the person
-  await waitFor(() => expect(document.activeElement).toBe(row.getByRole("link", { name: /@wanjiru-kamau/ })));
+  await waitFor(() => expect(document.activeElement).toBe(row.getByRole("link", { name: "Wanjiru Kamau" })));
   // the others are untouched
   expect(screen.getByRole("button", { name: "Invite to the hub: danladi" })).toBeTruthy();
 });

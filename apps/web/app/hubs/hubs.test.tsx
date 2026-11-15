@@ -215,8 +215,9 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
   expect(screen.getByText("Version 1 of the hub agreement")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Edit the idea" }).getAttribute("href")).toBe("/en/ideas/compose?id=idea-1");
   for (const phase of ["Brainstorm", "Design and architecture", "Build", "Review and test"]) expect(screen.getByText(phase)).toBeTruthy();
-  const github = await screen.findByRole("link", { name: "@kwabena-owusu (GitHub profile, opens in a new tab)" });
-  expect(github.getAttribute("href")).toBe("https://github.com/kwabena-owusu");
+  const profile = await screen.findByRole("link", { name: "Kwabena Owusu" });
+  expect(profile.getAttribute("href")).toBe("/en/people/view?username=kwabena-owusu");
+  expect(screen.getByText("@kwabena-owusu")).toBeTruthy();
 });
 
 // The hub arrives after the page, so the browser's own jump to an address's hash finds nothing,

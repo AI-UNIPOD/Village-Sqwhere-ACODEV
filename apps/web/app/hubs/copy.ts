@@ -60,7 +60,6 @@ type Copy = {
   teamHeading: string;
   notMember: string;
   verified: string;
-  githubProfile: string;
   termsFrozen: string;
   agreementVersion: string;
   phasesHeading: string;
@@ -330,7 +329,6 @@ const en: Copy = {
   teamHeading: "Team",
   notMember: "You are not a member of this hub.",
   verified: "Verified",
-  githubProfile: "GitHub profile, opens in a new tab",
   termsFrozen: "Signed by every member. These cannot be changed.",
   agreementVersion: "Version {n} of the hub agreement",
   phasesHeading: "Phases",
@@ -689,7 +687,6 @@ const fr: Copy = {
   teamHeading: "Équipe",
   notMember: "Vous n'êtes pas membre de cet espace.",
   verified: "Vérifié",
-  githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
   termsFrozen: "Signées par chaque membre. Elles ne peuvent pas être modifiées.",
   agreementVersion: "Version {n} de l'accord de l'espace",
   phasesHeading: "Phases",
