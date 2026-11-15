@@ -70,7 +70,9 @@ export const owner = () =>
   });
 
 // Answers each address by its longest matching start; a list of answers is used one per call.
-export function api(routes: Record<string, unknown>) {
+// Every member's hub page reads the chat, so an empty one is served unless a test names its own.
+export function api(given: Record<string, unknown>) {
+  const routes: Record<string, unknown> = { "GET /v1/hubs/hub-1/messages": { data: [], next_offset: null }, ...given };
   const used: Record<string, number> = {};
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
     const path = `${init?.method ?? "GET"} ${String(url).replace("http://localhost:8000", "")}`;

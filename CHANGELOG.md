@@ -11,6 +11,10 @@ its number:
 ## 2026-11-15
 
 - feat(web): let a developer delete their account (#188)
+- feat(web): let the author delete an idea with no hub (#187)
+- feat(web): show another developer's public profile (#186)
+- feat(web): let members leave a hub and owners remove them (#184)
+- feat(web): add the team chat to the hub page (#183)
 - feat(web): let the team edit the design sketch (#182)
 - fix(web): show the real score and live brainstorm notes on the landing (#181)
 
