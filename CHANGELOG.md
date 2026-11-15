@@ -11,6 +11,16 @@ its number:
 ## 2026-11-15
 
 - feat(web): open the interview socket with a one-use ticket (#217)
+- fix(api): make the demo world's review case and chats consistent (#224)
+- feat(web): show the meaning part of the score and similar ideas (#222)
+- chore: deploy the web app, api and worker as one vercel project (#226)
+- feat(api): open the interview socket with a one-use ticket (#216)
+- fix(web): mark the village steps a developer has already done (#215)
+- feat(api): show the owner the match score on join requests (#214)
+- feat(api): store what ideas and profiles mean as embeddings (#211)
+- feat(web): turn the theme in a wave of tiles from the centre (#180)
+- feat(web): add the review checklist to the hub page (#210)
+- fix(infra): date the demo's signatures when each member joined (#209)
 - fix(web): say the build tab is live on the landing page (#208)
 - feat(api): add the review checklist and finishing to a hub (#204)
 - fix(web): draw no github link from a username in the demo (#207)

@@ -45,6 +45,7 @@ app/hubs/
   notes.tsx            brainstorm notes   notes.test.tsx
   design.tsx           design sketch      design.test.tsx
   build.tsx            build tab          build.test.tsx
+  review.tsx           review checklist   review.test.tsx
   team.tsx             members, invite, remove, leave
   test-support.ts      made-up API answers shared by the tests
 ```
@@ -122,11 +123,18 @@ technologies the feed should show and the sectors (`POST /v1/me/roles`,
 developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
 under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
 (`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
+The stack step says what is sent to Google's Gemini to match by meaning, tied to the chips as
+their help text (the same sentence as the profile's bio field).
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
 team. Onboarding's last screen leads there, and the bare onboarding address sends a developer
-who already has a role there too. Screens for signed-in people share one frame, `AppFrame` in
+who already has a role there too. The steps are marked from what the developer has done: the
+third is done with an idea that is not a draft (`GET /v1/me/ideas`) or a hub they are in, the
+fourth with a hub they are in (`GET /v1/me/hubs`, archived ones too). The steps show as a
+skeleton until those reads and the invitations settle (or six seconds pass, so one stalled read
+cannot hide the village) and again each time the village is shown. A read that fails or does not
+answer leaves its step as it was. Screens for signed-in people share one frame, `AppFrame` in
 `app/app-frame.tsx`: pass it the screen's address so the language link opens the same screen.
 The frame also holds the places (village, feed, ideas, hubs, reviews for a verified developer,
 profile): a bar at the bottom of a phone, links in the header from 768px. A new place is one
@@ -161,8 +169,9 @@ cannot read it can choose another case.
 
 Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/ideas/compose`
 (new) or `/en/ideas/compose?id=` (existing). The form keeps what everyone sees (title, summary)
-apart from the private brief, saves only the fields that changed, and asks before publishing or
-closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
+apart from the private brief, says by the summary what is sent to Google's Gemini to compare
+ideas by meaning (the title and the summary, never the brief), saves only the fields that
+changed, and asks before publishing or closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
 "Delete the idea" at the end of a saved idea's form (`app/ideas/delete-idea.tsx`,
 `DELETE /v1/me/ideas/{id}`) asks first, then returns to Your ideas with a line saying it went.
@@ -179,13 +188,21 @@ A developer can take a waiting request back on the idea's page or the hub's page
 After a decline the developer waits before asking again: the date the wait ends replaces the
 button, read from the hub's card (`viewer.can_ask_again_at`) or from a press that was too soon
 (409 `REQUEST_COOLING_DOWN`).
+Under the idea, "Ideas that read close to this one" lists up to five other open ideas as links
+with their summaries (`app/ideas/similar-ideas.tsx`, `GET /v1/ideas/{id}/similar`). It is an
+extra: it shows nothing when the list is empty or the read fails, it is only asked for after the
+idea has been read, and it carries no number.
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
 developer is verified in (`GET /v1/me/matches`), best score first. Each card shows the match
 score (`app/ideas/match-score.tsx`: the number, its step as a pill, one sentence for a screen
 reader) and the parts that earned it, each with its raw points: the roles that matched, the
-technologies and sectors shared with the idea's author, and the meaning part, which is not
-compared yet. Matching goes by verified roles, so a developer without one is sent to verify, and
+technologies and sectors shared with the idea's author, and the meaning part. A match whose
+idea and developer were both compared has points for meaning, no "Partial score" line and a
+line saying what the part is; one not compared yet says so and keeps the line. One list can
+hold both. An idea close to one of the developer's own adds "Close to your idea: ..." with a
+link to it (`similar_idea`). Matching goes by verified roles, so a developer without one is
+sent to verify, and
 the page does not call the API for them.
 
 The owner's side is `/en/ideas/matches?id=`: developers verified in a role the idea needs
@@ -193,6 +210,8 @@ The owner's side is `/en/ideas/matches?id=`: developers verified in a role the i
 their country (named in the page's language, nothing when they gave none, directly under the
 name). The technologies shared with the owner come first in the tags, marked with a tick and, for
 a screen reader, "in common". A response without score fields shows the parts without a score.
+A developer with an open idea that reads close to the owner's adds "Has an idea close to yours:
+..." with a link to that idea.
 With a hub, "Invite to the hub" sends the invitation from the row
 (`inviteMember`, the same call and refusal sentences as the hub's invite form); without one the
 page says a hub comes first. "See who matches" on Your ideas and a link under the hub's invite
@@ -261,7 +280,7 @@ behind a confirm dialog; the sketch is then read again). The API's refusals beco
 language: a taken name is a field error, a vanished piece or link reloads the sketch, and when the hub moved
 on (`PHASE_CLOSED`, `PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`, `HUB_ARCHIVED`, `NOT_HUB_MEMBER`) the page
 loads the hub again and the section follows it. In build, review and an archived hub the sketch is for
-reading only. The tool for review is not built yet.
+reading only.
 
 Under the sketch, an active member of a hub in build or review sees the build tab (`hubs/build.tsx`,
 `id="build"`), read from `GET /v1/hubs/{id}/build`: who builds which piece, the team's repository and its
@@ -277,6 +296,21 @@ and the answer replaces the whole tab. The address and the shas are links to git
 tab, except for the demo account, whose repository does not exist on GitHub. The API's refusals become
 sentences in the page's language: a piece taken first or gone, or a repository changed, reads the tab again,
 and when the hub moved on the page loads the hub again and the section follows it.
+
+Under the build tab, an active member of a hub in review sees the review checklist (`hubs/review.tsx`,
+`id="review"`), read from `GET /v1/hubs/{id}/review`: one block for each piece, with who built it and its
+checks. A check is plain text of 1 to 200 characters, and it says who added it and either "Ticked by ..." or
+"Not ticked yet", in words and an icon. Its buttons come from the API's flags: Tick and Untick
+(`POST` and `DELETE /v1/hubs/{id}/checks/{check_id}/tick`, no dialog; nobody ticks a check on a piece they
+built) and Delete (`DELETE /v1/hubs/{id}/checks/{check_id}`, behind a confirm dialog). When `can_add` is set,
+a field under each piece adds a check (`POST /v1/hubs/{id}/pieces/{piece_id}/checks`, at most 10 on a piece,
+checked in the page first). A line at the top counts the ticked checks. When `can_finish` is set, the owner's
+Finish the hub (`POST /v1/hubs/{id}/finish`, behind a confirm dialog) closes the checklist, and the hub page
+shows the phase as Finished and offers no way back. While a check is open the owner reads why there is no
+button. The checklist is read when the section shows and after each change, so the flags follow the other
+checks. The API's refusals become sentences in the page's language: a check ticked or gone elsewhere reads
+the checklist again, and when the hub moved on or was finished the page loads the hub again and the
+section follows it.
 
 At the end of the page, every active member sees the team chat (`hubs/chat.tsx`, `id="chat"`), in any
 phase and before the team is confirmed. The API sends the newest 50 messages first
@@ -325,7 +359,8 @@ follows (`PUT` and `DELETE /v1/comments/{id}/like`).
 
 The profile is `app/profile/`, at `/en/profile`: the name, bio and country (`PATCH /v1/me`; the
 country is a native list with "No country" first, saved as its code or `null`, and the form says
-other signed-in developers can see it), the roles
+other signed-in developers can see it; a second help line under the bio says what is sent to
+Google's Gemini to match by meaning, and that the name, username and email never are), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.

@@ -58,3 +58,14 @@ class VerificationListResponse(BaseModel):
 
 class VerificationItemResponse(BaseModel):
     data: VerificationResponse
+
+
+class InterviewTicket(BaseModel):
+    """A one-use pass to open the interview socket with `?ticket=`, valid for about a minute."""
+
+    ticket: str
+    expires_at: datetime
+
+
+class InterviewTicketResponse(BaseModel):
+    data: InterviewTicket

@@ -35,6 +35,14 @@ at and the fingerprint of the text).
 - **It writes no demo content.** `2026-11-13-read-only-demo.md` keeps made-up rows out of
   `infra/db/init/`, and that still holds: on a database with no demo this script does nothing.
 
+The same day a second script, `infra/db/init/026-demo-signature-dates.sql`, corrects the date
+of the demo's signatures in the same way and under the same limits. The seed dated each
+member's joining ten days back and left the signature's date to its default, the day the seed
+ran, so a hub page said "You signed the agreement on 13 November" under "Member since 3
+November", after ten days of notes, a sketch and commits. The seed now dates a new demo's
+signatures at the joining. For a demo that already exists, the script sets a demo account's
+signature, in a hub a demo account owns, to the moment that member joined, when it is later.
+
 ## Options we considered
 
 - **Delete the demo and seed it again.** The same two triggers, and the one on

@@ -10,9 +10,11 @@ the script runs, so the feed reads "2 hours ago". Running it again rewrites the 
 comments with fresh times, sets the bios and countries again, adds the roles, technologies,
 sectors, people and open ideas that are missing and leaves the rest, except that it puts the
 visitor's own hub in build if it has no phase yet and gives it its brainstorm notes and its
-design sketch if it has none, then claims on four pieces, a repository address and eight commits
-for each that is missing.
-docs/decisions/2026-11-13-read-only-demo.md
+design sketch if it has none, then claims on four pieces and a repository address for each that
+is missing, and writes its eight commits again with fresh times. It also gives a hub that still
+has the old template description its own, a chat to each of the two hubs with an empty one, and
+the review case the evidence, interview and report it lacks.
+docs/decisions/2026-11-13-read-only-demo.md, docs/decisions/2026-11-15-demo-world-reads-as-real.md
 """
 
 import asyncio
@@ -20,13 +22,15 @@ import hashlib
 import sys
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
+from app import demo_review_case as review_case
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.models import (
     AgreementSignature,
+    AuthProvider,
     Comment,
     CommentLike,
     DeletionReason,
@@ -35,6 +39,7 @@ from app.models import (
     HubMember,
     HubMemberRole,
     HubMemberStatus,
+    HubMessage,
     HubNote,
     HubPhase,
     HubPhaseMove,
@@ -44,6 +49,7 @@ from app.models import (
     IdeaRoleNeed,
     IdeaStage,
     IdeaStatus,
+    InterviewStatus,
     Post,
     PostLike,
     PostTopic,
@@ -56,6 +62,8 @@ from app.models import (
     UserRole,
     UserSector,
     UserTechnology,
+    VerificationInterview,
+    VerificationInterviewTurn,
     VerificationSession,
     VerificationStatus,
 )
@@ -144,15 +152,41 @@ BRIEF = (
     "and the partners to approach first."
 )
 OWN_HUB = "Payouts Hub"
+TONTINE_HUB = "Tontine Hub"
+COCOA_HUB = "Cocoa Ledger Hub"
+# What each hub's team builds first, in the language its owner writes. A world seeded earlier
+# holds "Building <idea title> together." and a rerun replaces that.
+HUB_DESCRIPTIONS = {
+    OWN_HUB: (
+        "We build a payout service for co-operatives. The first version lets one treasurer "
+        "approve a batch and pays every member exactly once, even when the network drops. "
+        "The audit trail and the SMS receipts come right after."
+    ),
+    TONTINE_HUB: (
+        "Nous construisons une tontine sur mobile pour les quartiers de Dakar. La première "
+        "version tient un registre partagé des cotisations et envoie un rappel par SMS avant "
+        "chaque tour. Le tirage de l'ordre des bénéficiaires viendra ensuite."
+    ),
+    COCOA_HUB: (
+        "We build an offline ledger for cocoa co-operatives in Ashanti. The first version "
+        "records each weighing on a phone without signal and syncs it when the phone finds a "
+        "network. The buyer's receipt comes next."
+    ),
+}
 # what its two active members wrote on the brainstorm board, as (who, days ago, text)
 OWN_HUB_NOTES = [
     ("you", 8.8, "One co-op treasurer approves the batch, then the app pays every member."),
-    ("kwabena", 8.4, "Les membres veulent un reçu par SMS après chaque paiement."),
+    ("kwabena", 8.4, "Members want an SMS receipt after every payment."),
     ("you", 8.0, "An idempotency key on every transfer, so a retry never pays twice."),
     ("kwabena", 7.3, "Show the audit trail as a plain timeline, not a table."),
-    ("you", 6.9, "Paiement échoué\u202f: on réessaie sans repayer ceux qui ont déjà reçu."),
+    ("you", 6.9, "Failed payment: retry without paying again anyone who already got paid."),
     ("kwabena", 6.2, "Question: naira and CFA from the first version, or naira only?"),
 ]
+# the two notes that worlds seeded earlier hold in French: a rerun writes them in English
+OLD_OWN_HUB_NOTES = {
+    "Les membres veulent un reçu par SMS après chaque paiement.": OWN_HUB_NOTES[1][2],
+    "Paiement échoué\u202f: on réessaie sans repayer ceux qui ont déjà reçu.": OWN_HUB_NOTES[4][2],
+}
 # what the same two members sketched in its design phase, as (who, days ago, name, summary)
 OWN_HUB_PIECES = [
     ("kwabena", 5.9, "Mobile app", "Where the treasurer approves a batch and members see payouts."),
@@ -171,12 +205,16 @@ OWN_HUB_LINKS = [
     ("you", 3.9, "Payouts API", "Mobile app", "returns the status"),
 ]
 # Who builds which piece in the build phase, as (who, hours ago, piece). Each of the two active
-# members holds two, and "Ledger database" stays free.
+# members holds two, and "Ledger database" stays free. The build phase began 72 hours ago, and
+# each claim is older than its holder's first commit. A claim is dated from the moment the hub
+# moved to build (72 minus these hours after it), so one written again gets the time it had and
+# the chat that mentions the claims still follows them.
+BUILD_BEGAN_HOURS_AGO = 72
 OWN_HUB_CLAIMS = [
-    ("you", 66, "Payouts API"),
-    ("kwabena", 63, "Mobile app"),
-    ("you", 60, "Payouts worker"),
-    ("kwabena", 55, "SMS gateway"),
+    ("you", 71, "Payouts API"),
+    ("kwabena", 70, "Mobile app"),
+    ("you", 69, "Payouts worker"),
+    ("kwabena", 66, "SMS gateway"),
 ]
 # A GitHub owner name cannot hold an underscore, so this address can never be a real repository
 # and the demo can never show a stranger's code.
@@ -189,11 +227,75 @@ OWN_HUB_COMMITS = [
     ("you", 9, "Retry a failed transfer once with the same key"),
     ("you", 16, "Refuse a transfer that has no idempotency key"),
     ("kwabena", 24, "Add the screen where the treasurer approves a batch"),
-    ("you", 33, "Record every payout in the ledger with its time"),
+    ("you", 33, "Return the time of each payout in the batch status"),
     ("kwabena", 45, "Send the SMS receipt in English or French"),
     ("you", 58, "Pay a batch of wallets from the worker queue"),
-    ("you", 70, "Start the payouts API with the batch endpoint"),
+    ("you", 64, "Start the payouts API with the batch endpoint"),
 ]
+# What the team of each of two hubs wrote in its chat, as (who, when, hours, text). The time is
+# counted from a moment in the hub's own history, read from the hub when the chat is written: the
+# moment its members joined, the move to design, the move to build, the last claim on a piece, or
+# now (a negative number of hours, for what the commits above show). So a chat written on a
+# rerun days later still fits the hub's history.
+HUB_CHATS = {
+    OWN_HUB: [
+        (
+            "kwabena",
+            "joined",
+            26,
+            "Hi, glad to be on this. Should I start with the screens or the API?",
+        ),
+        ("you", "joined", 27, "Notes board first. We decide the API shape once we have the notes."),
+        (
+            "you",
+            "design",
+            -2,
+            "The notes look complete to me. Okay to move the hub to design today?",
+        ),
+        ("kwabena", "design", -1, "Yes, go ahead. I will sketch the mobile app first."),
+        (
+            "you",
+            "build",
+            0.5,
+            "We are in build now. I take the API and the worker, you the app and SMS?",
+        ),
+        ("kwabena", "claimed", 0.1, "Works for me. I have claimed the app and the SMS gateway."),
+        (
+            "you",
+            "now",
+            -8,
+            "A failed transfer now retries with the same key. Can you check the status screen?",
+        ),
+        ("kwabena", "now", -2.5, "Status is on the home screen now: pending, paid or failed."),
+    ],
+    TONTINE_HUB: [
+        (
+            "aminata",
+            "joined",
+            12,
+            "Bienvenue à tous les deux. Je commence par le registre des cotisations.",
+        ),
+        (
+            "you",
+            "joined",
+            14,
+            "Thanks, glad to join. I can take the ledger tables and the reminder job.",
+        ),
+        ("tendai", "joined", 72, "Staging is up, and every merge to main deploys there."),
+        (
+            "aminata",
+            "joined",
+            140,
+            "Les rappels SMS partent avant chaque tour. Vous pouvez relire le registre\u202f?",
+        ),
+        (
+            "you",
+            "joined",
+            142,
+            "Reading it now. A contribution sent twice must not count twice, so I add a reference.",
+        ),
+    ],
+}
 
 
 def ago(**delta: float) -> datetime:
@@ -225,10 +327,13 @@ async def seed(db: AsyncSession) -> bool:
             .values(details=BRIEF)
         )
     await _write_open_ideas(db, people)
+    await _write_hub_descriptions(db, people)
     await _start_own_hub(db, people["you"])
     await _write_own_hub_notes(db, people)
     await _write_own_hub_design(db, people)
     await _write_own_hub_build(db, people)
+    await _write_hub_chats(db, people)
+    await _write_review_case(db, people)
     await _write_feed(db, people)
     await db.commit()
     return created
@@ -381,7 +486,7 @@ async def _create_world(db: AsyncSession, people: dict[str, User]) -> None:
             idea_id=on.id,
             owner_id=on.author_id,
             name=name,
-            description=f"Building {on.title.lower()} together.",
+            description=HUB_DESCRIPTIONS[name],
             agreement_template_id=template.id,
             terms={"ownership_model": "equal_split"},
         )
@@ -389,6 +494,7 @@ async def _create_world(db: AsyncSession, people: dict[str, User]) -> None:
         await db.flush()
         for who, membership in {**{owner_key(on): HubMemberStatus.ACTIVE}, **team}.items():
             user = people[who]
+            joined = ago(days=10)
             member = HubMember(
                 hub_id=made.id,
                 user_id=user.id,
@@ -397,15 +503,18 @@ async def _create_world(db: AsyncSession, people: dict[str, User]) -> None:
                 else HubMemberRole.MEMBER,
                 status=membership,
                 invited_by=on.author_id if membership == HubMemberStatus.INVITED else None,
-                joined_at=ago(days=10) if membership == HubMemberStatus.ACTIVE else None,
+                joined_at=joined if membership == HubMemberStatus.ACTIVE else None,
             )
             if membership == HubMemberStatus.ACTIVE:
+                # signed the moment they joined: the hub page shows both dates, and a signature
+                # cannot be changed afterwards (infra/db/init/026-demo-signature-dates.sql)
                 member.signature = AgreementSignature(
                     hub_id=made.id,
                     user_id=user.id,
                     template_id=template.id,
                     template_sha256=template.body_sha256,
                     signed_legal_name=user.display_name,
+                    signed_at=joined,
                 )
             db.add(member)
         await db.flush()
@@ -422,9 +531,9 @@ async def _create_world(db: AsyncSession, people: dict[str, User]) -> None:
     )
     # one you belong to, and one that invited you
     await hub(
-        tontine, "Tontine Hub", {"you": HubMemberStatus.ACTIVE, "tendai": HubMemberStatus.ACTIVE}
+        tontine, TONTINE_HUB, {"you": HubMemberStatus.ACTIVE, "tendai": HubMemberStatus.ACTIVE}
     )
-    await hub(ledger, "Cocoa Ledger Hub", {"you": HubMemberStatus.INVITED})
+    await hub(ledger, COCOA_HUB, {"you": HubMemberStatus.INVITED})
 
     # --- something in your peer review queue: Tendai asks to be verified in your role
     db.add(UserRole(user_id=people["tendai"].id, role_id=roles["backend-engineer"].id))
@@ -432,7 +541,8 @@ async def _create_world(db: AsyncSession, people: dict[str, User]) -> None:
     attempt = VerificationSession(user_id=people["tendai"].id, role_id=roles["backend-engineer"].id)
     db.add(attempt)
     await db.flush()
-    # a new attempt always starts pending; move it to where a reviewer picks it up
+    # a new attempt always starts pending; move it to where a reviewer picks it up. Its evidence
+    # and report come from _write_review_case, which a rerun runs too.
     attempt.status = VerificationStatus.AWAITING_REVIEW
 
     await db.flush()
@@ -474,9 +584,16 @@ async def _start_own_hub(db: AsyncSession, owner: User) -> None:
 
 async def _write_own_hub_notes(db: AsyncSession, people: dict[str, User]) -> None:
     """The visitor's hub has notes from its brainstorm. Added only when it has none, so a rerun
-    does not pile up copies."""
+    does not pile up copies. A note a world seeded earlier wrote in French is found by its text
+    and written in English."""
     hub = await db.scalar(select(Hub).where(Hub.owner_id == people["you"].id, Hub.name == OWN_HUB))
-    if hub is None or await db.scalar(select(HubNote.id).where(HubNote.hub_id == hub.id).limit(1)):
+    if hub is None:
+        return
+    for old, new in OLD_OWN_HUB_NOTES.items():
+        await db.execute(
+            update(HubNote).where(HubNote.hub_id == hub.id, HubNote.body == old).values(body=new)
+        )
+    if await db.scalar(select(HubNote.id).where(HubNote.hub_id == hub.id).limit(1)):
         return
     db.add_all(
         HubNote(hub_id=hub.id, author_id=people[who].id, body=body, created_at=ago(days=days))
@@ -519,8 +636,11 @@ async def _write_own_hub_design(db: AsyncSession, people: dict[str, User]) -> No
 
 
 async def _write_own_hub_build(db: AsyncSession, people: dict[str, User]) -> None:
-    """The visitor's hub has claims on its pieces, a repository and its latest commits. Each is
-    added only when it is missing, so a rerun does not pile up copies or undo a change."""
+    """The visitor's hub has claims on its pieces, a repository and its latest commits. A claim
+    and the repository are added when missing, and a claim someone else holds stays theirs. The
+    commits and the time they were checked are written again on every run, the way a refresh
+    replaces them, so the hub never reads "Checked 3 days ago". A claim a world seeded earlier
+    made after its holder's first commit gets a new time, so every claim is older than that."""
     hub = await db.scalar(select(Hub).where(Hub.owner_id == people["you"].id, Hub.name == OWN_HUB))
     if hub is None:
         return
@@ -530,26 +650,177 @@ async def _write_own_hub_build(db: AsyncSession, people: dict[str, User]) -> Non
             select(HubPiece).where(HubPiece.hub_id == hub.id, HubPiece.deleted_at.is_(None))
         )
     }
+    # the list runs newest first, so the last commit of each person is their first
+    first_commit = {people[who].id: ago(hours=hours) for who, hours, _ in OWN_HUB_COMMITS}
+    build_began = await db.scalar(
+        select(func.min(HubPhaseMove.created_at)).where(
+            HubPhaseMove.hub_id == hub.id, HubPhaseMove.to_phase == HubPhase.BUILD
+        )
+    ) or ago(hours=BUILD_BEGAN_HOURS_AGO)
     for who, hours, name in OWN_HUB_CLAIMS:
         piece = pieces.get(name)
-        if piece is not None and piece.claimed_by is None:
-            piece.claimed_by, piece.claimed_at = people[who].id, ago(hours=hours)
+        if piece is None:
+            continue
+        holder = piece.claimed_by or people[who].id
+        if piece.claimed_by is None or piece.claimed_at >= first_commit.get(holder, ago()):
+            piece.claimed_by = holder
+            piece.claimed_at = build_began + timedelta(hours=BUILD_BEGAN_HOURS_AGO - hours)
     if hub.repository_url in (None, OLD_OWN_HUB_REPOSITORY):
         hub.repository_url = OWN_HUB_REPOSITORY
-    if not await db.scalar(select(HubCommit.sha).where(HubCommit.hub_id == hub.id).limit(1)):
-        db.add_all(
-            HubCommit(
-                hub_id=hub.id,
-                # made up, but shaped like a real one
-                sha=hashlib.sha1(message.encode(), usedforsecurity=False).hexdigest(),
-                message=message,
-                author_name=people[who].display_name,
-                committed_at=ago(hours=hours),
-                position=position,
-            )
-            for position, (who, hours, message) in enumerate(OWN_HUB_COMMITS)
+    await db.execute(delete(HubCommit).where(HubCommit.hub_id == hub.id))
+    db.add_all(
+        HubCommit(
+            hub_id=hub.id,
+            # shaped like a real one
+            sha=hashlib.sha1(message.encode(), usedforsecurity=False).hexdigest(),
+            message=message,
+            author_name=people[who].display_name,
+            committed_at=ago(hours=hours),
+            position=position,
         )
-    hub.commits_refreshed_at = hub.commits_refreshed_at or ago(hours=1)
+        for position, (who, hours, message) in enumerate(OWN_HUB_COMMITS)
+    )
+    hub.commits_refreshed_at = ago(hours=1)
+
+
+async def _write_hub_descriptions(db: AsyncSession, people: dict[str, User]) -> None:
+    """Gives each hub its own description in a world seeded when every hub held the template
+    "Building <idea title> together." A description anyone wrote since is left as it is."""
+    for name, description in HUB_DESCRIPTIONS.items():
+        await db.execute(
+            update(Hub)
+            .where(
+                Hub.owner_id.in_([user.id for user in people.values()]),
+                Hub.name == name,
+                Hub.description.like("Building % together."),
+            )
+            .values(description=description)
+        )
+
+
+async def _hub_history(db: AsyncSession, hub: Hub) -> dict[str, datetime]:
+    """The moments of a hub's own history that its chat is counted from, as the hub holds them,
+    so a hub seeded days ago gets a chat that fits it. A moment the hub lacks falls back to where
+    the seed puts it."""
+    joined = await db.scalar(
+        select(func.max(HubMember.joined_at)).where(
+            HubMember.hub_id == hub.id, HubMember.status == HubMemberStatus.ACTIVE
+        )
+    )
+    # the first move into each phase, as a hub that was moved again holds more than one
+    moves = dict(
+        (
+            await db.execute(
+                select(HubPhaseMove.to_phase, func.min(HubPhaseMove.created_at))
+                .where(HubPhaseMove.hub_id == hub.id)
+                .group_by(HubPhaseMove.to_phase)
+            )
+        ).all()
+    )
+    claimed = await db.scalar(
+        select(func.max(HubPiece.claimed_at)).where(HubPiece.hub_id == hub.id)
+    )
+    design = moves.get(HubPhase.DESIGN) or joined + timedelta(hours=96)
+    build = moves.get(HubPhase.BUILD) or joined + timedelta(hours=168)
+    return {
+        "joined": joined,
+        "design": design,
+        "build": build,
+        "claimed": claimed or build + timedelta(hours=6),
+        "now": ago(),
+    }
+
+
+async def _write_hub_chats(db: AsyncSession, people: dict[str, User]) -> None:
+    """The Payouts and Tontine teams have been talking for ten days. A hub's chat is written
+    only when it is empty, so a rerun does not pile up copies or answer a real message. The
+    insert trigger lets only active members post, which these are. Each message is dated from
+    the hub's own history, not from the moment of the run."""
+    for name, lines in HUB_CHATS.items():
+        hub = await db.scalar(
+            select(Hub).where(Hub.owner_id.in_([u.id for u in people.values()]), Hub.name == name)
+        )
+        if hub is None or await db.scalar(
+            select(HubMessage.id).where(HubMessage.hub_id == hub.id).limit(1)
+        ):
+            continue
+        history = await _hub_history(db, hub)
+        for who, since, hours, body in lines:
+            said = history[since] + timedelta(hours=hours)
+            db.add(
+                HubMessage(
+                    hub_id=hub.id,
+                    author_id=people[who].id,
+                    body=body,
+                    created_at=said,
+                    updated_at=said,
+                )
+            )
+
+
+async def _write_review_case(db: AsyncSession, people: dict[str, User]) -> None:
+    """Gives the one attempt waiting for the visitor's review what an attempt that reached peer
+    review holds: its repositories, the interview and the AI's report, in English. Only an
+    attempt that is still empty and still awaiting review is filled, so one that has moved on or
+    been filled is left alone."""
+    attempt = await db.scalar(
+        select(VerificationSession)
+        .join(Role, Role.id == VerificationSession.role_id)
+        .where(
+            VerificationSession.user_id == people["tendai"].id,
+            Role.slug == "backend-engineer",
+            VerificationSession.status == VerificationStatus.AWAITING_REVIEW,
+        )
+    )
+    if attempt is None or attempt.evidence or attempt.ai_result:
+        return
+    started = ago(days=2)
+    turns = [
+        {
+            "sequence": number,
+            "question": question,
+            "answer": answer,
+            "acknowledgement": acknowledgement,
+            "security_flags": [],
+        }
+        for number, (question, answer, acknowledgement) in enumerate(review_case.TURNS, start=1)
+    ]
+    attempt.source = AuthProvider.GITHUB
+    attempt.evidence = [{"repository_url": address} for address in review_case.REPOSITORIES]
+    attempt.ai_score = review_case.FINAL_REPORT["score"]
+    attempt.ai_result = {
+        "codebase_analysis": review_case.CODEBASE_ANALYSIS,
+        "interview_transcript": {
+            "welcome": review_case.WELCOME,
+            "turns": turns,
+            "closing": review_case.CLOSING,
+        },
+        "final_report": review_case.FINAL_REPORT,
+    }
+    attempt.created_at = attempt.started_at = started
+    attempt.completed_at = started + timedelta(minutes=45)
+    db.add(
+        VerificationInterview(
+            verification_session_id=attempt.id,
+            status=InterviewStatus.COMPLETED,
+            turn_number=len(turns),
+            welcome_message=review_case.WELCOME,
+            closing_message=review_case.CLOSING,
+            started_at=started + timedelta(minutes=5),
+            completed_at=started + timedelta(minutes=40),
+            turns=[
+                VerificationInterviewTurn(
+                    sequence=turn["sequence"],
+                    question=turn["question"],
+                    answer_text=turn["answer"],
+                    acknowledgement=turn["acknowledgement"],
+                    security_flags=[],
+                    created_at=started + timedelta(minutes=5 + 8 * turn["sequence"]),
+                )
+                for turn in turns
+            ],
+        )
+    )
 
 
 async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
@@ -568,7 +839,7 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
         ),
         post(
             "aminata",
-            "Qui a déjà utilisé Wave ou Orange Money dans une app Flutter ? "
+            "Qui a déjà utilisé Wave ou Orange Money dans une app Flutter\u202f? "
             "Je cherche un retour sur les webhooks.",
             5,
             type=PostType.QUESTION,
@@ -595,7 +866,8 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
         ),
         post(
             "aminata",
-            "Petit retour d'expérience : le mode hors ligne a doublé nos utilisateurs à Thiès.",
+            "Petit retour d'expérience\u202f: le mode hors ligne a doublé nos utilisateurs "
+            "à Thiès.",
             30,
             type=PostType.RESEARCH_NOTE,
         ),
@@ -615,7 +887,8 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
         post("danladi", "LoRa range test today: 7 km across open farmland in Kano.", 75),
         post(
             "aminata",
-            "Nous recrutons une personne backend pour un projet de tontine numérique.",
+            "Tontine numérique\u202f: les rappels SMS partent maintenant avant chaque tour, "
+            "et le registre partagé garde chaque cotisation.",
             90,
         ),
         post("tendai", "Terraform plan in CI saved us from deleting prod twice this week.", 120),
@@ -648,7 +921,7 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
     await comment(rfc, "danladi", "I will review the C bindings.", 4, fourth)
     await comment(rfc, "aminata", "Je peux aider pour la doc en français.", 3)
     await comment(posts[0], "you", "Which contrast tool did you use?", 1.5)
-    await comment(posts[1], "you", "Oui, avec Wave. Les webhooks arrivent parfois deux fois.", 4)
+    await comment(posts[1], "you", "Yes, with Wave. The webhooks sometimes arrive twice.", 4)
     gone.deleted_at = ago(hours=2)
     gone.deleted_by = gone.author_id
     gone.deletion_reason = DeletionReason.AUTHOR
@@ -675,8 +948,8 @@ async def main() -> int:
     print(
         "Demo content created."
         if made
-        else "Demo posts and comments rewritten with fresh times; any missing people, roles, "
-        "technologies, sectors and ideas added; the rest left as it was."
+        else "Demo posts, comments and commits rewritten with fresh times; any missing people, "
+        "roles, technologies, sectors and ideas added; the rest left as it was."
     )
     return 0
 
