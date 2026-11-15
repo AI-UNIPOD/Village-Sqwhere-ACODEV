@@ -264,7 +264,7 @@ uv run --directory apps/api python -m app.demo_seed
 | `DATABASE_URL`, `TEST_DATABASE_URL` | The development and test databases. |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Your own GitHub OAuth app, for real sign-in. |
 | `GROQ_API_KEY`, `GEMINI_API_KEY` | The AI interview and report. |
-| `DEMO_ENABLED` | Turns on "Try the demo". Off by default. |
+| `DEMO_ENABLED` | Turns on "Try the demo" (API) and lets the worker date its feed back from now once a day. Off by default. |
 | `NEXT_PUBLIC_API_URL` | Where the web app finds the API. |
 
 The full list, with defaults, is in [`.env.example`](.env.example).
