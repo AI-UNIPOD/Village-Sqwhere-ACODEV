@@ -120,6 +120,14 @@ export const approveRequest = async (id: string, userId: string) =>
 export const declineRequest = async (id: string, userId: string) =>
   (await call<{ data: Member }>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/decline`, "POST")).data;
 
+// An active member who is not the owner leaves. Answers with the hub card, whose
+// `viewer.membership_status` is then "left".
+export const leaveHub = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/membership/leave`, "POST")).data;
+
+// The owner removes an active member. The answer's member card, status "removed", is not needed:
+// nobody sees removed people in the team list.
+export const removeMember = (id: string, userId: string) => call<unknown>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/remove`, "POST");
+
 // The owner confirms the team, which opens brainstorm; both calls answer with the updated hub card.
 export const confirmTeam = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/team/confirm`, "POST")).data;
 
