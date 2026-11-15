@@ -87,9 +87,14 @@ export const membership = (over: Record<string, unknown> = {}) => ({
 });
 
 // Answers each address by its longest matching start; a list of answers is used one per call.
-// Every hub page asks for the viewer's membership, so it has an answer unless a test gives one.
+// Every hub page asks for the viewer's membership, and every member's page reads the chat,
+// so both have an answer unless a test names its own.
 export function api(given: Record<string, unknown>) {
-  const routes: Record<string, unknown> = { "GET /v1/hubs/hub-1/membership": { data: membership() }, ...given };
+  const routes: Record<string, unknown> = {
+    "GET /v1/hubs/hub-1/membership": { data: membership() },
+    "GET /v1/hubs/hub-1/messages": { data: [], next_offset: null },
+    ...given,
+  };
   const used: Record<string, number> = {};
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
     const path = `${init?.method ?? "GET"} ${String(url).replace("http://localhost:8000", "")}`;

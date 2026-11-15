@@ -187,9 +187,8 @@ test("the idea page shows the public part in full and its author, and never asks
   await view([]);
   expect(screen.getByText(/A queue on a shared tablet/)).toBeTruthy();
   expect(screen.getByText("Backend and Systems Engineer")).toBeTruthy();
-  const github = screen.getByRole("link", { name: "@ama-mensah (GitHub profile, opens in a new tab)" });
-  expect(github.getAttribute("href")).toBe("https://github.com/ama-mensah");
-  expect(github.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(screen.getByRole("link", { name: "Ama Mensah" }).getAttribute("href")).toBe("/en/people/view?username=ama-mensah");
+  expect(screen.getByText("@ama-mensah")).toBeTruthy();
   expect(asked().some((path) => path.startsWith("/v1/me/ideas"))).toBe(false);
 });
 

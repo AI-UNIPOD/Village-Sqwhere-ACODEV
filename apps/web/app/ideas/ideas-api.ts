@@ -92,6 +92,9 @@ export const publishIdea = async (id: string) =>
 export const closeIdea = async (id: string) =>
   (await call<{ data: OwnedIdea }>(`/v1/me/ideas/${id}/close`, "POST")).data;
 
+// Refused with IDEA_HAS_HUB once the idea has a hub: its members signed an agreement about it.
+export const deleteIdea = (id: string) => call<null>(`/v1/me/ideas/${id}`, "DELETE");
+
 // An open idea as every signed-in developer sees it: the public part only, never the brief.
 export type PublicIdea = {
   id: string;

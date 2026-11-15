@@ -3,7 +3,7 @@
 Read this first. Update "Current state" and "What's next" in place after meaningful work.
 Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions/`.
 
-## Current state (2026-11-14)
+## Current state (2026-11-15)
 
 - Monorepo: `apps/web` (Next.js 16, landing page in English and French), `apps/api` (FastAPI
   v1 auth, profiles, roles, verification), `infra/` (Postgres 17 with pgvector in Docker).
@@ -18,7 +18,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   `docs/decisions/2026-11-14-match-score.md`), and cards name the shared technologies and the
   developer's country (profiles hold a country, no city).
 - A hub has a real phase: the owner confirms the team (any size), which opens brainstorm, then
-  moves it one phase forward or back (`2026-11-14-hub-phases.md`). The hub page shows it.
+  moves it one phase forward or back (`2026-11-14-hub-phases.md`). The hub page shows it,
+  with its brainstorm notes, design sketch and a team chat for members (no live updates).
 - A verification attempt stores a language (the page's): the AI interview, the repositories
   check and the report are written in it. Posts, the feed, saved posts, comments, replies and
   likes are in place. Schema: `infra/db/init/`. Tests need `TEST_DATABASE_URL`.
@@ -40,7 +41,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 2. The hub's four phase tools: brainstorm notes (in review), the design sketch as boxes and
    arrows, the build tab (pieces, and the commits of a public repository the owner pastes),
    the review checklist and finishing a hub. Then embeddings for the score's meaning part, the
-   score on join requests, leaving and removing members, and a "pause matching" setting.
+   score on join requests and a "pause matching" setting.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
 4. Save an onboarding completion flag once the API has a field (the country, the sectors and
