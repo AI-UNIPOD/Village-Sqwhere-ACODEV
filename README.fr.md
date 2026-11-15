@@ -338,4 +338,19 @@ Village Sqwhere est publié sous [licence MIT](LICENSE).
 
 ## Remerciements
 
-Construit à l'AI UniPod de l'Université de Lagos, pour ACODev 2026, organisé par Systalink.
+Village Sqwhere a été construit à l'**[AI UniPod de l'Université de Lagos](https://aiunipod.unilag.edu.ng/)**,
+le pôle d'innovation et de résolution de problèmes par l'IA de l'université, pour
+[ACODev 2026](https://systalink.com/en/africa-cup-of-developers-acodev), la Coupe d'Afrique des
+Développeurs organisée par Systalink.
+
+---
+
+<div align="center">
+
+<img src="docs/design-system/logo/palaver-tree-v_laterite.svg" alt="" width="36" />
+
+**Village Sqwhere** · Construit à l'[AI UniPod de l'Université de Lagos](https://aiunipod.unilag.edu.ng/) pour [ACODev 2026](https://systalink.com/en/africa-cup-of-developers-acodev)
+
+<sub>[Licence MIT](LICENSE) · [English](README.md) · **Français**</sub>
+
+</div>
