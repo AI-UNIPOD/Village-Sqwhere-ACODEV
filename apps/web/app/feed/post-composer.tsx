@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { Field, useLeaveWarning } from "../ideas/composer";
@@ -18,9 +18,10 @@ import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import { copy } from "./copy";
-import { createPost, KINDS, loadPost, POST_LIMITS, toFields, updatePost, type Post, type PostFields } from "./feed-api";
+import { createPost, deleteImage, IMAGE_LIMITS, KINDS, loadPost, POST_LIMITS, toFields, updatePost, uploadImage, type Post, type PostFields, type PostImage } from "./feed-api";
 import { FeedSkeleton } from "./feed";
 import styles from "./feed.module.css";
+import { ImagesField, pickImages, uploadReason, type Chosen } from "./image-field";
 import { Gone } from "./post-page";
 import { isDemoRefusal, NotSaved } from "./not-saved";
 import { PostTopics } from "./post-parts";
@@ -83,6 +84,21 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [notSaved, setNotSaved] = useState(false);
+  const [chosen, setChosen] = useState<Chosen[]>([]);
+  const [imageNotes, setImageNotes] = useState<string[]>([]);
+  const [progress, setProgress] = useState("");
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [imageProblem, setImageProblem] = useState<string | null>(null);
+  // set when the post is saved but some images did not go up: the form then edits that post
+  const [partial, setPartial] = useState<{ count: number; reason: string; created: boolean } | null>(null);
+  const keys = useRef(0);
+  const blobs = useRef(new Set<string>());
+
+  // a thumbnail's address holds the file in memory until it is revoked
+  useEffect(() => {
+    const open = blobs.current;
+    return () => open.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   useEffect(() => {
     if (!id || saved !== undefined) return;
@@ -106,7 +122,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
   }, [id, saved]);
 
   const dirty = JSON.stringify(fields) !== JSON.stringify(saved ? toFields(saved) : EMPTY);
-  useLeaveWarning(dirty);
+  useLeaveWarning(dirty || chosen.length > 0);
 
   function change(patch: Partial<PostFields>) {
     const next = { ...fields, ...patch };
@@ -122,6 +138,102 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
     const on = fields.topics.includes(slug);
     if (!on && fields.topics.length >= POST_LIMITS.topicsMax) return;
     change({ topics: on ? fields.topics.filter((other) => other !== slug) : [...fields.topics, slug] });
+  }
+
+  const existing = saved?.attachments ?? [];
+
+  function forget(items: Chosen[]) {
+    for (const item of items) {
+      URL.revokeObjectURL(item.url);
+      blobs.current.delete(item.url);
+    }
+  }
+
+  function pick(files: File[]) {
+    const { accepted, notes } = pickImages(files, IMAGE_LIMITS.perPost - existing.length - chosen.length, c.images);
+    const added = accepted.map((file) => {
+      const url = URL.createObjectURL(file);
+      blobs.current.add(url);
+      return { key: keys.current++, file, url };
+    });
+    setChosen([...chosen, ...added]);
+    setImageNotes(notes);
+    setPartial(null);
+  }
+
+  function drop(key: number) {
+    forget(chosen.filter((item) => item.key === key));
+    setChosen(chosen.filter((item) => item.key !== key));
+    setImageNotes([]);
+  }
+
+  // true when the image is gone from the list, so the focus can move on
+  async function removeImage(image: PostImage) {
+    setRemoving(image.id);
+    setImageProblem(null);
+    try {
+      await deleteImage(image.id);
+    } catch (error) {
+      // an image that is already gone from the API is gone from the list too
+      if (error instanceof SignedOutError) return false;
+      if (!(error instanceof IdeaError && error.status === 404)) {
+        setImageProblem(isDemoRefusal(error) ? "demo" : c.images.removeFailed);
+        return false;
+      }
+    } finally {
+      setRemoving(null);
+    }
+    setSaved((have) => have && { ...have, attachments: have.attachments.filter((other) => other.id !== image.id) });
+    return true;
+  }
+
+  // The files go up one after another, in the order they were chosen. Each that fails stays in the
+  // list for another try, and the first reason is told. The post itself is already saved, so a
+  // failure only moves the form to editing it. Returns the post with the images that went up.
+  async function upload(post: Post, created: boolean): Promise<{ post: Post; failed: number }> {
+    const sent: PostImage[] = [];
+    const left: Chosen[] = [];
+    let reason = "";
+    try {
+      for (const [index, item] of chosen.entries()) {
+        setProgress(fill(c.images.progress, { n: index + 1, total: chosen.length }));
+        try {
+          sent.push(await uploadImage(post.id, item.file));
+        } catch (error) {
+          // a refused session or the demo's refusal ends the whole send, and is handled by `fail`
+          if (error instanceof SignedOutError || isDemoRefusal(error)) throw error;
+          left.push(item);
+          reason ||= uploadReason(error, item.file.name, c.images);
+        }
+      }
+    } finally {
+      setProgress("");
+    }
+    forget(chosen.filter((item) => !left.includes(item)));
+    setChosen(left);
+    const done = { ...post, attachments: [...post.attachments, ...sent] };
+    if (left.length > 0) {
+      setSaved(done);
+      setFields(toFields(done));
+      setPartial({ count: left.length, reason, created });
+    }
+    return { post: done, failed: left.length };
+  }
+
+  // Tries again with the files that did not go up; the post is saved already.
+  async function retry() {
+    if (busy || !saved || !partial) return;
+    setBusy(true);
+    setFailed(null);
+    setNotSaved(false);
+    try {
+      const { failed } = await upload(saved, partial.created);
+      if (failed === 0) router.push(`/${lang}/posts/view?id=${encodeURIComponent(saved.id)}&done=${partial.created ? "published" : "saved"}`);
+    } catch (error) {
+      fail(error);
+    } finally {
+      setBusy(false);
+    }
   }
 
   // true when the post can be sent; otherwise it shows why and moves to the first problem
@@ -150,15 +262,18 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
     setBusy(true);
     setFailed(null);
     setNotSaved(false);
+    setPartial(null);
     try {
+      const made = saved ? await updatePost(fields, saved) : await createPost(fields);
+      // the post is safe from here: an image that does not go up must not lose it
+      const { post, failed } = await upload(made, !saved);
+      if (failed > 0) return;
       if (saved) {
         // the app keeps this page, so it must hold the post as it now is
-        const post = await updatePost(fields, saved);
         setSaved(post);
         setFields(toFields(post));
         router.push(`/${lang}/posts/view?id=${encodeURIComponent(post.id)}&done=saved`);
       } else {
-        const post = await createPost(fields);
         // and a new post must not be left in a form that could send it again
         setFields(EMPTY);
         router.push(`/${lang}/posts/view?id=${encodeURIComponent(post.id)}&done=published`);
@@ -276,6 +391,20 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
           />
         </Field>
 
+        <ImagesField
+          lang={lang}
+          existing={existing}
+          chosen={chosen}
+          notes={imageNotes}
+          progress={progress}
+          busy={busy}
+          removing={removing}
+          problem={imageProblem}
+          onPick={pick}
+          onDrop={drop}
+          onRemove={removeImage}
+        />
+
         <Field
           id="post-link"
           label={
@@ -348,12 +477,33 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
               {failed}
             </p>
           )}
+          {partial && (
+            <p className={`${onboarding.error} ${ideas.failed}`} role="alert">
+              <AlertCircle />
+              <span>
+                {fill(partial.count === 1 ? (partial.created ? c.images.partialOne : c.images.partialSavedOne) : partial.created ? c.images.partialMany : c.images.partialSavedMany, { n: partial.count })}{" "}
+                {partial.reason}
+              </span>
+            </p>
+          )}
           {notSaved && <NotSaved lang={lang} className={ideas.failed} />}
           <button type="submit" className={landing.btn} aria-busy={busy || undefined}>
             {saved ? c.saveChanges : c.publish}
           </button>
-          <Link className={landing.ghost} href={saved ? `/${lang}/posts/view?id=${encodeURIComponent(saved.id)}` : `/${lang}/feed`}>
-            {c.cancel}
+          {partial && (
+            <button type="button" className={landing.ghost} aria-busy={busy || undefined} onClick={retry}>
+              {c.images.retry}
+            </button>
+          )}
+          <Link
+            className={landing.ghost}
+            href={
+              saved
+                ? `/${lang}/posts/view?id=${encodeURIComponent(saved.id)}${partial ? `&done=${partial.created ? "published" : "saved"}` : ""}`
+                : `/${lang}/feed`
+            }
+          >
+            {partial ? c.images.leave : c.cancel}
           </Link>
         </div>
       </form>
