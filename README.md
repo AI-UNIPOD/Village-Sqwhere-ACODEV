@@ -305,8 +305,8 @@ success states, both languages and 360px phone layouts.
 
 ### Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and how a change reaches `main`, and
-[AGENTS.md](AGENTS.md) for the team's rules. Building UI? Start with the
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the commit rule and how a change reaches
+`main`. Building UI? Start with the
 [design system](docs/design-system/README.md).
 
 ## License

@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- docs: keep the agent rules and progress file out of the repository (#205)
 - feat(web): add the build tab to the hub page (#202)
 - fix(infra): move the demo hubs to the hub agreement version 2 (#201)
 - fix(api): give the demo account and its links names that read as real (#200)
