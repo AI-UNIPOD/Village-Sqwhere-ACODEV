@@ -39,6 +39,7 @@ They run in file name order, once, on an empty database:
 | `016-hub-phases.sql` | The `hub_phase` type, `hubs.phase` and `hubs.team_confirmed_at` (both empty until the owner confirms the team), and `hub_phase_moves`, an append-only log of every phase change. Running it twice is safe. |
 | `017-hub-notes.sql` | `hub_notes`, the brainstorm sticky notes of a hub: 1 to 280 characters, removed softly with `deleted_at`. Running it twice is safe. |
 | `018-hub-design.sql` | `hub_pieces` and `hub_piece_links`, the design sketch of a hub: pieces with a name and a summary, and labelled links from one piece to another, removed softly with `deleted_at`. Running it twice is safe. |
+| `020-hub-agreement-v2.sql` | The hub agreement, version 2, published: the text every new hub is created on, in English and then in French. Version 1 stays for the hubs that signed it. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
@@ -48,10 +49,10 @@ docker compose -f infra/docker-compose.yml down -v
 pnpm db:up
 ```
 
-**The agreement in `004-test-agreement.sql` is fake and must be replaced before launch.**
-Published templates cannot be edited (the database refuses it), so the real agreement text
-goes in as version 2 in a new script, and `004` is then reviewed. Hubs created on version 1
-keep pointing at the test text.
+**New hubs use the agreement in `020-hub-agreement-v2.sql`.** Published templates cannot be
+edited (the database refuses it), so a change to the text is always a new version in a new
+script. `004-test-agreement.sql` holds version 1, a test text: it stays because hubs created
+on it keep pointing at it, and no new hub takes it.
 
 The local credentials (`village` / `village`) are for development only. They match
 `DATABASE_URL` in the root `.env.example`.
