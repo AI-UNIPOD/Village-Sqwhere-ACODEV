@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- docs: rewrite the readmes for the public repository (#192)
 - feat(web): show members the agreement they signed (#189)
 - feat(web): let a developer delete their account (#188)
 - feat(web): let the author delete an idea with no hub (#187)
