@@ -121,7 +121,7 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
     phase === "won" ? idea.win : phase === "results" ? t.done : phase === "running" ? t.run[step] : "";
 
   return (
-    <section ref={section} className={`${page.block} ${page.warm}`} id="matcher" aria-labelledby={`${id}-title`}>
+    <section ref={section} className={`${page.block} ${page.warm}`} data-tile-bg="" id="matcher" aria-labelledby={`${id}-title`}>
       <div className={page.wrap}>
         <h2 id={`${id}-title`}>
           <HeadingText text={t.title} />

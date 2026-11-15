@@ -12,7 +12,7 @@ import own from "./closing-band.module.css";
 export function ClosingBand({ lang }: { lang: Lang }) {
   const t = copy[lang];
   return (
-    <section className={own.band} aria-labelledby="closing-title">
+    <section className={own.band} data-tile-bg="" aria-labelledby="closing-title">
       <div className={styles.wrap}>
         <div className={own.inner}>
           {/* The logo is never redrawn path by path (logo.md): it fades and rises once. */}
