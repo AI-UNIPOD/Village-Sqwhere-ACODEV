@@ -23,6 +23,7 @@ const post = (over: Record<string, unknown> = {}) => ({
   title: "Pooling with asyncpg",
   body: "We moved to a pool of ten.",
   link_url: "https://example.com/guide",
+  attachments: [],
   author: { username: "wanjiru-kamau", display_name: "Wanjiru Kamau", is_verified: true },
   topics: [{ slug: "python", name: "Python" }],
   like_count: 0,

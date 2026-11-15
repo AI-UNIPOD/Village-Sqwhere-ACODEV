@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { Component, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { SESSION_KEY } from "../session/session";
+import { API_URL, SESSION_KEY } from "../session/session";
 import { PostPage } from "./post-page";
 
 const nav = vi.hoisted(() => ({ search: "id=post-1", push: vi.fn() }));
@@ -24,6 +24,7 @@ const post = (over: Record<string, unknown> = {}) => ({
   title: "Pooling with asyncpg",
   body: "We moved to a pool of ten.\n\nLatency halved, and the second paragraph is kept.\nA long post is shown whole here.",
   link_url: null,
+  attachments: [],
   author: { username: "wanjiru-kamau", display_name: "Wanjiru Kamau", is_verified: true },
   topics: [{ slug: "python", name: "Python" }],
   like_count: 2,
@@ -99,6 +100,40 @@ test("a post with no title is headed by its author, and an edited one says when"
   expect(screen.getByText("Modifiée il y a 2 heures")).toBeTruthy();
   expect(screen.getByText("Question")).toBeTruthy();
   expect(places("Principale").getByRole("link", { name: "Fil" }).getAttribute("aria-current")).toBe("page");
+});
+
+const picture = (n: number, over: Record<string, unknown> = {}) => ({
+  id: `img-${n}`,
+  url: `/v1/post-images/img-${n}`,
+  mime_type: "image/jpeg",
+  byte_size: 30_000,
+  width: 800,
+  height: 1000,
+  position: n - 1,
+  created_at: "2026-11-15T10:00:00Z",
+  ...over,
+});
+
+test("every image of a post is shown on its page, each linking to the full-size image in a new tab", async () => {
+  api({ "GET /v1/me": me("kwabena-owusu"), "GET /v1/posts/post-1": { data: post({ attachments: [1, 2, 3, 4, 5, 6].map((n) => picture(n)) }) } });
+  render(<PostPage lang="en" />);
+  const first = await screen.findByRole("img", { name: "Image 1 of 6 attached to this post" });
+  expect(screen.getAllByRole("img", { name: /attached to this post/ })).toHaveLength(6);
+  expect(screen.queryByText(/^\+/)).toBeNull();
+  expect(first.getAttribute("src")).toBe(`${API_URL}/v1/post-images/img-1`);
+  expect(first.closest("li")!.style.aspectRatio).toBe("0.8 / 1");
+  const link = first.closest("a")!;
+  expect(link.getAttribute("href")).toBe(`${API_URL}/v1/post-images/img-1`);
+  expect(link.getAttribute("target")).toBe("_blank");
+  expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(link.textContent).toContain("opens in a new tab");
+});
+
+test("an image that cannot load shows its text on the page, in French too", async () => {
+  api({ "GET /v1/me": me("kwabena-owusu"), "GET /v1/posts/post-1": { data: post({ attachments: [picture(1)] }) } });
+  render(<PostPage lang="fr" />);
+  fireEvent.error(await screen.findByRole("img", { name: "Image 1 sur 1 jointe à cette publication" }));
+  expect(screen.getByText("Cette image n'a pas pu être chargée.")).toBeTruthy();
 });
 
 test("like and save work on the page as on a card", async () => {
