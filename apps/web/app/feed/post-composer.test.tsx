@@ -210,7 +210,7 @@ test("a link that does not start with http:// or https:// says so in words and i
   typeInto("Text", "Read this");
   typeInto(/^Link/, "example.com/guide");
   press("Publish");
-  expect(screen.getByRole("alert").textContent).toBe("Start the link with http:// or https://, like https://example.com.");
+  expect(screen.getByRole("alert").textContent).toBe("Start the link with http:// or https://, like https://github.com/your-team/your-project.");
   expect(requests("POST")).toBe(0);
   typeInto(/^Link/, "https://example.com/guide");
   expect(screen.queryByRole("alert")).toBeNull();
