@@ -66,6 +66,7 @@ app/
       ideas.py         ideas, drafts, publishing          matches.py   scores
       hubs.py          hubs        hub_members.py   invitations, joining, leaving
       hub_chat.py      chat        hub_notes.py     brainstorm   hub_design.py  sketch
+      hub_build.py     build tab   hub_review.py    checklist and finishing
       verifications.py role checks interviews.py    the interview WebSocket
       posts.py         feed        comments.py      comments and replies
   models/              SQLAlchemy tables (users, ideas, hubs, posts, lookups)

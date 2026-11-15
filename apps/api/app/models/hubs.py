@@ -155,6 +155,8 @@ class Hub(Base):
     commits_refreshed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # infra/db/init/021-hub-review.sql; empty until the owner finishes the hub
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # set once at creation; the hubs_terms_immutable trigger refuses any change
     terms: Mapped[dict[str, Any]] = mapped_column(
         JSONB, server_default=text("'{}'::jsonb"), nullable=False
@@ -306,6 +308,35 @@ class HubPieceLink(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HubCheck(Base):
+    """A check of a piece in the review phase. A teammate ticks it (ticked_by with the time in
+    ticked_at, both or neither). Deleting one sets deleted_at and deleted_by; the row stays."""
+
+    __tablename__ = "hub_checks"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), nullable=False
+    )
+    # the database checks that the piece belongs to hub_id
+    piece_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    ticked_by: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    ticked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_by: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
 
 
 class HubCommit(Base):

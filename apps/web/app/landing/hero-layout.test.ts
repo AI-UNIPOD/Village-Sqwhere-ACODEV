@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { GAP, WIDE_GAP, heroAvoid, heroFrameWidth, heroGeometry } from "./hero-layout";
+import { AVOID_PAD, GAP, STACK_BAND, WIDE_GAP, crowdBand, ghostStage, heroAvoid, heroFrameWidth, heroGeometry } from "./hero-layout";
 
 const COPY_HEIGHT = 240;
 const PAD = 32;
@@ -42,11 +42,12 @@ const target = (width: number) => {
 
 test("side by side the square is sized to the text: the biggest cell that keeps the headline at its target", () => {
   // the cell the screen alone would give is 14 at 1280 and 16 from 1440, but the headline wins
-  expect(layout(1280).cell).toBe(13);
-  expect(layout(1440).cell).toBe(13);
+  // (the crowd between the two boxes takes its share of the width)
+  expect(layout(1280).cell).toBe(12);
+  expect(layout(1440).cell).toBe(12);
   expect(layout(1180).cell).toBe(12);
   // on big screens the frame is wider, so the square and the headline grow with it
-  expect(layout(1920, 1080).cell).toBe(16);
+  expect(layout(1920, 1080).cell).toBe(15);
   expect(layout(2560, 1440).cell).toBe(20);
   for (const [width, height] of [
     [1180, 800],
@@ -62,7 +63,7 @@ test("side by side the square is sized to the text: the biggest cell that keeps 
   }
   // at the smallest side by side cell the headline is left with what the box gives it
   expect(layout(1100).cell).toBe(11);
-  const narrow = layout(1060);
+  const narrow = layout(1080);
   expect(narrow.stacked).toBe(false);
   expect(narrow.cell).toBe(11);
   expect(headline(narrow)).toBeGreaterThanOrEqual(42);
@@ -115,25 +116,31 @@ test("the switch from stacked to side by side is one width, with a 32px box padd
   expect(modes.slice(0, switchAt - 900).every(Boolean)).toBe(true);
   expect(modes.slice(switchAt - 900).some(Boolean)).toBe(false);
   expect(switchAt).toBeGreaterThanOrEqual(1000);
-  expect(switchAt).toBeLessThanOrEqual(1060);
+  expect(switchAt).toBeLessThanOrEqual(1080);
 });
 
-test("side by side, the box's right edge is exactly 64px from the square, on both sides of the switch", () => {
+test("side by side, there is exactly 64px of crowd between the text's clear zone and the square's", () => {
   expect(GAP).toBe(64);
-  for (const width of [1060, 1100, 1180, 1280, 1440, 1920]) {
+  for (const width of [1080, 1100, 1180, 1280, 1440, 1920]) {
     const g = layout(width, 1080);
     expect(g.stacked).toBe(false);
     expect(g.cell).toBeLessThan(20);
-    expect(g.x - (g.copyLeft + g.copyWidth)).toBe(64);
+    expect(crowdBand(g)).toBe(64);
+    // the same number read from the clear zones themselves
+    const [copy, square] = heroAvoid(g);
+    expect(square[0] - copy[2]).toBe(64);
+    // the zone reaches AVOID_PAD past the box and a cell past the square
+    expect(copy[2] - (g.copyLeft + g.copyWidth)).toBe(AVOID_PAD);
+    expect(g.x - square[0]).toBe(g.cell);
   }
 });
 
-test("with cells of 20px the gap steps up to 80px, a token step", () => {
+test("with cells of 20px the band steps up to 80px, a token step", () => {
   expect(WIDE_GAP).toBe(80);
   for (const width of [2560, 3440]) {
     const g = layout(width, 1440);
     expect(g.cell).toBe(20);
-    expect(g.x - (g.copyLeft + g.copyWidth)).toBe(80);
+    expect(crowdBand(g)).toBe(80);
   }
 });
 
@@ -159,13 +166,13 @@ test("the hero frame is 1180px up to about 1640px wide, then 72% of the width, u
 
 test("the square and the headline at 1920x1080, 2560x1440 and 3440x1440", () => {
   const a = layout(1920, 1080);
-  expect(a.cell).toBe(16);
-  expect(a.square).toBe(512);
-  expect(headline(a)).toBeCloseTo(58.7, 1);
+  expect(a.cell).toBe(15);
+  expect(a.square).toBe(480);
+  expect(headline(a)).toBeCloseTo(58.9, 1);
   const b = layout(2560, 1440);
   expect(b.cell).toBe(20);
   expect(b.square).toBe(640);
-  expect(headline(b)).toBeCloseTo(78, 0);
+  expect(headline(b)).toBeCloseTo(75.2, 0);
   // 3440 is the same composition as 2560, centred
   const c = layout(3440, 1440);
   expect(c.cell).toBe(20);
@@ -174,15 +181,15 @@ test("the square and the headline at 1920x1080, 2560x1440 and 3440x1440", () => 
   expect(c.x - b.x).toBe((3440 - 2560) / 2);
 });
 
-test("1280x800 and 1440x900 are as they were: cell 13, headline 49.9px, a 1180px frame", () => {
+test("1280x800 and 1440x900: cell 12, headline 50.4px, a 1180px frame, 64px of crowd between the boxes", () => {
   for (const [width, height] of [
     [1280, 800],
     [1440, 900],
   ]) {
     const g = layout(width, height);
-    expect(g.cell).toBe(13);
-    expect(headline(g)).toBeCloseTo(49.9, 0);
-    expect(g.x - (g.copyLeft + g.copyWidth)).toBe(64);
+    expect(g.cell).toBe(12);
+    expect(headline(g)).toBeCloseTo(50.4, 0);
+    expect(crowdBand(g)).toBe(64);
     expect(g.frameRight - g.frameLeft).toBe(1180);
   }
 });
@@ -197,11 +204,14 @@ test("a short window limits how far the square grows past the screen's own cap",
   expect(layout(1920, 600).cell).toBe(layout(1920, 1200).cell);
 });
 
-test("stacked, the square is exactly 64px under the box's bottom edge, at every width", () => {
+test("stacked, 160px of crowd rows lie between the text's clear zone and the square's, at every width", () => {
+  expect(STACK_BAND).toBe(160);
   for (const width of [320, 360, 414, 600, 768, 1000, 1024]) {
     const g = layout(width, 800, width < 600 ? 20 : PAD);
     expect(g.stacked).toBe(true);
-    expect(g.y - (g.copyTop + g.copyHeight)).toBe(64);
+    expect(crowdBand(g)).toBe(STACK_BAND);
+    const [copy, square] = heroAvoid(g);
+    expect(square[1] - copy[3]).toBe(STACK_BAND);
   }
   // a taller box (a note that wraps) moves the square down by as much
   const tall = heroGeometry({
@@ -211,7 +221,7 @@ test("stacked, the square is exactly 64px under the box's bottom edge, at every 
     copyPad: PAD,
     measureCopy: () => COPY_HEIGHT + 20,
   });
-  expect(tall.y - (tall.copyTop + tall.copyHeight)).toBe(64);
+  expect(crowdBand(tall)).toBe(STACK_BAND);
 });
 
 test("the headline measure comes from the token, so a longer measure stacks sooner", () => {
@@ -284,24 +294,39 @@ test("keeps the crowd clear of the text box, the square and the real motion butt
 });
 
 test("the crowd runs full width: nothing beside the frame is kept clear, at any width", () => {
-  // box, square, button and the gap between box and square: no side areas
+  // box, square and button: no side areas
   for (const width of [1100, 1440, 1920, 2560, 3440]) {
     const g = layout(width, 1080);
     const areas = heroAvoid(g);
-    expect(areas).toHaveLength(4);
+    expect(areas).toHaveLength(3);
     // none is a full-height band at a side of the hero
     for (const [, y0, , y1] of areas) expect(y1 - y0).toBeLessThan(g.height);
   }
 });
 
-test("side by side, the gap between the text box and the square stays clear of the crowd", () => {
-  for (const width of [1100, 1440]) {
-    const g = layout(width);
-    expect(heroAvoid(g)).toContainEqual([g.copyLeft + g.copyWidth, g.y - g.cell, g.x, g.y + g.square + g.cell]);
+test("the crowd shows between the two boxes: the clear zones never touch and leave the band open", () => {
+  for (const width of [360, 768, 1080, 1100, 1440, 1920, 2560]) {
+    const g = layout(width, 900, width < 600 ? 20 : PAD);
+    const [copy, square] = heroAvoid(g);
+    const apartX = copy[2] <= square[0] || square[2] <= copy[0];
+    const apartY = copy[3] <= square[1] || square[3] <= copy[1];
+    expect(apartX || apartY).toBe(true);
+    // no clear zone covers the band, so the crowd's words are drawn in it
+    expect(heroAvoid(g)).toHaveLength(3);
+    expect(crowdBand(g)).toBeGreaterThanOrEqual(GAP);
   }
-  // stacked, the band between the two is full rows of crowd, not a strip, so it stays open
-  const s = layout(768);
-  expect(heroAvoid(s)).toHaveLength(3);
+});
+
+test("stacked, the band between the text and the square is the ghost idea's stage: all of it, edge to edge", () => {
+  for (const width of [360, 768, 1000]) {
+    const g = layout(width, 800, width < 600 ? 20 : PAD);
+    const stage = ghostStage(g)!;
+    const [copy, square] = heroAvoid(g);
+    expect(stage).toEqual([0, copy[3], width, square[1]]);
+    expect(stage[3] - stage[1]).toBe(STACK_BAND);
+  }
+  // side by side there is no such band
+  expect(ghostStage(layout(1440))).toBeNull();
 });
 
 test("the text box is measured where it will sit, and told whether it is stacked", () => {
