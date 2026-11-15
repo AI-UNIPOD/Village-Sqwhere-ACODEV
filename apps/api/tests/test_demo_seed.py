@@ -35,7 +35,9 @@ from app.models import (
     HubPiece,
     HubPieceLink,
     Idea,
+    IdeaEmbedding,
     User,
+    UserEmbedding,
     VerificationInterview,
     VerificationSession,
     VerificationStatus,
@@ -57,11 +59,31 @@ def _in_french(body: str) -> bool:
     return re.search(r"[àâçéèêëîïôùûœ\u202f]", body.lower()) is not None
 
 
+def _forget_vectors() -> None:
+    """These tests read the demo's scores as they are before anything is compared by meaning. The
+    worker's tests embed everyone in this database, the demo's people included, so their vectors
+    are removed first (a missing vector only means "not embedded yet")."""
+
+    async def go() -> None:
+        async with db_session() as session:
+            people = select(User.id).where(User.username.in_(_seeded_usernames()))
+            await session.execute(delete(UserEmbedding).where(UserEmbedding.user_id.in_(people)))
+            await session.execute(
+                delete(IdeaEmbedding).where(
+                    IdeaEmbedding.idea_id.in_(select(Idea.id).where(Idea.author_id.in_(people)))
+                )
+            )
+            await session.commit()
+
+    asyncio.run(go())
+
+
 @pytest.fixture
 def visitor(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     """Signed in to the seeded demo, the way the landing page's button does it."""
     monkeypatch.setattr(config, "DEMO_ENABLED", True)
     _seed()
+    _forget_vectors()
     signed_in = client.post("/v1/auth/demo")
     assert signed_in.status_code == 200, signed_in.text
     return {"Authorization": f"Bearer {signed_in.json()['data']['access_token']}"}
