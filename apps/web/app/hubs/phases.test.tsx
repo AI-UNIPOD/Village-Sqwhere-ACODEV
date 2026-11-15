@@ -252,7 +252,8 @@ test("any other failure says nothing changed and keeps the buttons", async () =>
   press("Confirm the team");
   confirmIn("Confirm the team?", "Confirm the team");
   await waitFor(() => expect(within(phases()).getByRole("alert").textContent).toContain("We couldn't save that. Nothing changed, so try again."));
-  expect(within(phases()).getByRole("button", { name: "Confirm the team" })).toBeTruthy();
+  // once the dialog has closed, the one button left with this name is the section's own
+  await waitFor(() => expect(within(phases()).getByRole("button", { name: "Confirm the team" })).toBeTruthy());
 });
 
 test("the owner of an archived hub that was never confirmed is not told to confirm", async () => {
