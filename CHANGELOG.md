@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- fix(web): mark the village steps a developer has already done (#215)
 - feat(api): show the owner the match score on join requests (#214)
 - feat(api): store what ideas and profiles mean as embeddings (#211)
 - feat(web): turn the theme in a wave of tiles from the centre (#180)
