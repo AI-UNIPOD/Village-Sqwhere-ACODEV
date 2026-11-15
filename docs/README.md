@@ -8,7 +8,6 @@ from.
 docs/
   architecture.md      the parts, every API route, the core flow (a test fails if a route is missing)
   backend.md           the API reference: conventions, every endpoint with requests and answers
-  PROGRESS.md          where the project stands and what comes next
   decisions/           59 decision records, one per choice someone might question
     _template.md       Context, Decision, Options we considered, Consequences
   design-system/       tokens, colour, type, spacing, components, logo, voice and tone
@@ -23,7 +22,6 @@ docs/
 | Call an endpoint: its body, answers and error codes | [backend.md](backend.md) |
 | Know why something works the way it does | [decisions/](decisions/) |
 | Build or change a screen | [design-system/README.md](design-system/README.md) |
-| Know what is done and what is next | [PROGRESS.md](PROGRESS.md) |
 
 ## A decision record
 
