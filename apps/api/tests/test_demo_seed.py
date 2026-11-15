@@ -8,6 +8,7 @@ from sqlalchemy import delete, func, select, text, update
 from app import config, database
 from app.api.v1.auth import DEMO_ACCOUNT_ID
 from app.demo_seed import (
+    BRIEF,
     FOR_YOU_IDEAS,
     OWN_HUB,
     OWN_HUB_CLAIMS,
@@ -574,6 +575,38 @@ def test_a_rerun_brings_a_world_made_the_old_way_to_the_same_state(
     assert [m["score"] for m in _idea_matches(client, visitor)] == [m["score"] for m in matches]
     assert [m["score"] for m in _for_you(client, visitor)] == [m["score"] for m in for_you]
     assert client.get("/v1/me/hubs", headers=visitor).json()["data"] == hubs
+
+
+def _briefs(old: str | None = None) -> set[str | None]:
+    """The private briefs of the demo people's ideas; with `old`, sets them all to it first."""
+    theirs = select(User.id).where(User.username.in_(_seeded_usernames()))
+
+    async def go() -> set[str | None]:
+        async with db_session() as session:
+            if old is not None:
+                await session.execute(
+                    update(Idea).where(Idea.author_id.in_(theirs)).values(details=old)
+                )
+                await session.commit()
+            return set(
+                await session.scalars(select(Idea.details).where(Idea.author_id.in_(theirs)))
+            )
+
+    return asyncio.run(go())
+
+
+def test_no_demo_brief_says_it_is_made_up_after_a_run_or_a_rerun(
+    client: TestClient, visitor: dict
+) -> None:
+    assert "made" not in BRIEF.lower() and "demo" not in BRIEF.lower()
+    assert _briefs() == {BRIEF}
+    mine = client.get(f"/v1/me/ideas/{_my_open_idea(client, visitor)}", headers=visitor)
+    assert mine.json()["data"]["details"] == BRIEF
+
+    old = "Made-up plan for the demo: milestones, budget in naira and CFA, partners."
+    assert _briefs(old) == {old}
+    assert _seed() is False
+    assert _briefs() == {BRIEF}
 
 
 def test_the_script_writes_nothing_where_the_demo_is_off(
