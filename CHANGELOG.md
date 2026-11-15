@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- fix(web): say the build tab is live on the landing page (#208)
 - feat(api): add the review checklist and finishing to a hub (#204)
 - fix(web): draw no github link from a username in the demo (#207)
 - fix(web): show version 2 of the hub agreement on the landing page (#206)
