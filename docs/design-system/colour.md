@@ -14,6 +14,7 @@ different colour in light (Paper) and dark (Ink). All values are in `tokens.json
 | Laterite-700 | `#B23F0C` | Orange text, links and the logo on Paper | 5.82:1 on Paper |
 | Lagoon | `#3DBFDB` | The AI on Ink | 9.00:1 on Ink. 2.17:1 on Paper: never use on Paper |
 | Lagoon-700 | `#0C6680` | The AI on Paper | 6.51:1 on Paper |
+| Flag green | `#008751` | Nigeria's flag in the landing footer, with Paper for its white band. Never for UI | 4.58:1 on Paper, 4.27:1 on Ink |
 
 4.5:1 is the bar for normal text, 3:1 for icons, borders and large text.
 
@@ -65,3 +66,5 @@ uses the text colour.
   `color-mix(in srgb, var(--success) 12%, transparent)` for pills (16% on Ink), 7% into
   `--surface` for messages (11% on Ink).
 - Avatars without a photo use the neutral surface, never a random colour.
+- **The Nigeria flag keeps its own colours.** `--flag-ng-green` and Paper, the same in both
+  themes, with a `--line` hairline so the white band shows on Paper. Use it for the flag only.

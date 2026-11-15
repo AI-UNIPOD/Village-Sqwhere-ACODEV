@@ -137,6 +137,38 @@ test.each([
   expect(link.parentElement!.textContent).toBe(line);
 });
 
+test.each([
+  ["en", "Nigeria flag"],
+  ["fr", "Drapeau du Nigeria"],
+] as const)("the %s footer shows the Nigeria flag right before the copyright", (lang, name) => {
+  render(<LandingPage lang={lang} />);
+  const flag = within(screen.getByRole("contentinfo")).getByRole("img", { name });
+  // drawn inline, never an emoji, so Windows shows the flag and not two letters
+  expect(flag.tagName.toLowerCase()).toBe("svg");
+  expect(flag.parentElement!.firstElementChild).toBe(flag);
+  expect(flag.parentElement!.textContent).toBe("© 2026 Village Sqwhere.");
+});
+
+// jsdom runs no animation, so this reads the stylesheet: the flag waves inside a
+// no-preference block only, and with reduced motion its wind layer stays hidden.
+test("the footer flag waves only when the visitor allows motion", () => {
+  const css = readFileSync(join(__dirname, "landing-page.module.css"), "utf8").replace(/\s+/g, " ");
+  const query = "@media (prefers-reduced-motion: no-preference) {";
+  const start = css.indexOf(query);
+  expect(start).toBeGreaterThan(-1);
+  let end = start + query.length;
+  for (let depth = 1; depth > 0; end++) {
+    if (css[end] === "{") depth++;
+    if (css[end] === "}") depth--;
+  }
+  const allowed = css.slice(start, end);
+  const elsewhere = css.slice(0, start) + css.slice(end);
+  expect(allowed).toContain("animation: flagRipple");
+  expect(allowed).toContain("animation: flagWind");
+  expect(elsewhere).not.toMatch(/animation: flag(Ripple|Wind)/);
+  expect(elsewhere).toContain(".flagWind { display: none; }");
+});
+
 test("the French page says the same in French", () => {
   render(<LandingPage lang="fr" />);
   expect(screen.getAllByRole("button", { name: "Essayer la démo" }).length).toBeGreaterThanOrEqual(2);
