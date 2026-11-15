@@ -99,13 +99,18 @@ async def _post_responses(
     )
     for post_id, slug, name in topic_rows:
         topics[post_id].append(TechnologyRef(slug=slug, name=name))
-    attachment_rows = await db.execute(
-        select(PostAttachment)
-        .where(PostAttachment.post_id.in_(post_ids))
-        .order_by(PostAttachment.position)
-    )
     attachments: dict[UUID, list[PostAttachmentResponse]] = defaultdict(list)
-    for attachment in attachment_rows.scalars():
+    # without storage settings there is no address to give, so posts read without their images
+    attachment_rows = (
+        await db.scalars(
+            select(PostAttachment)
+            .where(PostAttachment.post_id.in_(post_ids))
+            .order_by(PostAttachment.position)
+        )
+        if image_storage.storage_configured()
+        else []
+    )
+    for attachment in attachment_rows:
         attachments[attachment.post_id].append(
             PostAttachmentResponse(
                 id=attachment.id,

@@ -222,3 +222,18 @@ def test_upload_returns_502_when_object_storage_fails(
     assert response.status_code == 502
     assert response.json()["detail"]["code"] == "IMAGE_STORAGE_FAILED"
     assert storage == {}
+
+
+def test_posts_still_read_when_storage_settings_go_away(
+    client: TestClient, sign_in: Callable, storage, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create_post(client, auth)
+    assert _upload(client, post_id, auth).status_code == 201
+
+    monkeypatch.setattr(config, "UPLOADS_PUBLIC_BASE_URL", None)
+
+    response = client.get(f"/v1/posts/{post_id}", headers=auth)
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["attachments"] == []
+    assert client.get("/v1/feed", headers=auth).status_code == 200

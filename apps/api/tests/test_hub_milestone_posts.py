@@ -3,11 +3,15 @@
 Why: docs/decisions/2026-11-15-hub-milestone-posts.md
 """
 
+from io import BytesIO
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import func, select, update
 
+from app import config
 from app.models import Hub, Idea, Post, PostType, User
 from tests.hub_support import auth, make_hub, make_user, run
 
@@ -105,7 +109,18 @@ def test_milestones_show_in_the_feed_and_follow_a_rename(client: TestClient) -> 
     assert milestones(client, reader, hub)[0]["milestone"]["hub_name"] == "Market Day Hub"
 
 
-def test_people_cannot_post_or_edit_a_milestone(client: TestClient) -> None:
+def _png() -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (2, 2)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def test_people_cannot_post_or_edit_a_milestone(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # storage configured, so the upload reaches the milestone check
+    monkeypatch.setattr(config, "UPLOADS_S3_BUCKET", "test-images")
+    monkeypatch.setattr(config, "UPLOADS_PUBLIC_BASE_URL", "https://images.example.test")
     owner = make_user()
     hub = make_hub(owner)
     confirm(client, hub, owner)
@@ -119,6 +134,14 @@ def test_people_cannot_post_or_edit_a_milestone(client: TestClient) -> None:
     edit = client.patch(f"/v1/posts/{post['id']}", headers=auth(owner), json={"body": "Other"})
     assert edit.status_code == 409
     assert edit.json()["detail"]["code"] == "MILESTONE_NOT_EDITABLE"
+    picture = client.post(
+        "/v1/uploads",
+        headers=auth(owner),
+        data={"post_id": post["id"]},
+        files={"file": ("a.png", _png(), "image/png")},
+    )
+    assert picture.status_code == 409
+    assert picture.json()["detail"]["code"] == "MILESTONE_NOT_EDITABLE"
     assert client.delete(f"/v1/posts/{post['id']}", headers=auth(owner)).status_code == 204
     assert milestones(client, owner, hub) == []
 

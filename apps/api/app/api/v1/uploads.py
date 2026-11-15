@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.api.v1.posts import get_visible_post
-from app.models.posts import PostAttachment
+from app.models.posts import PostAttachment, PostType
 from app.schemas.posts import PostAttachmentItemResponse, PostAttachmentResponse
 from app.services import uploads as image_storage
 from app.services.uploads import IMAGE_TYPES, MAX_IMAGE_BYTES, UploadStorageUnavailable
@@ -90,6 +90,15 @@ async def upload_post_image(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "NOT_POST_AUTHOR", "message": "Only the post author may upload images"},
+        )
+    if post.type == PostType.HUB_MILESTONE:
+        # same rule as editing: the hub wrote it, so no one adds pictures under its name
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "MILESTONE_NOT_EDITABLE",
+                "message": "A hub's milestone post cannot be edited. Delete it instead.",
+            },
         )
 
     positions = set(

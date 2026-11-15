@@ -20,8 +20,12 @@ class UploadStorageUnavailable(Exception):
     pass
 
 
+def storage_configured() -> bool:
+    return bool(config.UPLOADS_S3_BUCKET and config.UPLOADS_PUBLIC_BASE_URL)
+
+
 def ensure_upload_storage_configured() -> None:
-    if not config.UPLOADS_S3_BUCKET or not config.UPLOADS_PUBLIC_BASE_URL:
+    if not storage_configured():
         raise UploadStorageUnavailable
 
 

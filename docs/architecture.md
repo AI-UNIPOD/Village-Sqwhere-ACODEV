@@ -137,7 +137,8 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics
   and your own posts). Likes and saves, each safe to repeat: `PUT /v1/posts/{post_id}/like`,
   `DELETE /v1/posts/{post_id}/like`, `PUT /v1/posts/{post_id}/save`,
-  `DELETE /v1/posts/{post_id}/save` and `GET /v1/me/saved-posts`.
+  `DELETE /v1/posts/{post_id}/save` and `GET /v1/me/saved-posts`. The author adds an image (JPEG,
+  PNG or WebP, up to 5 MB, at most 10) with `POST /v1/uploads`; it answers 503 until storage is set.
 - **Comments** (Bearer token): comment or reply with `POST /v1/posts/{post_id}/comments`, then
   `GET /v1/comments/{comment_id}`, `PATCH /v1/comments/{comment_id}` and
   `DELETE /v1/comments/{comment_id}`. Lists, oldest first: `GET /v1/posts/{post_id}/comments`
