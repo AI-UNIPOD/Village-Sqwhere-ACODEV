@@ -38,6 +38,7 @@ HUB_FIELDS = {
     "status",
     "phase",
     "team_confirmed_at",
+    "finished_at",
     "phases",
     "terms",
     "idea",
