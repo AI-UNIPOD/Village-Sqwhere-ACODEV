@@ -63,6 +63,21 @@ type Copy = {
   githubProfile: string;
   termsFrozen: string;
   agreementVersion: string;
+  // what the signed-in person signed to be in the hub
+  signature: {
+    heading: string;
+    loading: string;
+    failed: string;
+    retry: string;
+    none: string;
+    signed: string;
+    since: string;
+    read: string;
+    loadingText: string;
+    textFailed: string;
+    same: string;
+    different: string;
+  };
   phasesHeading: string;
   phases: Record<Phase, string>;
   phaseStates: Record<PhaseState, string>;
@@ -333,6 +348,20 @@ const en: Copy = {
   githubProfile: "GitHub profile, opens in a new tab",
   termsFrozen: "Signed by every member. These cannot be changed.",
   agreementVersion: "Version {n} of the hub agreement",
+  signature: {
+    heading: "Your signature",
+    loading: "Loading your signature",
+    failed: "We couldn't show your signature.",
+    retry: "Try again",
+    none: "No signature of yours is on record for this hub.",
+    signed: "You signed version {version} of the agreement as {name} on {date}.",
+    since: "Member since {date}.",
+    read: "Read the agreement you signed",
+    loadingText: "Loading the agreement",
+    textFailed: "We couldn't load the agreement. Try again.",
+    same: "This is the exact text you signed.",
+    different: "This text does not match the one you signed. Ask the hub's owner about it.",
+  },
   phasesHeading: "Phases",
   phases: { brainstorm: "Brainstorm", design: "Design and architecture", build: "Build", review: "Review and test" },
   phaseStates: { done: "Done", in_progress: "In progress", not_started: "Not started" },
@@ -692,6 +721,20 @@ const fr: Copy = {
   githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
   termsFrozen: "Signées par chaque membre. Elles ne peuvent pas être modifiées.",
   agreementVersion: "Version {n} de l'accord de l'espace",
+  signature: {
+    heading: "Votre signature",
+    loading: "Chargement de votre signature",
+    failed: "Nous n'avons pas pu afficher votre signature.",
+    retry: "Réessayer",
+    none: "Aucune signature de votre part n'est enregistrée pour cet espace.",
+    signed: "Vous avez signé la version {version} de l'accord sous le nom {name} le {date}.",
+    since: "Membre depuis le {date}.",
+    read: "Lire l'accord que vous avez signé",
+    loadingText: "Chargement de l'accord",
+    textFailed: "Nous n'avons pas pu charger l'accord. Réessayez.",
+    same: "C'est exactement le texte que vous avez signé.",
+    different: "Ce texte ne correspond pas à celui que vous avez signé. Parlez-en au porteur de l'espace.",
+  },
   phasesHeading: "Phases",
   phases: { brainstorm: "Brainstorm", design: "Conception et architecture", build: "Construction", review: "Revue et tests" },
   phaseStates: { done: "Terminée", in_progress: "En cours", not_started: "Pas commencée" },
