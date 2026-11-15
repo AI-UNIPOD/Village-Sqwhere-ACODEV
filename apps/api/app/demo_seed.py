@@ -406,6 +406,9 @@ async def _create_world(db: AsyncSession, people: dict[str, User]) -> None:
                     template_id=template.id,
                     template_sha256=template.body_sha256,
                     signed_legal_name=user.display_name,
+                    # the day they joined: left to its default it would be the day of this
+                    # run, after ten days of the hub's own history
+                    signed_at=ago(days=10),
                 )
             db.add(member)
         await db.flush()
