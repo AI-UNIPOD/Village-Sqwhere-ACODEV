@@ -7,10 +7,10 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import defer, selectinload
 
 from app.api.deps import CurrentUser, DbSession, same_world
-from app.models import Hub, Idea, IdeaRoleNeed, IdeaStatus, Role
+from app.models import Hub, Idea, IdeaEmbedding, IdeaRoleNeed, IdeaStatus, Role
 from app.schemas.ideas import (
     CreateIdeaRequest,
     IdeaAuthor,
@@ -24,8 +24,12 @@ from app.schemas.ideas import (
     UpdateIdeaRequest,
 )
 from app.schemas.lookups import RoleRef
+from app.services.match_score import SIMILAR_FROM, similarity
 
 router = APIRouter()
+
+# Enough to show "ideas like this one" without a page of them.
+SIMILAR_LIMIT = 5
 
 
 def idea_error(status_code: int, code: str, message: str) -> HTTPException:
@@ -274,3 +278,39 @@ async def get_open_idea(
     if idea is None:
         raise idea_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Idea not found.")
     return PublicIdeaResponse(data=public_idea(idea))
+
+
+@router.get("/ideas/{idea_id}/similar", response_model=PublicIdeasResponse)
+async def list_similar_ideas(
+    idea_id: UUID, current_user: CurrentUser, db: DbSession
+) -> PublicIdeasResponse:
+    readable = await db.scalar(
+        select(Idea.id).where(
+            Idea.id == idea_id,
+            Idea.status == IdeaStatus.OPEN,
+            Idea.deleted_at.is_(None),
+            same_world(Idea.author_id, current_user),
+        )
+    )
+    if readable is None:
+        raise idea_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Idea not found.")
+    # an idea with no vector yet gives a null here, and a null compares as nothing close
+    vector = (
+        select(IdeaEmbedding.embedding).where(IdeaEmbedding.idea_id == idea_id).scalar_subquery()
+    )
+    read_alike = similarity(IdeaEmbedding.embedding, vector)
+    result = await db.execute(
+        select(Idea)
+        .join(IdeaEmbedding, IdeaEmbedding.idea_id == Idea.id)
+        .options(*idea_options(), defer(Idea.details, raiseload=True))
+        .where(
+            Idea.id != idea_id,
+            Idea.status == IdeaStatus.OPEN,
+            Idea.deleted_at.is_(None),
+            same_world(Idea.author_id, current_user),
+            read_alike >= SIMILAR_FROM,
+        )
+        .order_by(read_alike.desc(), Idea.id)
+        .limit(SIMILAR_LIMIT)
+    )
+    return PublicIdeasResponse(data=[public_idea(idea) for idea in result.scalars()])
