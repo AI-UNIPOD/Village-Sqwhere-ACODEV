@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- feat(api): store what ideas and profiles mean as embeddings
+- feat(api): store what ideas and profiles mean as embeddings (#211)
 - fix(web): say the build tab is live on the landing page (#208)
 - feat(api): add the review checklist and finishing to a hub (#204)
 - fix(web): draw no github link from a username in the demo (#207)
