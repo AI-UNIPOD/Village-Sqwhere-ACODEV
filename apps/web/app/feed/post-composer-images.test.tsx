@@ -329,7 +329,7 @@ test("images are in French too: the field, the refusals, the progress and the pa
   let release: (response: Response) => void = () => {};
   answerUploads(new Promise<Response>((resolve) => (release = resolve)), refusal(413, "IMAGE_TOO_LARGE"));
   render(<PostComposer lang="fr" />);
-  expect(document.getElementById("post-images-help")!.textContent).toBe("JPEG, PNG ou WebP, 4 Mo au plus chacune. Une publication peut avoir 10 images.");
+  expect(document.getElementById("post-images-help")!.textContent).toBe("JPEG, PNG ou WebP, 4\u202fMo au plus chacune. Une publication peut avoir 10 images.");
   typeInto("Texte", "Avec des images");
   choose("Ajouter des images", file("loop.gif", "image/gif"), file("a.png"), file("b.png"));
   expect(screen.getByRole("alert").textContent).toBe("Le fichier loop.gif n'a pas été ajouté. Seules les images JPEG, PNG et WebP sont acceptées.");
@@ -338,7 +338,7 @@ test("images are in French too: the field, the refusals, the progress and the pa
   await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Envoi de l'image 1 sur 2"));
   release(uploaded(1));
   expect((await screen.findByRole("alert")).textContent).toBe(
-    "Votre publication est en ligne, mais 1 image n'a pas été envoyée. Réessayez ou laissez-la de côté. Le fichier b.png dépasse 4 Mo.",
+    "Votre publication est en ligne, mais 1 image n'a pas été envoyée. Réessayez ou laissez-la de côté. Le fichier b.png dépasse 4\u202fMo.",
   );
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Laisser de côté" })).toBeTruthy();
