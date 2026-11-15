@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(web): show post images in the feed and let authors attach them
 - docs: say the worker needs DEMO_ENABLED and the live demo is seeded once (#237)
 - feat(web): float the places bar and turn the app header into a pill on scroll (#236)
 - feat(web): say nothing was saved next to each refused write in the demo (#234)

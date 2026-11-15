@@ -333,7 +333,13 @@ The Developer Exchange is `app/feed/`. The feed is a place in the navigation, at
 with three tabs: For you (`GET /v1/feed`), Saved (`GET /v1/me/saved-posts`) and Yours
 (`GET /v1/posts?author=`). A post's body is shown as plain text, never as markup. Like and Save
 change the screen at once and send the request after; a failure puts the button back and says
-so (`feed-api.ts`, `post-card.tsx`).
+so (`feed-api.ts`, `post-card.tsx`). A post's images (`attachments`, in position order) show after
+its text (`post-images.tsx`): in a card one is full width, two side by side, three or four a grid,
+and more than four show four with "+N", each leading to the post; on the post's page every one
+shows at the column's width and links to the full-size image in a new tab. Each image has a box
+sized from its `width` and `height` so nothing jumps, and is a plain `<img>` (no `next/image`)
+whose address is `imageSrc()`: `API_URL` plus the relative `url`. The API has no alt field, so the
+alt text is generic ("Image 2 of 3 attached to this post"). Why: `docs/decisions/2026-11-15-images-in-the-feed.md`.
 
 One post is at `/en/posts/view?id=`, and the navigation marks Feed there (`AppFrame` treats
 `posts` as part of the feed). Its author can delete it, after a confirm dialog, and lands on
@@ -341,9 +347,19 @@ Yours with "Post deleted". A post that is gone, or an id that is not one, gets i
 
 A post is written at `/en/posts/compose` and edited at `/en/posts/compose?id=` (its author
 only), in `post-composer.tsx`: the kind of post, a title (required for an RFC), the text, a
-link and up to five topics. The kind and the topics cannot change after posting, because the
-API's `PATCH` takes only the title, the text and the link; an edit sends only what changed. It
-shares its field and its leave warning with the idea composer.
+link, up to five topics and up to 10 images. The kind and the topics cannot change after posting,
+because the API's `PATCH` takes only the title, the text and the link; an edit sends only what
+changed. It shares its field and its leave warning with the idea composer.
+
+"Add images" (`image-field.tsx`) is a labelled file input for JPEG, PNG and WebP, each at most 4 MB,
+at most 10 on a post counting the ones it has. A refused file is named in a sentence and the rest
+are kept; each chosen file has a thumbnail and a Remove button. Publishing makes the post, then
+uploads the images one by one (`POST /v1/uploads`, a multipart form with `post_id` and `file`),
+with "Uploading image 2 of 3" in a live region. If one fails, the post stays published, the form
+becomes the edit form of that post with the files that did not go up, and "Try again" sends only
+those. Editing lists the post's images with Remove (`DELETE /v1/uploads/{id}`) and adds new ones
+when saved. For the demo account the create, upload or removal is refused with `DEMO_READ_ONLY`,
+`NotSaved` says so, and no upload is tried after a refused create.
 
 The For you tab says what it shows and lets the developer change it in place
 (`feed-topics.tsx`): the chosen technologies are saved with `PUT /v1/me/feed-topics` (the
