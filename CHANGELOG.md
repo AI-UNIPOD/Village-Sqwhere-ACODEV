@@ -14,6 +14,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(api): let the owner rename, describe and archive a hub (#169)
 - feat(api): add the design sketch of pieces and links to a hub (#174)
 - fix(web): say what the AI checker looks at in a verification (#179)
 - feat(web): show the design sketch on the hub page (#178)
