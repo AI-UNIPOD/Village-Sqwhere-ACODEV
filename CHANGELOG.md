@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(api): open the interview socket with a one-use ticket (#216)
 - fix(web): mark the village steps a developer has already done (#215)
 - feat(api): show the owner the match score on join requests (#214)
 - feat(api): store what ideas and profiles mean as embeddings (#211)
