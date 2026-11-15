@@ -35,4 +35,11 @@ The domain is registered at Namecheap and pointed at Vercel. CJ chose this on 20
   interview.
 - The database is hosted outside the repository (Neon, for example) and its schema is applied
   once from `infra/db/init/`. New init scripts must be run against it by hand.
+- **The demo on the live site needs four steps, by someone who holds the database address.**
+  Set `DEMO_ENABLED=true` as a project variable so the API and the `worker` daemon both see it:
+  the API offers "Try the demo" with it, and the worker, with it, dates the demo's feed back from
+  now once a day (`2026-11-15-lived-in-demo.md`). Apply every script in `infra/db/init/` up to the
+  newest to the live database. Run `python -m app.demo_seed` once against it with the same
+  variable: the worker only refreshes a demo that exists and never makes one. Then redeploy from
+  `main`, because a changed variable only reaches a new deployment.
 - If ACODev requires Systalink, the same Dockerfile and settings carry over.
