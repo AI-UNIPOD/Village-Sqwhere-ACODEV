@@ -72,8 +72,8 @@ test("the form names the idea, prefills the hub name and shows the agreement as 
   const name = await form();
   expect(name.value).toBe("Borehole map for Kaduna");
   expect(screen.getByText(/A hub is where your team builds Borehole map for Kaduna/)).toBeTruthy();
-  expect(screen.getByText("TEST AGREEMENT (NOT LEGAL TEXT)")).toBeTruthy();
-  expect(screen.getByText("Version 1")).toBeTruthy();
+  expect(screen.getByText("Village Sqwhere hub agreement")).toBeTruthy();
+  expect(screen.getByText("Version 2")).toBeTruthy();
 
   const text = within(screen.getByRole("region", { name: "Agreement text" }));
   expect(text.getByRole("heading", { name: "Hub agreement" })).toBeTruthy();
@@ -83,12 +83,10 @@ test("the form names the idea, prefills the hub name and shows the agreement as 
   expect(text.queryByRole("link")).toBeNull();
 });
 
-test("placeholder text is called out, and a real agreement is not", async () => {
-  await form();
-  expect(screen.getByText("This is placeholder text, not a legal agreement")).toBeTruthy();
-  cleanup();
-  await form({ "GET /v1/agreements/current": { data: agreement({ title: "Hub agreement" }) } });
-  expect(screen.queryByText("This is placeholder text, not a legal agreement")).toBeNull();
+test("the agreement is shown with no warning about its text, whatever its title", async () => {
+  await form({ "GET /v1/agreements/current": { data: agreement({ version: 1, title: "TEST AGREEMENT (NOT LEGAL TEXT)" }) } });
+  expect(screen.getByText("TEST AGREEMENT (NOT LEGAL TEXT)")).toBeTruthy();
+  expect(screen.queryByText(/placeholder/i)).toBeNull();
 });
 
 test("nothing is signed without a name, the notes a custom split needs, the read box and a legal name", async () => {
@@ -207,7 +205,7 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
   api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
   render(<HubPage lang="en" />);
   expect(await screen.findByRole("heading", { level: 1, name: "Borehole map hub" })).toBeTruthy();
-  expect(screen.getByRole("status").textContent).toContain("Your hub is ready. You are its owner and first member.");
+  expect(screen.getByText("Your hub is ready. You are its owner and first member.").getAttribute("role")).toBe("status");
   expect(screen.getByText("Active")).toBeTruthy();
   expect(screen.getByText("1 of 5 members")).toBeTruthy();
   expect(screen.getByText("Custom")).toBeTruthy();
@@ -215,8 +213,9 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
   expect(screen.getByText("Version 1 of the hub agreement")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Edit the idea" }).getAttribute("href")).toBe("/en/ideas/compose?id=idea-1");
   for (const phase of ["Brainstorm", "Design and architecture", "Build", "Review and test"]) expect(screen.getByText(phase)).toBeTruthy();
-  const github = await screen.findByRole("link", { name: "@kwabena-owusu (GitHub profile, opens in a new tab)" });
-  expect(github.getAttribute("href")).toBe("https://github.com/kwabena-owusu");
+  const profile = await screen.findByRole("link", { name: "Kwabena Owusu" });
+  expect(profile.getAttribute("href")).toBe("/en/people/view?username=kwabena-owusu");
+  expect(screen.getByText("@kwabena-owusu")).toBeTruthy();
 });
 
 // The hub arrives after the page, so the browser's own jump to an address's hash finds nothing,

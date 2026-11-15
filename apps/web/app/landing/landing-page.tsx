@@ -20,6 +20,9 @@ import { HubPhases } from "./sections/hub-phases";
 import { MatcherDemo } from "./sections/matcher-demo";
 import { Principles } from "./sections/principles";
 
+// The innovation hub of the University of Lagos, where Village Sqwhere was built.
+const UNIPOD_URL = "https://aiunipod.unilag.edu.ng/";
+
 // translate="no": browser translation turned the name into "Village Square".
 function Brand({ lang, logoClass, wordmarkClass }: { lang: Lang; logoClass: string; wordmarkClass: string }) {
   return (
@@ -122,8 +125,13 @@ export function LandingPage({ lang }: { lang: Lang }) {
           <p className={styles.legal}>
             <span>{t.footCopy}</span>
             <span>{t.footLang}</span>
-            <span>{t.footMadeUp}</span>
-            <span>{t.footCredit}</span>
+            <span>
+              {t.footCredit.before}{" "}
+              <a className={styles.creditLink} href={UNIPOD_URL} target="_blank" rel="noopener noreferrer">
+                {t.footCredit.link} <span className={styles.srOnly}>({t.footCredit.newTab})</span>
+              </a>{" "}
+              {t.footCredit.after}
+            </span>
           </p>
         </div>
       </footer>

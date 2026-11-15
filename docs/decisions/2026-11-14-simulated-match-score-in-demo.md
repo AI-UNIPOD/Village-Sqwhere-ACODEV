@@ -1,3 +1,5 @@
+Superseded on 15 November 2026: the real score shipped (#160, #171); the demo now draws it with the app's component.
+
 # Simulated match scores in the landing matcher demo
 
 ## Context

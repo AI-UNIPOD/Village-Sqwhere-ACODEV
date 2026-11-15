@@ -20,8 +20,8 @@ export const idea = (over: Record<string, unknown> = {}) => ({
 
 export const agreement = (over: Record<string, unknown> = {}) => ({
   template_id: "template-1",
-  version: 1,
-  title: "TEST AGREEMENT (NOT LEGAL TEXT)",
+  version: 2,
+  title: "Village Sqwhere hub agreement",
   body: "# Hub agreement\n\nMembers keep the idea private.\n\n- No <b>sharing</b>\n- See [the terms](http://example.com)\n\n1. First clause\n2. Second clause",
   body_sha256: "a".repeat(64),
   hub_terms: {},
@@ -69,8 +69,37 @@ export const owner = () =>
     user: { id: "id-kwabena-owusu", username: "kwabena-owusu", display_name: "Kwabena Owusu", is_verified: true },
   });
 
+// The signed-in person's own membership in hub-1, signed as the agreement() text is.
+export const membership = (over: Record<string, unknown> = {}) => ({
+  member_role: "member",
+  status: "active",
+  created_at: "2026-11-12T10:00:00Z",
+  joined_at: "2026-11-12T11:00:00Z",
+  left_at: null,
+  signature: {
+    version: 1,
+    template_sha256: "a".repeat(64),
+    signed_legal_name: "Kwabena Owusu",
+    terms_snapshot: {},
+    signed_at: "2026-11-12T11:00:00Z",
+  },
+  ...over,
+});
+
 // Answers each address by its longest matching start; a list of answers is used one per call.
-export function api(routes: Record<string, unknown>) {
+// Every hub page asks for the viewer's membership, every member's page reads the chat, and a hub
+// in build or review reads its build tab and the viewer's profile, so each has an answer unless a
+// test names its own.
+export function api(given: Record<string, unknown>) {
+  const routes: Record<string, unknown> = {
+    "GET /v1/hubs/hub-1/membership": { data: membership() },
+    "GET /v1/hubs/hub-1/messages": { data: [], next_offset: null },
+    "GET /v1/hubs/hub-1/build": {
+      data: { repository_url: null, commits_refreshed_at: null, can_set_repository: false, can_refresh: false, pieces: [], commits: [] },
+    },
+    "GET /v1/me": { data: { username: "amina-ndiaye", display_name: "Amina Ndiaye", roles: [], technologies: [] } },
+    ...given,
+  };
   const used: Record<string, number> = {};
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
     const path = `${init?.method ?? "GET"} ${String(url).replace("http://localhost:8000", "")}`;

@@ -97,6 +97,12 @@ test("while the profile loads there is a status and no form", () => {
   expect(screen.queryByLabelText("Name")).toBeNull();
 });
 
+test("the demo account's username is plain text, since it is not on GitHub", async () => {
+  await page(me({ is_demo: true }));
+  expect(screen.getByText("@kwabena-owusu")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: /@kwabena-owusu/ })).toBeNull();
+});
+
 test("the page shows the name, bio, roles with their states and the stack from the API", async () => {
   await page(
     me({

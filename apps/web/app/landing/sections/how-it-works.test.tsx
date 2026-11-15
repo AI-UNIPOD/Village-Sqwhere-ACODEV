@@ -98,7 +98,6 @@ test.each(["en", "fr"] as const)("each step's view shows its key text in %s", (l
   }
   expect(team.getByText(t.team.agreement, { exact: false })).toBeTruthy();
 
-  expect(hub.getByText(t.hub.sample)).toBeTruthy();
   for (const phase of t.hub.phases) expect(hub.getByText(phase)).toBeTruthy();
   // the sample hub is mid-way: the phases before the current one are done, the ones after not started
   const states = hub.getAllByRole("listitem").map((item) => item.lastElementChild!.textContent);
@@ -115,7 +114,7 @@ test.each(["en", "fr"] as const)("each step's view shows its key text in %s", (l
   expect(t.idea.sharedBy.endsWith("Nigeria")).toBe(true);
 });
 
-test("the Lagoon tag appears once in the views of a step, and the people are made up", () => {
+test("the Lagoon tag appears once in the views of a step", () => {
   const { container } = render(<HowItWorks lang="en" />);
   // once inline and once on the wide-screen stage, which is hidden from screen readers
   expect(screen.getAllByText(copy.en.matcher.tag)).toHaveLength(2);
@@ -147,4 +146,18 @@ test("without IntersectionObserver the first step stays active and every step st
   const { container } = render(<HowItWorks lang="en" />);
   expect(stepsOf(container)[0].dataset.active).toBe("true");
   expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(4);
+});
+
+test.each([
+  ["en", "Brainstorm has its notes and design has its sketch already", "still to come"],
+  ["fr", "Le brainstorm a déjà ses notes et la conception son schéma", "restent à venir"],
+] as const)("the %s hub step says brainstorm and design have their tools and the others are still to come", (lang, notes, later) => {
+  const text = copy[lang].steps[3].text;
+  expect(text).toContain(notes);
+  expect(text).toContain(later);
+});
+
+// New hubs sign version 2 of the hub agreement (#195), so the sample team shows it.
+test.each(["en", "fr"] as const)("the %s sample team shows version 2 of the hub agreement", (lang) => {
+  expect(copy[lang].team.agreement).toMatch(/^Version 2 /);
 });

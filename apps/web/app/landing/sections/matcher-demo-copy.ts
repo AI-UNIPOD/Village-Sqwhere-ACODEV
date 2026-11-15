@@ -2,13 +2,21 @@ import type { Lang } from "../../locales";
 
 type Match = {
   name: string;
-  /** The verified role, in the product's words. */
-  role: string;
   place: string;
-  /** Technologies in common with the idea's owner. */
-  shared: string[];
-  /** A simulated match score: match scores are planned, the matcher has none today. */
-  score: number;
+};
+
+/**
+ * What the score is counted from, the same in both languages so the two can never disagree:
+ * the numbers go through the formula of apps/api/app/services/match_score.py (matcher-demo-score.ts).
+ */
+type Facts = {
+  /** The sectors the idea's owner builds for (slugs of onboarding/options.ts). */
+  ownerSectors: string[];
+  matches: [
+    { roles: number[]; shared: string[]; sectors: string[] },
+    { roles: number[]; shared: string[]; sectors: string[] },
+    { roles: number[]; shared: string[]; sectors: string[] },
+  ];
 };
 
 type Idea = {
@@ -16,6 +24,7 @@ type Idea = {
   owner: string;
   place: string;
   pitch: string;
+  /** The roles the idea needs: a match's `roles` in the facts are positions in this list. */
   roles: string[];
   matches: [Match, Match, Match];
   /** The win line once all three have signed. */
@@ -34,14 +43,6 @@ type Copy = {
   done: string;
   tag: string;
   waiting: string;
-  verified: string;
-  inCommon: (owner: string) => string;
-  /** Said once under the suggestions: the scores are simulated. */
-  simulated: string;
-  /** A score as screen readers hear it: what it is, the number and its step. */
-  scoreLine: (score: number, step: string) => string;
-  /** The match score's steps (docs/design-system/components.md): 80+, 60 to 79, 40 to 59, below 40. */
-  steps: [string, string, string, string];
   invite: string;
   inviting: string;
   signed: (name: string) => string;
@@ -53,24 +54,19 @@ type Copy = {
 const en: Copy = {
   title: "Watch the matcher find a team.",
   lead: "Pick an idea. See who the matcher suggests, then form the team yourself.",
-  sampleNote: "Made-up ideas and people. Nothing here is saved.",
+  sampleNote: "Nothing here is saved.",
   pickLabel: "Choose an idea",
   rolesNeeded: "Roles needed",
   sharedBy: (owner, place) => `Shared by ${owner}, ${place}`,
   run: [
     "Reading the roles your idea needs",
     "Finding developers verified in them",
-    "Counting the technologies you share",
-    "Ordering by roles held, then shared technologies",
+    "Counting the technologies and sectors you share",
+    "Ordering by score: roles, shared technologies, shared sectors",
   ],
   done: "Three suggestions. You decide.",
   tag: "The matcher suggests. The owner decides.",
   waiting: "Pick an idea and the matcher starts.",
-  verified: "Verified",
-  inCommon: (owner) => `In common with ${owner}`,
-  simulated: "Scores here are simulated: match scores are a planned feature.",
-  scoreLine: (score, step) => `Simulated score: ${score}, ${step}`,
-  steps: ["Strong match", "Possible match", "Weak match", "Poor match"],
   invite: "Send three invitations",
   inviting: "Sending invitations",
   signed: (name) => `${name} read the agreement and signed.`,
@@ -84,27 +80,9 @@ const en: Copy = {
       pitch: "An app that pays market traders in naira each evening and retries when the bank network drops.",
       roles: ["Backend and Systems Engineer", "Mobile Engineer", "Cybersecurity and Smart Contract Auditor"],
       matches: [
-        {
-          name: "Hamza Benali",
-          score: 92,
-          role: "Backend and Systems Engineer",
-          place: "Morocco",
-          shared: ["Go", "PostgreSQL", "Docker"],
-        },
-        {
-          name: "Thandiwe Mokoena",
-          score: 86,
-          role: "Mobile Engineer",
-          place: "South Africa",
-          shared: ["Flutter", "React Native"],
-        },
-        {
-          name: "Kidist Alemayehu",
-          score: 74,
-          role: "Cybersecurity and Smart Contract Auditor",
-          place: "Ethiopia",
-          shared: ["Python"],
-        },
+        { name: "Hamza Benali", place: "Morocco" },
+        { name: "Thandiwe Mokoena", place: "South Africa" },
+        { name: "Kidist Alemayehu", place: "Ethiopia" },
       ],
       win: "All three read the agreement and signed. Four builders in Nigeria, Morocco, South Africa and Ethiopia.",
     },
@@ -115,27 +93,9 @@ const en: Copy = {
       pitch: "Farmers near Thiès text a crop name and get today's market price back.",
       roles: ["Backend and Systems Engineer", "MLOps and Data Engineer", "AI and ML Engineer"],
       matches: [
-        {
-          name: "Yannick Mbarga",
-          score: 89,
-          role: "Backend and Systems Engineer",
-          place: "Cameroon",
-          shared: ["Python", "PostgreSQL"],
-        },
-        {
-          name: "Aline Uwimana",
-          score: 81,
-          role: "MLOps and Data Engineer",
-          place: "Rwanda",
-          shared: ["Python", "Docker"],
-        },
-        {
-          name: "Joaquim Fortes",
-          score: 67,
-          role: "AI and ML Engineer",
-          place: "Cabo Verde",
-          shared: ["PyTorch", "LLMs"],
-        },
+        { name: "Yannick Mbarga", place: "Cameroon" },
+        { name: "Aline Uwimana", place: "Rwanda" },
+        { name: "Joaquim Fortes", place: "Cabo Verde" },
       ],
       win: "All three read the agreement and signed. Four builders, four countries: Senegal, Cameroon, Rwanda and Cabo Verde.",
     },
@@ -146,27 +106,9 @@ const en: Copy = {
       pitch: "Patients join the queue from a basic phone and get an SMS when their turn is near.",
       roles: ["Mobile Engineer", "DevOps and Cloud Engineer", "UI/UX Engineer and Product Architect"],
       matches: [
-        {
-          name: "Rehema Salim",
-          score: 94,
-          role: "Mobile Engineer",
-          place: "Kenya",
-          shared: ["Flutter", "Java"],
-        },
-        {
-          name: "Nelson Machava",
-          score: 78,
-          role: "DevOps and Cloud Engineer",
-          place: "Mozambique",
-          shared: ["Docker", "Kubernetes"],
-        },
-        {
-          name: "Tiana Rakotoarisoa",
-          score: 71,
-          role: "UI/UX Engineer and Product Architect",
-          place: "Madagascar",
-          shared: ["React"],
-        },
+        { name: "Rehema Salim", place: "Kenya" },
+        { name: "Nelson Machava", place: "Mozambique" },
+        { name: "Tiana Rakotoarisoa", place: "Madagascar" },
       ],
       win: "All three read the agreement and signed. Four builders, three countries: two in Kenya, one in Mozambique, one in Madagascar.",
     },
@@ -177,24 +119,19 @@ const en: Copy = {
 const fr: Copy = {
   title: "Voyez le matcher trouver une équipe.",
   lead: "Choisissez une idée. Voyez qui le matcher propose, puis composez l'équipe vous-même.",
-  sampleNote: "Idées et personnes inventées. Rien n'est enregistré ici.",
+  sampleNote: "Rien n'est enregistré ici.",
   pickLabel: "Choisissez une idée",
   rolesNeeded: "Rôles recherchés",
   sharedBy: (owner, place) => `Partagée par ${owner}, ${place}`,
   run: [
     "Lecture des rôles que votre idée recherche",
     "Recherche des développeurs vérifiés dans ces rôles",
-    "Décompte des technologies en commun",
-    "Classement par rôles détenus, puis technologies en commun",
+    "Décompte des technologies et des domaines en commun",
+    "Classement par score\u202f: rôles, technologies en commun, domaines en commun",
   ],
   done: "Trois propositions. À vous de décider.",
   tag: "Le matcher propose. Le porteur de l'idée décide.",
   waiting: "Choisissez une idée et le matcher se lance.",
-  verified: "Vérifié",
-  inCommon: (owner) => `En commun avec ${owner}`,
-  simulated: "Scores simulés ici\u202f: le score de correspondance est une fonctionnalité prévue.",
-  scoreLine: (score, step) => `Score simulé\u202f: ${score}, ${step}`,
-  steps: ["Correspondance forte", "Correspondance possible", "Correspondance faible", "Correspondance très faible"],
   invite: "Envoyer trois invitations",
   inviting: "Envoi des invitations",
   signed: (name) => `${name} a lu l'accord et signé.`,
@@ -213,27 +150,9 @@ const fr: Copy = {
         "Auditeur cybersécurité et smart contracts",
       ],
       matches: [
-        {
-          name: "Hamza Benali",
-          score: 92,
-          role: "Ingénieur backend et systèmes",
-          place: "Maroc",
-          shared: ["Go", "PostgreSQL", "Docker"],
-        },
-        {
-          name: "Thandiwe Mokoena",
-          score: 86,
-          role: "Ingénieur mobile",
-          place: "Afrique du Sud",
-          shared: ["Flutter", "React Native"],
-        },
-        {
-          name: "Kidist Alemayehu",
-          score: 74,
-          role: "Auditeur cybersécurité et smart contracts",
-          place: "Éthiopie",
-          shared: ["Python"],
-        },
+        { name: "Hamza Benali", place: "Maroc" },
+        { name: "Thandiwe Mokoena", place: "Afrique du Sud" },
+        { name: "Kidist Alemayehu", place: "Éthiopie" },
       ],
       win: "Les trois ont lu l'accord et signé. Quatre développeurs au Nigeria, au Maroc, en Afrique du Sud et en Éthiopie.",
     },
@@ -245,27 +164,9 @@ const fr: Copy = {
         "Les agriculteurs des environs de Thiès envoient le nom d'une culture par SMS et reçoivent le prix du jour.",
       roles: ["Ingénieur backend et systèmes", "Ingénieur MLOps et données", "Ingénieur IA et ML"],
       matches: [
-        {
-          name: "Yannick Mbarga",
-          score: 89,
-          role: "Ingénieur backend et systèmes",
-          place: "Cameroun",
-          shared: ["Python", "PostgreSQL"],
-        },
-        {
-          name: "Aline Uwimana",
-          score: 81,
-          role: "Ingénieur MLOps et données",
-          place: "Rwanda",
-          shared: ["Python", "Docker"],
-        },
-        {
-          name: "Joaquim Fortes",
-          score: 67,
-          role: "Ingénieur IA et ML",
-          place: "Cap-Vert",
-          shared: ["PyTorch", "LLM"],
-        },
+        { name: "Yannick Mbarga", place: "Cameroun" },
+        { name: "Aline Uwimana", place: "Rwanda" },
+        { name: "Joaquim Fortes", place: "Cap-Vert" },
       ],
       win: "Les trois ont lu l'accord et signé. Quatre développeurs, quatre pays\u202f: Sénégal, Cameroun, Rwanda et Cap-Vert.",
     },
@@ -276,27 +177,9 @@ const fr: Copy = {
       pitch: "Le patient rejoint la file depuis un téléphone simple et reçoit un SMS quand son tour approche.",
       roles: ["Ingénieur mobile", "Ingénieur DevOps et cloud", "Ingénieur UI/UX et architecte produit"],
       matches: [
-        {
-          name: "Rehema Salim",
-          score: 94,
-          role: "Ingénieur mobile",
-          place: "Kenya",
-          shared: ["Flutter", "Java"],
-        },
-        {
-          name: "Nelson Machava",
-          score: 78,
-          role: "Ingénieur DevOps et cloud",
-          place: "Mozambique",
-          shared: ["Docker", "Kubernetes"],
-        },
-        {
-          name: "Tiana Rakotoarisoa",
-          score: 71,
-          role: "Ingénieur UI/UX et architecte produit",
-          place: "Madagascar",
-          shared: ["React"],
-        },
+        { name: "Rehema Salim", place: "Kenya" },
+        { name: "Nelson Machava", place: "Mozambique" },
+        { name: "Tiana Rakotoarisoa", place: "Madagascar" },
       ],
       win: "Les trois ont lu l'accord et signé. Quatre développeurs, trois pays\u202f: deux au Kenya, un au Mozambique, un à Madagascar.",
     },
@@ -304,3 +187,32 @@ const fr: Copy = {
 };
 
 export const copy: Record<Lang, Copy> = { en, fr };
+
+// Roles are positions in each idea's `roles`. Made-up people: the first of each idea holds two
+// of the roles, the others one; the sectors in common run from two to none.
+export const FACTS: [Facts, Facts, Facts] = [
+  {
+    ownerSectors: ["fintech", "commerce"],
+    matches: [
+      { roles: [0, 2], shared: ["go", "postgresql", "docker"], sectors: ["fintech", "commerce", "health"] },
+      { roles: [1], shared: ["flutter", "react-native", "java"], sectors: ["fintech", "education"] },
+      { roles: [2], shared: ["python"], sectors: ["civic"] },
+    ],
+  },
+  {
+    ownerSectors: ["agritech", "commerce"],
+    matches: [
+      { roles: [0, 1], shared: ["python", "postgresql"], sectors: ["agritech", "commerce", "fintech"] },
+      { roles: [1], shared: ["python", "docker"], sectors: ["agritech", "climate-energy"] },
+      { roles: [2], shared: ["pytorch", "llms"], sectors: ["health"] },
+    ],
+  },
+  {
+    ownerSectors: ["health", "civic"],
+    matches: [
+      { roles: [0], shared: ["flutter", "java"], sectors: ["health", "civic"] },
+      { roles: [1], shared: ["docker", "kubernetes", "terraform"], sectors: ["health", "fintech"] },
+      { roles: [2], shared: ["react", "vue"], sectors: ["media-culture"] },
+    ],
+  },
+];

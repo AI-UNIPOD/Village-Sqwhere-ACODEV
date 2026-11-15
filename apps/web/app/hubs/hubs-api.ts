@@ -49,6 +49,13 @@ export const createHub = async (hub: NewHub) => (await call<{ data: Hub }>("/v1/
 
 export const loadHub = async (id: string) => (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}`)).data;
 
+// The owner renames or describes the hub; `description: null` clears it. Answers with the hub card.
+export const editHub = async (id: string, changes: { name: string; description: string | null }) =>
+  (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}`, "PATCH", changes)).data;
+
+// The owner archives the hub for good: it stays readable and nothing in it changes any more.
+export const archiveHub = async (id: string) => (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}/archive`, "POST")).data;
+
 export const loadMyHubs = (offset = 0) =>
   call<{ data: Hub[]; next_offset: number | null }>(`/v1/me/hubs?offset=${offset}&limit=20`);
 
@@ -120,6 +127,14 @@ export const approveRequest = async (id: string, userId: string) =>
 export const declineRequest = async (id: string, userId: string) =>
   (await call<{ data: Member }>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/decline`, "POST")).data;
 
+// An active member who is not the owner leaves. Answers with the hub card, whose
+// `viewer.membership_status` is then "left".
+export const leaveHub = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/membership/leave`, "POST")).data;
+
+// The owner removes an active member. The answer's member card, status "removed", is not needed:
+// nobody sees removed people in the team list.
+export const removeMember = (id: string, userId: string) => call<unknown>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/remove`, "POST");
+
 // The owner confirms the team, which opens brainstorm; both calls answer with the updated hub card.
 export const confirmTeam = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/team/confirm`, "POST")).data;
 
@@ -154,8 +169,147 @@ export const addNote = async (id: string, body: string) => (await call<{ data: N
 
 export const deleteNote = (id: string, noteId: string) => call<null>(`${hubPath(id)}/notes/${encodeURIComponent(noteId)}`, "DELETE");
 
+// One part of the system in a hub's design sketch. `can_delete` is true for its creator and the hub's owner.
+export type Piece = {
+  id: string;
+  name: string;
+  summary: string;
+  created_by: { id: string; username: string; display_name: string; avatar_url: string | null; is_verified: boolean };
+  created_at: string;
+  updated_at: string;
+  can_delete: boolean;
+};
+
+// A labelled arrow from one piece to another: `from_piece_id` talks to `to_piece_id`.
+export type PieceLink = {
+  id: string;
+  from_piece_id: string;
+  to_piece_id: string;
+  label: string;
+  created_by: Piece["created_by"];
+  created_at: string;
+  can_delete: boolean;
+};
+
+// The whole sketch, oldest first. A hub holds at most 30 pieces and 60 links, so one answer has them all.
+export type Sketch = { pieces: Piece[]; links: PieceLink[] };
+
+export const loadSketch = async (id: string) => (await call<{ data: Sketch }>(`${hubPath(id)}/design`)).data;
+
+export const PIECE_LIMITS = { name: 60, summary: 280, label: 60 };
+
+export const addPiece = async (id: string, piece: { name: string; summary: string }) =>
+  (await call<{ data: Piece }>(`${hubPath(id)}/pieces`, "POST", piece)).data;
+
+// Only the fields that changed are sent.
+export const editPiece = async (id: string, pieceId: string, changes: { name?: string; summary?: string }) =>
+  (await call<{ data: Piece }>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}`, "PATCH", changes)).data;
+
+// The piece's links go with it.
+export const deletePiece = (id: string, pieceId: string) => call<null>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}`, "DELETE");
+
+export const addLink = async (id: string, link: { from_piece_id: string; to_piece_id: string; label: string }) =>
+  (await call<{ data: PieceLink }>(`${hubPath(id)}/links`, "POST", link)).data;
+
+export const deleteLink = (id: string, linkId: string) => call<null>(`${hubPath(id)}/links/${encodeURIComponent(linkId)}`, "DELETE");
+
+// A piece of the sketch with who builds it. The four `can_` flags say what the viewer may do now.
+export type BuildPiece = {
+  id: string;
+  name: string;
+  summary: string;
+  claimed_by: Note["author"] | null;
+  claimed_at: string | null;
+  can_claim: boolean;
+  can_release: boolean;
+};
+
+// One commit of the team's repository. Both texts come from GitHub: show them as plain text.
+export type Commit = { sha: string; message: string; author_name: string; committed_at: string };
+
+// The build tab in one answer: pieces oldest first, commits newest first (at most 20).
+export type Build = {
+  repository_url: string | null;
+  commits_refreshed_at: string | null;
+  can_set_repository: boolean;
+  can_refresh: boolean;
+  pieces: BuildPiece[];
+  commits: Commit[];
+};
+
+// The address the API accepts, after it drops a trailing slash and ".git" (its own rule, checked
+// here first so a wrong address is a field error before anything is sent).
+export const tidyRepository = (address: string) => address.trim().replace(/\/$/, "").replace(/\.git$/, "");
+
+export const isRepository = (address: string) =>
+  address.length <= 200 &&
+  /^https:\/\/github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(address) &&
+  !address.split("/").slice(3).some((part) => part === "." || part === "..");
+
+export const loadBuild = async (id: string) => (await call<{ data: Build }>(`${hubPath(id)}/build`)).data;
+
+export const claimPiece = async (id: string, pieceId: string) =>
+  (await call<{ data: BuildPiece }>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}/claim`, "POST")).data;
+
+export const releasePiece = (id: string, pieceId: string) =>
+  call<null>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}/claim`, "DELETE");
+
+// The owner sets the team's repository, or clears it with null. Answers with the whole tab:
+// the stored commits go when the address changes.
+export const setRepository = async (id: string, repositoryUrl: string | null) =>
+  (await call<{ data: Build }>(`${hubPath(id)}/repository`, "PUT", { repository_url: repositoryUrl })).data;
+
+// Any active member asks GitHub for the latest commits, at most once a minute. Answers with the whole tab.
+export const refreshCommits = async (id: string) => (await call<{ data: Build }>(`${hubPath(id)}/commits/refresh`, "POST")).data;
+
+// One message of a hub's chat. `reply_to.body` is null once the quoted message is deleted.
+export type Message = {
+  id: string;
+  body: string;
+  author: Note["author"];
+  reply_to: { id: string; author: Note["author"]; body: string | null } | null;
+  created_at: string;
+  edited_at: string | null;
+  can_edit: boolean;
+  can_delete: boolean;
+};
+
+export const MESSAGE_MAX = 10_000;
+
+// One page of the chat, newest first, as the API sends it.
+export const loadMessages = (id: string, offset = 0) =>
+  call<{ data: Message[]; next_offset: number | null }>(`${hubPath(id)}/messages?offset=${offset}&limit=50`);
+
+export const sendMessage = async (id: string, message: { body: string; reply_to_id?: string }) =>
+  (await call<{ data: Message }>(`${hubPath(id)}/messages`, "POST", message)).data;
+
+export const editMessage = async (id: string, messageId: string, body: string) =>
+  (await call<{ data: Message }>(`${hubPath(id)}/messages/${encodeURIComponent(messageId)}`, "PATCH", { body })).data;
+
+export const deleteMessage = (id: string, messageId: string) =>
+  call<null>(`${hubPath(id)}/messages/${encodeURIComponent(messageId)}`, "DELETE");
+
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
+
+// The signed-in person's own place in a hub and what they signed. A member who left or was
+// removed keeps their signature. `template_sha256` is the hash of the exact text they signed.
+export type Membership = {
+  member_role: "owner" | "member";
+  status: string;
+  created_at: string;
+  joined_at: string | null;
+  left_at: string | null;
+  signature: {
+    version: number;
+    template_sha256: string;
+    signed_legal_name: string;
+    terms_snapshot: Terms;
+    signed_at: string;
+  } | null;
+};
+
+export const loadMembership = async (id: string) => (await call<{ data: Membership }>(`${hubPath(id)}/membership`)).data;
 
 export const acceptInvitation = async (id: string, signature: { template_id: string; template_sha256: string; signed_legal_name: string }) =>
   (await call<{ data: Hub }>(`${hubPath(id)}/invitation/accept`, "POST", signature)).data;

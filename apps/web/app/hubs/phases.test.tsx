@@ -32,6 +32,7 @@ async function open(over: Record<string, unknown>, routes: Record<string, unknow
     "GET /v1/hubs/hub-1": { data: hub(over) },
     "GET /v1/hubs/hub-1/members": { data: [owner()] },
     "GET /v1/hubs/hub-1/idea": { data: idea() },
+    "GET /v1/hubs/hub-1/design": { data: { pieces: [], links: [] } },
     ...routes,
   });
   render(<HubPage lang={lang} />);
@@ -88,7 +89,7 @@ test.each([
 
 test("once the team is confirmed, everyone reads that the owner moves the hub", async () => {
   await open({ ...asMember, ...at("brainstorm") });
-  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. Brainstorm has its notes below; the tools for the other phases are still to come.")).toBeTruthy();
+  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are below; the review tool is still to come.")).toBeTruthy();
 });
 
 test.each([
@@ -97,9 +98,22 @@ test.each([
 ])("once the team is confirmed, %s is not pointed to notes they cannot see", async (_who, viewer) => {
   await open({ ...viewer, ...at("brainstorm") });
   expect(
-    within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes are for the hub's members; the tools for the other phases are still to come."),
+    within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are for the hub's members; the review tool is still to come."),
   ).toBeTruthy();
   expect(phases().textContent).not.toContain("notes below");
+});
+
+test.each([
+  ["a member", asMember, "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont ci-dessous\u202f; l'outil de revue reste à venir."],
+  [
+    "someone outside the hub",
+    asOutsider,
+    "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont réservés aux membres de l'espace\u202f; l'outil de revue reste à venir.",
+  ],
+])("in French, once the team is confirmed, %s reads the build tab too", async (_who, viewer, line) => {
+  await open({ ...viewer, ...at("brainstorm") }, {}, "fr");
+  // the text itself, not the page's normalised copy of it: the narrow no-break space before the semicolon is checked
+  expect(phases().textContent).toContain(line);
 });
 
 test("the owner confirms the team after a dialog, and the page shows the card the API sent, with a status line", async () => {
@@ -247,6 +261,7 @@ test("showing the page again drops the status line from the last visit", async (
     "GET /v1/hubs/hub-1": [{ data: hub(asOwner) }, { data: hub({ ...asOwner, ...at("build") }) }],
     "GET /v1/hubs/hub-1/members": { data: [owner()] },
     "GET /v1/hubs/hub-1/idea": { data: idea() },
+    "GET /v1/hubs/hub-1/design": { data: { pieces: [], links: [] } },
     "POST /v1/hubs/hub-1/team/confirm": { data: hub({ ...asOwner, ...at("brainstorm") }) },
   });
   const page = (mode: "visible" | "hidden") => (

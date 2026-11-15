@@ -123,7 +123,6 @@ function HubView({ t }: { t: Copy }) {
           <Check />
           {hub.active}
         </span>
-        <span className={`${s.pill} ${s.pillSample}`}>{hub.sample}</span>
         <span className={s.meta}>{hub.count}</span>
       </p>
       <p className={s.fieldLabel}>{hub.phasesHeading}</p>
