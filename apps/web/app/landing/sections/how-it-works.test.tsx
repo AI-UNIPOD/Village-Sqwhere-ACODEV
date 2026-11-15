@@ -149,9 +149,9 @@ test("without IntersectionObserver the first step stays active and every step st
 });
 
 test.each([
-  ["en", "Brainstorm has its notes, design its sketch and build its tab already", "still to come"],
-  ["fr", "Le brainstorm a déjà ses notes, la conception son schéma et la construction son onglet", "reste à venir"],
-] as const)("the %s hub step says brainstorm and design have their tools and the others are still to come", (lang, notes, later) => {
+  ["en", "brainstorm notes, a design sketch, a build tab and a review checklist", "Each phase has its tool"],
+  ["fr", "des notes de brainstorm, un schéma de conception, un onglet construction et une liste de revue", "Chaque phase a son outil"],
+] as const)("the %s hub step names the tool of each phase", (lang, notes, later) => {
   const text = copy[lang].steps[3].text;
   expect(text).toContain(notes);
   expect(text).toContain(later);

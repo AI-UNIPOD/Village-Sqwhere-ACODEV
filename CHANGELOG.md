@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- fix(web): say every hub phase has its tool on the landing page (#223)
 - fix(web): draw no repository link in the demo's review case (#221)
 - feat(api): push hub chat messages live over a websocket (#219)
 - feat(api): post to the feed when a hub moves to a new phase (#218)
