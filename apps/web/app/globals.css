@@ -137,27 +137,45 @@ html[lang="fr"] [data-not-found="fr"] {
   display: contents;
 }
 
-/* The theme switch (app/landing/theme-toggle.tsx): the new theme spreads from the button in a
-   soft-edged circle over the old one, so the default crossfade is off while it runs. The script
-   grows --theme-reach from the button (--theme-x, --theme-y); the edge feathers over 40% of the
-   radius, at most two big steps of spacing, so a small circle is soft without turning to blur. */
-@property --theme-reach {
+/* The theme switch (app/landing/theme-toggle.tsx): the new theme arrives in a wave of tiles from the
+   centre of the screen, so the default crossfade is off while it runs. The new page is shown
+   inside a diamond whose half diagonal, --tiles-s, the script grows on the wave's own timing from
+   the centre (--tiles-x, --tiles-y); the canvas above it draws the tiles still folding outside the
+   diamond in the new background colour. html and body are --bg, so the tiles meet the same colour. */
+@property --tiles-s {
   syntax: "<length>";
   inherits: false;
   initial-value: 0px;
 }
 
-html[data-theme-spread]::view-transition-old(root),
-html[data-theme-spread]::view-transition-new(root) {
+canvas[data-theme-tiles-canvas] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  view-transition-name: theme-tiles;
+}
+
+html[data-theme-tiles]::view-transition-old(root),
+html[data-theme-tiles]::view-transition-new(root),
+html[data-theme-tiles]::view-transition-group(theme-tiles),
+html[data-theme-tiles]::view-transition-new(theme-tiles) {
   animation: none;
   mix-blend-mode: normal;
 }
 
-html[data-theme-spread]::view-transition-new(root) {
-  mask-image: radial-gradient(
-    circle at var(--theme-x) var(--theme-y),
-    var(--text) calc(var(--theme-reach) - min(var(--theme-reach) * 0.4, var(--space-20) * 2)),
-    transparent var(--theme-reach)
+html[data-theme-tiles]::view-transition-old(theme-tiles) {
+  display: none;
+}
+
+/* closed (a diamond of no size) until the script starts the wave, so the new theme never shows
+   for a frame at the start */
+html[data-theme-tiles]::view-transition-new(root) {
+  clip-path: polygon(
+    var(--tiles-x) calc(var(--tiles-y) - var(--tiles-s)),
+    calc(var(--tiles-x) + var(--tiles-s)) var(--tiles-y),
+    var(--tiles-x) calc(var(--tiles-y) + var(--tiles-s)),
+    calc(var(--tiles-x) - var(--tiles-s)) var(--tiles-y)
   );
 }
 

@@ -27,6 +27,8 @@ export type Hub = {
   // `phase` and `team_confirmed_at` are null until the owner confirms the team
   phase: Phase | null;
   team_confirmed_at: string | null;
+  // set once the owner finishes the hub in review; nothing in it changes after that
+  finished_at: string | null;
   phases: { phase: Phase; state: PhaseState }[];
   // both null for someone who was never a member
   // `can_ask_again_at` is set only while a wait after a decline is still ahead
@@ -261,6 +263,42 @@ export const setRepository = async (id: string, repositoryUrl: string | null) =>
 
 // Any active member asks GitHub for the latest commits, at most once a minute. Answers with the whole tab.
 export const refreshCommits = async (id: string) => (await call<{ data: Build }>(`${hubPath(id)}/commits/refresh`, "POST")).data;
+
+// One check against a piece. The three `can_` flags say what the viewer may do now.
+export type ReviewCheck = {
+  id: string;
+  text: string;
+  created_by: Note["author"];
+  created_at: string;
+  ticked_by: Note["author"] | null;
+  ticked_at: string | null;
+  can_tick: boolean;
+  can_untick: boolean;
+  can_delete: boolean;
+};
+
+export type ReviewPiece = { id: string; name: string; summary: string; claimed_by: Note["author"] | null; checks: ReviewCheck[] };
+
+// The review checklist in one answer. `can_add` and `can_finish` are for the viewer.
+export type Review = { finished_at: string | null; can_add: boolean; can_finish: boolean; open_checks: number; pieces: ReviewPiece[] };
+
+export const CHECK_MAX = 200;
+
+export const loadReview = async (id: string) => (await call<{ data: Review }>(`${hubPath(id)}/review`)).data;
+
+export const addCheck = async (id: string, pieceId: string, text: string) =>
+  (await call<{ data: ReviewCheck }>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}/checks`, "POST", { text })).data;
+
+export const tickCheck = async (id: string, checkId: string) =>
+  (await call<{ data: ReviewCheck }>(`${hubPath(id)}/checks/${encodeURIComponent(checkId)}/tick`, "POST")).data;
+
+export const untickCheck = async (id: string, checkId: string) =>
+  (await call<{ data: ReviewCheck }>(`${hubPath(id)}/checks/${encodeURIComponent(checkId)}/tick`, "DELETE")).data;
+
+export const deleteCheck = (id: string, checkId: string) => call<null>(`${hubPath(id)}/checks/${encodeURIComponent(checkId)}`, "DELETE");
+
+// The owner finishes the hub once every check is ticked. Answers with the hub card.
+export const finishHub = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/finish`, "POST")).data;
 
 // One message of a hub's chat. `reply_to.body` is null once the quoted message is deleted.
 export type Message = {

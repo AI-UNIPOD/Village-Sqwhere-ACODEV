@@ -11,6 +11,8 @@ its number:
 ## 2026-11-15
 
 - fix(api): make the demo world's dates, review case and chats consistent
+- feat(web): turn the theme in a wave of tiles from the centre (#180)
+- feat(web): add the review checklist to the hub page (#210)
 - fix(infra): date the demo's signatures when each member joined (#209)
 - fix(web): say the build tab is live on the landing page (#208)
 - feat(api): add the review checklist and finishing to a hub (#204)

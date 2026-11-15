@@ -49,6 +49,7 @@ export const hub = (over: Record<string, unknown> = {}) => ({
   agreement: { version: 1 },
   phase: null,
   team_confirmed_at: null,
+  finished_at: null,
   phases: phasesAt(null),
   viewer: { membership_status: "active", member_role: "owner" },
   ...over,
@@ -87,9 +88,9 @@ export const membership = (over: Record<string, unknown> = {}) => ({
 });
 
 // Answers each address by its longest matching start; a list of answers is used one per call.
-// Every hub page asks for the viewer's membership, every member's page reads the chat, and a hub
-// in build or review reads its build tab and the viewer's profile, so each has an answer unless a
-// test names its own.
+// Every hub page asks for the viewer's membership, every member's page reads the chat, a hub in
+// build or review reads its build tab and the viewer's profile, and a hub in review reads its
+// checklist, so each has an answer unless a test names its own.
 export function api(given: Record<string, unknown>) {
   const routes: Record<string, unknown> = {
     "GET /v1/hubs/hub-1/membership": { data: membership() },
@@ -97,6 +98,7 @@ export function api(given: Record<string, unknown>) {
     "GET /v1/hubs/hub-1/build": {
       data: { repository_url: null, commits_refreshed_at: null, can_set_repository: false, can_refresh: false, pieces: [], commits: [] },
     },
+    "GET /v1/hubs/hub-1/review": { data: { finished_at: null, can_add: false, can_finish: false, open_checks: 0, pieces: [] } },
     "GET /v1/me": { data: { username: "amina-ndiaye", display_name: "Amina Ndiaye", roles: [], technologies: [] } },
     ...given,
   };
