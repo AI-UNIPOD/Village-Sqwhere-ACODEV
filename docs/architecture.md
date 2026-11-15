@@ -139,7 +139,7 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   and your own posts). Likes and saves, each safe to repeat: `PUT /v1/posts/{post_id}/like`,
   `DELETE /v1/posts/{post_id}/like`, `PUT /v1/posts/{post_id}/save`,
   `DELETE /v1/posts/{post_id}/save` and `GET /v1/me/saved-posts`. The author adds an image (JPEG,
-  PNG or WebP, up to 4 MB, at most 10) with `POST /v1/uploads`. Anyone with its address reads it,
+  PNG or WebP, up to 4 MB, at most 10) with `POST /v1/uploads` and removes one with `DELETE /v1/uploads/{attachment_id}`. Anyone with its address reads it,
   without a token, at `GET /v1/post-images/{attachment_id}`.
 - **Comments** (Bearer token): comment or reply with `POST /v1/posts/{post_id}/comments`, then
   `GET /v1/comments/{comment_id}`, `PATCH /v1/comments/{comment_id}` and

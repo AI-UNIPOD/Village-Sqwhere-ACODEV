@@ -193,3 +193,49 @@ def test_image_is_gone_with_its_post_or_when_unknown(client: TestClient, sign_in
     gone = client.get(url)
     assert gone.status_code == 404
     assert gone.json()["detail"]["code"] == "IMAGE_NOT_FOUND"
+
+
+def test_the_author_removes_one_image_and_the_others_stay(
+    client: TestClient, sign_in: Callable
+) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create_post(client, auth)
+    first = _upload(client, post_id, auth).json()["data"]
+    second = _upload(client, post_id, auth).json()["data"]
+
+    removed = client.delete(f"/v1/uploads/{first['id']}", headers=auth)
+
+    assert removed.status_code == 204 and removed.content == b""
+    assert [item["id"] for item in _attachments(client, post_id, auth)] == [second["id"]]
+    assert client.get(first["url"]).status_code == 404
+    assert client.get(second["url"]).status_code == 200
+    # the freed position is the next one used
+    third = _upload(client, post_id, auth).json()["data"]
+    assert third["position"] == first["position"]
+
+
+def test_only_the_author_may_remove_an_image(client: TestClient, sign_in: Callable) -> None:
+    ada = _bearer(sign_in("github-code-ada")["access_token"])
+    moussa = _bearer(sign_in("github-code-moussa")["access_token"])
+    post_id = _create_post(client, ada)
+    image = _upload(client, post_id, ada).json()["data"]
+
+    response = client.delete(f"/v1/uploads/{image['id']}", headers=moussa)
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "NOT_POST_AUTHOR"
+    assert len(_attachments(client, post_id, ada)) == 1
+
+
+def test_removing_an_image_needs_sign_in_and_an_image_that_exists(
+    client: TestClient, sign_in: Callable
+) -> None:
+    auth = _bearer(sign_in("github-code-ada")["access_token"])
+    post_id = _create_post(client, auth)
+    image = _upload(client, post_id, auth).json()["data"]
+
+    assert client.delete(f"/v1/uploads/{image['id']}").status_code == 401
+    missing = client.delete("/v1/uploads/00000000-0000-0000-0000-000000000001", headers=auth)
+    assert missing.status_code == 404
+    assert missing.json()["detail"]["code"] == "IMAGE_NOT_FOUND"
+    assert len(_attachments(client, post_id, auth)) == 1
