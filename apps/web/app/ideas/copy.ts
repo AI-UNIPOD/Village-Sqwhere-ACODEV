@@ -144,7 +144,6 @@ type Copy = {
     back: string;
     noRoles: string;
     sharedBy: string;
-    githubProfile: string;
     edit: string;
     goneTitle: string;
     goneText: string;
@@ -338,7 +337,6 @@ const en: Copy = {
     back: "Open ideas",
     noRoles: "The owner has not said which roles are needed yet.",
     sharedBy: "Shared by",
-    githubProfile: "GitHub profile, opens in a new tab",
     edit: "Edit your idea",
     goneTitle: "This idea is not open",
     goneText: "It may have been closed by its owner, or the address is wrong.",
@@ -546,7 +544,6 @@ const fr: Copy = {
     back: "Idées ouvertes",
     noRoles: "Le porteur de l'idée n'a pas encore indiqué les rôles recherchés.",
     sharedBy: "Partagée par",
-    githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
     edit: "Modifier votre idée",
     goneTitle: "Cette idée n'est pas ouverte",
     goneText: "Elle a peut-être été fermée par son porteur, ou l'adresse est incorrecte.",
