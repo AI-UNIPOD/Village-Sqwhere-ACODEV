@@ -125,6 +125,18 @@ test.each([
   for (const link of links) expect(link.getAttribute("href")).toBe(`/${lang}/sign-in`);
 });
 
+test.each([
+  ["en", "AI UniPod, University of Lagos (opens in a new tab)", "Built at AI UniPod, University of Lagos (opens in a new tab) for ACODev 2026."],
+  ["fr", "l'AI UniPod de l'Université de Lagos (s'ouvre dans un nouvel onglet)", "Conçu à l'AI UniPod de l'Université de Lagos (s'ouvre dans un nouvel onglet) pour l'ACODev 2026."],
+] as const)("the %s footer credits the AI UniPod and links to its site in a new tab", (lang, name, line) => {
+  render(<LandingPage lang={lang} />);
+  const link = within(screen.getByRole("contentinfo")).getByRole("link", { name });
+  expect(link.getAttribute("href")).toBe("https://aiunipod.unilag.edu.ng/");
+  expect(link.getAttribute("target")).toBe("_blank");
+  expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(link.parentElement!.textContent).toBe(line);
+});
+
 test("the French page says the same in French", () => {
   render(<LandingPage lang="fr" />);
   expect(screen.getAllByRole("button", { name: "Essayer la démo" }).length).toBeGreaterThanOrEqual(2);

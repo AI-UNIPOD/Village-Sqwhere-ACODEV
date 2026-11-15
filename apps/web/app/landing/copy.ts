@@ -24,7 +24,8 @@ type Copy = {
   footDemo: string;
   footCopy: string;
   footLang: string;
-  footCredit: string;
+  // the place it was built, linked to its own site: words before, the link, words after
+  footCredit: { before: string; link: string; after: string; newTab: string };
 };
 
 const en: Copy = {
@@ -57,7 +58,7 @@ const en: Copy = {
   footDemo: "Try the demo",
   footCopy: "© 2026 Village Sqwhere.",
   footLang: "Available in English and French.",
-  footCredit: "Made for ACODev 2026.",
+  footCredit: { before: "Built at", link: "AI UniPod, University of Lagos", after: "for ACODev 2026.", newTab: "opens in a new tab" },
 };
 
 // Needs a native French review before launch.
@@ -91,7 +92,7 @@ const fr: Copy = {
   footDemo: "Essayer la démo",
   footCopy: "© 2026 Village Sqwhere.",
   footLang: "Disponible en anglais et en français.",
-  footCredit: "Conçu pour l'ACODev 2026.",
+  footCredit: { before: "Conçu à", link: "l'AI UniPod de l'Université de Lagos", after: "pour l'ACODev 2026.", newTab: "s'ouvre dans un nouvel onglet" },
 };
 
 export const copy: Record<Lang, Copy> = { en, fr };
