@@ -65,13 +65,16 @@ def test_a_demo_members_signature_is_dated_the_moment_they_joined() -> None:
         ids = await demo_hub(conn)
         await add_signer(conn, ids["hub"], demo=True)
         await joined_ten_days_ago(conn, ids["hub"])
-        before = await dated_at_joining(conn, ids["hub"])
+        before = await dated_at_joining(conn, ids["hub"]), await trigger_row(conn)
         await run_script(conn)
-        return before, await dated_at_joining(conn, ids["hub"])
+        return before, (await dated_at_joining(conn, ids["hub"]), await trigger_row(conn))
 
     before, after = in_rolled_back_transaction(work)
-    assert before == [False, False]
-    assert after == [True, True]
+    assert before[0] == [False, False]
+    assert after[0] == [True, True]
+    # the trigger was switched off and on again: its row is a new version, and it is on
+    assert after[1][0] != before[1][0]
+    assert after[1][1] == "O"
 
 
 def test_a_real_persons_signature_in_a_demo_hub_is_left_alone() -> None:
@@ -110,18 +113,40 @@ def test_a_signature_made_before_the_member_joined_is_not_moved() -> None:
     assert in_rolled_back_transaction(work) == [False]
 
 
-def test_running_the_script_twice_changes_nothing_more_and_leaves_the_trigger_alone() -> None:
+def test_running_the_script_twice_changes_nothing_more() -> None:
     async def work(conn: AsyncConnection) -> Any:
         ids = await demo_hub(conn)
         await joined_ten_days_ago(conn, ids["hub"])
         await run_script(conn)
-        first = await dated_at_joining(conn, ids["hub"]), await trigger_row(conn)
+        moments = "SELECT signed_at FROM agreement_signatures WHERE hub_id = :hub"
+        first = (await conn.execute(text(moments), ids)).all()
         await run_script(conn)
-        return first, (await dated_at_joining(conn, ids["hub"]), await trigger_row(conn))
+        return first, (await conn.execute(text(moments), ids)).all(), await trigger_row(conn)
 
-    first, second = in_rolled_back_transaction(work)
+    first, second, trigger = in_rolled_back_transaction(work)
     assert first == second
-    assert first[0] == [True] and first[1][1] == "O"
+    assert trigger[1] == "O"
+
+
+def test_a_database_with_nothing_to_change_leaves_the_trigger_alone() -> None:
+    async def work(conn: AsyncConnection) -> Any:
+        await demo_hub(conn)
+        # no member, in a demo world the database already holds or in this one, joined before
+        # signing, so there is nothing to change
+        await conn.execute(
+            text(
+                "UPDATE hub_members m SET joined_at = s.signed_at FROM agreement_signatures s "
+                "WHERE s.id = m.signature_id AND s.signed_at > m.joined_at"
+            )
+        )
+        # the row version written before this transaction began: any change to the trigger,
+        # even switching it off and on again, gives it this transaction's number instead
+        before = await trigger_row(conn)
+        await run_script(conn)
+        return before, await trigger_row(conn)
+
+    before, after = in_rolled_back_transaction(work)
+    assert after == before
 
 
 def test_the_database_still_refuses_a_change_to_a_signature_after_the_script() -> None:
