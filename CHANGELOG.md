@@ -11,6 +11,7 @@ its number:
 ## 2026-11-15
 
 - feat(api): post to the feed when a hub moves to a new phase (#218)
+- feat(web): open the interview socket with a one-use ticket (#217)
 - fix(api): make the demo world's review case and chats consistent (#224)
 - feat(web): show the meaning part of the score and similar ideas (#222)
 - chore: deploy the web app, api and worker as one vercel project (#226)
