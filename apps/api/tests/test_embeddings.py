@@ -733,6 +733,9 @@ def embedding_schema() -> list[tuple[Any, ...]]:
 
 
 def test_the_script_runs_twice_and_leaves_the_tables_as_they_were() -> None:
+    # once first: a database may have had the script applied from a checkout with other line
+    # endings, which a function's stored text keeps
+    apply_script()
     before = embedding_schema()
     assert {
         "idea_embeddings_model",
