@@ -8,9 +8,21 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-15
+
+- fix(web): show the real score and live brainstorm notes on the landing (#181)
+
 ## 2026-11-14
 
 - feat(api): let the owner rename, describe and archive a hub (#169)
+- feat(api): add the design sketch of pieces and links to a hub (#174)
+- fix(web): say what the AI checker looks at in a verification (#179)
+- feat(web): show the design sketch on the hub page (#178)
+- feat(api): add hub chat for active members (#177)
+- feat(api): show another developer's public profile (#175)
+- feat(api): let an author delete an idea that has no hub (#173)
+- feat(api): seed the demo with a range of match scores (#172)
+- feat(web): show the match score and its reasons on match cards (#171)
 - fix(web): make three French lines on the landing page read plainly (#168)
 - feat(api): let members leave a hub and owners remove them (#167)
 - feat(web): add brainstorm notes to the hub page (#166)

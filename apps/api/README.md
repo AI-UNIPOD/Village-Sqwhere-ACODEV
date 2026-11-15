@@ -47,6 +47,9 @@ otherwise it stops with an error and writes nothing, so running it by mistake ag
 without the demo leaves that server alone. Everything it makes is demo content, which real
 developers never see. Its times count back from when it runs, so the feed reads "2 hours ago". Run it again, for
 example on the morning of a demo, to rewrite the posts and comments with fresh times; the
-people, ideas and hubs stay as they are, each person gets their country again, and the
-visitor's own hub is put in the build phase if it has none yet, and gets its six brainstorm notes
-if it has no notes.
+people, ideas and hubs stay as they are, each person gets their bio and country again, the
+roles, technologies, sectors, people and open ideas that are missing are added, and the
+visitor's own hub is put in the build phase if it has none yet, gets its six brainstorm notes
+if it has no notes, and gets a design sketch of five pieces and six links if it has no pieces.
+The visitor's own idea shows a Strong, a Possible and a Weak match, and "For you" holds two
+open ideas with different scores.

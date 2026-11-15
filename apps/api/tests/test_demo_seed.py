@@ -3,12 +3,12 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, text, update
 
 from app import config, database
 from app.api.v1.auth import DEMO_ACCOUNT_ID
-from app.demo_seed import OWN_HUB, PEOPLE, main, seed
-from app.models import Hub, HubNote, HubPhaseMove, User
+from app.demo_seed import FOR_YOU_IDEAS, OWN_HUB, PEOPLE, main, seed
+from app.models import Hub, HubNote, HubPhaseMove, HubPiece, HubPieceLink, Idea, User
 from tests.conftest import test_async_session as db_session
 
 
@@ -144,6 +144,7 @@ def test_the_seed_gives_each_person_the_country_in_their_bio(
         "danladi_kabir": "NG",
         "wanjiru_kamau": "KE",
         "tendai_moyo": "ZW",
+        "uwase_mutoni": "RW",
     }
 
 
@@ -249,6 +250,206 @@ def test_a_rerun_adds_the_notes_only_when_the_hub_has_none(
     assert _hub_notes(client, visitor) == []
     _seed()
     assert [note["body"] for note in _hub_notes(client, visitor)] == [n["body"] for n in notes]
+
+
+def _hub_design(client: TestClient, visitor: dict) -> dict:
+    resp = client.get(f"/v1/hubs/{_own_hub(client, visitor)['id']}/design", headers=visitor)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]
+
+
+def test_the_demo_hub_has_a_design_sketch_the_visitor_can_read_but_not_change(
+    client: TestClient, visitor: dict
+) -> None:
+    hub_id = _own_hub(client, visitor)["id"]
+    sketch = _hub_design(client, visitor)
+    pieces, links = sketch["pieces"], sketch["links"]
+
+    assert len(pieces) == 5 and len(links) == 6
+    members = client.get(f"/v1/hubs/{hub_id}/members", headers=visitor).json()["data"]
+    active = {m["user"]["id"] for m in members if m["status"] == "active"}
+    assert {item["created_by"]["id"] for item in pieces + links} == active
+    ends = {piece["id"] for piece in pieces}
+    assert all({link["from_piece_id"], link["to_piece_id"]} <= ends for link in links)
+    assert all(link["label"] for link in links)
+    now = datetime.now(UTC)
+    for items in (pieces, links):
+        times = [datetime.fromisoformat(item["created_at"]) for item in items]
+        assert times == sorted(times)
+        assert all(now - timedelta(days=6) < moment < now - timedelta(days=3) for moment in times)
+    assert all(item["can_delete"] is False for item in pieces + links)  # the hub is in build
+
+    for resp in (
+        client.post(f"/v1/hubs/{hub_id}/pieces", headers=visitor, json={"name": "Hello"}),
+        client.delete(f"/v1/hubs/{hub_id}/pieces/{pieces[0]['id']}", headers=visitor),
+        client.delete(f"/v1/hubs/{hub_id}/links/{links[0]['id']}", headers=visitor),
+    ):
+        assert resp.status_code == 403
+        assert resp.json()["detail"]["code"] == "DEMO_READ_ONLY"
+    assert _hub_design(client, visitor) == sketch
+
+
+def test_a_rerun_adds_the_sketch_only_when_the_hub_has_no_pieces(
+    client: TestClient, visitor: dict
+) -> None:
+    sketch = _hub_design(client, visitor)
+
+    _seed()
+    assert _hub_design(client, visitor) == sketch
+
+    async def clear() -> None:
+        async with db_session() as session:
+            hub_id = _own_hub(client, visitor)["id"]
+            await session.execute(delete(HubPieceLink).where(HubPieceLink.hub_id == hub_id))
+            await session.execute(delete(HubPiece).where(HubPiece.hub_id == hub_id))
+            await session.commit()
+
+    asyncio.run(clear())
+    assert _hub_design(client, visitor) == {"pieces": [], "links": []}
+    _seed()
+    again = _hub_design(client, visitor)
+    assert [piece["name"] for piece in again["pieces"]] == [p["name"] for p in sketch["pieces"]]
+    assert [link["label"] for link in again["links"]] == [k["label"] for k in sketch["links"]]
+
+
+def _my_open_idea(client: TestClient, visitor: dict) -> str:
+    ideas = client.get("/v1/me/ideas", headers=visitor).json()["data"]
+    return next(idea["id"] for idea in ideas if idea["status"] == "open")
+
+
+def _idea_matches(client: TestClient, visitor: dict) -> list[dict]:
+    resp = client.get(f"/v1/me/ideas/{_my_open_idea(client, visitor)}/matches", headers=visitor)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]
+
+
+def _for_you(client: TestClient, visitor: dict) -> list[dict]:
+    resp = client.get("/v1/me/matches", headers=visitor)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]
+
+
+def test_the_visitors_idea_has_a_strong_a_possible_and_a_weak_match(
+    client: TestClient, visitor: dict
+) -> None:
+    matches = _idea_matches(client, visitor)
+
+    scores = [match["score"] for match in matches]
+    assert scores == sorted(scores, reverse=True) and len(set(scores)) == len(scores)
+    assert any(score >= 80 for score in scores)
+    assert any(60 <= score < 80 for score in scores)
+    assert any(40 <= score < 60 for score in scores)
+    strong = matches[0]
+    assert len(strong["matched_roles"]) == 2 and strong["breakdown"]["sectors"]["points"] == 10
+    assert strong["country_code"] == "SN"
+
+
+def test_for_you_has_two_ideas_with_different_scores_one_of_them_possible(
+    client: TestClient, visitor: dict
+) -> None:
+    matches = _for_you(client, visitor)
+
+    scores = [match["score"] for match in matches]
+    assert len(matches) >= 2 and len(set(scores)) >= 2
+    assert max(scores) >= 60
+    assert any("é" in match["idea"]["title"] for match in matches)  # one is in French
+
+
+def _seeded_usernames() -> list[str]:
+    """Only the seed's own people: other tests leave demo accounts of their own in this database."""
+    return [username for username, _, _ in PEOPLE.values()]
+
+
+def _profiles() -> dict[str, tuple]:
+    """Each demo person's bio, roles, technologies and sectors, as the tables hold them."""
+    sql = text(
+        """
+        SELECT u.username, u.bio,
+          array(SELECT r.slug FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = u.id AND ur.verified_at IS NOT NULL ORDER BY 1),
+          array(SELECT t.slug FROM user_technologies ut
+                JOIN technologies t ON t.id = ut.technology_id
+                WHERE ut.user_id = u.id ORDER BY 1),
+          array(SELECT s.slug FROM user_sectors us JOIN sectors s ON s.id = us.sector_id
+                WHERE us.user_id = u.id ORDER BY 1)
+        FROM users u WHERE u.username = ANY(:names)
+        """
+    )
+
+    async def go() -> dict[str, tuple]:
+        async with db_session() as session:
+            rows = await session.execute(sql, {"names": _seeded_usernames()})
+            return {name: tuple(rest) for name, *rest in rows}
+
+    return asyncio.run(go())
+
+
+def _counts() -> tuple[int, int, int]:
+    names = _seeded_usernames()
+
+    async def go() -> tuple[int, int, int]:
+        async with db_session() as session:
+            owned = select(func.count()).select_from(Idea).join(User, User.id == Idea.author_id)
+            hubs = select(func.count()).select_from(Hub).join(User, User.id == Hub.owner_id)
+            return (
+                await session.scalar(
+                    select(func.count()).select_from(User).where(User.username.in_(names))
+                ),
+                await session.scalar(owned.where(User.username.in_(names))),
+                await session.scalar(hubs.where(User.username.in_(names))),
+            )
+
+    return asyncio.run(go())
+
+
+def _make_the_world_the_old_way() -> None:
+    """What a demo made before the score range held: no sectors, one role each, shorter stacks,
+    no Uwase and no For you ideas."""
+    titles = [title for _, title, _, _ in FOR_YOU_IDEAS]
+
+    async def go() -> None:
+        async with db_session() as session:
+            await session.execute(delete(Idea).where(Idea.title.in_(titles)))
+            await session.execute(text("DELETE FROM user_sectors"))
+            for sql in (
+                "DELETE FROM user_roles ur USING users u, roles r WHERE ur.user_id = u.id"
+                " AND ur.role_id = r.id AND u.username = 'aminata_ndiaye'"
+                " AND r.slug = 'frontend-engineer'",
+                "DELETE FROM user_technologies ut USING users u, technologies t"
+                " WHERE ut.user_id = u.id AND ut.technology_id = t.id AND (u.username, t.slug) IN"
+                " (('aminata_ndiaye', 'react'), ('aminata_ndiaye', 'nodejs'),"
+                " ('aminata_ndiaye', 'ci-cd'), ('tendai_moyo', 'ci-cd'),"
+                " ('tendai_moyo', 'postgresql'), ('olaoluwa_demo', 'nodejs'),"
+                " ('olaoluwa_demo', 'ci-cd'))",
+                "DELETE FROM users WHERE username = 'uwase_mutoni'",
+                "UPDATE users SET bio = 'Développeuse mobile à Dakar.'"
+                " WHERE username = 'aminata_ndiaye'",
+            ):
+                await session.execute(text(sql))
+            await session.commit()
+
+    asyncio.run(go())
+
+
+def test_a_rerun_brings_a_world_made_the_old_way_to_the_same_state(
+    client: TestClient, visitor: dict
+) -> None:
+    profiles, counts = _profiles(), _counts()
+    matches, for_you = _idea_matches(client, visitor), _for_you(client, visitor)
+    hubs = client.get("/v1/me/hubs", headers=visitor).json()["data"]
+    assert len(profiles) == len(PEOPLE)
+
+    _make_the_world_the_old_way()
+    assert _profiles() != profiles and _counts() != counts
+    assert _for_you(client, visitor) == []
+
+    for _ in range(2):  # the second run adds nothing
+        assert _seed() is False
+        assert _profiles() == profiles and _counts() == counts
+
+    assert [m["score"] for m in _idea_matches(client, visitor)] == [m["score"] for m in matches]
+    assert [m["score"] for m in _for_you(client, visitor)] == [m["score"] for m in for_you]
+    assert client.get("/v1/me/hubs", headers=visitor).json()["data"] == hubs
 
 
 def test_the_script_writes_nothing_where_the_demo_is_off(
