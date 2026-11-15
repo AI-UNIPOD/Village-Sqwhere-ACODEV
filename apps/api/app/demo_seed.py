@@ -4,6 +4,9 @@ Run it where the demo should be on (DEMO_ENABLED=true), against that server's DA
 
     uv run --directory apps/api python -m app.demo_seed
 
+The wider community of about 1,150 members, 1,500 posts and 6,000 comments comes from
+app/demo_world.py and its frozen fixtures, written after the people below.
+
 Every person here is made up, and every account is a demo account (users.is_demo), so the wall
 in app/api/deps.py keeps all of it away from real developers. Times are set relative to when
 the script runs, so the feed reads "2 hours ago". Running it again rewrites the posts and
@@ -28,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import config
 from app import demo_review_case as review_case
 from app.api.v1.auth import DEMO_ACCOUNT_ID
+from app.demo_world import write_world
 from app.models import (
     AgreementSignature,
     AuthProvider,
@@ -945,12 +949,15 @@ async def main() -> int:
     engine.echo = False  # the API logs every statement; here that would bury the one result line
     async with async_session() as db:
         made = await seed(db)
+        posts, comments = await write_world(db)
+        await db.commit()
     print(
         "Demo content created."
         if made
         else "Demo posts, comments and commits rewritten with fresh times; any missing people, "
         "roles, technologies, sectors and ideas added; the rest left as it was."
     )
+    print(f"The wider community: {posts} posts and {comments} comments dated back from now.")
     return 0
 
 
