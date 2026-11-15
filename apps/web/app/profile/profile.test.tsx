@@ -229,6 +229,20 @@ test("the country field is in French, named and sorted in French", async () => {
   expect(screen.getByText("Facultatif. Les autres développeurs connectés peuvent voir votre pays.")).toBeTruthy();
 });
 
+test.each([
+  ["en", "About you", "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to Google's Gemini. Your name, your username and your email are never sent."],
+  ["fr", "À propos de vous", "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à Gemini, de Google. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés."],
+] as const)("the bio field says what is sent to match by meaning, in %s, tied to the field and to no other", async (lang, label, note) => {
+  api({ "GET /v1/me": { data: me() } });
+  render(<ProfilePage lang={lang} />);
+  const bio = await screen.findByLabelText(label);
+  const described = (field: HTMLElement) =>
+    field.getAttribute("aria-describedby")!.split(" ").map((id) => document.getElementById(id)!.textContent).join(" ");
+  expect(screen.getByText(note).id).toBe("profile-bio-note");
+  expect(described(bio)).toContain(note);
+  expect(described(screen.getByLabelText(lang === "en" ? "Name" : "Nom"))).not.toContain(note);
+});
+
 test("a fresher profile that arrives after the form is shown is not overwritten by saving the bio", async () => {
   // the kept copy is older than the API: the country was set since
   keepMe(me() as never);

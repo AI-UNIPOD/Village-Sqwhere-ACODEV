@@ -1,16 +1,22 @@
 import { vi } from "vitest";
 
-// The score fields of a match, as version 1 of the API sends them: `parts` are the raw points of
-// roles, technologies and sectors, and meaning is not counted yet.
-export const scored = (score: number, parts: [number, number, number], shared_sectors: { slug: string; name: string }[] = []) => ({
+// The score fields of a match, as the API sends them: `parts` are the raw points of roles,
+// technologies and sectors. Without `meaning` the pair was not compared (version 1, partial);
+// with it, both were, and the score is the plain sum of the four parts (version 2).
+export const scored = (
+  score: number,
+  parts: [number, number, number],
+  shared_sectors: { slug: string; name: string }[] = [],
+  meaning: number | null = null,
+) => ({
   score,
-  score_version: 1,
-  partial: true,
+  score_version: meaning === null ? 1 : 2,
+  partial: meaning === null,
   breakdown: {
     roles: { points: parts[0], max: 40 },
     technologies: { points: parts[1], max: 20 },
     sectors: { points: parts[2], max: 10 },
-    meaning: { points: null, max: 30 },
+    meaning: { points: meaning, max: 30 },
   },
   shared_sectors,
 });
