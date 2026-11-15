@@ -5,6 +5,7 @@ import { ViewTransition, addTransitionType, startTransition, useEffect, useRef, 
 
 import { AppFrame } from "../app-frame";
 import { GatherHero } from "../landing/gather-hero";
+import { heroTeamCopy } from "../landing/hero-team-copy";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { useMe } from "../session/me";
@@ -86,7 +87,7 @@ export function Onboarding({ lang, profile }: { lang: Lang; profile: Profile }) 
   let body;
   if (step === "welcome") {
     body = (
-      <GatherHero labelledBy="welcome-title" labels={{ pause: t.pause, play: t.play }}>
+      <GatherHero labelledBy="welcome-title" labels={{ pause: t.pause, play: t.play }} team={heroTeamCopy[lang]}>
         <h1 id="welcome-title" className={styles.title} tabIndex={-1}>
           {fill(t.welcomeTitle, { name: firstName(profile) })}
         </h1>
