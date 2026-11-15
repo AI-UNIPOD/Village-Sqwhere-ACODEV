@@ -10,10 +10,12 @@ import { useKeptInvitations } from "./hubs/invitations";
 import { copy as shared } from "./landing/copy";
 import landing from "./landing/landing-page.module.css";
 import { ThemeButton } from "./landing/theme-toggle";
+import { useFramePin } from "./frame-pin";
 import { LanguageSwitch } from "./language-switch";
 import { type Lang } from "./locales";
 import { Logo } from "./logo";
 import { Home, Lightbulb, Newspaper, ShieldCheck, User, Users } from "./onboarding/icons";
+import { HomeFilled, LightbulbFilled, NewspaperFilled, ShieldCheckFilled, UserFilled, UsersFilled } from "./place-icons";
 import { useDemoRefusals } from "./session/demo";
 import { ensureMe, useKeptMe } from "./session/me";
 import { useSession } from "./session/session";
@@ -22,14 +24,14 @@ import { startTour, useTour } from "./tour/tour";
 import { TourPanel } from "./tour/tour-panel";
 
 // The places a signed-in developer can go, in the order of the journey. Each id is also the
-// first part of its address and its key in the copy.
+// first part of its address and its key in the copy. The place you are in shows its filled icon.
 const PLACES = [
-  { id: "village", icon: Home },
-  { id: "feed", icon: Newspaper },
-  { id: "ideas", icon: Lightbulb },
-  { id: "hubs", icon: Users },
-  { id: "reviews", icon: ShieldCheck },
-  { id: "profile", icon: User },
+  { id: "village", icon: Home, filled: HomeFilled },
+  { id: "feed", icon: Newspaper, filled: NewspaperFilled },
+  { id: "ideas", icon: Lightbulb, filled: LightbulbFilled },
+  { id: "hubs", icon: Users, filled: UsersFilled },
+  { id: "reviews", icon: ShieldCheck, filled: ShieldCheckFilled },
+  { id: "profile", icon: User, filled: UserFilled },
 ] as const;
 
 type AppFrameProps = {
@@ -83,9 +85,11 @@ function DemoLine({ lang }: { lang: Lang }) {
 }
 
 // The header and the page around every screen for a signed-in developer, so their loading and
-// error screens keep the way around too. On a phone the places sit in a bar at the bottom of
+// error screens keep the way around too. On a phone the places float in a bar above the bottom of
 // the screen, within reach of a thumb; on a wide screen they are links in the header. It is one
-// list either way, placed by the stylesheet.
+// list either way, placed by the stylesheet. Once it has scrolled away, the header turns into a
+// pill near the top (frame-pin.tsx). A locked screen keeps its header in the page: it holds
+// nothing to reach.
 export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) {
   const t = copy[lang];
   const signedIn = !!useSession();
@@ -96,6 +100,7 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
   // known once the village or Your hubs has loaded them this visit
   const invited = (useKeptInvitations()?.length ?? 0) > 0;
   const places = signedIn && !locked && !bare;
+  const { slot, header } = useFramePin(!locked);
   // "ideas/compose?id=1" is in "ideas", and a post ("posts/view?id=1") is read in the feed
   const first = path.split(/[/?]/)[0];
   const here = first === "posts" ? "feed" : first;
@@ -107,50 +112,55 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
   );
   return (
     <div className={styles.page} data-frame="" data-places={places || undefined}>
-      <header className={styles.header} data-site-header="">
-        {locked ? (
-          <span className={`${landing.brand} ${styles.brand}`}>{brand}</span>
-        ) : (
-          // home is the village once signed in, the landing page until then
-          <Link className={`${landing.brand} ${styles.brand}`} href={signedIn ? `/${lang}/village` : `/${lang}`}>
-            {brand}
-          </Link>
-        )}
-        {places && (
-          <nav className={styles.places} aria-label={t.navLabel}>
-            {PLACES.map(({ id, icon: PlaceIcon }) => {
-              // deciding other developers' attempts is for those who hold a Green Tick
-              if (id === "reviews" && !me?.roles.some((role) => role.verified_at)) return null;
-              const current = id === here;
-              return (
-                <Link key={id} className={styles.place} href={`/${lang}/${id}`} aria-current={current ? "page" : undefined}>
-                  <PlaceIcon />
-                  {t[id]}
-                  {id === "hubs" && invited && (
-                    <span className={styles.dot}>
-                      <span className={landing.srOnly}>, {t.invited}</span>
+      <div ref={slot} data-header-slot="">
+        <header ref={header} className={styles.header} data-site-header="">
+          {locked ? (
+            <span className={`${landing.brand} ${styles.brand}`}>{brand}</span>
+          ) : (
+            // home is the village once signed in, the landing page until then
+            <Link className={`${landing.brand} ${styles.brand}`} href={signedIn ? `/${lang}/village` : `/${lang}`}>
+              {brand}
+            </Link>
+          )}
+          {places && (
+            <nav className={styles.places} aria-label={t.navLabel}>
+              {PLACES.map(({ id, icon: outline, filled }) => {
+                // deciding other developers' attempts is for those who hold a Green Tick
+                if (id === "reviews" && !me?.roles.some((role) => role.verified_at)) return null;
+                const current = id === here;
+                const Icon = current ? filled : outline;
+                return (
+                  <Link key={id} className={styles.place} href={`/${lang}/${id}`} aria-current={current ? "page" : undefined}>
+                    <span className={styles.zone}>
+                      {/* the mark keeps one name across screens, so it slides to the place just opened */}
+                      {current && (
+                        <ViewTransition name="place-mark" share="place-mark">
+                          <span className={styles.mark} />
+                        </ViewTransition>
+                      )}
+                      <Icon />
                     </span>
-                  )}
-                  {/* the mark keeps one name across screens, so it slides to the place just opened */}
-                  {current && (
-                    <ViewTransition name="place-mark" share="place-mark">
-                      <span className={styles.mark} />
-                    </ViewTransition>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        )}
-        {!locked && (
-          <div className={styles.tools}>
-            <LanguageSwitch lang={lang} path={path} />
-            <ThemeButton toDark={shared[lang].toDark} toLight={shared[lang].toLight} className={styles.theme} />
-            {/* once there is a profile page to reach, signing out lives there */}
-            {signedIn && bare && <SignOutButton lang={lang} label={shared[lang].signOut} className={landing.navLink} />}
-          </div>
-        )}
-      </header>
+                    {t[id]}
+                    {id === "hubs" && invited && (
+                      <span className={styles.dot}>
+                        <span className={landing.srOnly}>, {t.invited}</span>
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
+          {!locked && (
+            <div className={styles.tools}>
+              <LanguageSwitch lang={lang} path={path} />
+              <ThemeButton toDark={shared[lang].toDark} toLight={shared[lang].toLight} className={styles.theme} />
+              {/* once there is a profile page to reach, signing out lives there */}
+              {signedIn && bare && <SignOutButton lang={lang} label={shared[lang].signOut} className={landing.navLink} />}
+            </div>
+          )}
+        </header>
+      </div>
       {signedIn && !locked && me?.is_demo && (
         <>
           <DemoLine lang={lang} />

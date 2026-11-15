@@ -60,6 +60,25 @@ test("a signed-in developer can reach every place, and sees which one they are i
   expect(places().getByRole("link", { name: "Village" }).getAttribute("aria-current")).toBeNull();
 });
 
+test("the place you are in has the filled icon, the others the outline", () => {
+  signIn();
+  render(<AppFrame lang="en" path="hubs">screen</AppFrame>);
+  const filled = (name: string) => places().getByRole("link", { name }).querySelector("svg")?.hasAttribute("data-filled");
+  expect(filled("Hubs")).toBe(true);
+  for (const name of ["Village", "Feed", "Ideas", "Profile"]) expect(filled(name), name).toBe(false);
+});
+
+test("the bar is there for a signed-in developer, and holds Reviews only for a verified one", async () => {
+  signIn();
+  fetchMock.mockResolvedValue(answer([verified]));
+  render(<AppFrame lang="fr" path="reviews">screen</AppFrame>);
+  expect(places().getAllByRole("link").length).toBe(5);
+  const reviews = await places().findByRole("link", { name: "Revues" });
+  expect(reviews.getAttribute("aria-current")).toBe("page");
+  expect(reviews.querySelector("svg")?.hasAttribute("data-filled")).toBe(true);
+  expect(names()).toEqual(["Village", "Fil", "Idées", "Espaces", "Revues", "Profil"]);
+});
+
 test("peer reviews appear once the developer holds a Green Tick, on a screen that never asks who they are", async () => {
   signIn();
   fetchMock.mockResolvedValue(answer([verified]));
@@ -167,6 +186,43 @@ test("a visitor who is not signed in sees no places, and the logo leads to the l
   render(<AppFrame lang="en" path="village">screen</AppFrame>);
   expect(screen.queryByRole("navigation")).toBeNull();
   expect(screen.getByRole("link", { name: "Village Sqwhere" }).getAttribute("href")).toBe("/en");
+});
+
+// ---------- the header, pinned as a pill ----------
+
+class FakeObserver {
+  static callback: IntersectionObserverCallback | undefined;
+  static watched: Element | undefined;
+  constructor(cb: IntersectionObserverCallback) {
+    FakeObserver.callback = cb;
+  }
+  observe(el: Element) {
+    FakeObserver.watched = el;
+  }
+  disconnect() {}
+}
+
+test("the header sits in a slot that is watched, and is pinned once the slot has scrolled away", () => {
+  vi.stubGlobal("IntersectionObserver", FakeObserver);
+  signIn();
+  render(<AppFrame lang="en" path="feed">screen</AppFrame>);
+  const header = screen.getByRole("banner");
+  expect(FakeObserver.watched).toBe(header.parentElement);
+  expect(header.parentElement?.hasAttribute("data-header-slot")).toBe(true);
+
+  act(() => FakeObserver.callback?.([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver));
+  expect(header.hasAttribute("data-pinned")).toBe(true);
+  // the places are the same <nav> in the header, not a copy
+  expect(screen.getAllByRole("navigation").length).toBe(1);
+  expect(header.contains(places().getByRole("link", { name: "Feed" }))).toBe(true);
+});
+
+test("a locked screen keeps its header in the page", () => {
+  FakeObserver.watched = undefined;
+  vi.stubGlobal("IntersectionObserver", FakeObserver);
+  signIn();
+  render(<AppFrame lang="en" path="verification" locked>screen</AppFrame>);
+  expect(FakeObserver.watched).toBeUndefined();
 });
 
 // ---------- the demo account ----------

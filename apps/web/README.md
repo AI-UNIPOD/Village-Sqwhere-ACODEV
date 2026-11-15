@@ -137,7 +137,9 @@ cannot hide the village) and again each time the village is shown. A read that f
 answer leaves its step as it was. Screens for signed-in people share one frame, `AppFrame` in
 `app/app-frame.tsx`: pass it the screen's address so the language link opens the same screen.
 The frame also holds the places (village, feed, ideas, hubs, reviews for a verified developer,
-profile): a bar at the bottom of a phone, links in the header from 768px. A new place is one
+profile): a floating bar above the bottom of a phone, links in the header from 768px. The place
+you are in has a filled icon (`app/place-icons.tsx`) and an indicator that slides to it. Once the
+header has scrolled out of view it turns into a pill near the top (`app/frame-pin.tsx`). A new place is one
 line in `PLACES` and one word in `app/app-frame-copy.ts`. The profile is kept for the visit, so
 a screen opened later shows at once; a screen that changes it calls `loadMe()` or `keepMe()`.
 The frame asks for the profile itself when no screen has, sharing one request with the screen.

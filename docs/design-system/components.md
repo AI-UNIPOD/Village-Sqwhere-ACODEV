@@ -168,11 +168,26 @@ It rises `--space-2` and fades in over `--dur-modal` on `--ease-out`, and fades 
 `--dur-modal-out`; with reduced motion it only fades. While it is pinned, jumps and keyboard
 focus land below it (`scroll-padding-top`).
 
+## Places bar and the app header
+
+On a phone the signed-in places float above the bottom of the screen: inset `--gutter`,
+`--space-2` above the bottom edge, 60px high, `--radius-full`, 1px `--line`, `--shadow-float`,
+and `--surface` at 85% over a `--blur-bar` blur (solid with reduced transparency). Each place is
+a 24px icon over a one-line name in `--type-caption`, at least `--tap-min` wide. The current place
+has a filled icon, `--text`, weight 600, and a 56 by 32 pill behind the icon in `--text` at 8%
+that slides to the place just opened (no slide with reduced motion). From 768px the places are
+links in the header with a line under the current one.
+
+On every signed-in screen except a live interview the header turns into the pinned pill, as the
+landing's does (see Pinned header). On a phone the pill holds the logo and the two switches; from
+768px it holds the logo, the places and the switches. The guided tour's bar sticks just below it.
+Decision: `docs/decisions/2026-11-13-app-navigation.md`.
+
 ## Icons
 
 Lucide, outline, 24px grid, 1.75px stroke, rounded ends. Sizes: 16px in chips and small
 buttons, 20px by default, 24px in navigation and empty states. Icons take the colour of
-their text. No sparkles, stars or dots for AI.
+their text. The places bar shows the current place's icon filled. No sparkles, stars or dots for AI.
 
 ## Third-party marks
 
