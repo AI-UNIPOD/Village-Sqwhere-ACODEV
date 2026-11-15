@@ -12,7 +12,6 @@ type Phase = {
 export type Copy = {
   title: string;
   lead: string;
-  sampleTag: string;
   closing: string;
   tablist: string;
   done: string;
@@ -31,8 +30,7 @@ export const COMMITS = [
 const en: Copy = {
   title: "Your hub has four phases.",
   lead:
-    "The owner confirms the team, Brainstorm opens, and the hub moves through four phases one at a time: brainstorm, design and architecture, build, then review and test. Brainstorm notes and the design sketch are live. The tools for build and for review and test are still to come, and the views below are a made-up sample.",
-  sampleTag: "Made-up sample views. Brainstorm notes and the design sketch are live, the other two tools are still to come",
+    "The owner confirms the team, Brainstorm opens, and the hub moves through four phases one at a time: brainstorm, design and architecture, build, then review and test. Brainstorm notes and the design sketch are live. The tools for build and for review and test are still to come.",
   closing:
     "Today the hub page shows each phase as Done, In progress or Not started, and the owner moves the hub from one phase to the next. During brainstorm, the team's active members add short notes of up to 280 characters on the hub page. They stay to read afterwards. During design, they list the pieces of the system and the labelled links between them, and the hub page draws them as boxes and arrows. The tools for build and for review and test are not built yet.",
   tablist: "Phases",
@@ -71,8 +69,7 @@ const en: Copy = {
 const fr: Copy = {
   title: "Votre espace compte quatre phases.",
   lead:
-    "Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis l'espace traverse quatre phases, une à la fois\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Les notes de brainstorm et le schéma de conception sont disponibles. Les outils de construction et de revue et tests restent à venir, et les vues ci-dessous sont un exemple inventé.",
-  sampleTag: "Vues d'exemple inventées. Les notes de brainstorm et le schéma de conception sont disponibles, les deux autres outils restent à venir",
+    "Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis l'espace traverse quatre phases, une à la fois\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Les notes de brainstorm et le schéma de conception sont disponibles. Les outils de construction et de revue et tests restent à venir.",
   closing:
     "Aujourd'hui, la page de l'espace indique chaque phase comme Terminée, En cours ou Pas commencée, et le porteur de l'idée fait passer l'espace d'une phase à la suivante. Pendant le brainstorm, les membres actifs de l'équipe ajoutent de courtes notes de 280 caractères au maximum sur la page de l'espace. Elles restent lisibles ensuite. Pendant la conception, ils listent les briques du système et les liens nommés entre elles, et la page de l'espace les dessine en boîtes et en flèches. Les outils de construction et de revue et tests ne sont pas encore construits.",
   tablist: "Phases",

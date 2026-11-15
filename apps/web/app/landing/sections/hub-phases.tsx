@@ -163,8 +163,6 @@ export function HubPhases({ lang }: { lang: Lang }) {
         <p className={styles.lead}>{t.lead}</p>
 
         <div className={s.demo} ref={demoRef} data-waiting={waiting}>
-          <p className={s.sample}>{t.sampleTag}</p>
-
           <div className={s.scroller}>
             <div className={s.track}>
               <div className={s.tabs} role="tablist" aria-label={t.tablist} onKeyDown={onKeyDown}>

@@ -54,7 +54,7 @@ type Copy = {
 const en: Copy = {
   title: "Watch the matcher find a team.",
   lead: "Pick an idea. See who the matcher suggests, then form the team yourself.",
-  sampleNote: "Made-up ideas and people. Nothing here is saved.",
+  sampleNote: "Nothing here is saved.",
   pickLabel: "Choose an idea",
   rolesNeeded: "Roles needed",
   sharedBy: (owner, place) => `Shared by ${owner}, ${place}`,
@@ -119,7 +119,7 @@ const en: Copy = {
 const fr: Copy = {
   title: "Voyez le matcher trouver une équipe.",
   lead: "Choisissez une idée. Voyez qui le matcher propose, puis composez l'équipe vous-même.",
-  sampleNote: "Idées et personnes inventées. Rien n'est enregistré ici.",
+  sampleNote: "Rien n'est enregistré ici.",
   pickLabel: "Choisissez une idée",
   rolesNeeded: "Rôles recherchés",
   sharedBy: (owner, place) => `Partagée par ${owner}, ${place}`,

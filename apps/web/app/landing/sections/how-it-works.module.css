@@ -404,11 +404,6 @@
   block-size: var(--space-3);
 }
 
-.pillSample {
-  border: 1px solid var(--line-strong);
-  color: var(--text-muted);
-}
-
 .rail {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

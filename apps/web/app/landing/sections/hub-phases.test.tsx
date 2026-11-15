@@ -64,13 +64,12 @@ const verbatim = { normalizer: (text: string) => text };
 
 const demo = (container: HTMLElement) => container.querySelector<HTMLElement>("[data-waiting]")!;
 
-test.each(["en", "fr"] as const)("the %s section shows its heading, lead and sample tag", (lang) => {
+test.each(["en", "fr"] as const)("the %s section shows its heading and lead", (lang) => {
   const { container } = render(<HubPhases lang={lang} />);
   const t = copy[lang];
   expect(screen.getByRole("heading", { level: 2, name: t.title })).toBeTruthy();
   expect(container.querySelector("section#hub")!.getAttribute("aria-labelledby")).toBe("hub-title");
   expect(screen.getByText(t.lead, verbatim)).toBeTruthy();
-  expect(screen.getByText(t.sampleTag)).toBeTruthy();
   expect(screen.getByText(t.closing, verbatim)).toBeTruthy();
 });
 
@@ -212,13 +211,11 @@ test.each([
   render(<HubPhases lang={lang} />);
   const t = copy[lang];
   expect(t.lead).toContain(live);
-  expect(t.sampleTag).toContain(live);
   expect(t.closing).toContain(notes);
   expect(t.closing).toContain(notBuilt);
   expect(t.phases[0].view).toBe(view);
-  // the build and review views are still samples, and the section says so
-  expect(t.sampleTag).toMatch(/Made-up|inventées/);
-  expect(t.sampleTag).toMatch(/still to come|restent à venir/);
-  expect(screen.getByText(t.sampleTag)).toBeTruthy();
-  expect(`${t.lead} ${t.closing} ${t.sampleTag}`).not.toMatch(/The tools are not built|Les outils ne sont pas/);
+  // the build and review tools are not built, and the section says so
+  expect(t.lead).toMatch(/still to come|restent à venir/);
+  // no label calls the views made up or a sample
+  expect(`${t.lead} ${t.closing}`).not.toMatch(/made-up|sample|inventé|exemple/i);
 });
