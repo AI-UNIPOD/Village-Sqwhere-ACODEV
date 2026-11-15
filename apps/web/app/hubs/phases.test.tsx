@@ -89,7 +89,7 @@ test.each([
 
 test("once the team is confirmed, everyone reads that the owner moves the hub", async () => {
   await open({ ...asMember, ...at("brainstorm") });
-  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. Brainstorm has its notes and Design and architecture has its sketch below; the tools for the other phases are still to come.")).toBeTruthy();
+  expect(within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are below; the review tool is still to come.")).toBeTruthy();
 });
 
 test.each([
@@ -98,19 +98,19 @@ test.each([
 ])("once the team is confirmed, %s is not pointed to notes they cannot see", async (_who, viewer) => {
   await open({ ...viewer, ...at("brainstorm") });
   expect(
-    within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes and the design sketch are for the hub's members; the tools for the other phases are still to come."),
+    within(phases()).getByText("The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are for the hub's members; the review tool is still to come."),
   ).toBeTruthy();
   expect(phases().textContent).not.toContain("notes below");
 });
 
 test.each([
-  ["a member", asMember, "Le porteur fait passer l'espace d'une phase à la suivante. Le brainstorm a ses notes et la conception son schéma ci-dessous\u202f; les outils des autres phases restent à venir."],
+  ["a member", asMember, "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont ci-dessous\u202f; l'outil de revue reste à venir."],
   [
     "someone outside the hub",
     asOutsider,
-    "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm et le schéma de conception sont réservés aux membres de l'espace\u202f; les outils des autres phases restent à venir.",
+    "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont réservés aux membres de l'espace\u202f; l'outil de revue reste à venir.",
   ],
-])("in French, once the team is confirmed, %s reads the sketch too", async (_who, viewer, line) => {
+])("in French, once the team is confirmed, %s reads the build tab too", async (_who, viewer, line) => {
   await open({ ...viewer, ...at("brainstorm") }, {}, "fr");
   // the text itself, not the page's normalised copy of it: the narrow no-break space before the semicolon is checked
   expect(phases().textContent).toContain(line);
