@@ -48,8 +48,8 @@ One match card for an idea, as the owner sees it (`GET /v1/me/ideas/{id}/matches
 }
 ```
 
-`meaning` is `null` until idea embeddings are written, so `partial` is `true` and the score is
-out of the 70 points that are counted, scaled to 100.
+`meaning` is `null` until the score reads the stored embeddings, so `partial` is `true` and the
+score is out of the 70 points that are counted, scaled to 100.
 
 ## Where things are
 
@@ -72,8 +72,9 @@ app/
   models/              SQLAlchemy tables (users, ideas, hubs, posts, lookups)
   schemas/             Pydantic request and response bodies
   services/            the logic routes share: match_score.py, account_deletion.py,
-                       interview.py, groq*.py and gemini*.py with a fallback between them
-  workers/             the verification worker (python -m app.workers.runner)
+                       interview.py, embeddings.py, groq*.py and gemini*.py with a fallback
+                       between them
+  workers/             the verification and embedding worker (python -m app.workers.runner)
   demo_seed.py         the made-up world behind "Try the demo"
   demo_review_case.py  the evidence, interview and report of the demo's one review case
 tests/                 one file per area, against a real database
@@ -100,6 +101,10 @@ stateDiagram-v2
 The worker does the slow parts (reading public repositories, writing the report) outside any
 request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The interview
 and the report use Groq, with Gemini as the fallback, in the language the attempt started in.
+
+The same worker keeps an embedding of every open idea and every verified developer, from Gemini
+and `GEMINI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
+idea's title and summary, and a developer's verified roles, technologies, sectors and bio.
 
 ## A request, layer by layer
 

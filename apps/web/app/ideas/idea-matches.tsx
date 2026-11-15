@@ -24,6 +24,7 @@ import { IdeaError, loadDevelopersForIdea, loadMyIdea, type Developer, type Owne
 import styles from "./ideas.module.css";
 import { MatchScore, ScoreReasons, sentenceList } from "./match-score";
 import { IdeasSkeleton } from "./my-ideas";
+import { SimilarIdeaLine } from "./similar-ideas";
 
 // One developer who matches: who they are, why they matched, and, when the idea has a hub with
 // room, the button that invites them. `hub` is undefined when nobody can be invited.
@@ -108,6 +109,7 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
           ))}
         </ul>
       )}
+      {person.similar_idea && <SimilarIdeaLine lang={lang} idea={person.similar_idea} />}
     </li>
   );
 }
