@@ -16,6 +16,7 @@ import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
 import { BriefSection } from "./brief";
+import { BuildTab } from "./build";
 import { Chat } from "./chat";
 import { copy } from "./copy";
 import { DesignSketch } from "./design";
@@ -205,13 +206,14 @@ ${hub.description}`} lang={lang} hub={hub} onChange={manage} />}
       <Phases key={loads} lang={lang} hub={hub} onChange={setHub} />
       {isMember && hub.phase && <Notes key={`notes-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
       {isMember && hub.phase && hub.phase !== "brainstorm" && <DesignSketch key={`design-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
+      {isMember && (hub.phase === "build" || hub.phase === "review") && <BuildTab key={`build-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
       {isOwner && hub.status === "active" && <ArchiveHub lang={lang} hub={hub} onChange={manage} />}
       {isMember && <Chat key={`chat-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
     </main>
   );
 }
 
-// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes and, from design on, its design sketch, and the team's chat for its members.
+// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes and, from design on, its design sketch, from build on its build tab, and the team's chat for its members.
 export function HubPage({ lang }: { lang: Lang }) {
   const search = useSearchParams();
   const id = search.get("id");

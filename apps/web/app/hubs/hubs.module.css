@@ -477,6 +477,104 @@
 
 .formTitle { font: var(--type-title); }
 
+/* ---------- build tab: who builds what, the repository, the latest commits ---------- */
+.buildPart { margin-block-start: var(--space-8); }
+
+.holder { font: var(--type-label); }
+
+.holder[data-free] {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.address {
+  margin-block-start: var(--space-3);
+  font: var(--type-body);
+  overflow-wrap: anywhere;
+}
+
+/* One table at every width. Below 768px each row is stacked (the message, then who, when and the
+   commit) and the header stays for assistive technology only. The roles on the elements keep the
+   table's meaning in browsers that drop it when the display changes. Both texts come from GitHub
+   and are plain text, so a long word wraps. */
+.commits {
+  display: block;
+  margin-block-start: var(--space-4);
+  border-block-start: 1px solid var(--line);
+}
+
+.commits tbody { display: block; }
+
+.commits thead {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.commits tbody tr {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  padding-block: var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+.commits td {
+  min-inline-size: 0;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  overflow-wrap: anywhere;
+}
+
+.commits td:first-child {
+  flex-basis: 100%;
+  color: var(--text);
+  font: var(--type-code);
+}
+
+.commits td:last-child { font: var(--type-mono-row); }
+
+@media (min-width: 768px) {
+  .commits {
+    display: table;
+    inline-size: 100%;
+    border-collapse: collapse;
+  }
+
+  .commits thead {
+    position: static;
+    inline-size: auto;
+    block-size: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  .commits tbody { display: table-row-group; }
+
+  .commits tbody tr { display: table-row; }
+
+  .commits th,
+  .commits td {
+    padding: var(--space-3);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .commits th {
+    border-block-end: 1px solid var(--line);
+    color: var(--text-muted);
+    font: var(--type-caption);
+  }
+
+  .commits td:first-child { inline-size: 50%; }
+}
+
 /* ---------- on an idea's card ---------- */
 /* this link sits above the card's own link, which covers the whole card */
 .cardLink {
