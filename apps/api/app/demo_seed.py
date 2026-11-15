@@ -77,11 +77,21 @@ PEOPLE = {
         "Ọláolúwa Adébáyọ̀",
         "Backend engineer in Lagos, building payments.",
     ),
-    "aminata": ("aminata_ndiaye", "Aminata Ndiaye", "Développeuse mobile et frontend à Dakar."),
+    "aminata": (
+        "aminata_ndiaye",
+        "Aminata Ndiaye",
+        "Développeuse mobile et frontend à Dakar. Paiements mobiles pour les coopératives et "
+        "les tontines, avec reçus par SMS.",
+    ),
     "kwabena": ("kwabena_owusu", "Kwabena Ɔwusu", "Frontend and design systems, Kumasi."),
     "danladi": ("danladi_kabir", "Ɗanladi Ƙabir", "Embedded and IoT for farms in Kano."),
     "wanjiru": ("wanjiru_kamau", "Wanjiru Kamau", "ML engineer in Nairobi, mostly Swahili NLP."),
-    "tendai": ("tendai_moyo", "Tendai Moyo", "DevOps in Harare. Keeps things running."),
+    "tendai": (
+        "tendai_moyo",
+        "Tendai Moyo",
+        "DevOps in Harare. Keeps payment services running, with audit logs a co-operative can "
+        "trust.",
+    ),
     "uwase": ("uwase_mutoni", "Uwase Mutoni", "Développeuse frontend à Kigali, pour les écoles."),
 }
 # where each person lives, from their bio
@@ -104,16 +114,19 @@ VERIFIED = {
     "tendai": ["devops-cloud-engineer"],
     "uwase": ["frontend-engineer"],
 }
-# What each stack and sector list shares with the visitor decides the match scores on the demo's
-# screens: on the visitor's idea Aminata scores Strong, Tendai Possible and Uwase Weak.
+# What each stack and sector list shares with the visitor, and how close each bio reads to the
+# visitor's idea, decide the match scores on the demo's screens: on the visitor's idea Aminata
+# scores Strong, Tendai Possible and Uwase Weak, before the model has compared anything (94, 74
+# and 56) and after (85, 68 and 44 when measured). Why these lists and bios:
+# docs/decisions/2026-11-15-demo-scores-with-meaning.md
 STACKS = {
     "you": ["python", "nodejs", "postgresql", "docker", "ci-cd"],
-    "aminata": ["flutter", "react-native", "react", "nodejs", "ci-cd"],
+    "aminata": ["flutter", "react-native", "react", "nodejs", "ci-cd", "docker", "postgresql"],
     "kwabena": ["react", "nodejs"],
     "danladi": ["rust", "go"],
     "wanjiru": ["python", "pytorch"],
     "tendai": ["docker", "kubernetes", "terraform", "ci-cd", "postgresql"],
-    "uwase": ["react", "vue"],
+    "uwase": ["react", "vue", "nodejs"],
 }
 SECTORS = {
     "you": ["fintech", "agritech"],
@@ -121,8 +134,8 @@ SECTORS = {
     "kwabena": ["agritech", "commerce"],
     "danladi": ["agritech", "climate-energy"],
     "wanjiru": ["education", "civic"],
-    "tendai": ["fintech", "developer-tools"],
-    "uwase": ["education"],
+    "tendai": ["fintech", "developer-tools", "agritech"],
+    "uwase": ["education", "agritech"],
 }
 # Open ideas by others that need the visitor's role and have no hub, so "For you" has matches,
 # as (who, title, summary, days since published)
@@ -130,8 +143,8 @@ FOR_YOU_IDEAS = [
     (
         "tendai",
         "Uptime watch for mobile money agents",
-        "A status page and SMS alerts that tell small mobile money agents in Harare when a "
-        "wallet service is down.",
+        "A small service that checks each wallet API every minute and texts mobile money "
+        "agents in Harare when payments are down.",
         6,
     ),
     (
@@ -546,14 +559,18 @@ async def _create_world(db: AsyncSession, people: dict[str, User]) -> None:
 
 
 async def _write_open_ideas(db: AsyncSession, people: dict[str, User]) -> None:
-    """The open ideas that give the visitor matches on "For you", added when they are missing."""
+    """The open ideas that give the visitor matches on "For you", added when they are missing.
+    One that is there keeps its row and gets today's summary."""
     roles = {role.slug: role for role in await db.scalars(select(Role))}
     for who, title, summary, days in FOR_YOU_IDEAS:
         author = people[who]
-        if not await db.scalar(
-            select(Idea.id).where(Idea.author_id == author.id, Idea.title == title)
-        ):
+        held = await db.scalar(
+            select(Idea).where(Idea.author_id == author.id, Idea.title == title).limit(1)
+        )
+        if held is None:
             _add_idea(db, author, roles, title, summary, IdeaStatus.OPEN, days, "backend-engineer")
+        elif held.summary != summary:
+            held.summary = summary
     await db.flush()
 
 

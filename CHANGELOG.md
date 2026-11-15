@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- fix(api): keep a strong, a possible and a weak match in the demo
 - feat(api): add the meaning part to the match score and similar ideas (#225)
 - feat(api): store what ideas and profiles mean as embeddings (#211)
 - fix(api): make the demo world's review case and chats consistent (#224)

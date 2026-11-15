@@ -528,6 +528,45 @@ def test_the_visitors_idea_has_a_strong_a_possible_and_a_weak_match(
     assert strong["country_code"] == "SN"
 
 
+def test_the_demo_scores_before_anything_is_compared_by_meaning(
+    client: TestClient, visitor: dict
+) -> None:
+    """The lists and bios were chosen for a range with and without the model's comparison
+    (docs/decisions/2026-11-15-demo-scores-with-meaning.md). Without it, these are the numbers."""
+    matches = _idea_matches(client, visitor)
+    assert [
+        (m["score"], m["partial"], m["breakdown"]["technologies"]["points"]) for m in matches
+    ] == [
+        (94, True, 16),
+        (74, True, 12),
+        (56, True, 4),
+    ]
+    assert sorted((m["score"] for m in _for_you(client, visitor)), reverse=True)[:2] == [74, 56]
+
+
+def test_a_rerun_gives_an_older_for_you_idea_its_new_summary(
+    client: TestClient, visitor: dict
+) -> None:
+    who, title, summary, _ = FOR_YOU_IDEAS[0]
+
+    async def summary_now(old: str | None = None) -> str:
+        async with db_session() as session:
+            idea = await session.scalar(
+                select(Idea)
+                .join(User, User.id == Idea.author_id)
+                .where(User.username == PEOPLE[who][0], Idea.title == title)
+            )
+            if old is not None:
+                idea.summary = old
+                await session.commit()
+            return idea.summary
+
+    assert asyncio.run(summary_now()) == summary
+    assert asyncio.run(summary_now("A status page for mobile money agents.")) != summary
+    assert _seed() is False
+    assert asyncio.run(summary_now()) == summary
+
+
 def test_for_you_has_two_ideas_with_different_scores_one_of_them_possible(
     client: TestClient, visitor: dict
 ) -> None:
