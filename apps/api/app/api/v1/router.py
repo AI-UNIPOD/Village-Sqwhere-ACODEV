@@ -9,6 +9,7 @@ from app.api.v1.hub_design import router as hub_design_router
 from app.api.v1.hub_members import router as hub_members_router
 from app.api.v1.hub_notes import router as hub_notes_router
 from app.api.v1.hub_phases import router as hub_phases_router
+from app.api.v1.hub_review import router as hub_review_router
 from app.api.v1.hub_settings import router as hub_settings_router
 from app.api.v1.hubs import router as hubs_router
 from app.api.v1.ideas import router as ideas_router
@@ -40,5 +41,6 @@ api_v1_router.include_router(hub_notes_router, tags=["Hubs"])
 api_v1_router.include_router(hub_chat_router, tags=["Hubs"])
 api_v1_router.include_router(hub_design_router, tags=["Hubs"])
 api_v1_router.include_router(hub_build_router, tags=["Hubs"])
+api_v1_router.include_router(hub_review_router, tags=["Hubs"])
 api_v1_router.include_router(ideas_router, tags=["Ideas"])
 api_v1_router.include_router(matches_router, tags=["Matching"])
