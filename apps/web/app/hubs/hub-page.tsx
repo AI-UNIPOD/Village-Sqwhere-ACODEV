@@ -28,6 +28,7 @@ import { HubsSkeleton, MissingHub } from "./my-hubs";
 import { Notes } from "./notes";
 import { Phases } from "./phases";
 import { MySignature } from "./my-signature";
+import { ReviewTab } from "./review";
 import { InvitationCard, LeaveHub, Person, Team } from "./team";
 
 function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null; created: boolean; joined: boolean }) {
@@ -207,13 +208,14 @@ ${hub.description}`} lang={lang} hub={hub} onChange={manage} />}
       {isMember && hub.phase && <Notes key={`notes-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
       {isMember && hub.phase && hub.phase !== "brainstorm" && <DesignSketch key={`design-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
       {isMember && (hub.phase === "build" || hub.phase === "review") && <BuildTab key={`build-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
+      {isMember && hub.phase === "review" && <ReviewTab key={`review-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
       {isOwner && hub.status === "active" && <ArchiveHub lang={lang} hub={hub} onChange={manage} />}
       {isMember && <Chat key={`chat-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
     </main>
   );
 }
 
-// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes and, from design on, its design sketch, from build on its build tab, and the team's chat for its members.
+// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes and, from design on, its design sketch, from build on its build tab, in review its checklist, and the team's chat for its members.
 export function HubPage({ lang }: { lang: Lang }) {
   const search = useSearchParams();
   const id = search.get("id");

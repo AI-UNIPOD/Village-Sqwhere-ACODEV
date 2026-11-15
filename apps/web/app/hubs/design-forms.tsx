@@ -14,7 +14,7 @@ import { addLink, addPiece, editPiece, PIECE_LIMITS, type Piece, type Sketch } f
 import styles from "./hubs.module.css";
 
 // What the API counts: the characters of the trimmed text, an emoji being one.
-const size = (text: string) => [...text.trim()].length;
+export const size = (text: string) => [...text.trim()].length;
 
 export const codeOf = (reason: unknown) => (reason instanceof IdeaError ? reason.code : "");
 

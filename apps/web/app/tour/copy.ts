@@ -42,7 +42,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Follow the hub's four phases",
-        text: "A hub moves through four phases: brainstorm, design and architecture, build, then review and test. Its owner moves it from one to the next. This hub is in Build; its notes, its sketch and its build tab are below, and the review tool is still to come.",
+        text: "A hub moves through four phases: brainstorm, design and architecture, build, then review and test. Its owner moves it from one to the next. This hub is in Build; its notes, its sketch and its build tab are below. Each phase has its tool on the hub page.",
       },
     ],
     start: "Start the route",
@@ -77,7 +77,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Suivre les quatre phases de l'espace",
-        text: "Un espace traverse quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Son porteur le fait passer de l'une à l'autre. Cet espace est en Construction\u202f; ses notes, son schéma et son onglet de construction sont en dessous, et l'outil de revue reste à venir.",
+        text: "Un espace traverse quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Son porteur le fait passer de l'une à l'autre. Cet espace est en Construction\u202f; ses notes, son schéma et son onglet de construction sont en dessous. Chaque phase a son outil sur la page de l'espace.",
       },
     ],
     start: "Commencer le parcours",

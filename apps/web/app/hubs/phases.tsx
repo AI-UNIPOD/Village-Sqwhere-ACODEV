@@ -24,7 +24,7 @@ const PILLS: Record<PhaseState, { state: string; Icon: typeof Check }> = {
 
 // The hub changed in another tab or window: the action no longer fits where the hub is.
 const CHANGED = ["TEAM_ALREADY_CONFIRMED", "PHASE_NOT_ADJACENT", "TEAM_NOT_CONFIRMED"];
-const UNAVAILABLE = ["HUB_ARCHIVED", "NOT_HUB_OWNER"];
+const UNAVAILABLE = ["HUB_ARCHIVED", "HUB_FINISHED", "NOT_HUB_OWNER"];
 
 type Action = "confirm" | "forward" | "back";
 
@@ -42,7 +42,8 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
   const at = hub.phase ? PHASES.indexOf(hub.phase) : -1;
   // no next step before the team is confirmed (the first phase opens by confirming), and none in review
   const next = hub.phase ? PHASES[at + 1] : undefined;
-  const previous = at > 0 ? PHASES[at - 1] : undefined;
+  // a finished hub cannot go back: the API refuses it
+  const previous = at > 0 && !hub.finished_at ? PHASES[at - 1] : undefined;
   const canAct = hub.viewer.member_role === "owner" && hub.status === "active";
   // the notes below the phases are for active members only, so the others are not pointed to them
   const note = hub.phase
@@ -124,7 +125,8 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
       <h2 className={`${ideas.heading} ${styles.heading}`}>{t.phasesHeading}</h2>
       <ol className={styles.phases}>
         {hub.phases.map(({ phase, state }, index) => {
-          const { state: tint, Icon } = PILLS[state];
+          const finished = phase === "review" && !!hub.finished_at;
+          const { state: tint, Icon } = PILLS[finished ? "done" : state];
           return (
             <li key={phase} aria-current={state === "in_progress" ? "step" : undefined}>
               <span className={styles.num} aria-hidden="true">
@@ -133,7 +135,7 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
               <span className={styles.strong}>{t.phases[phase]}</span>
               <span className={village.pill} data-state={tint}>
                 <Icon />
-                {t.phaseStates[state]}
+                {finished ? t.phaseFinished : t.phaseStates[state]}
               </span>
             </li>
           );
