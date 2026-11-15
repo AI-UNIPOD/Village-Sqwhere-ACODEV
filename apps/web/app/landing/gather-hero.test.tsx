@@ -832,3 +832,20 @@ test("the French page tells the story in French", () => {
   expect(text.texts()).toContain("Votre idée");
   expect(text.texts()).toContain("Signé");
 });
+
+test("a change of theme redraws the hero at once, so the theme switch's picture of the new page has the new colours", async () => {
+  // the frame loop is stubbed out above: only a draw made in answer to the change itself counts
+  let drawn = 0;
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
+    const ctx = fakeContext() as Record<string, unknown>;
+    ctx.drawImage = () => (drawn += 1);
+    return ctx as unknown as RenderingContext;
+  });
+  renderHero();
+  const before = drawn;
+  await act(async () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+  });
+  expect(drawn).toBeGreaterThan(before);
+  document.documentElement.removeAttribute("data-theme");
+});
