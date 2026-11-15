@@ -21,12 +21,23 @@ export const COUNTRIES: ReadonlyArray<readonly [string, string, string]> = [
   ["Zambia", "Zambie", "ZMB"], ["Zimbabwe", "Zimbabwe", "ZWE"],
 ];
 
-/** The background crowd: skills, English and French words, and a few made-up builders. */
+/** The background crowd: skills and English and French words. No "score": the matcher has none. */
 export const CROWD = [
-  "react", "postgres", "figma", "node", "flutter", "python", "ensemble", "idée", "équipe", "Aminata",
-  "Wanjiru", "Kwabena", "Nour", "ideas", "team", "build", "plan", "api", "data", "design", "mobile",
+  "react", "postgres", "figma", "node", "flutter", "python", "ensemble", "idée", "équipe",
+  "ideas", "team", "build", "plan", "api", "data", "design", "mobile",
   "review", "test", "Ọláolúwa", "Ɗanladi", "arbre", "together", "kotlin", "swift", "rust", "sql", "git",
-  "docs", "ux", "merge", "pair", "ship", "sprint", "brainstorm", "hub", "matcher", "role",
+  "docs", "ux", "merge", "pair", "ship", "sprint", "brainstorm", "hub", "role",
+];
+
+/**
+ * Made-up builders in the crowd, each with a made-up role (an index into the role labels in
+ * hero-team-copy.ts: 0 Backend, 1 Mobile, 2 Security, 3 Frontend, 4 Design, 5 Data, 6 Product,
+ * 7 Testing). The landing page's cast keep theirs: Hamza Backend, Thandiwe Mobile, Kidist Security.
+ */
+export const BUILDERS: ReadonlyArray<readonly [string, number]> = [
+  ["Aminata", 4], ["Kwabena", 5], ["Wanjiru", 3], ["Nour", 6], ["Danladi", 7], ["Hamza", 0],
+  ["Thandiwe", 1], ["Kidist", 2], ["Seynabou", 5], ["Kiprono", 0], ["Joaquim", 1], ["Rehema", 4],
+  ["Fatou", 2], ["Tendai", 3], ["Zuri", 6], ["Sipho", 7], ["Yasmine", 2], ["Chidi", 5],
 ];
 
 /** Crowd words that show their other-language twin under the pointer. */
@@ -64,10 +75,11 @@ type Piece = {
   outStart: number;
 };
 export type Cycle = { pieces: Piece[]; logoAt: number; outAt: number; fadeAt: number; end: number };
-export type CrowdWord = { x: number; y: number; w: number; t: string };
+/** A word of the crowd; a builder also has a role (an index into the role labels). */
+export type CrowdWord = { x: number; y: number; w: number; t: string; role?: number };
 
 /** Seeded random numbers, so the page looks the same on every visit. */
-function rng(seed: number) {
+export function rng(seed: number) {
   let a = seed >>> 0;
   return () => {
     a |= 0;
@@ -184,6 +196,8 @@ type Field = {
    * (their way in), the motion button.
    */
   avoid: readonly Rect[];
+  /** Areas the walking names must not start in, but may cross: the ghost idea's stage. */
+  keepOut?: readonly Rect[];
 };
 
 /**
@@ -192,7 +206,7 @@ type Field = {
  * walking to it without crossing the text or the button (only the square it walks into).
  * Then the timings: walk in, hold, logo, walk out.
  */
-export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avoid }: Field): Cycle {
+export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avoid, keepOut = [] }: Field): Cycle {
   const rnd = rng(101 + cycle * 7);
   const gxMin = Math.ceil((4 - X) / c);
   const gxMax = Math.floor((width - 4 - X) / c) - 1;
@@ -204,6 +218,7 @@ export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avo
     if (gx < gxMin || gx + len - 1 > gxMax || gy < gyMin || gy > gyMax) return false;
     for (let i = -1; i <= len; i++) if (occ.has(`${gx + i}|${gy}`)) return false;
     if (overlaps(avoid, X + gx * c, Y + gy * c, X + (gx + len) * c, Y + (gy + 1) * c)) return false;
+    if (overlaps(keepOut, X + gx * c, Y + gy * c, X + (gx + len) * c, Y + (gy + 1) * c)) return false;
     // the way in (and out): every step must clear the areas that do not hold the target
     const targetX = X + (packed.tx + 0.5) * c;
     const targetY = Y + (packed.ty + 0.5) * c;
@@ -258,6 +273,21 @@ export function planCycle({ runs, cycle, cell: c, x: X, y: Y, width, height, avo
   return { pieces: placed, logoAt, outAt, fadeAt: outEnd + 0.3, end: outEnd + 0.8 };
 }
 
+/**
+ * Where the walking names are on their way in and out, as rects (every third step along each
+ * path), so the ghost idea picks a spot they do not cross.
+ */
+export function footprints(plan: Cycle, x: number, y: number, cell: number): Rect[] {
+  const boxes: Rect[] = [];
+  for (const p of plan.pieces) {
+    for (let k = 0; k <= p.steps; k += 3) {
+      const [gx, gy] = at(p, k);
+      boxes.push([x + gx * cell - 2, y + gy * cell - 2, x + (gx + p.len) * cell + 2, y + (gy + 1) * cell + 2]);
+    }
+  }
+  return boxes;
+}
+
 /** Size of the crowd's letters for a square cell: 7 to 10px. */
 export function crowdFontSize(cell: number) {
   return Math.max(7, Math.min(10, Math.round(cell * 1.3) / 2));
@@ -279,16 +309,24 @@ type CrowdField = {
   avoid: readonly Rect[];
 };
 
-/** The background crowd: small words packed densely edge to edge, clear of the avoided areas. */
+/**
+ * The background crowd: small words packed densely edge to edge, clear of the avoided areas. A
+ * builder's name comes about every 200px along each row (and now and then at random), so a
+ * pointer resting anywhere has a few of them, with every role, within reach.
+ */
 export function layoutCrowd({ width, height, centerX, centerY, square, fontSize, avoid }: CrowdField) {
   const rnd = rng(23);
   const rowHeight = fontSize + 3;
   const charWidth = fontSize * 0.6;
   const words: CrowdWord[] = [];
-  for (let y = 6; y + rowHeight <= height - 4; y += rowHeight) {
+  let row = 0;
+  for (let y = 6; y + rowHeight <= height - 4; y += rowHeight, row++) {
     let x = 6;
+    let nextName = 30 + ((row * 67) % 190);
     while (x < width - 6) {
-      const t = CROWD[Math.floor(rnd() * CROWD.length)];
+      const person = x >= nextName || rnd() < 0.04;
+      const builder = person ? BUILDERS[Math.floor(rnd() * BUILDERS.length)] : null;
+      const t = builder ? builder[0] : CROWD[Math.floor(rnd() * CROWD.length)];
       const w = t.length * charWidth;
       const d = Math.hypot(x + w / 2 - centerX, y - centerY);
       const p = d < square * 0.8 ? 0.85 : Math.max(0.42, 0.85 - ((d - square * 0.8) / 500) * 0.43);
@@ -297,7 +335,8 @@ export function layoutCrowd({ width, height, centerX, centerY, square, fontSize,
         rnd() < p &&
         !overlaps(avoid, x - 2, y - 1, x + w + 2, y + fontSize + 1)
       ) {
-        words.push({ x, y, w, t });
+        words.push(builder ? { x, y, w, t, role: builder[1] } : { x, y, w, t });
+        if (x >= nextName) nextName = x + 185 + rnd() * 60;
         x += w + charWidth * (1 + Math.floor(rnd() * 2));
       } else {
         x += charWidth;
@@ -390,27 +429,4 @@ export function zoneFade(
     fade = Math.min(fade, feather > 0 ? clamp(gap / feather) : 1);
   }
   return fade;
-}
-
-/**
- * Whether the pointer rests directly on one of the crowd's words, at the current shift. The
- * crowd repeats every `width` px, so each word also shows one width further right. Words
- * hidden behind the text, the square or the button do not count.
- */
-export function pointerOnWord(
-  words: readonly CrowdWord[],
-  x: number,
-  y: number,
-  shift: number,
-  fontSize: number,
-  avoid: readonly Rect[] = [],
-  width = 0,
-) {
-  return words.some((w) =>
-    (width > 0 ? [0, width] : [0]).some((repeat) => {
-      const x0 = w.x + shift + repeat;
-      const box: Rect = [x0, w.y, x0 + w.w, w.y + fontSize];
-      return x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3] && zoneFade(box, avoid, 0) > 0;
-    }),
-  );
 }

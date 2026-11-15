@@ -4,7 +4,7 @@
 -- A signature is never rewritten (the database refuses it), so the seed cannot fix this on a
 -- rerun. The demo's signatures are not records of anything: the seed wrote them for made-up
 -- people. So this script, and only this script, rewrites their date.
--- Why: docs/decisions/2026-11-15-demo-world-reads-as-real.md
+-- Why: docs/decisions/2026-11-15-demo-hubs-on-agreement-v2.md
 --
 -- What it touches: signatures made by a demo account (users.is_demo) in a hub owned by a demo
 -- account, dated later than the moment that member joined. Their date becomes the moment they

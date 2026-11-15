@@ -1,6 +1,7 @@
 import asyncio
 import re
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -1251,6 +1252,25 @@ def test_a_rerun_renames_the_account_and_the_repository_of_an_older_world(
     assert client.get("/v1/me", headers=visitor).json()["data"]["username"] == "olaoluwa_adebayo"
     assert _hub_build(client, visitor)["repository_url"] == OWN_HUB_REPOSITORY
     assert _counts() == counts  # the account was renamed, not made a second time
+
+
+def test_the_visitor_signed_each_hub_no_later_than_they_joined_it(
+    client: TestClient, visitor: dict
+) -> None:
+    # a demo seeded before this fix is corrected by the script, not by a rerun of the seed
+    script = Path(__file__).resolve().parents[3] / "infra/db/init/026-demo-signature-dates.sql"
+
+    async def correct_an_older_demo() -> None:
+        async with db_session() as session:
+            await (await session.connection()).exec_driver_sql(script.read_text(encoding="utf-8"))
+            await session.commit()
+
+    asyncio.run(correct_an_older_demo())
+    hubs = client.get("/v1/me/hubs", headers=visitor).json()["data"]
+    assert len(hubs) >= 2
+    for hub in hubs:
+        mine = client.get(f"/v1/hubs/{hub['id']}/membership", headers=visitor).json()["data"]
+        assert mine["signature"]["signed_at"] <= mine["joined_at"], hub["name"]
 
 
 def test_the_script_writes_nothing_where_the_demo_is_off(

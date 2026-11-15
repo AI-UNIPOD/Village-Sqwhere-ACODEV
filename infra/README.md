@@ -41,6 +41,7 @@ erDiagram
   hubs ||--o{ hub_notes : "brainstorm"
   hubs ||--o{ hub_pieces : "design"
   hub_pieces ||--o{ hub_piece_links : "links"
+  hub_pieces ||--o{ hub_checks : "review"
   users ||--o{ posts : "writes"
   posts ||--o{ comments : "has"
 ```
@@ -92,8 +93,9 @@ They run in file name order, once, on an empty database:
 | `018-hub-design.sql` | `hub_pieces` and `hub_piece_links`, the design sketch of a hub: pieces with a name and a summary, and labelled links from one piece to another, removed softly with `deleted_at`. Running it twice is safe. |
 | `019-hub-build.sql` | The build tab of a hub: who holds a piece (`hub_pieces.claimed_by` and `claimed_at`), the public GitHub address the owner pastes (`hubs.repository_url`, with `commits_refreshed_at`), and `hub_commits`, a copy of the repository's latest commits that every refresh replaces, so its rows are really deleted. Running it twice is safe. |
 | `020-hub-agreement-v2.sql` | The hub agreement, version 2, published: the text every new hub is created on, in English and then in French. Version 1 stays for the hubs that signed it. Running it twice is safe. |
+| `021-hub-review.sql` | The review checklist of a hub: `hub_checks`, short checks written against a piece and ticked by a teammate, removed softly with `deleted_at` and `deleted_by`, and `hubs.finished_at`, empty until the owner finishes the hub. Running it twice is safe. |
 | `022-demo-hubs-agreement-v2.sql` | Moves the demo's hubs, and the made-up signatures in them, from version 1 of the agreement to version 2, so the demo stops showing the test text. Only hubs owned and signed by demo accounts (`users.is_demo`); nothing is deleted. It needs 020 first and stops with an error without it. Running it twice is safe. |
-| `026-demo-signature-dates.sql` | Dates each demo signature the moment its member joined, so a hub page does not say "You signed" on the day the demo was seeded, after ten days of work. Only signatures made by demo accounts (`users.is_demo`) in hubs owned by demo accounts, and only when they are later than the joining; nothing is deleted. Running it twice is safe. |
+| `026-demo-signature-dates.sql` | Dates the demo's made-up signatures at the moment each member joined, where the seed had left them at the day it ran. Only signatures of demo accounts (`users.is_demo`) in hubs a demo account owns; nothing is deleted. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
