@@ -68,6 +68,10 @@ Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/i
 apart from the private brief, saves only the fields that changed, and asks before publishing or
 closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
+"Delete the idea" at the end of a saved idea's form (`app/ideas/delete-idea.tsx`,
+`DELETE /v1/me/ideas/{id}`) asks first, then returns to Your ideas with a line saying it went.
+An idea with a hub is refused (`IDEA_HAS_HUB`, its members signed an agreement about it), and
+the page says to close it instead.
 Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=`: the public
 part only, a "Needs your role" line when a role slug matches, and "Ask to join" when the idea
 has a hub (`hubs/ask-to-join.tsx`, `POST /v1/hubs/{id}/join-requests`). The page reads the
