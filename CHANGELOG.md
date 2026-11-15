@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(web): credit the ai unipod in the landing footer (#194)
 - fix(web): say the design sketch is live on the landing page (#190)
 - feat(web): let the owner rename, describe and archive a hub (#185)
 - test(web): wait for the dialog to close in a design sketch test (#191)
