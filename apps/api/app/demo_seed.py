@@ -206,7 +206,10 @@ OWN_HUB_LINKS = [
 ]
 # Who builds which piece in the build phase, as (who, hours ago, piece). Each of the two active
 # members holds two, and "Ledger database" stays free. The build phase began 72 hours ago, and
-# each claim is older than its holder's first commit.
+# each claim is older than its holder's first commit. A claim is dated from the moment the hub
+# moved to build (72 minus these hours after it), so one written again gets the time it had and
+# the chat that mentions the claims still follows them.
+BUILD_BEGAN_HOURS_AGO = 72
 OWN_HUB_CLAIMS = [
     ("you", 71, "Payouts API"),
     ("kwabena", 70, "Mobile app"),
@@ -649,13 +652,19 @@ async def _write_own_hub_build(db: AsyncSession, people: dict[str, User]) -> Non
     }
     # the list runs newest first, so the last commit of each person is their first
     first_commit = {people[who].id: ago(hours=hours) for who, hours, _ in OWN_HUB_COMMITS}
+    build_began = await db.scalar(
+        select(func.min(HubPhaseMove.created_at)).where(
+            HubPhaseMove.hub_id == hub.id, HubPhaseMove.to_phase == HubPhase.BUILD
+        )
+    ) or ago(hours=BUILD_BEGAN_HOURS_AGO)
     for who, hours, name in OWN_HUB_CLAIMS:
         piece = pieces.get(name)
         if piece is None:
             continue
         holder = piece.claimed_by or people[who].id
         if piece.claimed_by is None or piece.claimed_at >= first_commit.get(holder, ago()):
-            piece.claimed_by, piece.claimed_at = holder, ago(hours=hours)
+            piece.claimed_by = holder
+            piece.claimed_at = build_began + timedelta(hours=BUILD_BEGAN_HOURS_AGO - hours)
     if hub.repository_url in (None, OLD_OWN_HUB_REPOSITORY):
         hub.repository_url = OWN_HUB_REPOSITORY
     await db.execute(delete(HubCommit).where(HubCommit.hub_id == hub.id))
