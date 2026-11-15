@@ -206,6 +206,12 @@ other signed-in developers can see it), the roles
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
 
+Another developer's profile is `app/people/`, at `/en/people/view?username=...`
+(`GET /v1/users/{username}`): the name, country, bio, verified roles, stack and sectors, and a
+link to their GitHub. Names on team lists, match cards, posts and an idea's author lead there.
+An unknown or deleted account says the developer can't be found. Opened on yourself, it offers
+"Edit your profile".
+
 "Try the demo" on the landing page (`landing/demo-button.tsx`, `session/demo.ts`) signs in as the
 shared demo account with `POST /v1/auth/demo` and opens the village. The account can change
 nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that

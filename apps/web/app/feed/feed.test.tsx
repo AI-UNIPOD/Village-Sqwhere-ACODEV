@@ -149,7 +149,7 @@ test("a plain post with no title, link or topics shows only its text, and no typ
   expect(within(shown).queryByRole("heading")).toBeNull();
   // the author, then the post itself twice (its first line, and its comments, which lead to the section): no link of its own
   expect(within(shown).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
-    "https://github.com/wanjiru-kamau",
+    "/en/people/view?username=wanjiru-kamau",
     "/en/posts/view?id=post-1",
     "/en/posts/view?id=post-1#comments",
   ]);

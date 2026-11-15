@@ -58,11 +58,7 @@ type Who = Pick<Member["user"], "username" | "display_name" | "is_verified">;
 export function Person({ lang, user, role }: { lang: Lang; user: Who; role?: string }) {
   const t = copy[lang];
   const named = user.display_name !== user.username;
-  const github = (text: string) => (
-    <a href={`https://github.com/${encodeURIComponent(user.username)}`} target="_blank" rel="noopener noreferrer">
-      {text} <span className={landing.srOnly}>({t.githubProfile})</span>
-    </a>
-  );
+  const profile = (text: string) => <Link href={`/${lang}/people/view?username=${encodeURIComponent(user.username)}`}>{text}</Link>;
   return (
     <div className={village.person}>
       <span className={village.avatar} aria-hidden="true">
@@ -74,8 +70,8 @@ export function Person({ lang, user, role }: { lang: Lang; user: Who; role?: str
           .toUpperCase()}
       </span>
       <div>
-        <p className={village.name}>{named ? user.display_name : github(user.username)}</p>
-        {named && <p className={village.username}>{github(`@${user.username}`)}</p>}
+        <p className={village.name}>{named ? profile(user.display_name) : profile(user.username)}</p>
+        {named && <p className={village.username}>@{user.username}</p>}
         {(role || user.is_verified) && (
           <p className={ideas.meta}>
             {role}
