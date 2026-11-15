@@ -3,17 +3,17 @@ import type { Lang } from "../locales";
 type Copy = {
   /** The panel's name for a screen reader. */
   label: string;
-  /** "Stop {n} of {total}": the start has no count. */
+  /** "Step {n} of {total}". */
   count: string;
-  /** The start, then the four stops: the heading and two short sentences each. */
-  stops: { name: string; text: string }[];
+  /** The six steps: the heading and two short sentences each. */
+  steps: { name: string; text: string }[];
   start: string;
   next: string;
   back: string;
   finish: string;
   end: string;
   backToRoute: string;
-  /** After the last stop: the words around the link to sign-in. */
+  /** After the last step: the words around the link to sign-in. */
   ending: { before: string; link: string; after: string };
   /** Said when the demo's idea and hub could not be found. */
   failed: { text: string; retry: string };
@@ -22,27 +22,31 @@ type Copy = {
 export const copy: Record<Lang, Copy> = {
   en: {
     label: "Tour",
-    count: "Stop {n} of {total}",
-    stops: [
+    count: "Step {n} of {total}",
+    steps: [
       {
         name: "Your village",
-        text: "A developer's village holds their ideas, their hubs and their matches. Four stops, about three minutes, and nothing is saved.",
+        text: "A developer's village holds their ideas, their hubs and their matches. Six steps, and nothing is saved.",
+      },
+      {
+        name: "The feed",
+        text: "Developers share ideas, questions, RFCs and releases here. The topic filter narrows the feed to the technologies you choose.",
+      },
+      {
+        name: "A conversation",
+        text: "This is one question with its comments and replies. Replying works as it does for anyone, and nothing is saved here.",
       },
       {
         name: "Share an idea",
         text: "An idea has a public part that signed-in developers see, with the roles it needs. It also has a private brief only the team reads.",
       },
       {
-        name: "See who the matcher suggests",
+        name: "The matcher",
         text: "The matcher suggests verified developers whose role the idea needs. It gives each one a score and says how it was counted.",
       },
       {
-        name: "Invite your team",
-        text: "The owner invites developers, or answers those who ask to join. Each person reads the agreement and signs, up to five people with the owner. When the team is ready, the owner confirms it and Brainstorm opens.",
-      },
-      {
-        name: "Follow the hub's four phases",
-        text: "A hub moves through four phases: brainstorm, design and architecture, build, then review and test. Its owner moves it from one to the next. This hub is in Build; its notes, its sketch and its build tab are below. Each phase has its tool on the hub page.",
+        name: "Your team and the hub",
+        text: "The owner answers developers who ask to join, and each person reads the agreement and signs, up to five people with the owner. Further down the page are the hub's four phases: brainstorm, design and architecture, build, then review and test.",
       },
     ],
     start: "Start the route",
@@ -58,26 +62,30 @@ export const copy: Record<Lang, Copy> = {
   fr: {
     label: "Visite guidée",
     count: "Étape {n} sur {total}",
-    stops: [
+    steps: [
       {
         name: "Votre village",
-        text: "Le village d'un développeur réunit ses idées, ses espaces et ses correspondances. Quatre étapes, environ trois minutes, et rien n'est enregistré.",
+        text: "Le village d'un développeur réunit ses idées, ses espaces et ses correspondances. Six étapes, et rien n'est enregistré.",
+      },
+      {
+        name: "Le fil",
+        text: "Les développeurs y partagent des idées, des questions, des RFC et des versions. Le filtre par sujet limite le fil aux technologies que vous choisissez.",
+      },
+      {
+        name: "Une conversation",
+        text: "Voici une question avec ses commentaires et leurs réponses. Répondre fonctionne comme pour n'importe qui, et rien n'est enregistré ici.",
       },
       {
         name: "Partager une idée",
         text: "Une idée a une partie publique que voient les développeurs connectés, avec les rôles dont elle a besoin. Elle a aussi un brief privé que seule l'équipe lit.",
       },
       {
-        name: "Voir qui le matcher propose",
+        name: "Le matcher",
         text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il donne à chacun un score et dit comment il a été compté.",
       },
       {
-        name: "Inviter votre équipe",
-        text: "Le porteur invite des développeurs, ou répond à ceux qui demandent à rejoindre l'espace. Chacun lit l'accord et le signe, jusqu'à cinq personnes avec le porteur. Quand l'équipe est prête, le porteur la confirme et le brainstorm s'ouvre.",
-      },
-      {
-        name: "Suivre les quatre phases de l'espace",
-        text: "Un espace traverse quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Son porteur le fait passer de l'une à l'autre. Cet espace est en Construction\u202f; ses notes, son schéma et son onglet de construction sont en dessous. Chaque phase a son outil sur la page de l'espace.",
+        name: "Votre équipe et l'espace",
+        text: "Le porteur répond à ceux qui demandent à rejoindre l'espace, et chacun lit l'accord et le signe, jusqu'à cinq personnes avec le porteur. Plus bas sur la page se trouvent les quatre phases de l'espace\u202f: brainstorm, conception et architecture, construction, puis revue et tests.",
       },
     ],
     start: "Commencer le parcours",

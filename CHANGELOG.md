@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(web): grow the guided tour to six steps with feed and conversation
 - feat(web): continue a deep reply's thread on its own (#231)
 - fix(api): accept the neon database url from vercel (#229)
 - feat(web): add a waving Nigeria flag to the landing footer

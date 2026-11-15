@@ -69,7 +69,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
 
   // The card arrives after the page, so the browser's own jump to #team or #phases finds
   // nothing: scroll to the part the address names once the card is there (the guided tour's
-  // last two stops).
+  // last step).
   const card = useRef<HTMLElement>(null);
   const shown = !!hub;
   useEffect(() => {

@@ -38,6 +38,9 @@ export const loadSavedPosts = (offset = 0) => call<PostPage>(`/v1/me/saved-posts
 export const loadPostsBy = (username: string, offset = 0) =>
   call<PostPage>(`/v1/posts?author=${encodeURIComponent(username)}&${paging(offset)}`);
 
+// The newest questions, for the guided tour to pick one with a conversation under it.
+export const loadQuestions = () => call<PostPage>("/v1/posts?type=question&limit=20");
+
 export const loadPost = async (id: string) => (await call<{ data: Post }>(`/v1/posts/${encodeURIComponent(id)}`)).data;
 
 // Only the author can delete a post, and the API takes no reason from the author.
