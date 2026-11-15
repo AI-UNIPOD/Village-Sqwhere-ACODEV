@@ -44,6 +44,7 @@ app/hubs/
   chat.tsx             team chat          chat.test.tsx
   notes.tsx            brainstorm notes   notes.test.tsx
   design.tsx           design sketch      design.test.tsx
+  build.tsx            build tab          build.test.tsx
   team.tsx             members, invite, remove, leave
   test-support.ts      made-up API answers shared by the tests
 ```
@@ -260,7 +261,22 @@ behind a confirm dialog; the sketch is then read again). The API's refusals beco
 language: a taken name is a field error, a vanished piece or link reloads the sketch, and when the hub moved
 on (`PHASE_CLOSED`, `PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`, `HUB_ARCHIVED`, `NOT_HUB_MEMBER`) the page
 loads the hub again and the section follows it. In build, review and an archived hub the sketch is for
-reading only. The tools for build and review are not built yet.
+reading only. The tool for review is not built yet.
+
+Under the sketch, an active member of a hub in build or review sees the build tab (`hubs/build.tsx`,
+`id="build"`), read from `GET /v1/hubs/{id}/build`: who builds which piece, the team's repository and its
+latest commits. Each piece is a card that says who builds it ("Kwabena is building this", "You are building
+this" or "Nobody yet"). Its buttons come from the API's flags (`can_claim`, `can_release`): I'll build this
+(`POST /v1/hubs/{id}/pieces/{piece_id}/claim`) and Free this piece (`DELETE` on the same address, no dialog).
+The repository is a public GitHub address that the hub's owner pastes while the hub is in build
+(`PUT /v1/hubs/{id}/repository`, checked in the page first; removing it asks first). Its latest commits are one
+table (`hubs/build-commits.tsx`): from 768px wide the columns show, below it each row stacks, and the header
+stays for assistive technology. Commit messages and author names come from GitHub and are plain text. Any
+member can press Refresh commits (`POST /v1/hubs/{id}/commits/refresh`, once a minute), in build and in review,
+and the answer replaces the whole tab. The address and the shas are links to github.com that open in a new
+tab, except for the demo account, whose repository does not exist on GitHub. The API's refusals become
+sentences in the page's language: a piece taken first or gone, or a repository changed, reads the tab again,
+and when the hub moved on the page loads the hub again and the section follows it.
 
 At the end of the page, every active member sees the team chat (`hubs/chat.tsx`, `id="chat"`), in any
 phase and before the team is confirmed. The API sends the newest 50 messages first
