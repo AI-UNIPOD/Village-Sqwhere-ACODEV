@@ -25,8 +25,8 @@ export const copy: Record<Lang, Copy> = {
     count: "Stop {n} of {total}",
     stops: [
       {
-        name: "The demo village",
-        text: "This is the village of a demo developer. Four stops, about three minutes, and nothing is saved.",
+        name: "Your village",
+        text: "A developer's village holds their ideas, their hubs and their matches. Four stops, about three minutes, and nothing is saved.",
       },
       {
         name: "Share an idea",
@@ -60,8 +60,8 @@ export const copy: Record<Lang, Copy> = {
     count: "Étape {n} sur {total}",
     stops: [
       {
-        name: "Le village de démo",
-        text: "Voici le village d'un développeur de démo. Quatre étapes, environ trois minutes, et rien n'est enregistré.",
+        name: "Votre village",
+        text: "Le village d'un développeur réunit ses idées, ses espaces et ses correspondances. Quatre étapes, environ trois minutes, et rien n'est enregistré.",
       },
       {
         name: "Partager une idée",

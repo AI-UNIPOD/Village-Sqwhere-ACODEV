@@ -5,7 +5,7 @@ import { AlertCircle } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { AgreementText } from "./agreement-text";
 import { copy } from "./copy";
-import { FieldError, Warning } from "./form-parts";
+import { FieldError } from "./form-parts";
 import { LIMITS, type Agreement } from "./hubs-api";
 import styles from "./hubs.module.css";
 
@@ -45,7 +45,6 @@ export function AgreementBlock(props: {
         {agreement.title}
         <span className={ideas.meta}>{fill(t.version, { n: agreement.version })}</span>
       </p>
-      {/test/i.test(agreement.title) && <Warning title={t.placeholder.title}>{t.placeholder.text}</Warning>}
       {changed && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
