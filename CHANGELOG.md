@@ -11,6 +11,7 @@ its number:
 ## 2026-11-15
 
 - feat(api): record when a developer finishes onboarding (#212)
+- fix(infra): date the demo's signatures when each member joined (#209)
 - fix(web): say the build tab is live on the landing page (#208)
 - feat(api): add the review checklist and finishing to a hub (#204)
 - fix(web): draw no github link from a username in the demo (#207)
@@ -40,6 +41,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(web): let the hero crowd gather a team around your idea (#165)
 - feat(api): let a developer delete their account (#176)
 - feat(api): show my hub membership and the agreement I signed (#170)
 - feat(api): let the owner rename, describe and archive a hub (#169)
