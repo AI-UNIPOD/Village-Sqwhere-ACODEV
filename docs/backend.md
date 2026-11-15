@@ -2156,6 +2156,7 @@ Create a new feed post.
       "title": "Async Python with PostgreSQL",
       "body": "Tips and patterns for async connection pooling with asyncpg and PostgreSQL.",
       "link_url": "https://github.com/example/async-postgres-guide",
+      "attachments": [],
       "author": {
         "id": "908fdc10-d867-4279-bb7d-b6a2f7c00e12",
         "username": "ada-lagos",
@@ -2177,6 +2178,52 @@ Create a new feed post.
     }
   }
   ```
+
+---
+
+### `POST /v1/uploads`
+
+Upload one image and attach it to a post. Create the post first, then upload each image with its
+post ID. The API keeps the image bytes and their facts in Postgres, in `post_attachments`, and
+serves them back at `GET /v1/post-images/{attachment_id}`.
+
+* **Authentication:** Required (Bearer token). Demo accounts are read-only.
+* **Form fields:** `post_id` (UUID) and `file` (one image).
+* **Allowed images:** JPEG, PNG, or WebP, detected from file content. Maximum size is 4 MB, so a
+  request fits inside Vercel's 4.5 MB limit, and
+  maximum dimensions are 40 million pixels. The original filename is ignored.
+* **Ownership:** Only the post author may upload. A post accepts at most 10 images.
+* **Success:** HTTP 201 with the attachment ID, its address (`/v1/post-images/{id}`, on the
+  API's own host), detected MIME type, byte size,
+  dimensions and display position, wrapped in `data`. Post read and list responses include these
+  attachment objects in position order.
+* **Errors:** 401 unauthenticated, 403 `NOT_POST_AUTHOR`, 404 `POST_NOT_FOUND`, 409
+  `POST_IMAGE_LIMIT` or `MILESTONE_NOT_EDITABLE`, 413 `IMAGE_TOO_LARGE`, and 422 `INVALID_IMAGE`
+  or `EMPTY_IMAGE`.
+
+```bash
+curl -X POST http://localhost:8000/v1/uploads \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -F "post_id=$POST_ID" \
+  -F "file=@image.webp"
+```
+
+---
+
+### `GET /v1/post-images/{attachment_id}`
+
+The bytes of one post image, with its own `Content-Type`. This is the `url` in each attachment.
+
+* **Authentication:** None. An `<img>` tag cannot send a Bearer token, so the random attachment
+  ID is what keeps an image private, as a bucket address would.
+* **Caching:** `Cache-Control: public, max-age=3600, s-maxage=3600`, so Vercel's CDN answers
+  repeat views without the API or the database. A deleted post's image can still come from a
+  cache for up to an hour.
+* **Errors:** 404 `IMAGE_NOT_FOUND` when the ID is unknown or its post is deleted.
+
+```bash
+curl -o image.webp http://localhost:8000/v1/post-images/$ATTACHMENT_ID
+```
 
 ---
 
