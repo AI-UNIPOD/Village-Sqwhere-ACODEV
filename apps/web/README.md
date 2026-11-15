@@ -1,16 +1,111 @@
 # apps/web
 
-The Village Sqwhere web app: Next.js (App Router) with TypeScript.
+The Village Sqwhere web app: Next.js 16 (App Router), React 19 and TypeScript, in English and
+French. It is only a client of the API in `apps/api`: no database, no secrets.
 
-From the repository root:
+<img src="../../docs/images/screens/7-collaboration-hub.webp" alt="A hub page in the web app: the hub's name, its idea, the private brief and the team" width="720" />
 
 ```bash
-pnpm install
-pnpm dev:web      # http://localhost:3000
+pnpm dev:web      # http://localhost:3000 (the API must run on :8000)
+pnpm test:web     # 1,313 Vitest + Testing Library tests, next to the code they test
 pnpm lint:web
-pnpm test:web     # Vitest + Testing Library; tests sit next to the code as *.test.tsx
 pnpm build:web
 ```
+
+## Every address, and the folder behind it
+
+Each page is served in both languages: `/en/...` and `/fr/...`. `proxy.ts` sends an address
+without a language to the visitor's.
+
+| Address | Folder | What it shows |
+|---|---|---|
+| `/en` | `app/landing/` | The landing page and "Try the demo" |
+| `/en/sign-in`, `/en/auth/callback` | `app/sign-in/`, `app/auth-callback/` | [GitHub sign-in](../../docs/images/screens/1-sign-up.webp) |
+| `/en/onboarding` | `app/onboarding/` | Role, stack, sectors, country |
+| `/en/village` | `app/village/` | Home: who you are and your next step |
+| `/en/profile`, `/en/people/view?username=` | `app/profile/`, `app/people/` | [Your profile](../../docs/images/screens/2-developer-profile.webp), someone else's |
+| `/en/verification`, `/en/verification/interview` | `app/verification/`, `app/verification-interview/` | Start a role check, the AI interview |
+| `/en/reviews`, `/en/reviews/case?id=` | `app/reviews/` | Peer review of other developers' attempts |
+| `/en/ideas`, `/for-you`, `/mine`, `/compose`, `/view`, `/matches` | `app/ideas/` | [Write an idea](../../docs/images/screens/3-submit-idea.webp), [who matches it](../../docs/images/screens/4-ai-matches.webp) |
+| `/en/hubs`, `/new`, `/join`, `/view?id=` | `app/hubs/` | [Invitation](../../docs/images/screens/5-accept-match.webp), [signing](../../docs/images/screens/6-sign-nda.webp), [the hub](../../docs/images/screens/8-build-together.webp) |
+| `/en/feed`, `/en/posts/...` | `app/feed/` | Posts, comments, likes, saves |
+| `/en/goodbye` | `app/[lang]/goodbye/` | After deleting an account |
+
+## One feature folder, file by file
+
+Every feature folder has the same shape. Here is `app/hubs/`, trimmed:
+
+```text
+app/hubs/
+  hubs-api.ts          every call to /v1/hubs, typed: loadHub, leaveHub, sendMessage ...
+  copy.ts              every word on the hub screens, English and French side by side
+  hubs.module.css      styles, built only from the design tokens
+  hub-page.tsx         the page: loads the hub, then places the sections below
+  chat.tsx             team chat          chat.test.tsx
+  notes.tsx            brainstorm notes   notes.test.tsx
+  design.tsx           design sketch      design.test.tsx
+  team.tsx             members, invite, remove, leave
+  test-support.ts      made-up API answers shared by the tests
+```
+
+The route file in `app/[lang]/` stays small and only checks the language:
+
+```tsx
+// app/[lang]/hubs/view/page.tsx
+export default async function HubViewPage({ params }: PageProps<"/[lang]/hubs/view">) {
+  const { lang } = await params;
+  if (!hasLocale(lang)) notFound();
+  return (
+    <Suspense fallback={<HubsLoading lang={lang} />}>
+      <HubPage lang={lang} />
+    </Suspense>
+  );
+}
+```
+
+An API call is one typed line, and the copy keeps both languages in one place:
+
+```ts
+// app/hubs/hubs-api.ts
+export const leaveHub = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/membership/leave`, "POST")).data;
+
+// app/hubs/copy.ts
+leave: { button: "Leave this hub", cancel: "Stay", ... }       // en
+leave: { button: "Quitter l'espace", cancel: "Rester", ... }   // fr
+```
+
+## What happens on every request
+
+```mermaid
+sequenceDiagram
+  participant P as A page
+  participant C as call() in ideas-api.ts
+  participant F as apiFetch() in session.ts
+  participant A as API
+  P->>C: leaveHub(id)
+  C->>F: POST /v1/hubs/{id}/membership/leave
+  F->>A: Authorization: Bearer access token
+  A-->>F: 401, the token expired
+  F->>A: POST /v1/auth/token (refresh, once)
+  F->>A: the same request, new token
+  A-->>C: 200 {"data": ...} or 409 {"detail": {"code": "OWNER_CANNOT_LEAVE"}}
+  C-->>P: the hub, or an IdeaError(status, code) the page turns into a message
+```
+
+Every screen has a loading, empty, error and success state, works at 360px and speaks both
+languages, and the tests check exactly that: each one renders a page with made-up API answers
+and reads what a person would see.
+
+```tsx
+// the shape of every test (app/hubs/leave-remove.test.tsx)
+api({ "GET /v1/hubs/hub-1": { data: hub(asMember) }, "POST /v1/hubs/hub-1/membership/leave": { data: hub(left) } });
+render(<HubPage lang="en" />);
+fireEvent.click(await screen.findByRole("button", { name: "Leave this hub" }));
+```
+
+## Feature notes
+
+What each screen relies on, kept up to date by every pull request.
 
 Copy `.env.example` from the repo root to `apps/web/.env.local` if you need to override the API URL.
 The site is bilingual by address: pages live in `app/[lang]/` and are served at `/en` and `/fr`.

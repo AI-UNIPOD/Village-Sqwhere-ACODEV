@@ -11,6 +11,8 @@ its number:
 ## 2026-11-15
 
 - feat(web): credit the ai unipod in the landing footer (#194)
+- docs: rewrite the readmes for the public repository (#192)
+- feat(api): add the build tab of claims and commits to a hub (#193)
 - fix(web): say the design sketch is live on the landing page (#190)
 - feat(web): let the owner rename, describe and archive a hub (#185)
 - test(web): wait for the dialog to close in a design sketch test (#191)
