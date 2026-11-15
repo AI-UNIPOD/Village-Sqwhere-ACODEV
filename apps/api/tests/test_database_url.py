@@ -1,4 +1,14 @@
-from app.database import async_database_url
+from sqlalchemy.pool import NullPool
+
+from app.database import async_database_url, engine_options
+
+
+def test_on_vercel_each_session_opens_its_own_connection():
+    assert engine_options({"VERCEL": "1"}) == {"poolclass": NullPool}
+
+
+def test_elsewhere_the_default_pool_is_kept():
+    assert engine_options({}) == {}
 
 
 def test_a_local_url_only_gets_the_asyncpg_driver():
