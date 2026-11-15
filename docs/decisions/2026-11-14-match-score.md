@@ -83,7 +83,7 @@ How we build it (the build's own calls, inside those decisions):
   scores and its "simulated" line are replaced by the real wording.
 - Version 2 adds the meaning part from embeddings of public text only (an idea's title and
   summary, never the brief). Scores will move when it arrives, which is why version 1 is marked
-  partial.
+  partial. How version 2 reads the vectors: `2026-11-15-match-score-meaning.md`.
 - Sectors are the developer's and the author's own. Ideas carry none. If ideas get sectors
   later, the sectors part should compare with the idea instead.
 - A developer is more visible with a score and a place on their card, so the "pause matching"
