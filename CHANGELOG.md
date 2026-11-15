@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- feat(api): add the build tab of claims and commits to a hub
+- feat(api): add the build tab of claims and commits to a hub (#193)
 - feat(web): show members the agreement they signed (#189)
 - feat(web): let a developer delete their account (#188)
 - feat(web): let the author delete an idea with no hub (#187)
