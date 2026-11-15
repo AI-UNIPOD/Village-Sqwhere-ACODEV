@@ -170,6 +170,31 @@ reaches the API at `https://<domain>/v1/...`.
    `CNAME` for `www`. Update the four URL variables above if they still name the
    `vercel.app` address, and redeploy.
 
+   **Use the address people end up on.** When the domain redirects one name to the other (the
+   apex to `www`, for example), put that final address in `NEXT_PUBLIC_API_URL`,
+   `FRONTEND_URL`, `CORS_ORIGINS` and the GitHub callback. An address on the other name makes
+   every API call cross-site: `CORS_ORIGINS` matches one exact address, and a redirect on a
+   call from the browser breaks it. `NEXT_PUBLIC_API_URL` is fixed when the site is built, so
+   change it, then redeploy without the build cache.
+
+### Check that sign-in works
+
+Each check is an effect you can see, and none needs a secret.
+
+1. `https://<domain>/health` answers `{"status":"ok", ...}`. A 500 with
+   `FUNCTION_INVOCATION_FAILED` means the API did not start: look for a missing
+   `JWT_SECRET_KEY` first.
+2. On `/en/sign-in`, the browser's network panel shows the call to
+   `/v1/auth/oauth/github/start` going to the site's own address, not `localhost:8000`.
+3. The GitHub button leads to GitHub's approval screen for the app. "redirect_uri is not
+   associated with this application" means the callback address does not match the one
+   registered in the OAuth app.
+4. After you approve, the browser comes back to `/en/auth/callback?login_code=...` and then
+   lands on `/en/onboarding`. `?error=INVALID_STATE` is the known limit below.
+5. A reload keeps you signed in, and `GET /v1/me` answers 200.
+6. "Try the demo" opens the feed. It does not use GitHub, so it works while sign-in is still
+   being set up.
+
 ### Known limits on Vercel
 
 | Limit | Effect | Plan |
