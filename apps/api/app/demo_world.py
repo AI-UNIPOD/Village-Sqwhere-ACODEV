@@ -134,6 +134,7 @@ async def write_world(db: AsyncSession) -> tuple[int, int]:
     posts = load_posts()
     ids = await _find_or_create_members(db, full, light, now)
     pool = sorted(ids.values(), key=str)
+    members = list(ids.values())  # the seven original people keep the posts demo_seed wrote
     # the seven people of app.demo_seed answer in threads too, so they must exist already
     others = {
         handle
@@ -148,7 +149,7 @@ async def write_world(db: AsyncSession) -> tuple[int, int]:
 
     # posts cannot change their own time, so they are written again; their comments, likes and
     # topics go with them
-    await db.execute(delete(Post).where(Post.author_id.in_(ids.values())))
+    await db.execute(delete(Post).where(Post.author_id.in_(members)))
 
     post_rows, topic_rows, like_rows, comments = [], [], [], []
     for post in posts:

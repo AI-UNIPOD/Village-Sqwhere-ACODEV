@@ -170,6 +170,18 @@ def test_the_world_is_written_whole_and_every_account_is_a_demo_account(world) -
     assert _scalar("SELECT count(*) FROM users WHERE username = ANY(:handles)") == len(MEMBERS)
 
 
+def test_the_original_seven_keep_the_posts_the_seed_wrote_them(world) -> None:
+    assert (
+        _scalar(
+            """SELECT count(*) FROM posts p JOIN users u ON u.id = p.author_id
+               WHERE u.username IN ('olaoluwa_adebayo', 'aminata_ndiaye', 'kwabena_owusu',
+                                    'danladi_kabir', 'wanjiru_kamau', 'tendai_moyo',
+                                    'uwase_mutoni') AND p.deleted_at IS NULL"""
+        )
+        >= 12
+    )
+
+
 def test_every_count_the_feed_shows_is_a_true_count_of_the_rows(world) -> None:
     wrong = """
     SELECT count(*) FROM posts p JOIN users u ON u.id = p.author_id
