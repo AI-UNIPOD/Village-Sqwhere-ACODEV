@@ -29,6 +29,11 @@ at and the fingerprint of the text).
   writers out of both tables until it ends.
 - **It is not a tool.** It moves from version 1 to version 2 and nothing else. A hub on a
   later version is never moved back, and a second run changes nothing.
+- **It fails out loud.** When a demo hub is waiting to be moved and version 2 is not the
+  published "Village Sqwhere hub agreement", the script stops with an error that names script
+  020, so it is never recorded as done while the demo still shows the test text.
+- **It writes no demo content.** `2026-11-13-read-only-demo.md` keeps made-up rows out of
+  `infra/db/init/`, and that still holds: on a database with no demo this script does nothing.
 
 ## Options we considered
 

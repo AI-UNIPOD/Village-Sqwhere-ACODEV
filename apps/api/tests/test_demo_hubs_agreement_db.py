@@ -20,6 +20,13 @@ SCRIPT = (
 
 async def demo_hub(conn: AsyncConnection) -> dict[str, Any]:
     """A hub on version 1 whose owner, the only signer, is a demo account."""
+    real = await conn.execute(
+        text(
+            "SELECT 1 FROM agreement_templates WHERE version = 2 "
+            "AND published_at IS NOT NULL AND title = 'Village Sqwhere hub agreement'"
+        )
+    )
+    assert real.first(), "this database lacks infra/db/init/020-hub-agreement-v2.sql"
     ids = await create_hub(conn)
     await conn.execute(text("UPDATE users SET is_demo = true WHERE id = :user"), ids)
     return ids
@@ -135,6 +142,7 @@ def test_a_demo_hub_on_a_later_version_is_not_moved_back() -> None:
         return later.version, await versions(conn, other), await versions(conn, ids["hub"])
 
     later, on_later, on_first = in_rolled_back_transaction(work)
+    assert later > 2
     assert on_later == (later, [(later, True)])
     assert on_first == (2, [(2, True)])
 
@@ -173,6 +181,42 @@ def test_running_the_script_twice_changes_nothing_more() -> None:
     assert first == second == (2, [(2, True)])
 
 
+def test_it_stops_with_an_error_when_version_2_is_not_published() -> None:
+    async def work(conn: AsyncConnection) -> None:
+        await demo_hub(conn)
+        await conn.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
+        # a published agreement cannot be changed, so the guard is off for this one statement;
+        # the rollback puts the trigger and the row back
+        for statement in (
+            "ALTER TABLE agreement_templates DISABLE TRIGGER agreement_templates_guard",
+            "UPDATE agreement_templates SET published_at = NULL WHERE version = 2",
+            "ALTER TABLE agreement_templates ENABLE TRIGGER agreement_templates_guard",
+        ):
+            await conn.execute(text(statement))
+        await run_script(conn)
+
+    with pytest.raises(DBAPIError, match="020-hub-agreement-v2.sql"):
+        in_rolled_back_transaction(work)
+
+
+def test_it_passes_quietly_when_there_is_no_demo_hub_to_move() -> None:
+    async def work(conn: AsyncConnection) -> Any:
+        ids = await create_hub(conn)
+        await conn.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
+        # every demo hub already there is moved first, so the second run has nothing to move
+        await conn.exec_driver_sql(SCRIPT)
+        for statement in (
+            "ALTER TABLE agreement_templates DISABLE TRIGGER agreement_templates_guard",
+            "UPDATE agreement_templates SET published_at = NULL WHERE version = 2",
+            "ALTER TABLE agreement_templates ENABLE TRIGGER agreement_templates_guard",
+        ):
+            await conn.execute(text(statement))
+        await conn.exec_driver_sql(SCRIPT)
+        return await versions(conn, ids["hub"])
+
+    assert in_rolled_back_transaction(work) == (1, [(1, True)])
+
+
 @pytest.mark.parametrize(
     "change",
     [
@@ -186,7 +230,15 @@ def test_the_database_still_refuses_these_changes_after_the_script(change: str) 
     async def work(conn: AsyncConnection) -> None:
         ids = await demo_hub(conn)
         await run_script(conn)
-        await conn.execute(text(change), ids)
+        assert (await versions(conn, ids["hub"]))[0] == 2
+        switched_on = await conn.execute(
+            text(
+                "SELECT count(*) FROM pg_trigger WHERE tgenabled = 'O' AND tgname IN "
+                "('hubs_before_write', 'agreement_signatures_append_only')"
+            )
+        )
+        assert switched_on.scalar_one() == 2
+        with pytest.raises(DBAPIError, match="append-only|immutable"):
+            await conn.execute(text(change), ids)
 
-    with pytest.raises(DBAPIError, match="append-only|immutable"):
-        in_rolled_back_transaction(work)
+    in_rolled_back_transaction(work)
