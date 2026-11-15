@@ -64,7 +64,11 @@ from app.services.hubs import current_agreement_template
 # Usernames use "_", which GitHub logins never have, so a real developer signing up later never
 # meets one of these names. The first person is the account visitors sign in as.
 PEOPLE = {
-    "you": ("olaoluwa_demo", "Ọláolúwa Adébáyọ̀", "Backend engineer in Lagos, building payments."),
+    "you": (
+        "olaoluwa_adebayo",
+        "Ọláolúwa Adébáyọ̀",
+        "Backend engineer in Lagos, building payments.",
+    ),
     "aminata": ("aminata_ndiaye", "Aminata Ndiaye", "Développeuse mobile et frontend à Dakar."),
     "kwabena": ("kwabena_owusu", "Kwabena Ɔwusu", "Frontend and design systems, Kumasi."),
     "danladi": ("danladi_kabir", "Ɗanladi Ƙabir", "Embedded and IoT for farms in Kano."),
@@ -176,7 +180,9 @@ OWN_HUB_CLAIMS = [
 ]
 # A GitHub owner name cannot hold an underscore, so this address can never be a real repository
 # and the demo can never show a stranger's code.
-OWN_HUB_REPOSITORY = "https://github.com/payouts_demo/payouts"
+OWN_HUB_REPOSITORY = "https://github.com/naira_payouts/payouts"
+# what worlds seeded earlier hold: a rerun gives them today's address
+OLD_OWN_HUB_REPOSITORY = "https://github.com/payouts_demo/payouts"
 # its latest commits, newest first, as (who, hours ago, first line of the message)
 OWN_HUB_COMMITS = [
     ("kwabena", 3, "Show the payout status on the home screen"),
@@ -230,6 +236,11 @@ async def seed(db: AsyncSession) -> bool:
 
 async def _find_or_create_people(db: AsyncSession) -> dict[str, User]:
     """The made-up people, creating any that are missing (a world made before Uwase)."""
+    account = await db.get(User, DEMO_ACCOUNT_ID)
+    if account is not None:
+        # the visitor's account keeps its id; worlds seeded earlier gave it another username
+        account.username = PEOPLE["you"][0]
+        await db.flush()
     found = {
         user.username: user
         for user in await db.scalars(
@@ -523,7 +534,8 @@ async def _write_own_hub_build(db: AsyncSession, people: dict[str, User]) -> Non
         piece = pieces.get(name)
         if piece is not None and piece.claimed_by is None:
             piece.claimed_by, piece.claimed_at = people[who].id, ago(hours=hours)
-    hub.repository_url = hub.repository_url or OWN_HUB_REPOSITORY
+    if hub.repository_url in (None, OLD_OWN_HUB_REPOSITORY):
+        hub.repository_url = OWN_HUB_REPOSITORY
     if not await db.scalar(select(HubCommit.sha).where(HubCommit.hub_id == hub.id).limit(1)):
         db.add_all(
             HubCommit(
@@ -573,9 +585,14 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
             "Our soil sensor firmware is now open source. Runs a full season on two AA cells.",
             20,
             type=PostType.OSS_RELEASE,
-            link_url="https://example.com/soil-sensor-firmware",
         ),
-        post("tendai", "How do you keep Postgres backups honest? We restore one every Friday.", 26),
+        post(
+            "tendai",
+            "How do you keep Postgres backups honest? We restore one every Friday.",
+            26,
+            # a real page, so the demo's one link leads somewhere
+            link_url="https://www.postgresql.org/docs/current/backup.html",
+        ),
         post(
             "aminata",
             "Petit retour d'expérience : le mode hors ligne a doublé nos utilisateurs à Thiès.",
