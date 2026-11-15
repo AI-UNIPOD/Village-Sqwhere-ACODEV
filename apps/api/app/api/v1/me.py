@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, HTTPException, Path, Response, status
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
@@ -54,6 +56,9 @@ async def update_my_profile(
         current_user.bio = payload.bio
     if "country_code" in payload.model_fields_set:
         current_user.country_code = payload.country_code
+    if payload.onboarding_completed and current_user.onboarding_completed_at is None:
+        # the first time counts; a repeat keeps it, so the web can send it on every finish
+        current_user.onboarding_completed_at = datetime.now(UTC)
     if payload.email is not None and payload.email != current_user.email:
         current_user.email = payload.email
         # The new address has not been verified yet.

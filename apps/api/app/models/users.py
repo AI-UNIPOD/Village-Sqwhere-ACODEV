@@ -71,6 +71,10 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     bio: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     country_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # infra/db/init/023-user-onboarding-done.sql
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     platform_role: Mapped[PlatformRole] = mapped_column(
         Enum(
             PlatformRole,

@@ -143,9 +143,10 @@ Every person and idea in these screens is made up.
 
 ## Try it
 
-The live site is on its way. Until then, run it on your computer in a few minutes (see
-[Run it locally](#run-it-locally)) and press **Try the demo**: a read-only tour of a village
-filled with made-up developers, ideas and hubs, no account needed.
+The live site is at [www.villagesqwhere.online](https://www.villagesqwhere.online). You can
+also run it on your computer in a few minutes (see [Run it locally](#run-it-locally)) and
+press **Try the demo**: a read-only tour of a village filled with made-up developers, ideas
+and hubs, no account needed.
 
 ---
 
