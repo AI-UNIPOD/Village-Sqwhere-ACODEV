@@ -21,6 +21,7 @@ import { copy } from "./copy";
 import { IdeaError, loadOpenIdea, type PublicIdea } from "./ideas-api";
 import styles from "./ideas.module.css";
 import { IdeasSkeleton } from "./my-ideas";
+import { SimilarIdeas } from "./similar-ideas";
 
 function OpenIdea({ lang, id }: { lang: Lang; id: string | null }) {
   const t = copy[lang];
@@ -119,6 +120,8 @@ function OpenIdea({ lang, id }: { lang: Lang; id: string | null }) {
           <AskToJoin key={idea.hub_id ?? "none"} lang={lang} hubId={idea.hub_id} />
         </>
       )}
+
+      <SimilarIdeas lang={lang} id={idea.id} />
     </main>
   );
 }

@@ -114,8 +114,13 @@ export const loadOpenIdeas = (offset = 0) =>
 export const loadOpenIdea = async (id: string) =>
   (await call<{ data: PublicIdea }>(`/v1/ideas/${encodeURIComponent(id)}`)).data;
 
+// Other open ideas that read close to this one, closest first, at most five. No similarity
+// number comes with them: being in the list is the whole fact.
+export const loadSimilarIdeas = async (id: string) =>
+  (await call<{ data: PublicIdea[] }>(`/v1/ideas/${encodeURIComponent(id)}/similar`)).data;
+
 // One part of a match score: raw points out of `max`. `points` is null while the part is not
-// counted yet (the meaning part, in version 1).
+// counted yet (the meaning part of a pair that has not been compared).
 export type ScorePart = { points: number | null; max: number };
 
 // What both match lists say about a score. An older API sends none of it, and a card then shows
@@ -127,9 +132,14 @@ export type Scored = {
   shared_sectors?: { slug: string; name: string }[];
 };
 
+// An open idea that reads close to the one in a match: its id and title, enough for a link.
+export type SimilarIdea = { id: string; title: string };
+
 // An open idea that needs the signed-in developer, with the verified roles of theirs it needs
-// and the technologies and sectors they share with the idea's author.
+// and the technologies and sectors they share with the idea's author. `similar_idea` is the
+// signed-in developer's own open idea that reads close to this one, null when none does.
 export type IdeaMatch = Scored & {
+  similar_idea?: SimilarIdea | null;
   idea: PublicIdea;
   matched_roles: { slug: string; name: string }[];
   shared_technologies: { slug: string; name: string }[];
@@ -140,8 +150,9 @@ export const loadIdeasForMe = (offset = 0) =>
 
 // A developer verified in a role an idea needs, with why: `shared_technologies` and
 // `shared_sectors` are the ones they share with the idea's owner. `country_code` is null when
-// they named no country.
+// they named no country. `similar_idea` is their own open idea that reads close to the owner's.
 export type Developer = Scored & {
+  similar_idea?: SimilarIdea | null;
   id: string;
   username: string;
   display_name: string;

@@ -35,11 +35,12 @@ function Field(props: {
   id: string;
   label: string;
   help: string;
+  note?: string;
   error?: string;
   count?: string;
   children: ReactNode;
 }) {
-  const { id, label, help, error, count, children } = props;
+  const { id, label, help, note, error, count, children } = props;
   return (
     <div className={ideas.field}>
       <label htmlFor={id} className={ideas.label}>
@@ -50,6 +51,11 @@ function Field(props: {
         {help}
         {count && <span className={ideas.count}>{count}</span>}
       </p>
+      {note && (
+        <p id={`${id}-note`} className={ideas.help}>
+          {note}
+        </p>
+      )}
       {error && (
         <p id={`${id}-error`} className={onboarding.error} role="alert">
           <AlertCircle />
@@ -150,7 +156,8 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
     setSaved(true);
   }
 
-  const describe = (field: "name" | "bio" | "country") => `profile-${field}-help${errors[field] ? ` profile-${field}-error` : ""}`;
+  const describe = (field: "name" | "bio" | "country") =>
+    `profile-${field}-help${field === "bio" ? " profile-bio-note" : ""}${errors[field] ? ` profile-${field}-error` : ""}`;
   // quiet until the text is within a tenth of its limit
   const count = (length: number, max: number) => (length > max * 0.9 ? fill(t.count, { n: length, max }) : undefined);
 
@@ -188,6 +195,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
           id="profile-bio"
           label={t.bio.label}
           help={t.bio.help}
+          note={t.bio.note}
           error={errors.bio}
           count={count(bio.length, LIMITS.bioMax)}
         >
