@@ -31,7 +31,8 @@ The web frontend's owner chose, on 13 November 2026:
 - **On Saved, an un-saved post stays until the list loads again.** A slip can be undone by
   pressing Save again, and the list does not jump under the finger.
 - **The body is plain text.** Line breaks are kept and nothing is read as markup, so a post can
-  never carry a script, an image or a disguised link. Developers paste code and symbols that
+  never carry a script or a disguised link. Images are not part of the text: they are separate
+  attachments (see `2026-11-15-images-in-the-feed.md`). Developers paste code and symbols that
   Markdown would mangle. In a list the body is cut at six lines.
 - **The type is a small label, not a status pill with an icon.** It names a kind of post, and
   seven icons for seven kinds would say less than the words. A plain post shows no label.
@@ -62,7 +63,7 @@ The web frontend's owner chose, on 13 November 2026:
 - **Waiting for the API before changing a like:** rejected, it makes the most common press the
   slowest part of the screen.
 - **Rendering Markdown:** rejected for now. It needs a sanitiser and a dependency, and the API
-  stores plain text.
+  stores plain text. Pictures come as attachments instead, not as markup in the text.
 
 ## Consequences
 
@@ -84,6 +85,9 @@ edit).
   text and says under each that it cannot be changed. Showing them as disabled controls would
   look broken instead of settled. A person who picked the wrong kind has to delete the post and
   write it again, which is the API's rule, not a choice made here.
+- **Images are chosen under the text.** The form takes up to 10 JPEG, PNG or WebP images of 4 MB or
+  less and sends them after the post is made; the edit form can also remove them. Why and how:
+  `docs/decisions/2026-11-15-images-in-the-feed.md`.
 - **The text is plain text, with no preview.** The post page shows a body as plain text, so
   what is typed is what is shown, line breaks included. A preview would show the same words in
   the same place and nothing more. The form says so under the field ("Plain text. Line breaks

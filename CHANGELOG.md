@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(web): show post images in the feed and let authors attach them (#240)
 - feat(api): let a post's author remove one of its images (#238)
 - docs: say the worker needs DEMO_ENABLED and the live demo is seeded once (#237)
 - feat(web): float the places bar and turn the app header into a pill on scroll (#236)
