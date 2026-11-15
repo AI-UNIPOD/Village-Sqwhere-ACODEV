@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Component, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -144,6 +146,54 @@ test("a developer card with no score fields shows its reasons and no score, and 
   expect(card.getByText("In common with you: Go")).toBeTruthy();
   expect(card.getByText("Verified in Backend and Systems Engineer")).toBeTruthy();
   expect(card.queryByText("Meaning")).toBeNull();
+});
+
+test("one list can hold a compared developer and one not compared: each card tells its own story", async () => {
+  const compared = person("wanjiru-kamau", "Wanjiru Kamau", { shared_technologies: [go], ...scored(88, [40, 8, 10], [fintech], 30) });
+  await show({ "GET /v1/me/ideas/idea-1/matches": { data: [compared, danladi], next_offset: null } });
+  await screen.findByText("Wanjiru Kamau");
+
+  const first = cardOf("Wanjiru Kamau");
+  expect(first.getByText("Match score: 88 out of 100, Strong match.")).toBeTruthy();
+  expect(within(first.getByRole("list", { name: "Why this score" })).getAllByRole("listitem").at(-1)!.textContent).toBe(
+    "Meaning30 of 30How close what the idea says is to what the developer's profile says.",
+  );
+  expect(first.queryByText(/Partial score/)).toBeNull();
+
+  const second = cardOf("danladi");
+  expect(second.getByText("Match score: 63 out of 100, Possible match. Partial score.")).toBeTruthy();
+  expect(within(second.getByRole("list", { name: "Why this score" })).getAllByRole("listitem").at(-1)!.textContent).toBe("MeaningNot compared yet");
+  expect(second.getByText(/^Partial score: it counts roles, technologies and sectors/)).toBeTruthy();
+});
+
+test("a developer with an idea that reads close to yours gets one line, linking to that idea", async () => {
+  const close = person("wanjiru-kamau", "Wanjiru Kamau", { similar_idea: { id: "idea-9", title: "Water points for Kano" } });
+  await show({ "GET /v1/me/ideas/idea-1/matches": { data: [close, danladi, person("fatou-sow", "Fatou Sow", { similar_idea: null })], next_offset: null } });
+  await screen.findByText("Wanjiru Kamau");
+
+  const line = cardOf("Wanjiru Kamau").getByRole("link", { name: "Water points for Kano" });
+  expect(line.getAttribute("href")).toBe("/en/ideas/view?id=idea-9");
+  expect(line.closest("p")!.textContent).toBe("Has an idea close to yours: Water points for Kano");
+  // an answer with no such field, or null, shows no line
+  expect(cardOf("danladi").queryByText(/close to yours/)).toBeNull();
+  expect(cardOf("Fatou Sow").queryByText(/close to yours/)).toBeNull();
+});
+
+test("the similar idea's title is shown as text, even when it looks like markup", async () => {
+  const close = person("wanjiru-kamau", "Wanjiru Kamau", { similar_idea: { id: "idea-9", title: "<b>Bold</b> & <img src=x>" } });
+  await show({ "GET /v1/me/ideas/idea-1/matches": { data: [close], next_offset: null } });
+  await screen.findByText("Wanjiru Kamau");
+  const link = cardOf("Wanjiru Kamau").getByRole("link", { name: "<b>Bold</b> & <img src=x>" });
+  expect(link.querySelector("b, img")).toBeNull();
+});
+
+test("the similar idea line is in French", async () => {
+  const close = person("wanjiru-kamau", "Wanjiru Kamau", { similar_idea: { id: "idea-9", title: "Points d'eau" } });
+  await show({ "GET /v1/me/ideas/idea-1/matches": { data: [close], next_offset: null } }, "fr");
+  await screen.findByText("Wanjiru Kamau");
+  const link = cardOf("Wanjiru Kamau").getByRole("link", { name: "Points d'eau" });
+  expect(link.getAttribute("href")).toBe("/fr/ideas/view?id=idea-9");
+  expect(link.closest("p")!.textContent).toBe("A une idée proche de la vôtre\u202f: Points d'eau");
 });
 
 test("the country sits under the name, before the invite button", async () => {
@@ -464,4 +514,11 @@ test("another idea is another page: what was loaded for one never shows for the 
   expect(screen.queryByText("Wanjiru Kamau")).toBeNull();
   expect(await screen.findByText("Fatou Sow")).toBeTruthy();
   expect(screen.getByRole("heading", { level: 1, name: "Who matches Clinic queue for Kano" })).toBeTruthy();
+});
+
+test("the line under a match wraps a long unbroken title inside the card", () => {
+  const css = readFileSync(join(__dirname, "ideas.module.css"), "utf8");
+  const rule = /\.fit\s*>\s*span\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+  expect(rule).toMatch(/min-inline-size:\s*0/);
+  expect(rule).toMatch(/overflow-wrap:\s*anywhere/);
 });
