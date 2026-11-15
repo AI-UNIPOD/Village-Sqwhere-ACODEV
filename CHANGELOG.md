@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- fix(web): drop the made-up and sample labels from the landing page
+- fix(web): drop the made-up and sample labels from the landing page (#196)
 - feat(web): credit the ai unipod in the landing footer (#194)
 - fix(web): say the design sketch is live on the landing page (#190)
 - docs: rewrite the readmes for the public repository (#192)
