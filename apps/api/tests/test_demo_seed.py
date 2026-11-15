@@ -7,8 +7,26 @@ from sqlalchemy import delete, func, select, text, update
 
 from app import config, database
 from app.api.v1.auth import DEMO_ACCOUNT_ID
-from app.demo_seed import FOR_YOU_IDEAS, OWN_HUB, PEOPLE, main, seed
-from app.models import Hub, HubNote, HubPhaseMove, HubPiece, HubPieceLink, Idea, User
+from app.demo_seed import (
+    FOR_YOU_IDEAS,
+    OWN_HUB,
+    OWN_HUB_CLAIMS,
+    OWN_HUB_COMMITS,
+    OWN_HUB_REPOSITORY,
+    PEOPLE,
+    main,
+    seed,
+)
+from app.models import (
+    Hub,
+    HubCommit,
+    HubNote,
+    HubPhaseMove,
+    HubPiece,
+    HubPieceLink,
+    Idea,
+    User,
+)
 from tests.conftest import test_async_session as db_session
 
 
@@ -310,6 +328,112 @@ def test_a_rerun_adds_the_sketch_only_when_the_hub_has_no_pieces(
     again = _hub_design(client, visitor)
     assert [piece["name"] for piece in again["pieces"]] == [p["name"] for p in sketch["pieces"]]
     assert [link["label"] for link in again["links"]] == [k["label"] for k in sketch["links"]]
+
+
+def _hub_build(client: TestClient, visitor: dict) -> dict:
+    resp = client.get(f"/v1/hubs/{_own_hub(client, visitor)['id']}/build", headers=visitor)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]
+
+
+def test_the_demo_hub_has_claims_a_repository_and_commits_the_visitor_can_read_not_change(
+    client: TestClient, visitor: dict
+) -> None:
+    hub_id = _own_hub(client, visitor)["id"]
+    seen = _hub_build(client, visitor)
+    members = client.get(f"/v1/hubs/{hub_id}/members", headers=visitor).json()["data"]
+    active = {m["user"]["id"] for m in members if m["status"] == "active"}
+
+    # four of the five pieces are held, two by each active member, and one is left free
+    pieces = seen["pieces"]
+    assert len(pieces) == 5
+    holders = [piece["claimed_by"]["id"] for piece in pieces if piece["claimed_by"]]
+    assert len(holders) == 4 and sorted(holders) == sorted(list(active) * 2)
+    assert [piece["name"] for piece in pieces if not piece["claimed_by"]] == ["Ledger database"]
+    now = datetime.now(UTC)
+    for piece in pieces:
+        if piece["claimed_by"]:
+            claimed = datetime.fromisoformat(piece["claimed_at"])
+            assert now - timedelta(days=3) < claimed < now
+    # the address cannot be a real repository, and eight commits by the two members
+    assert seen["repository_url"] == OWN_HUB_REPOSITORY == "https://github.com/payouts_demo/payouts"
+    commits = seen["commits"]
+    assert len(commits) == len(OWN_HUB_COMMITS) == 8
+    assert all(commit["message"] and len(commit["sha"]) == 40 for commit in commits)
+    assert len({commit["sha"] for commit in commits}) == 8
+    names = {m["user"]["display_name"] for m in members if m["status"] == "active"}
+    assert {commit["author_name"] for commit in commits} == names
+    times = [datetime.fromisoformat(commit["committed_at"]) for commit in commits]
+    assert times == sorted(times, reverse=True)
+    assert all(now - timedelta(days=3) < moment < now for moment in times)
+    refreshed = datetime.fromisoformat(seen["commits_refreshed_at"])
+    assert timedelta(minutes=50) < now - refreshed < timedelta(minutes=70)
+
+    for resp in (
+        client.post(f"/v1/hubs/{hub_id}/pieces/{pieces[0]['id']}/claim", headers=visitor),
+        client.delete(f"/v1/hubs/{hub_id}/pieces/{pieces[1]['id']}/claim", headers=visitor),
+        client.put(f"/v1/hubs/{hub_id}/repository", headers=visitor, json={"repository_url": None}),
+        client.post(f"/v1/hubs/{hub_id}/commits/refresh", headers=visitor),
+    ):
+        assert resp.status_code == 403
+        assert resp.json()["detail"]["code"] == "DEMO_READ_ONLY"
+    assert _hub_build(client, visitor) == seen
+
+
+def test_a_rerun_adds_claims_the_repository_and_commits_only_when_they_are_missing(
+    client: TestClient, visitor: dict
+) -> None:
+    seen = _hub_build(client, visitor)
+
+    _seed()
+    assert _hub_build(client, visitor) == seen
+
+    async def clear() -> None:
+        async with db_session() as session:
+            hub_id = _own_hub(client, visitor)["id"]
+            await session.execute(delete(HubCommit).where(HubCommit.hub_id == hub_id))
+            await session.execute(
+                update(HubPiece)
+                .where(HubPiece.hub_id == hub_id)
+                .values(claimed_by=None, claimed_at=None)
+            )
+            await session.execute(
+                update(Hub)
+                .where(Hub.id == hub_id)
+                .values(repository_url=None, commits_refreshed_at=None)
+            )
+            await session.commit()
+
+    asyncio.run(clear())
+    emptied = _hub_build(client, visitor)
+    assert emptied["repository_url"] is None and emptied["commits"] == []
+    assert all(piece["claimed_by"] is None for piece in emptied["pieces"])
+    _seed()
+    again = _hub_build(client, visitor)
+    assert again["repository_url"] == OWN_HUB_REPOSITORY and len(again["commits"]) == 8
+    assert [commit["message"] for commit in again["commits"]] == [
+        commit["message"] for commit in seen["commits"]
+    ]
+    assert [(p["name"], p["claimed_by"] and p["claimed_by"]["id"]) for p in again["pieces"]] == [
+        (p["name"], p["claimed_by"] and p["claimed_by"]["id"]) for p in seen["pieces"]
+    ]
+
+    # a piece that is held is left as it is, even when the seed would give it to someone else
+    kwabena = next(p for p in seen["pieces"] if p["name"] == "Mobile app")["claimed_by"]["id"]
+
+    async def hand_over() -> None:
+        async with db_session() as session:
+            await session.execute(
+                update(HubPiece)
+                .where(HubPiece.hub_id == _own_hub(client, visitor)["id"])
+                .where(HubPiece.name == OWN_HUB_CLAIMS[0][2])
+                .values(claimed_by=kwabena)
+            )
+            await session.commit()
+
+    asyncio.run(hand_over())
+    _seed()
+    assert _hub_build(client, visitor)["pieces"][1]["claimed_by"]["id"] == kwabena
 
 
 def _my_open_idea(client: TestClient, visitor: dict) -> str:
