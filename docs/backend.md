@@ -1878,7 +1878,7 @@ The hub's owner finishes the hub. No body.
 
 A flat chat for the team, in any phase, once someone is an active member (the team need not be
 confirmed). A message is 1 to 10,000 characters, trimmed, and may quote one earlier message in
-the same hub. There are no live updates: the page loads the chat again to see new messages.
+the same hub. Members can also listen live over `WS /v1/hubs/{hub_id}/messages/live` (below).
 Every route answers `403 NOT_HUB_MEMBER` to anyone who is not an active member, and an
 archived hub's chat is read only (`409 HUB_ARCHIVED`). Why: `docs/decisions/2026-11-14-hub-chat.md`.
 
@@ -1928,6 +1928,30 @@ The author or the hub's owner deletes a message. Answers `204`. The row stays wi
 `deleted_at`, and replies that quoted it keep showing who wrote it, without the text.
 
 * **Errors:** `403 NOT_MESSAGE_AUTHOR`, `404 MESSAGE_NOT_FOUND`, `409 HUB_ARCHIVED`.
+
+#### `WS /v1/hubs/{hub_id}/messages/live`
+
+A WebSocket that pushes the hub's chat as it changes, so the page needs no refresh.
+
+1. Open the socket, then send this first frame within 5 seconds:
+   `{"type": "auth", "token": "<access token>"}`. The token never goes in the URL, where
+   servers and proxies log it.
+2. An active member of the hub (the demo account too, in a demo hub) gets `{"type": "ready"}`.
+   Anyone else, a bad token or a late or missing frame gets the socket closed with code `1008`.
+3. After each change is saved, every listener gets one event:
+   * `{"type": "message.created", "message": <message card>}`
+   * `{"type": "message.edited", "message": <message card>}`
+   * `{"type": "message.deleted", "message": {"id": "..."}}`
+
+   The card is the same one the routes above return, built for each listener, so `can_edit`
+   and `can_delete` are theirs.
+4. Membership is checked again before every event. Someone who left or was removed gets the
+   socket closed with `1008` and hears nothing more.
+
+The client sends nothing after the first frame. Reconnect, and load
+`GET /v1/hubs/{hub_id}/messages` again, after a drop: events missed while away are not replayed.
+This works while the API runs as one process; more would need a pub-sub between them. Why:
+`docs/decisions/2026-11-15-live-hub-chat.md`.
 
 ### How the Sign-In Flow Works for End Users (100% Automated)
 In production and regular use, **the user never touches or sees a `login_code`**. The frontend coordinates the handshake automatically:

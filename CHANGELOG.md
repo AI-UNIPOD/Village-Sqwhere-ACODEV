@@ -11,11 +11,14 @@ its number:
 ## 2026-11-15
 
 - docs: name the live address for sign-in settings and add a check (#228)
+- fix(web): draw no repository link in the demo's review case (#221)
+- feat(api): push hub chat messages live over a websocket (#219)
 - feat(api): post to the feed when a hub moves to a new phase (#218)
 - feat(web): open the interview socket with a one-use ticket (#217)
 - fix(api): make the demo world's review case and chats consistent (#224)
 - feat(web): show the meaning part of the score and similar ideas (#222)
 - chore: deploy the web app, api and worker as one vercel project (#226)
+- test(web): wait for the dialog to close in three hub tests (#220)
 - feat(api): open the interview socket with a one-use ticket (#216)
 - fix(web): mark the village steps a developer has already done (#215)
 - feat(api): show the owner the match score on join requests (#214)
