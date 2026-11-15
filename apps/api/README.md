@@ -183,7 +183,8 @@ English and French and 6,000 comments. Nothing is generated when it runs, so the
 give the same world, every like is chosen by a hash, and every count the feed shows is the
 database's own count of the rows. A rerun deletes those posts and writes them again with the
 same ids, dated back from now (a post cannot change its own time), and leaves the members.
-The embeddings worker skips every demo account and the ideas they write. The names, bios and
+About 160 of the posts carry a picture (`demo_fixtures/images`, stored like uploads). The
+embeddings worker skips every demo account and the ideas they write. The names, bios and
 texts are data: to change them, edit the files and keep `tests/test_demo_world.py` green.
 
 The world reads like the real product in real use: the demo bar is the only place that says it

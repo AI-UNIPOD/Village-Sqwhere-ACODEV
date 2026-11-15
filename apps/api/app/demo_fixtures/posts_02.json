@@ -762,6 +762,13 @@
    "pytorch",
    "tensorflow"
   ],
+  "images": [
+   {
+    "file": "p0238_1.webp",
+    "width": 1200,
+    "height": 492
+   }
+  ],
   "age_hours": 1877.16,
   "likes": 34,
   "comments": [
@@ -2982,6 +2989,13 @@
   "body": "Public appointment booking. 2,000 slots are released every Monday at 08:00 and about 15,000 requests arrive in the first two minutes. Node API on two small instances with one Postgres. Options: SELECT FOR UPDATE on each slot row, a Redis counter that reserves before the write, or a small Go service in front that runs a waiting room and releases users in batches. I like the third but it is another thing to run.",
   "topics": [
    "go"
+  ],
+  "images": [
+   {
+    "file": "p1231_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 2145.7,
   "likes": 28,

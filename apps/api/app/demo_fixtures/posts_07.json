@@ -46,6 +46,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0056_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 2103.65,
   "likes": 10,
   "comments": []
@@ -272,6 +279,18 @@
   "body": "L'entrepôt Postgres est lu par une douzaine d'analystes et trois tableaux de bord. Nos migrations partent de la CI à chaque merge, et la semaine dernière un renommage de colonne a cassé deux requêtes sauvegardées sans que personne soit prévenu. Je vois trois options : expand puis contract avec une période où les deux colonnes existent, un schéma de vues stables que les analystes interrogent à la place des tables, ou un fichier de contrat versionné que la CI compare avant d'accepter une migration. Je penche pour les vues mais je crains de doubler le travail de maintenance.",
   "topics": [
    "ci-cd"
+  ],
+  "images": [
+   {
+    "file": "p0148_1.webp",
+    "width": 1200,
+    "height": 520
+   },
+   {
+    "file": "p0148_2.webp",
+    "width": 1200,
+    "height": 368
+   }
   ],
   "age_hours": 643.87,
   "likes": 2,
@@ -576,6 +595,13 @@
   "topics": [
    "kubernetes"
   ],
+  "images": [
+   {
+    "file": "p0237_1.webp",
+    "width": 1200,
+    "height": 360
+   }
+  ],
   "age_hours": 330.3,
   "likes": 20,
   "comments": [
@@ -688,6 +714,13 @@
    "docker",
    "go"
   ],
+  "images": [
+   {
+    "file": "p0302_1.webp",
+    "width": 1200,
+    "height": 459
+   }
+  ],
   "age_hours": 1260.2,
   "likes": 5,
   "comments": [
@@ -792,6 +825,13 @@
   "title": "extinction 0.6 met les environnements de staging à zéro la nuit",
   "body": "Sortie de la 0.6 d'extinction, un petit outil en Go qui met à zéro les deployments Kubernetes des environnements de staging selon une plage horaire notée dans une annotation, et qui les rallume le matin. Chez nous ça a fait baisser la facture cloud d'environ un tiers sans que personne s'en aperçoive. Ce qui reste à faire : les StatefulSets ne sont pas gérés, et il n'y a pas encore de dérogation ponctuelle (on rallume à la main avec une annotation).",
   "topics": [],
+  "images": [
+   {
+    "file": "p0317_1.webp",
+    "width": 1200,
+    "height": 492
+   }
+  ],
   "age_hours": 642.75,
   "likes": 16,
   "comments": [
@@ -2396,6 +2436,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p1103_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 614.42,
   "likes": 5,
   "comments": []
@@ -3091,6 +3138,13 @@
   "topics": [
    "docker",
    "kubernetes"
+  ],
+  "images": [
+   {
+    "file": "p1424_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 510.47,
   "likes": 8,

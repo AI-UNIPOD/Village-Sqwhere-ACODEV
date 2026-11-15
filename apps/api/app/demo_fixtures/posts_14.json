@@ -9,6 +9,13 @@
    "docker",
    "go"
   ],
+  "images": [
+   {
+    "file": "p0026_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 569.66,
   "likes": 1,
   "comments": [
@@ -108,6 +115,13 @@
   "topics": [
    "nodejs"
   ],
+  "images": [
+   {
+    "file": "p0047_1.webp",
+    "width": 1200,
+    "height": 459
+   }
+  ],
   "age_hours": 1577.27,
   "likes": 6,
   "comments": [
@@ -195,6 +209,18 @@
   "body": "I am moving PyTorch training for a crop disease classifier from one GPU workstation to Kubernetes. The dataset is about 40 GB of 512 px JPEGs, roughly 450 thousand files, and every job reads all of it each epoch. Options: (1) an init container copies it to a node-local volume at job start, (2) one shared read-only NFS volume mounted by every job, (3) repack into tar shards and stream them from object storage with a WebDataset style loader. NFS was 3 times slower per epoch in a first run because of the small file reads. I lean to option 3 but I lose easy random access for debugging. Anyone done this at this size?",
   "topics": [
    "computer-vision"
+  ],
+  "images": [
+   {
+    "file": "p0159_1.webp",
+    "width": 1200,
+    "height": 520
+   },
+   {
+    "file": "p0159_2.webp",
+    "width": 1200,
+    "height": 216
+   }
   ],
   "age_hours": 2147.6,
   "likes": 9,
@@ -686,6 +712,13 @@
    "java",
    "rust"
   ],
+  "images": [
+   {
+    "file": "p0325_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 1002.77,
   "likes": 2,
   "comments": [
@@ -764,6 +797,18 @@
    "ci-cd",
    "go"
   ],
+  "images": [
+   {
+    "file": "p0408_1.webp",
+    "width": 1200,
+    "height": 520
+   },
+   {
+    "file": "p0408_2.webp",
+    "width": 1200,
+    "height": 368
+   }
+  ],
   "age_hours": 1634.26,
   "likes": 3,
   "comments": [
@@ -786,6 +831,13 @@
   "topics": [
    "docker",
    "postgresql"
+  ],
+  "images": [
+   {
+    "file": "p0430_1.webp",
+    "width": 1200,
+    "height": 470
+   }
   ],
   "age_hours": 421.96,
   "likes": 16,
@@ -969,6 +1021,13 @@
   "type": "architecture_challenge",
   "body": "Pour le site de réservation des compagnies de bus, on hésite entre un environnement de recette par branche, créé et détruit par le pipeline, et un seul environnement de recette partagé avec des feature flags. Le premier isole bien les changements mais coûte environ 6 minutes de plus par pipeline et de la mémoire sur le serveur. Le second est léger mais deux branches se marchent dessus dès que l'une change le schéma de la base. Je penche pour un environnement par branche seulement pour le front et un seul pour l'API. Des retours ?",
   "topics": [],
+  "images": [
+   {
+    "file": "p0457_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 2048.01,
   "likes": 7,
   "comments": [
@@ -1300,6 +1359,13 @@
   "topics": [
    "postgresql",
    "vue"
+  ],
+  "images": [
+   {
+    "file": "p0603_1.webp",
+    "width": 1200,
+    "height": 262
+   }
   ],
   "age_hours": 853.04,
   "likes": 8,
@@ -1735,6 +1801,13 @@
   "body": "A PHP inventory app for market traders runs on one old server and is deployed by copying files over SSH. I am containerising it. Choices for deploys: (1) the pipeline builds an image, pushes it, then SSHs to the server and runs compose pull and up, (2) a small Kubernetes cluster for one app, which feels like too much, (3) Nomad. Constraints: one server, traders use the app from 6 am so downtime has to stay under a minute, and the database is Postgres on the same box. I lean to option 1 but worry about rollbacks once a migration has already run.",
   "topics": [
    "ci-cd"
+  ],
+  "images": [
+   {
+    "file": "p0813_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 1249.1,
   "likes": 19,

@@ -467,6 +467,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0152_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 358.12,
   "likes": 10,
   "comments": [
@@ -974,6 +981,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0422_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 1927.58,
   "likes": 20,
   "comments": [
@@ -1111,6 +1125,13 @@
   "body": "Our pipeline deploys mini-grid gateway software in about nine minutes, and roughly four of those are building Go binaries for amd64, arm64 gateways and armv7 for older meters. Options: (1) one job cross-compiling all three with GOARCH, (2) a matrix of three parallel jobs, (3) cache aggressively and only rebuild the services whose code changed. The target is under six minutes without paying for a bigger runner. Branch previews use the same pipeline.",
   "topics": [
    "go"
+  ],
+  "images": [
+   {
+    "file": "p0479_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 722.41,
   "likes": 21,
@@ -1643,6 +1664,13 @@
   "topics": [
    "ci-cd"
   ],
+  "images": [
+   {
+    "file": "p0638_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 1791.49,
   "likes": 4,
   "comments": []
@@ -1705,6 +1733,13 @@
   "body": "Pour l'assistant de révision, j'ai comparé trois façons de retrouver les passages de cours : recherche plein texte Postgres (tsvector, config french, avec unaccent), embeddings seuls, et hybride avec fusion des rangs. Méthode : 150 questions d'élèves, la bonne page marquée à la main, recall sur les cinq premiers résultats. Résultats : 0,71, 0,78 et 0,86. L'hybride gagne, mais il double les requêtes et je n'ai pas d'intervalle de confiance.",
   "topics": [
    "postgresql"
+  ],
+  "images": [
+   {
+    "file": "p0691_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 1903.26,
   "likes": 40,
@@ -2063,6 +2098,13 @@
   "topics": [
    "llms"
   ],
+  "images": [
+   {
+    "file": "p0857_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 1543.37,
   "likes": 0,
   "comments": [
@@ -2209,6 +2251,13 @@
   "topics": [
    "kubernetes",
    "python"
+  ],
+  "images": [
+   {
+    "file": "p0959_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 1935.8,
   "likes": 0,

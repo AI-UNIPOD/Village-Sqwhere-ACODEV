@@ -457,6 +457,13 @@
   "topics": [
    "go"
   ],
+  "images": [
+   {
+    "file": "p0246_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 185.71,
   "likes": 0,
   "comments": [
@@ -1624,6 +1631,13 @@
   "body": "Measured loading one wholesaler's price file, 1.4 million rows and 9 columns, into an empty table on a local Postgres 16 with default settings. psycopg2 execute_values in batches of 5,000: 38 s. psycopg 3 executemany with pipeline mode: 52 s. COPY from a file-like object in psycopg 3: 11 s. Median of three runs each, same machine, indexes created after the load. Not measured: loading with the indexes in place, which I expect to change the ranking of the first two. Keeping COPY into a staging table.",
   "topics": [
    "python"
+  ],
+  "images": [
+   {
+    "file": "p0663_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 679.16,
   "likes": 6,
@@ -2931,6 +2945,13 @@
   "topics": [
    "computer-vision",
    "pytorch"
+  ],
+  "images": [
+   {
+    "file": "p1388_1.webp",
+    "width": 1200,
+    "height": 261
+   }
   ],
   "age_hours": 506.75,
   "likes": 14,

@@ -271,6 +271,13 @@
   "topics": [
    "postgresql"
   ],
+  "images": [
+   {
+    "file": "p0160_1.webp",
+    "width": 1200,
+    "height": 322
+   }
+  ],
   "age_hours": 790.6,
   "likes": 8,
   "comments": [
@@ -404,6 +411,13 @@
   "topics": [
    "docker",
    "postgresql"
+  ],
+  "images": [
+   {
+    "file": "p0176_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 1817.3,
   "likes": 2,
@@ -1068,6 +1082,18 @@
    "ci-cd",
    "docker"
   ],
+  "images": [
+   {
+    "file": "p0446_1.webp",
+    "width": 1200,
+    "height": 520
+   },
+   {
+    "file": "p0446_2.webp",
+    "width": 1200,
+    "height": 216
+   }
+  ],
   "age_hours": 1185.09,
   "likes": 43,
   "comments": []
@@ -1079,6 +1105,13 @@
   "body": "CI file for our Vue storefront, please review. It restores the npm cache keyed on the lockfile hash, runs npm ci, builds, then runs a Lighthouse budget check that fails the pipeline under a performance score of 85. I'm unsure about two things: the Lighthouse step fails randomly on about 1 run in 8 even with no code change, and I'm not sure the cache key should include the Node version.",
   "topics": [
    "ci-cd"
+  ],
+  "images": [
+   {
+    "file": "p0448_1.webp",
+    "width": 1200,
+    "height": 548
+   }
   ],
   "age_hours": 1322.87,
   "likes": 11,
@@ -1785,6 +1818,13 @@
   "body": "Member balances for a farmer cooperative: deposits, produce deliveries credited at a weekly price, loans repaid in kind. Currently one balance column updated by the app. Corrections are painful because nobody can say how a number came to be. Options: an append only entries table with the balance computed by a sum; entries plus a balance column maintained by a trigger; or keep the column and add an audit table. About 3000 members and 40 entries per member per year. Reads of the balance are by far the most frequent query.",
   "topics": [
    "postgresql"
+  ],
+  "images": [
+   {
+    "file": "p0872_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 2041.81,
   "likes": 3,
@@ -2830,6 +2870,13 @@
   "topics": [
    "rust"
   ],
+  "images": [
+   {
+    "file": "p1334_1.webp",
+    "width": 1200,
+    "height": 360
+   }
+  ],
   "age_hours": 908.87,
   "likes": 1,
   "comments": [
@@ -3013,6 +3060,18 @@
   "body": "Our Vue 3 storefront (Vite, Pinia, vue-router) scores 41 on Lighthouse mobile with a Moto G class profile. Main bundle 410 KB gzipped, LCP 5.9 s, mostly JS parse. 190 product pages, team of two. Is moving to SSR with hydration worth it, or should we cut the bundle first? I can't afford to do both before the next sale.",
   "topics": [
    "vue"
+  ],
+  "images": [
+   {
+    "file": "p1413_1.webp",
+    "width": 1200,
+    "height": 360
+   },
+   {
+    "file": "p1413_2.webp",
+    "width": 1200,
+    "height": 360
+   }
   ],
   "age_hours": 47.58,
   "likes": 22,

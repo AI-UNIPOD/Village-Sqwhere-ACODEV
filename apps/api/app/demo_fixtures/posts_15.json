@@ -134,6 +134,13 @@
   "title": "Export CSV de 20 000 lignes qui fige le téléphone",
   "body": "Dans le tableau de bord boutique, le bouton Exporter construit le CSV côté navigateur avec un reduce puis un Blob. Sur un petit Android, la page se fige 6 à 8 secondes avec 20 000 lignes de ventes. J'ai découpé en lots de 1 000, avec un await sur setTimeout entre chaque. Je ne suis pas sûre que ce soit la bonne approche, ni que la mémoire soit mieux gérée. Regardez surtout la boucle de concaténation.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0081_1.webp",
+    "width": 1200,
+    "height": 532
+   }
+  ],
   "age_hours": 257.2,
   "likes": 14,
   "comments": [
@@ -526,6 +533,13 @@
   "title": "How many token pairs in our design system fail AA contrast",
   "body": "Ran a script over the colour tokens of a Vue design system for public service forms: 62 foreground and background pairs that actually occur in components, checked against WCAG 2.1 AA (4.5:1 for body text, 3:1 for large text). 14 failed, and 9 of those were the disabled and hint states in the lighter greys. The brand blue on white passed at 5.1:1 but failed on the tinted card background at 4.2:1. Only the default theme so far, dark mode still to do.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0360_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 1701.02,
   "likes": 12,
   "comments": []
@@ -575,6 +589,13 @@
   "body": "Our cocoa pod classifier is served from a container limited to 2 CPUs on a 16 core host. torch.get_num_threads() returned 16, so every request spawned more threads than the limit allowed and got throttled. Setting torch.set_num_threads(2) at startup took p95 from 910 ms to 310 ms over 500 requests with the same images. Seen on PyTorch 2.2. Worth adding to the deploy notes.",
   "topics": [
    "docker"
+  ],
+  "images": [
+   {
+    "file": "p0411_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 309.49,
   "likes": 0,
@@ -742,6 +763,13 @@
   "body": "Un partenaire exploite un service Java qui gère les garanties des panneaux. Mon worker Rust doit connaître chaque changement de statut, mais ils ne veulent pas ouvrir de webhook. Ils proposent une table d'événements PostgreSQL en lecture seule. Trois pistes : scruter la table toutes les 10 secondes avec un curseur sur l'id, utiliser la réplication logique, ou leur demander un export de fichiers déposé toutes les heures. Le volume est d'environ 2 000 événements par jour. Je ne maîtrise pas leur schéma et ils ne le versionnent pas.",
   "topics": [
    "java"
+  ],
+  "images": [
+   {
+    "file": "p0447_1.webp",
+    "width": 1200,
+    "height": 368
+   }
   ],
   "age_hours": 1579.2,
   "likes": 38,
@@ -2504,6 +2532,13 @@
   "body": "Script Node qui lit le JSON des styles exporté depuis Figma et écrit un fichier de variables CSS pour nos composants Vue de portail universitaire. Il convertit les noms en kebab-case et regroupe par couleur, espacement et typographie. Je ne suis pas sûr de la gestion des noms en double, quand deux designers nomment pareil des styles différents. Regardez surtout la fonction de nommage et ce qu'elle fait avec les accents et les espaces.",
   "topics": [
    "nodejs"
+  ],
+  "images": [
+   {
+    "file": "p1203_1.webp",
+    "width": 1200,
+    "height": 559
+   }
   ],
   "age_hours": 680.01,
   "likes": 7,

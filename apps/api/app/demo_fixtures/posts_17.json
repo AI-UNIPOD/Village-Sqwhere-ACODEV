@@ -8,6 +8,18 @@
   "topics": [
    "docker"
   ],
+  "images": [
+   {
+    "file": "p0001_1.webp",
+    "width": 1200,
+    "height": 612
+   },
+   {
+    "file": "p0001_2.webp",
+    "width": 1200,
+    "height": 393
+   }
+  ],
   "age_hours": 1600.55,
   "likes": 5,
   "comments": [
@@ -133,6 +145,13 @@
   "topics": [
    "postgresql"
   ],
+  "images": [
+   {
+    "file": "p0050_1.webp",
+    "width": 1200,
+    "height": 618
+   }
+  ],
   "age_hours": 1069.82,
   "likes": 4,
   "comments": [
@@ -232,6 +251,13 @@
   "body": "Before launch I scanned 12 of our Go service images, each built three ways, with Trivy. Median findings: Alpine 3, distroless 1, scratch 0. Four of the scratch images then failed at runtime because they shipped no CA certificates and every outbound TLS call broke. Distroless static gave nearly the same count with certificates included. Method: same commit, same Go 1.22 toolchain, scan run once on the same day against the same database.",
   "topics": [
    "docker"
+  ],
+  "images": [
+   {
+    "file": "p0067_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 1805.8,
   "likes": 15,
@@ -859,6 +885,13 @@
   "topics": [
    "nodejs"
   ],
+  "images": [
+   {
+    "file": "p0314_1.webp",
+    "width": 1200,
+    "height": 766
+   }
+  ],
   "age_hours": 756.62,
   "likes": 5,
   "comments": [
@@ -998,6 +1031,13 @@
   "topics": [
    "ci-cd",
    "postgresql"
+  ],
+  "images": [
+   {
+    "file": "p0420_1.webp",
+    "width": 1200,
+    "height": 459
+   }
   ],
   "age_hours": 992.64,
   "likes": 14,
@@ -1666,6 +1706,13 @@
   "topics": [
    "ci-cd"
   ],
+  "images": [
+   {
+    "file": "p0543_1.webp",
+    "width": 1200,
+    "height": 360
+   }
+  ],
   "age_hours": 218.05,
   "likes": 25,
   "comments": [
@@ -1819,6 +1866,13 @@
   "topics": [
    "ci-cd",
    "terraform"
+  ],
+  "images": [
+   {
+    "file": "p0550_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 828.83,
   "likes": 28,
@@ -2328,6 +2382,13 @@
   "body": "Fine-tuning a Darija sentiment classifier. Two Docker images that differ only in base, CUDA 12.1 and 12.4. Mean F1 over 5 seeds: 0.842 against 0.836. Seed-to-seed spread inside one image was about 0.9 points, so the gap is not real. Throughput did differ, 8 percent faster on 12.4. Next time I will check variance before blaming the image.",
   "topics": [
    "docker"
+  ],
+  "images": [
+   {
+    "file": "p0902_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 68.07,
   "likes": 11,

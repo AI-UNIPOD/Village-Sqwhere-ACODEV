@@ -8,6 +8,13 @@
   "topics": [
    "react-native"
   ],
+  "images": [
+   {
+    "file": "p0027_1.webp",
+    "width": 1200,
+    "height": 624
+   }
+  ],
   "age_hours": 650.8,
   "likes": 51,
   "comments": [
@@ -581,6 +588,13 @@
    "go",
    "python"
   ],
+  "images": [
+   {
+    "file": "p0288_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 363.99,
   "likes": 16,
   "comments": [
@@ -962,6 +976,13 @@
   "topics": [
    "react"
   ],
+  "images": [
+   {
+    "file": "p0357_1.webp",
+    "width": 1200,
+    "height": 581
+   }
+  ],
   "age_hours": 934.36,
   "likes": 8,
   "comments": [
@@ -1130,6 +1151,13 @@
   "topics": [
    "docker",
    "react"
+  ],
+  "images": [
+   {
+    "file": "p0525_1.webp",
+    "width": 1200,
+    "height": 581
+   }
   ],
   "age_hours": 883.49,
   "likes": 7,
@@ -1396,6 +1424,13 @@
   "title": "Three ways to fill missing days in shop demand series, compared",
   "body": "Daily demand for 120 shops, with gaps of one to nine days. Compared forward fill, linear interpolation, and leaving the gaps as zeros but adding a missing flag as an input feature. Small LSTM in TensorFlow, last eight weeks held out in time order, MAPE averaged over shops: 17.9 percent, 17.1 percent and 15.4 percent. The flag helped most for shops with long gaps. I would not generalise beyond this dataset, 120 shops is not many.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0647_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 772.5,
   "likes": 3,
   "comments": [
@@ -1721,6 +1756,13 @@
   "body": "For a crop price regression model in PyTorch that we retrain every week: full history versus a sliding window of the last 12 weeks. The window scored an RMSE 0.8 percent worse, but retraining dropped from 48 minutes to 6. Method: six rolling evaluations over the last six weeks, same seed, same architecture, each scored on the following week. For a weekly schedule I am keeping the window, and the full retrain moves to a monthly run.",
   "topics": [
    "pytorch"
+  ],
+  "images": [
+   {
+    "file": "p0810_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 1215.67,
   "likes": 6,
@@ -2165,6 +2207,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0934_1.webp",
+    "width": 1200,
+    "height": 316
+   }
+  ],
   "age_hours": 2004.02,
   "likes": 1,
   "comments": [
@@ -2325,6 +2374,13 @@
    "docker",
    "llms"
   ],
+  "images": [
+   {
+    "file": "p1007_1.webp",
+    "width": 1200,
+    "height": 360
+   }
+  ],
   "age_hours": 1232.38,
   "likes": 17,
   "comments": [
@@ -2435,6 +2491,13 @@
   "type": "code_review_request",
   "body": "Hook de polling pour notre tableau de bord: il relance un fetch toutes les 15 secondes tant que l'onglet est visible. Je ne suis pas sûr de deux choses: le nettoyage au démontage, et le cas où la réponse arrive après que le composant a disparu. Il utilise setInterval. Merci de regarder surtout la partie effet et annulation.",
   "topics": [],
+  "images": [
+   {
+    "file": "p1104_1.webp",
+    "width": 1200,
+    "height": 612
+   }
+  ],
   "age_hours": 210.29,
   "likes": 2,
   "comments": [

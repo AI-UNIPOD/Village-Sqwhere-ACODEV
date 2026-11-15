@@ -100,6 +100,13 @@
   "topics": [
    "postgresql"
   ],
+  "images": [
+   {
+    "file": "p0021_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 176.9,
   "likes": 3,
   "comments": [
@@ -133,6 +140,13 @@
   "title": "tlsprobe 1.1: SNI override, per-host timeout and an expiry exit code",
   "body": "tlsprobe 1.1 is out. It's a Go CLI that connects to a list of host and port pairs and reports the negotiated TLS version, the cipher, certificate expiry and the chain, as a table or as JSON. New in this release: an SNI override, a per-host timeout, and exit code 2 when any certificate expires within 21 days. Still rough: no STARTTLS yet, no OCSP check, and it trusts the system root store with no way to pass your own.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0092_1.webp",
+    "width": 1200,
+    "height": 426
+   }
+  ],
   "age_hours": 574.18,
   "likes": 6,
   "comments": [
@@ -183,6 +197,13 @@
   "title": "Brouillon de formulaire en file locale, relance quand le réseau revient",
   "body": "Hook React pour nos formulaires de réception de marchandises : chaque modification est écrite dans le stockage local au bout de 400 ms, et à l'envoi la requête passe par une file qui retente avec un délai croissant. Le calcul du délai :\n\nconst delay = Math.min(30000, 1000 * 2 ** attempt)\nsetTimeout(flush, delay)\n\nJe me demande si l'événement online du navigateur suffit pour relancer la file, et si le stockage local tient pour des formulaires avec des photos. Regardez surtout la gestion de attempt, je ne suis pas sûr qu'il soit remis à zéro après un succès.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0108_1.webp",
+    "width": 1200,
+    "height": 708
+   }
+  ],
   "age_hours": 240.47,
   "likes": 1,
   "comments": [
@@ -492,6 +513,13 @@
    "ci-cd",
    "postgresql"
   ],
+  "images": [
+   {
+    "file": "p0140_1.webp",
+    "width": 1200,
+    "height": 388
+   }
+  ],
   "age_hours": 152.88,
   "likes": 32,
   "comments": [
@@ -734,6 +762,13 @@
   "topics": [
    "kubernetes"
   ],
+  "images": [
+   {
+    "file": "p0226_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 622.42,
   "likes": 27,
   "comments": [
@@ -762,6 +797,13 @@
   "title": "Rounding VAT on invoice lines: per line or on the total?",
   "body": "Invoice screen in React. Amounts are kept as integer kobo so no float trouble, but VAT at 7.5 percent produces fractions. Right now I round once, on the total:\n\nconst total = useMemo(() => items.reduce((s, i) => s + i.qty * i.unitKobo, 0), [items])\nconst vat = Math.round(total * 0.075)\n\nThe table also shows VAT per line, and on a bill with 6 lines the per-line figures add up to one kobo more than the total VAT. Is useMemo even worth it here, and which way would you round?",
   "topics": [],
+  "images": [
+   {
+    "file": "p0228_1.webp",
+    "width": 1200,
+    "height": 370
+   }
+  ],
   "age_hours": 1107.8,
   "likes": 17,
   "comments": [
@@ -906,6 +948,13 @@
    "pytorch",
    "tensorflow"
   ],
+  "images": [
+   {
+    "file": "p0347_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 513.82,
   "likes": 17,
   "comments": [
@@ -979,6 +1028,18 @@
   "body": "pipeline-budget 0.4 is out. It's a Go CLI that reads CI run durations from an exported JSON file and fails when the p90 of the last 20 runs goes over a limit you set, 10 minutes by default. New: it names the slowest job in the failure message, and a per-branch filter so release branches do not pollute the number. Still rough: only one CI export format is supported, and p90 over 20 runs is noisy when a repo only builds twice a day.",
   "topics": [
    "ci-cd"
+  ],
+  "images": [
+   {
+    "file": "p0382_1.webp",
+    "width": 1200,
+    "height": 393
+   },
+   {
+    "file": "p0382_2.webp",
+    "width": 1200,
+    "height": 516
+   }
   ],
   "age_hours": 1034.62,
   "likes": 34,
@@ -1231,6 +1292,13 @@
   "topics": [
    "java"
   ],
+  "images": [
+   {
+    "file": "p0528_1.webp",
+    "width": 1200,
+    "height": 613
+   }
+  ],
   "age_hours": 1857.59,
   "likes": 2,
   "comments": [
@@ -1407,6 +1475,13 @@
   "title": "Member balances for a cooperative: stored column, computed from ledger, or both",
   "body": "Software for a farmer cooperative with about 2,800 members and roughly 40,000 ledger entries per season: deposits for produce, loans for inputs, repayments. Today the balance is a column that the code updates on each entry, and the treasurer sometimes fixes mistakes by overwriting an amount. Options. One: keep the column and add reversal entries for corrections. Two: drop the column and compute balances from an append-only ledger with an index. Three: both, plus a nightly job that compares them. I like three but it is more to maintain for a small team. Auditors visit twice a year and always ask what changed after a period closed.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0585_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 159.89,
   "likes": 27,
   "comments": [
@@ -2983,6 +3058,13 @@
   "topics": [
    "go",
    "python"
+  ],
+  "images": [
+   {
+    "file": "p1221_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 128.64,
   "likes": 6,
