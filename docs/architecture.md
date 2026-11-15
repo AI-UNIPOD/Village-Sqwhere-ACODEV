@@ -15,6 +15,9 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   Settings come from environment variables or a root `.env` file (`apps/api/app/config.py`):
   `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
   and `JWT_SECRET_KEY`. The API will not start without `JWT_SECRET_KEY`.
+- **Post image storage**: image bytes live in Postgres, in `post_attachments.data`, next to
+  their type, size and position. The API serves them back itself, so there is no bucket and no
+  setting. See `docs/decisions/2026-11-15-post-images-in-postgres.md`.
 - **PostgreSQL + pgvector**: the main data store, set up by the scripts in `infra/db/init/`.
   `idea_embeddings` and `user_embeddings` hold what an idea and a developer mean, as 768
   numbers each from Google's `gemini-embedding-2`. The worker writes them, never a request
@@ -134,7 +137,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics
   and your own posts). Likes and saves, each safe to repeat: `PUT /v1/posts/{post_id}/like`,
   `DELETE /v1/posts/{post_id}/like`, `PUT /v1/posts/{post_id}/save`,
-  `DELETE /v1/posts/{post_id}/save` and `GET /v1/me/saved-posts`.
+  `DELETE /v1/posts/{post_id}/save` and `GET /v1/me/saved-posts`. The author adds an image (JPEG,
+  PNG or WebP, up to 4 MB, at most 10) with `POST /v1/uploads`. Anyone with its address reads it,
+  without a token, at `GET /v1/post-images/{attachment_id}`.
 - **Comments** (Bearer token): comment or reply with `POST /v1/posts/{post_id}/comments`, then
   `GET /v1/comments/{comment_id}`, `PATCH /v1/comments/{comment_id}` and
   `DELETE /v1/comments/{comment_id}`. Lists, oldest first: `GET /v1/posts/{post_id}/comments`

@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import (
     BigInteger,
+    CheckConstraint,
     DateTime,
     Enum,
     FetchedValue,
@@ -11,8 +12,10 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Integer,
+    LargeBinary,
     SmallInteger,
     Text,
+    UniqueConstraint,
     func,
     text,
 )
@@ -116,6 +119,47 @@ class PostTopic(Base):
     )
     technology_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("technologies.id", ondelete="RESTRICT"), primary_key=True
+    )
+
+
+class PostAttachment(Base):
+    __tablename__ = "post_attachments"
+    __mapper_args__ = {"eager_defaults": True}
+    __table_args__ = (
+        CheckConstraint("byte_size BETWEEN 1 AND 4194304", name="post_attachments_byte_size"),
+        CheckConstraint("octet_length(data) = byte_size", name="post_attachments_data_size"),
+        CheckConstraint(
+            "mime_type IN ('image/jpeg', 'image/png', 'image/webp')",
+            name="post_attachments_mime_type",
+        ),
+        CheckConstraint(
+            "(width IS NULL OR width > 0) AND (height IS NULL OR height > 0)",
+            name="post_attachments_dimensions",
+        ),
+        CheckConstraint("position BETWEEN 0 AND 9", name="post_attachments_position_range"),
+        UniqueConstraint("storage_key", name="post_attachments_storage_key_uq"),
+        UniqueConstraint("post_id", "position", name="post_attachments_position_uq"),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+    post_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False
+    )
+    storage_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # deferred, so a feed page reads the image facts without loading every image
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False, deferred=True)
+    mime_type: Mapped[str] = mapped_column(Text, nullable=False)
+    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
 
