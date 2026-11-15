@@ -32,7 +32,8 @@ type Copy = {
   needsHeading: string;
   needsLead: string;
   title: Field;
-  summary: Field;
+  // `note` says what leaves the server for the meaning part of the score
+  summary: Field & { note: string };
   details: Field;
   stageLabel: string;
   roles: Field;
@@ -87,6 +88,7 @@ type Copy = {
     parts: { roles: string; technologies: string; sectors: string; meaning: string };
     points: string;
     notCompared: string;
+    compared: string;
     noTechnologies: string;
     noSectors: string;
     partial: string;
@@ -95,6 +97,7 @@ type Copy = {
     heard: { strong: string; possible: string; weak: string; poor: string };
     heardPartial: string;
   };
+  similar: { heading: string; theirs: string; yours: string };
   seeMatches: string;
   matches: {
     pageTitle: string;
@@ -189,6 +192,7 @@ const en: Copy = {
   summary: {
     label: "Public summary",
     help: "20 to 1,000 characters. The problem, who has it, and what you want to build.",
+    note: "To compare ideas by meaning, Village Sqwhere sends the title and the summary to Google's Gemini. The private brief is never sent.",
   },
   details: {
     label: "Private brief (optional)",
@@ -268,6 +272,7 @@ const en: Copy = {
     parts: { roles: "Roles", technologies: "Technologies", sectors: "Sectors", meaning: "Meaning" },
     points: "{points} of {max}",
     notCompared: "Not compared yet",
+    compared: "How close what the idea says is to what the developer's profile says.",
     noTechnologies: "No technologies in common",
     noSectors: "No sectors in common",
     partial:
@@ -280,6 +285,11 @@ const en: Copy = {
       poor: "Match score: {score} out of 100, Poor match.",
     },
     heardPartial: "Partial score.",
+  },
+  similar: {
+    heading: "Ideas that read close to this one",
+    theirs: "Has an idea close to yours: {title}",
+    yours: "Close to your idea: {title}",
   },
   seeMatches: "See who matches",
   matches: {
@@ -388,6 +398,7 @@ const fr: Copy = {
   summary: {
     label: "Résumé public",
     help: "De 20 à 1\u202f000 caractères. Le problème, qui le rencontre, et ce que vous voulez construire.",
+    note: "Pour comparer les idées par le sens, Village Sqwhere envoie le titre et le résumé à Gemini, de Google. Le dossier privé n'est jamais envoyé.",
   },
   details: {
     label: "Dossier privé (facultatif)",
@@ -422,11 +433,11 @@ const fr: Copy = {
     heading: "Supprimer l'idée",
     text: "Supprimez une idée dont vous ne voulez plus, avec son dossier privé. Une idée qui a un espace peut seulement être fermée.",
     button: "Supprimer cette idée",
-    title: "Supprimer cette idée ?",
+    title: "Supprimer cette idée\u202f?",
     dialog: "Elle disparaît de vos idées et de la vue de tous, avec son dossier privé. Cette action est définitive.",
     confirm: "Supprimer l'idée",
     cancel: "La garder",
-    hasHub: "Cette idée a un espace, et ses membres ont signé un accord à son sujet : elle ne peut pas être supprimée. Fermez-la plutôt.",
+    hasHub: "Cette idée a un espace, et ses membres ont signé un accord à son sujet\u202f: elle ne peut pas être supprimée. Fermez-la plutôt.",
     failed: "Nous n'avons pas pu supprimer l'idée. Rien n'a changé, réessayez.",
   },
   errors: {
@@ -470,6 +481,7 @@ const fr: Copy = {
     parts: { roles: "Rôles", technologies: "Technologies", sectors: "Domaines", meaning: "Sens" },
     points: "{points} sur {max}",
     notCompared: "Pas encore comparé",
+    compared: "À quel point ce que dit l'idée est proche de ce que dit le profil du développeur.",
     noTechnologies: "Aucune technologie en commun",
     noSectors: "Aucun domaine en commun",
     partial:
@@ -487,6 +499,11 @@ const fr: Copy = {
       poor: "Score de correspondance\u202f: {score} sur 100, correspondance insuffisante.",
     },
     heardPartial: "Score partiel.",
+  },
+  similar: {
+    heading: "Idées proches de celle-ci",
+    theirs: "A une idée proche de la vôtre\u202f: {title}",
+    yours: "Proche de votre idée\u202f: {title}",
   },
   seeMatches: "Voir qui correspond",
   matches: {

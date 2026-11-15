@@ -1,0 +1,14 @@
+# The verification worker: reads applicants' repositories, writes reports and embeddings,
+# outside any request. On Vercel it runs as a daemon (see vercel.json at the repository root).
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+
+WORKDIR /app
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy PYTHONUNBUFFERED=1
+
+# dependencies first, so a code change does not reinstall them
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY app ./app
+
+CMD ["uv", "run", "--no-sync", "python", "-m", "app.workers.runner"]

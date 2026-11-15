@@ -123,6 +123,8 @@ technologies the feed should show and the sectors (`POST /v1/me/roles`,
 developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
 under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
 (`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
+The stack step says what is sent to Google's Gemini to match by meaning, tied to the chips as
+their help text (the same sentence as the profile's bio field).
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
 from `GET /v1/me` (`useMe()` in `app/session/me.ts`), and where they stand on the way to a
@@ -167,8 +169,9 @@ cannot read it can choose another case.
 
 Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/ideas/compose`
 (new) or `/en/ideas/compose?id=` (existing). The form keeps what everyone sees (title, summary)
-apart from the private brief, saves only the fields that changed, and asks before publishing or
-closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
+apart from the private brief, says by the summary what is sent to Google's Gemini to compare
+ideas by meaning (the title and the summary, never the brief), saves only the fields that
+changed, and asks before publishing or closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
 "Delete the idea" at the end of a saved idea's form (`app/ideas/delete-idea.tsx`,
 `DELETE /v1/me/ideas/{id}`) asks first, then returns to Your ideas with a line saying it went.
@@ -185,13 +188,21 @@ A developer can take a waiting request back on the idea's page or the hub's page
 After a decline the developer waits before asking again: the date the wait ends replaces the
 button, read from the hub's card (`viewer.can_ask_again_at`) or from a press that was too soon
 (409 `REQUEST_COOLING_DOWN`).
+Under the idea, "Ideas that read close to this one" lists up to five other open ideas as links
+with their summaries (`app/ideas/similar-ideas.tsx`, `GET /v1/ideas/{id}/similar`). It is an
+extra: it shows nothing when the list is empty or the read fails, it is only asked for after the
+idea has been read, and it carries no number.
 
 "For you" at `/en/ideas/for-you` is the third ideas tab: the open ideas that need a role the
 developer is verified in (`GET /v1/me/matches`), best score first. Each card shows the match
 score (`app/ideas/match-score.tsx`: the number, its step as a pill, one sentence for a screen
 reader) and the parts that earned it, each with its raw points: the roles that matched, the
-technologies and sectors shared with the idea's author, and the meaning part, which is not
-compared yet. Matching goes by verified roles, so a developer without one is sent to verify, and
+technologies and sectors shared with the idea's author, and the meaning part. A match whose
+idea and developer were both compared has points for meaning, no "Partial score" line and a
+line saying what the part is; one not compared yet says so and keeps the line. One list can
+hold both. An idea close to one of the developer's own adds "Close to your idea: ..." with a
+link to it (`similar_idea`). Matching goes by verified roles, so a developer without one is
+sent to verify, and
 the page does not call the API for them.
 
 The owner's side is `/en/ideas/matches?id=`: developers verified in a role the idea needs
@@ -199,6 +210,8 @@ The owner's side is `/en/ideas/matches?id=`: developers verified in a role the i
 their country (named in the page's language, nothing when they gave none, directly under the
 name). The technologies shared with the owner come first in the tags, marked with a tick and, for
 a screen reader, "in common". A response without score fields shows the parts without a score.
+A developer with an open idea that reads close to the owner's adds "Has an idea close to yours:
+..." with a link to that idea.
 With a hub, "Invite to the hub" sends the invitation from the row
 (`inviteMember`, the same call and refusal sentences as the hub's invite form); without one the
 page says a hub comes first. "See who matches" on Your ideas and a link under the hub's invite
@@ -346,7 +359,8 @@ follows (`PUT` and `DELETE /v1/comments/{id}/like`).
 
 The profile is `app/profile/`, at `/en/profile`: the name, bio and country (`PATCH /v1/me`; the
 country is a native list with "No country" first, saved as its code or `null`, and the form says
-other signed-in developers can see it), the roles
+other signed-in developers can see it; a second help line under the bio says what is sent to
+Google's Gemini to match by meaning, and that the name, username and email never are), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.

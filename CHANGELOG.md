@@ -11,6 +11,9 @@ its number:
 ## 2026-11-15
 
 - fix(web): draw no repository link in the demo's review case (#221)
+- fix(api): make the demo world's review case and chats consistent (#224)
+- feat(web): show the meaning part of the score and similar ideas (#222)
+- chore: deploy the web app, api and worker as one vercel project (#226)
 - test(web): wait for the dialog to close in three hub tests (#220)
 - feat(api): open the interview socket with a one-use ticket (#216)
 - fix(web): mark the village steps a developer has already done (#215)

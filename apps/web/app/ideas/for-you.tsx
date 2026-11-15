@@ -19,6 +19,7 @@ import styles from "./ideas.module.css";
 import { IdeasTabs } from "./ideas-tabs";
 import { MatchScore, ScoreReasons } from "./match-score";
 import { IdeasSkeleton } from "./my-ideas";
+import { SimilarIdeaLine } from "./similar-ideas";
 
 // Why the idea is here: its score and the parts of it, among them the developer's verified roles
 // that the idea needs and what they share with its author.
@@ -36,6 +37,7 @@ function WhyLine({ lang, match }: { lang: Lang; match: IdeaMatch }) {
         technologies={(names) => fill(t.inCommon, { name, technologies: names })}
         sectors={(names) => fill(t.sectors, { name, sectors: names })}
       />
+      {match.similar_idea && <SimilarIdeaLine lang={lang} idea={match.similar_idea} yours />}
     </>
   );
 }
