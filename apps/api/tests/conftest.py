@@ -60,6 +60,7 @@ ASYNC_DATABASE_URL = TEST_DB_URL.replace("postgresql://", "postgresql+asyncpg://
 test_engine = create_async_engine(ASYNC_DATABASE_URL, poolclass=NullPool)
 test_async_session = async_sessionmaker(test_engine, expire_on_commit=False)
 
+
 VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
 REDIRECT_URI = "http://localhost:8000/v1/auth/oauth/github/callback"
 

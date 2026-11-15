@@ -13,10 +13,8 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
   verification (GitHub analysis, five-question AI interview, report, peer review), Groq
   and Gemini fallbacks and a separate worker. Guide: `docs/backend.md`.
 - Ideas, matching and hubs are in place (drafts, cards, agreements, invitations, join
-  requests). Every match has a score out of 100 that decides the order (roles, shared
-  technologies, shared sectors; version 1 is partial until embeddings add the meaning part:
-  `docs/decisions/2026-11-14-match-score.md`), and cards name the shared technologies and the
-  developer's country (profiles hold a country, no city).
+  requests). Matches use verified roles, shared skills and local idea/profile embeddings;
+  vector matching uses `all-MiniLM-L6-v2` and never reads confidential idea details.
 - A hub has a real phase: the owner confirms the team (any size), which opens brainstorm, then
   moves it one phase forward or back (`2026-11-14-hub-phases.md`). The hub page shows it,
   with its brainstorm notes, design sketch and a team chat for members (no live updates).
@@ -38,10 +36,9 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
 ## What's next
 
 1. Fix the GitHub Actions billing limit, turn `ci` back on, then revisit the merge agent.
-2. The hub's four phase tools: brainstorm notes (in review), the design sketch as boxes and
-   arrows, the build tab (pieces, and the commits of a public repository the owner pastes),
-   the review checklist and finishing a hub. Then embeddings for the score's meaning part, the
-   score on join requests and a "pause matching" setting.
+2. The hub's remaining phase tools: the build tab (pieces and commits from a public repository),
+   the review checklist and finishing a hub. Add the score to join requests and a "pause matching"
+   setting.
 3. Add peer-review report display, production deployment configuration and, once the team has
    Systalink platform access, a deploy job in CI.
 4. Save an onboarding completion flag once the API has a field (the country, the sectors and

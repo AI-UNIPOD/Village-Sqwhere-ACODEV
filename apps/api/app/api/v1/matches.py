@@ -10,7 +10,7 @@ from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Query, status
-from sqlalchemy import ColumnElement, case, func, select
+from sqlalchemy import ColumnElement, Float, case, func, literal, select
 from sqlalchemy.orm import defer, raiseload, selectinload
 
 from app.api.deps import CurrentUser, DbSession, same_world
@@ -20,8 +20,10 @@ from app.models import (
     HubMember,
     HubMemberStatus,
     Idea,
+    IdeaEmbedding,
     IdeaRoleNeed,
     IdeaStatus,
+    ProfileEmbedding,
     Sector,
     Technology,
     User,
@@ -38,6 +40,7 @@ from app.schemas.matches import (
 )
 from app.services.match_score import (
     MANY_ROLES_POINTS,
+    MEANING_MAX,
     ONE_ROLE_POINTS,
     SECTOR_CAP,
     SECTOR_POINTS,
@@ -123,6 +126,31 @@ async def match_developers_to_my_idea(
     shared_technologies = shared_counts(UserTechnology.technology_id, author_technologies)
     shared_sectors = shared_counts(UserSector.sector_id, author_sectors)
     points = raw_points(verified.c.role_count, shared_technologies, shared_sectors)
+    idea_embedding = await db.scalar(
+        select(IdeaEmbedding.embedding).where(IdeaEmbedding.idea_id == idea.id)
+    )
+    similarity = (
+        case(
+            (
+                ProfileEmbedding.user_id.is_not(None),
+                func.greatest(
+                    0.0,
+                    func.least(
+                        1.0,
+                        1.0 - ProfileEmbedding.embedding.cosine_distance(idea_embedding),
+                    ),
+                ),
+            ),
+            else_=literal(None, type_=Float()),
+        )
+        if idea_embedding is not None
+        else literal(None, type_=Float())
+    )
+    meaning_points = func.floor(func.coalesce(similarity, 0.0) * MEANING_MAX + 0.5)
+    score_order = case(
+        (similarity.is_not(None), points + meaning_points),
+        else_=func.floor((points * 100 + 35) / 70),
+    )
     # anyone asking, invited or in this idea's hub is already known; after a no, a leave or a
     # removal they may be suggested again (asking again still waits out any cool-down)
     connected = (
@@ -131,10 +159,11 @@ async def match_developers_to_my_idea(
         .where(Hub.idea_id == idea.id, HubMember.status.in_(LIVE_STATUSES))
     )
     result = await db.execute(
-        select(User)
+        select(User, similarity.label("meaning_similarity"))
         .join(verified, verified.c.user_id == User.id)
         .outerjoin(shared_technologies, shared_technologies.c.user_id == User.id)
         .outerjoin(shared_sectors, shared_sectors.c.user_id == User.id)
+        .outerjoin(ProfileEmbedding, ProfileEmbedding.user_id == User.id)
         .options(
             selectinload(User.roles),
             selectinload(User.technologies),
@@ -148,16 +177,26 @@ async def match_developers_to_my_idea(
             User.id.not_in(connected),
             same_world(User.id, current_user),
         )
-        .order_by(points.desc(), verified.c.first_verified_at, User.id)
+        .order_by(
+            score_order.desc(),
+            verified.c.first_verified_at,
+            User.id,
+        )
         .offset(offset)
         .limit(limit + 1)
     )
-    users = list(result.scalars().all())
-    has_more = len(users) > limit
+    matches = list(result.all())
+    has_more = len(matches) > limit
     return DeveloperMatchesResponse(
         data=[
-            matched_developer(user, needed, author_technologies, author_sectors)
-            for user in users[:limit]
+            matched_developer(
+                user,
+                needed,
+                author_technologies,
+                author_sectors,
+                float(meaning_similarity) if meaning_similarity is not None else None,
+            )
+            for user, meaning_similarity in matches[:limit]
         ],
         next_offset=offset + limit if has_more else None,
     )
@@ -178,7 +217,11 @@ def sorted_sectors(sectors: Iterable[Sector]) -> list[SectorRef]:
 
 
 def matched_developer(
-    user: User, needed: set[int], author_technologies: set[int], author_sectors: set[int]
+    user: User,
+    needed: set[int],
+    author_technologies: set[int],
+    author_sectors: set[int],
+    meaning_similarity: float | None,
 ) -> MatchedDeveloper:
     matched = sorted(
         (held for held in user.roles if held.role_id in needed and held.verified_at is not None),
@@ -191,7 +234,9 @@ def matched_developer(
         held.sector for held in user.sectors if held.sector_id in author_sectors
     )
     return MatchedDeveloper(
-        **match_score(len(matched), len(shared), len(shared_sectors)).model_dump(),
+        **match_score(
+            len(matched), len(shared), len(shared_sectors), meaning_similarity
+        ).model_dump(),
         id=user.id,
         username=user.username,
         display_name=user.display_name,
@@ -238,6 +283,10 @@ async def match_ideas_to_me(
     if not mine:
         return IdeaMatchesResponse(data=[])
 
+    profile_embedding = await db.scalar(
+        select(ProfileEmbedding.embedding).where(ProfileEmbedding.user_id == current_user.id)
+    )
+
     my_technologies = select(UserTechnology.technology_id).where(
         UserTechnology.user_id == current_user.id
     )
@@ -250,17 +299,41 @@ async def match_ideas_to_me(
         .group_by(IdeaRoleNeed.idea_id)
         .subquery()
     )
+    points = raw_points(needing_me.c.role_count, shared_technologies, shared_sectors)
     # ideas whose hub I am asking to join, invited to or in
     connected = (
         select(Hub.idea_id)
         .join(HubMember, HubMember.hub_id == Hub.id)
         .where(HubMember.user_id == current_user.id, HubMember.status.in_(LIVE_STATUSES))
     )
+    meaning_similarity = (
+        case(
+            (
+                IdeaEmbedding.idea_id.is_not(None),
+                func.greatest(
+                    0.0,
+                    func.least(
+                        1.0,
+                        1.0 - IdeaEmbedding.embedding.cosine_distance(profile_embedding),
+                    ),
+                ),
+            ),
+            else_=literal(None, type_=Float()),
+        )
+        if profile_embedding is not None
+        else literal(None, type_=Float())
+    )
+    meaning_points = func.floor(func.coalesce(meaning_similarity, 0.0) * MEANING_MAX + 0.5)
+    score_order = case(
+        (meaning_similarity.is_not(None), points + meaning_points),
+        else_=func.floor((points * 100 + 35) / 70),
+    )
     result = await db.execute(
-        select(Idea)
+        select(Idea, meaning_similarity.label("meaning_similarity"))
         .join(needing_me, needing_me.c.idea_id == Idea.id)
         .outerjoin(shared_technologies, shared_technologies.c.user_id == Idea.author_id)
         .outerjoin(shared_sectors, shared_sectors.c.user_id == Idea.author_id)
+        .outerjoin(IdeaEmbedding, IdeaEmbedding.idea_id == Idea.id)
         .options(*idea_options(), defer(Idea.details, raiseload=True))
         .where(
             Idea.status == IdeaStatus.OPEN,
@@ -270,17 +343,17 @@ async def match_ideas_to_me(
             same_world(Idea.author_id, current_user),
         )
         .order_by(
-            raw_points(needing_me.c.role_count, shared_technologies, shared_sectors).desc(),
+            score_order.desc(),
             Idea.published_at.desc(),
             Idea.id.desc(),
         )
         .offset(offset)
         .limit(limit + 1)
     )
-    ideas = list(result.scalars().unique().all())
-    has_more = len(ideas) > limit
-    page = ideas[:limit]
-    author_ids = {idea.author_id for idea in page}
+    matches = list(result.unique().all())
+    has_more = len(matches) > limit
+    page = matches[:limit]
+    author_ids = {idea.author_id for idea, _ in page}
     technologies = await shared_with_authors(
         db, current_user.id, author_ids, UserTechnology.technology_id, Technology
     )
@@ -288,7 +361,7 @@ async def match_ideas_to_me(
         db, current_user.id, author_ids, UserSector.sector_id, Sector
     )
     data = []
-    for idea in page:
+    for idea, meaning_similarity in page:
         matched = [
             RoleRef.model_validate(need.role) for need in idea.roles_needed if need.role_id in mine
         ]
@@ -297,7 +370,10 @@ async def match_ideas_to_me(
         data.append(
             IdeaMatch(
                 **match_score(
-                    len(matched), len(shared_technologies), len(shared_sectors)
+                    len(matched),
+                    len(shared_technologies),
+                    len(shared_sectors),
+                    float(meaning_similarity) if meaning_similarity is not None else None,
                 ).model_dump(),
                 idea=public_idea(idea),
                 matched_roles=matched,

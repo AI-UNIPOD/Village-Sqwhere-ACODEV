@@ -34,3 +34,25 @@ def test_the_breakdown_gives_raw_points_and_maxima_with_no_meaning_part() -> Non
     }
     assert result.score_version == 1
     assert result.partial is True
+
+
+@pytest.mark.parametrize(
+    ("similarity", "meaning_points", "score"),
+    [
+        (0.0, 0, 40),
+        (0.5 / 30, 1, 41),  # half a point rounds up
+        (0.5, 15, 55),
+        (1.0, 30, 70),
+        (-0.5, 0, 40),  # cosine similarities below zero earn no meaning points
+        (1.5, 30, 70),  # invalid values are clamped defensively
+    ],
+)
+def test_meaning_points_are_clamped_and_rounded_half_up(
+    similarity: float, meaning_points: int, score: int
+) -> None:
+    result = match_score(2, 0, 0, similarity)
+
+    assert result.score == score
+    assert result.score_version == 2
+    assert result.partial is False
+    assert result.breakdown.meaning.points == meaning_points

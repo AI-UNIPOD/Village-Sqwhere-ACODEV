@@ -669,8 +669,11 @@ Run the worker loop with:
 uv run --directory apps/api python -m app.workers.runner
 ```
 
-It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each job is claimed
-with a database row lock, and a failed job is logged while the loop continues.
+It polls verification and embedding work every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds.
+Missing idea and profile vectors are generated in batches with
+`sentence-transformers/all-MiniLM-L6-v2` on CPU. The model downloads from Hugging Face the first
+time work is available and is cached locally. A failed embedding batch is logged and retried on
+the next loop.
 
 Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
 `GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape. The
@@ -815,11 +818,26 @@ roles needed, author, `hub_id` (the idea's hub, or `null` before it has one) and
 never contains the confidential `details` field. A developer asks to join through `hub_id`.
 `GET /v1/ideas` accepts `offset` and `limit`, with `next_offset` when another page exists.
 
+#### `GET /v1/ideas/{idea_id}/similar`
+
+Returns open ideas ordered by cosine similarity to the requested open idea. The response uses
+the same public cards as `GET /v1/ideas`; it never includes `details`. It accepts `offset` and
+`limit` (1 to 50, default 20). When the target has not been embedded yet, it returns an empty
+`data` list with `embedding_pending: true`; retry after the embedding worker runs.
+
+* **Authentication:** Bearer token required.
+* **Success Response (200 OK):** `{"data": [{"idea": <public idea card>, "similarity": 0.91}],
+  "next_offset": null, "embedding_pending": false}`. Similarity is clamped to 0 through 1 and
+  rounded to four decimal places.
+* **Errors:** `404 NOT_FOUND` when the target is closed, deleted, outside the caller's demo or
+  real-data world, or does not exist.
+
 ### Matching
 
 Matching pairs open ideas with developers through the roles an idea needs and the roles a
-developer has passed verification in. Self-claimed and inactive roles never match. It is
-deterministic: no AI model is called and an idea's `details` are never read. Both routes take
+developer has passed verification in. Self-claimed and inactive roles never match. A local
+embedding model supplies the meaning part; no hosted AI call is made and idea `details` are
+never read. Both routes take
 `offset` (0 or more) and `limit` (1 to 50, default 20) and return `next_offset` when another
 page exists. Why: `docs/decisions/2026-11-13-role-based-idea-matching.md`.
 
@@ -831,23 +849,24 @@ page exists. Why: `docs/decisions/2026-11-13-role-based-idea-matching.md`.
 | Roles | 40 | 30 for one needed role the developer is verified in, 40 for two or more |
 | Technologies | 20 | 4 for each technology shared with the idea's author, at most 5 counted |
 | Sectors | 10 | 5 for each sector shared with the idea's author, at most 2 counted |
-| Meaning | 30 | Not built yet |
+| Meaning | 30 | Cosine similarity between public idea text and the developer profile |
 
-Version 1 has no meaning part, so the 70 points that exist are scaled to 100 and rounded to a
-whole number, half up: `(raw * 100 + 35) // 70`. Raw 30 gives 43, 42 gives 60, 57 gives 81 and
-70 gives 100. Both lists add these fields to each item:
+When both vectors exist, meaning points are the cosine similarity, clamped to 0 through 1,
+multiplied by 30 and rounded half up. The four parts then total 100. Until both vectors exist,
+the available 70 points are scaled to 100 and rounded half up: `(raw * 100 + 35) // 70`.
+Both lists add these fields to each item:
 
 * `score`: a whole number from 0 to 100.
-* `score_version`: `1`.
-* `partial`: `true` while the meaning part is missing.
+* `score_version`: `1` while partial, and `2` when meaning is included.
+* `partial`: `true` while either embedding is missing.
 * `breakdown`: `roles`, `technologies`, `sectors` and `meaning`, each `{"points", "max"}` with
-  `max` 40, 20, 10 and 30. `points` are the raw points before scaling, so a card can say
-  "30 of 40". `meaning.points` is `null` in version 1.
+  `max` 40, 20, 10 and 30. `points` are the points earned, so a card can say "30 of 40".
+  `meaning.points` is `null` while the score is partial.
 * `shared_sectors`: the sectors both people have, sorted by name like `shared_technologies`
   (`[]` when none). On the developer list it is the developer's sectors that the idea's author
   also has; on the idea list, the caller's sectors that the idea's author also has.
 
-The order is the raw points, highest first. Ties are broken by the earlier rules: for
+The order is the total points, highest first. Ties are broken by the earlier rules: for
 developers the earliest verification, then the user id; for ideas the newest publication, then
 the idea id (highest first). The order is computed in SQL, so `offset` and `limit` page through
 it correctly.

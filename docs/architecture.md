@@ -11,13 +11,15 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
 - **apps/web**: the user interface, in English and French. It calls the API for sign-in and
   profile data, and will add the collaboration flow next.
 - **apps/api**: business logic: sign-in, profiles, role verification, ideas and initial hub
-  creation today, with matching and the remaining hub collaboration routes still to build.
+  creation, vector matching and the hub collaboration routes. Its worker runs verification and
+  creates idea and profile embeddings.
   Settings come from environment variables or a root `.env` file (`apps/api/app/config.py`):
   `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
   and `JWT_SECRET_KEY`. The API will not start without `JWT_SECRET_KEY`.
 - **PostgreSQL + pgvector**: the main data store, set up by the scripts in `infra/db/init/`.
   The schema has an `idea_embeddings` table with a pgvector column, for finding similar
-  ideas. Nothing writes to it yet.
+  ideas. `profile_embeddings` stores developer profile vectors. Both use the local
+  `sentence-transformers/all-MiniLM-L6-v2` model and 384-dimensional vectors with HNSW indexes.
 - **Hosting**: everything is deployed on Systalink (see `infra/README.md`).
 
 ## What the API does today
@@ -94,13 +96,14 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/me/ideas/{idea_id}/publish`, `POST /v1/me/ideas/{idea_id}/close` and
   `DELETE /v1/me/ideas/{idea_id}` (only while it has no hub) create and manage the owner's
   private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
-  open idea cards to signed-in developers. A card has the summary and roles needed, never the
-  confidential brief. Guide: `docs/backend.md`.
+  open idea cards to signed-in developers; `GET /v1/ideas/{idea_id}/similar` orders those cards
+  by vector similarity. A card has the summary and roles needed, never the confidential brief.
+  Guide: `docs/backend.md`.
 - **Matching** (Bearer token): `GET /v1/me/ideas/{idea_id}/matches` ranks developers verified
   in the roles one of my open ideas needs, and `GET /v1/me/matches` ranks open ideas that need
   my verified roles. Every match has a score out of 100, counted from roles, shared technologies
-  and shared sectors, and both lists are ordered by it. No AI model and no idea details are
-  involved.
+  shared technologies, shared sectors and profile-to-idea meaning, and both lists are ordered
+  by it. The local embedding model never receives confidential idea details.
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
   `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
   `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics

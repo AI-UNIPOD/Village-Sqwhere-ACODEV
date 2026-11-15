@@ -1,3 +1,4 @@
+from app.models.embeddings import IdeaEmbedding, ProfileEmbedding
 from app.models.hubs import (
     AgreementSignature,
     AgreementTemplate,
@@ -65,12 +66,14 @@ __all__ = [
     "HubPiece",
     "HubPieceLink",
     "HubStatus",
+    "IdeaEmbedding",
     "Idea",
     "IdeaRoleNeed",
     "IdeaStage",
     "IdeaStatus",
     "InterviewStatus",
     "PlatformRole",
+    "ProfileEmbedding",
     "Post",
     "PostLike",
     "PostRevision",

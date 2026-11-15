@@ -1,13 +1,12 @@
-"""The match score, version 1 (`docs/decisions/2026-11-14-match-score.md`).
+"""The match score, with meaning points when both embeddings are available.
 
-The score is counted from three numbers, never judged. The meaning part (30 points) comes with
-embeddings, so version 1 scales the 70 points that exist to 100. The SQL that orders the match
-lists reads these same constants, so the order and the number cannot disagree.
+The score is counted from stored facts, never judged. Until both embeddings exist, the 70
+available points are scaled to 100 and the response says it is partial.
 """
 
 from app.schemas.matches import ScoreBreakdown, Scored, ScorePart
 
-SCORE_VERSION = 1
+SCORE_VERSION = 2
 
 ONE_ROLE_POINTS = 30
 MANY_ROLES_POINTS = 40
@@ -23,21 +22,30 @@ SECTORS_MAX = SECTOR_POINTS * SECTOR_CAP
 AVAILABLE_MAX = ROLES_MAX + TECHNOLOGIES_MAX + SECTORS_MAX
 
 
-def match_score(roles: int, technologies: int, sectors: int) -> Scored:
-    """Score a match from the matched role count and the shared technology and sector counts."""
+def match_score(
+    roles: int, technologies: int, sectors: int, meaning_similarity: float | None = None
+) -> Scored:
+    """Score shared facts and, when available, cosine similarity between embeddings."""
     role_points = MANY_ROLES_POINTS if roles >= 2 else ONE_ROLE_POINTS if roles == 1 else 0
     technology_points = min(technologies, TECHNOLOGY_CAP) * TECHNOLOGY_POINTS
     sector_points = min(sectors, SECTOR_CAP) * SECTOR_POINTS
+    meaning_points = (
+        int(max(0.0, min(1.0, meaning_similarity)) * MEANING_MAX + 0.5)
+        if meaning_similarity is not None
+        else None
+    )
     raw = role_points + technology_points + sector_points
+    if meaning_points is not None:
+        raw += meaning_points
+    maximum = 100 if meaning_points is not None else AVAILABLE_MAX
     return Scored(
-        # whole numbers only, so it rounds half up without floating point
-        score=(raw * 100 + AVAILABLE_MAX // 2) // AVAILABLE_MAX,
-        score_version=SCORE_VERSION,
-        partial=True,
+        score=(raw * 100 + maximum // 2) // maximum,
+        score_version=SCORE_VERSION if meaning_points is not None else 1,
+        partial=meaning_points is None,
         breakdown=ScoreBreakdown(
             roles=ScorePart(points=role_points, max=ROLES_MAX),
             technologies=ScorePart(points=technology_points, max=TECHNOLOGIES_MAX),
             sectors=ScorePart(points=sector_points, max=SECTORS_MAX),
-            meaning=ScorePart(points=None, max=MEANING_MAX),
+            meaning=ScorePart(points=meaning_points, max=MEANING_MAX),
         ),
     )

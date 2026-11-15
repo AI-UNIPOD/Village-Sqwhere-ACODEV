@@ -147,3 +147,14 @@ class MyIdeasResponse(BaseModel):
 class PublicIdeasResponse(BaseModel):
     data: list[PublicIdea]
     next_offset: int | None = None
+
+
+class SimilarIdea(BaseModel):
+    idea: PublicIdea
+    similarity: float
+
+
+class SimilarIdeasResponse(BaseModel):
+    data: list[SimilarIdea]
+    next_offset: int | None = None
+    embedding_pending: bool = False

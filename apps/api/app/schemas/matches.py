@@ -31,7 +31,7 @@ class Scored(BaseModel):
 
     score: int
     score_version: int
-    # version 1 has no meaning part: the points that exist are scaled to 100
+    # version 1 has no meaning part; version 2 includes it when both vectors exist
     partial: bool
     breakdown: ScoreBreakdown
 

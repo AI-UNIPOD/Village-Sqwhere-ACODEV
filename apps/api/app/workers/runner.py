@@ -18,6 +18,7 @@ from app.services.groq import GroqCodebaseAnalyzer
 from app.services.groq_report import GroqReportEvaluator
 from app.services.report import FallbackReportEvaluator
 from app.services.verification import GitHubRepositoryClient
+from app.workers.embeddings import process_pending_embeddings
 from app.workers.verification import process_codebase_analysis, process_verification_report
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,11 @@ async def run_once() -> int:
                     processed += 1
         except Exception:
             logger.exception("Verification report failed for session %s", session_id)
+    try:
+        async with async_session() as db:
+            processed += await process_pending_embeddings(db)
+    except Exception:
+        logger.exception("Idea and profile embedding worker failed")
     return processed
 
 

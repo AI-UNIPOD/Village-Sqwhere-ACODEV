@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession, same_world
-from app.models import Hub, Idea, IdeaRoleNeed, IdeaStatus, Role
+from app.models import Hub, Idea, IdeaEmbedding, IdeaRoleNeed, IdeaStatus, Role
 from app.schemas.ideas import (
     CreateIdeaRequest,
     IdeaAuthor,
@@ -21,6 +21,8 @@ from app.schemas.ideas import (
     PublicIdea,
     PublicIdeaResponse,
     PublicIdeasResponse,
+    SimilarIdea,
+    SimilarIdeasResponse,
     UpdateIdeaRequest,
 )
 from app.schemas.lookups import RoleRef
@@ -274,3 +276,61 @@ async def get_open_idea(
     if idea is None:
         raise idea_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Idea not found.")
     return PublicIdeaResponse(data=public_idea(idea))
+
+
+@router.get("/ideas/{idea_id}/similar", response_model=SimilarIdeasResponse)
+async def get_similar_ideas(
+    idea_id: UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> SimilarIdeasResponse:
+    target = await db.scalar(
+        select(IdeaEmbedding)
+        .join(Idea, Idea.id == IdeaEmbedding.idea_id)
+        .where(
+            Idea.id == idea_id,
+            Idea.status == IdeaStatus.OPEN,
+            Idea.deleted_at.is_(None),
+            same_world(Idea.author_id, current_user),
+        )
+    )
+    if target is None:
+        visible_idea = await db.scalar(
+            select(Idea.id).where(
+                Idea.id == idea_id,
+                Idea.status == IdeaStatus.OPEN,
+                Idea.deleted_at.is_(None),
+                same_world(Idea.author_id, current_user),
+            )
+        )
+        if visible_idea is None:
+            raise idea_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Idea not found.")
+        return SimilarIdeasResponse(data=[], embedding_pending=True)
+
+    distance = IdeaEmbedding.embedding.cosine_distance(target.embedding)
+    result = await db.execute(
+        select(Idea, distance.label("distance"))
+        .join(IdeaEmbedding, IdeaEmbedding.idea_id == Idea.id)
+        .options(*idea_options())
+        .where(
+            Idea.id != idea_id,
+            Idea.status == IdeaStatus.OPEN,
+            Idea.deleted_at.is_(None),
+            same_world(Idea.author_id, current_user),
+        )
+        .order_by(distance, Idea.id)
+        .offset(offset)
+        .limit(limit + 1)
+    )
+    rows = list(result.all())
+    has_more = len(rows) > limit
+    data = [
+        SimilarIdea(idea=public_idea(idea), similarity=round(max(0.0, 1.0 - distance), 4))
+        for idea, distance in rows[:limit]
+    ]
+    return SimilarIdeasResponse(
+        data=data,
+        next_offset=offset + limit if has_more else None,
+    )
