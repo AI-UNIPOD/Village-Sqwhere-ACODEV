@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- fix(web): say the design sketch is live on the landing page
 - feat(web): let the team edit the design sketch (#182)
 - fix(web): show the real score and live brainstorm notes on the landing (#181)
 
