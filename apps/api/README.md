@@ -77,6 +77,7 @@ app/
                        between them
   workers/             the verification and embedding worker (python -m app.workers.runner)
   demo_seed.py         the made-up world behind "Try the demo"
+  demo_world.py        its wider community, loaded from the frozen files in demo_fixtures/
   demo_review_case.py  the evidence, interview and report of the demo's one review case
 tests/                 one file per area, against a real database
 ```
@@ -167,6 +168,16 @@ repository address that cannot belong to a real repository (`naira_payouts` has 
 which a GitHub owner name never has). Its eight commits and the time they were checked are
 written again on every run, the way a refresh replaces them, so the build tab never reads
 "Checked 3 days ago". A claim made after its holder's first commit gets a new time.
+
+The seed also loads a wider community from frozen files in `app/demo_fixtures/`
+(`app/demo_world.py`, `docs/decisions/2026-11-15-lived-in-demo.md`): about 150 full members
+who write the feed and about 1,000 lighter ones who like it, 1,500 posts of all seven types in
+English and French and 6,000 comments. Nothing is generated when it runs, so the same files
+give the same world, every like is chosen by a hash, and every count the feed shows is the
+database's own count of the rows. A rerun deletes those posts and writes them again with the
+same ids, dated back from now (a post cannot change its own time), and leaves the members.
+The embeddings worker skips every demo account and the ideas they write. The names, bios and
+texts are data: to change them, edit the files and keep `tests/test_demo_world.py` green.
 
 The world reads like the real product in real use: the demo bar is the only place that says it
 is made up (`docs/decisions/2026-11-15-demo-world-reads-as-real.md`). Each hub has its own
