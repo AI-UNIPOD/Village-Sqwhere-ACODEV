@@ -14,7 +14,8 @@ from app.schemas.lookups import RoleRef, SectorRef, TechnologyRef
 
 
 class ScorePart(BaseModel):
-    # the raw points before scaling, so a card can say "30 of 40"; null when not built yet
+    # the raw points before scaling, so a card can say "30 of 40"; the meaning part is null
+    # while the idea or the developer has no vector yet
     points: int | None
     max: int
 
@@ -36,6 +37,11 @@ class Scored(BaseModel):
     breakdown: ScoreBreakdown
 
 
+class SimilarIdea(BaseModel):
+    id: UUID
+    title: str
+
+
 class MatchedDeveloper(Scored):
     id: UUID
     username: str
@@ -51,6 +57,8 @@ class MatchedDeveloper(Scored):
     # sectors the developer shares with the idea's author
     shared_sectors: list[SectorRef]
     country_code: str | None = None
+    # the developer's own open idea that reads closest to the caller's idea, or null
+    similar_idea: SimilarIdea | None = None
 
 
 class DeveloperMatchesResponse(BaseModel):
@@ -66,6 +74,8 @@ class IdeaMatch(Scored):
     shared_technologies: list[TechnologyRef]
     # sectors the signed-in developer shares with the idea's author
     shared_sectors: list[SectorRef]
+    # the caller's own open idea that reads closest to this idea, or null
+    similar_idea: SimilarIdea | None = None
 
 
 class IdeaMatchesResponse(BaseModel):

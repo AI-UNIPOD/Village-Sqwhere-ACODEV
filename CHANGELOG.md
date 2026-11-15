@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(api): add the meaning part to the match score and similar ideas (#225)
 - fix(web): say every hub phase has its tool on the landing page (#223)
 - fix(web): draw no repository link in the demo's review case (#221)
 - feat(api): push hub chat messages live over a websocket (#219)
