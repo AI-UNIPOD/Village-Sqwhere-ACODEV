@@ -16,7 +16,9 @@ for env_path in [
         except ImportError:
             pass
 
-DATABASE_URL = os.getenv(
+# Neon on Vercel sets DATABASE_URL to its pooled address, which breaks asyncpg's prepared
+# statements, and the direct one as DATABASE_URL_UNPOOLED.
+DATABASE_URL = os.getenv("DATABASE_URL_UNPOOLED") or os.getenv(
     "DATABASE_URL", "postgresql://village:village@localhost:5432/village_sqwhere"
 )
 CORS_ORIGINS = [
