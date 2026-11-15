@@ -388,11 +388,12 @@ answer for every screen, and `AppFrame` shows the demo account a line under the 
 says what the demo is, says so when a change was refused, and offers the way out.
 
 The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
-village, then four stops on the demo account's own open idea and hub (the composer, the matches,
-the hub's team, the hub's phases; the demo's hub is seeded in Build). `AppFrame` shows the tour's
+village, then the feed, one question with its comments, and four on the demo account's own open
+idea and hub (the composer, the matches, the hub's team with the phases below it; the demo's hub
+is seeded in Build): six steps, each counted. `AppFrame` shows the tour's
 panel under the demo line; it sticks to the top of the screen, shrinks to one line on a screen
-that is not the stop, and keeps its step in `sessionStorage` (`tour/tour.ts`). A stop can name a part of a screen with a hash:
-the hub page scrolls to `#team` or `#phases` once the hub has loaded (`app/scroll.ts`).
+that is not the step, and keeps its step in `sessionStorage` (`tour/tour.ts`). A step can name a part of a screen with a hash:
+the hub page scrolls to `#team` once the hub has loaded (`app/scroll.ts`).
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`
 (`app/auth-callback/`), which keeps the tokens and opens onboarding in the language sign-in

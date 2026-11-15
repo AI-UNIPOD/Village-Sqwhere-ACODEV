@@ -6,7 +6,7 @@ import { hub, idea } from "../hubs/test-support";
 import { DemoButton } from "../landing/demo-button";
 import { resetDemo } from "../session/demo";
 import { SESSION_KEY, signOut } from "../session/session";
-import { arrived, chooseStop, endTour, keepRoute, startTour, stopAddress } from "./tour";
+import { arrived, chooseStep, endTour, keepRoute, loadRoute, startTour, stepAddress } from "./tour";
 
 const nav = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -16,7 +16,9 @@ vi.mock("next/navigation", () => ({
 
 const fetchMock = vi.fn();
 const answer = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }));
-const route = { idea: "idea-1", hub: "hub-1" };
+const route = { post: "post-1", idea: "idea-1", hub: "hub-1" };
+// only what the tour reads of a post: its id and how many comments it has
+const question = (id: string, comment_count: number) => ({ id, comment_count });
 const tokens = {
   access_token: "demo-access",
   refresh_token: "demo-refresh",
@@ -24,12 +26,13 @@ const tokens = {
   refresh_expires_at: "2099-01-01T00:00:00Z",
 };
 
-// the demo account's profile, its ideas and its hubs, as the API answers them
-function serve({ demo = true, ideas = [idea()], hubs = [hub()], ideasStatus = 200 } = {}) {
+// the demo account's profile, its ideas and its hubs, and the feed's questions, as the API answers them
+function serve({ demo = true, ideas = [idea()], hubs = [hub()], questions = [question("post-1", 5)], ideasStatus = 200 } = {}) {
   fetchMock.mockImplementation((url: string) => {
     if (url.endsWith("/v1/me")) return answer({ data: { username: "demo", display_name: "Demo Developer", is_demo: demo, roles: [], technologies: [] } });
     if (url.includes("/v1/me/ideas")) return ideasStatus === 200 ? answer({ data: ideas, next_offset: null }) : answer({ detail: { code: "BOOM" } }, ideasStatus);
     if (url.includes("/v1/me/hubs")) return answer({ data: hubs, next_offset: null });
+    if (url.includes("/v1/posts?type=question")) return answer({ data: questions, next_offset: null });
     return answer({}, 404);
   });
 }
@@ -41,11 +44,11 @@ function signIn() {
   );
 }
 
-// the tour is on at this stop, with the route known, as it is after a reload
-function atStop(step: number) {
+// the tour is on at this step, with the route known, as it is after a reload
+function atStep(step: number) {
   startTour();
   keepRoute(route);
-  chooseStop(step);
+  chooseStep(step);
   arrived();
 }
 
@@ -112,8 +115,7 @@ test("the start asks for the demo's idea and hub, and Start the route waits for 
   render(frame("village"));
   const region = await panel();
   expect(region.querySelector("h2")?.textContent).toBe("Your village");
-  // the start has no count
-  expect(region.textContent).not.toMatch(/Stop \d/);
+  expect(region.textContent).toContain("Step 1 of 6");
   const start = button("Start the route");
   expect(start.getAttribute("aria-disabled")).toBe("true");
   expect(start.getAttribute("aria-busy")).toBe("true");
@@ -124,7 +126,7 @@ test("the start asks for the demo's idea and hub, and Start the route waits for 
   await waitFor(() => expect(start.hasAttribute("aria-disabled")).toBe(false));
   expect(start.hasAttribute("aria-busy")).toBe(false);
   fireEvent.click(start);
-  expect(nav.push).toHaveBeenCalledExactlyOnceWith("/en/ideas/compose?id=idea-1", undefined);
+  expect(nav.push).toHaveBeenCalledExactlyOnceWith("/en/feed");
 });
 
 test("the route is the open idea that has a hub the account owns", async () => {
@@ -136,103 +138,86 @@ test("the route is the open idea that has a hub the account owns", async () => {
       hub({ id: "hub-1", idea: { id: "idea-1" } }),
     ],
   });
-  startTour();
-  render(frame("village"));
-  await waitFor(() => expect(button("Start the route").hasAttribute("aria-disabled")).toBe(false));
-  fireEvent.click(button("Start the route"));
-  expect(nav.push).toHaveBeenCalledWith("/en/ideas/compose?id=idea-1", undefined);
+  expect(await loadRoute()).toEqual(route);
+});
+
+// the feed holds hundreds of posts: the tour asks for the newest questions, not for a seeded post
+test.each([
+  ["the first question with at least 3 comments", [question("a", 0), question("b", 2), question("c", 3), question("d", 9)], "c"],
+  ["the first question when none has 3 comments", [question("a", 1), question("b", 2)], "a"],
+])("the conversation is %s", async (_, questions, post) => {
+  serve({ questions });
+  expect(await loadRoute()).toEqual({ ...route, post });
+  expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/v1/posts?type=question&limit=20"))).toBe(true);
+});
+
+test("with no question in the feed there is no route", async () => {
+  serve({ questions: [] });
+  expect(await loadRoute()).toBeNull();
 });
 
 // ---------- walking the route ----------
 
 test.each([
-  ["Next", 1, "/en/ideas/matches?id=idea-1", "ideas/compose?id=idea-1"],
-  ["Next", 2, "/en/hubs/view?id=hub-1#team", "ideas/matches?id=idea-1"],
-  ["Back", 1, "/en/village", "ideas/compose?id=idea-1"],
-  ["Back", 2, "/en/ideas/compose?id=idea-1", "ideas/matches?id=idea-1"],
-  ["Back", 3, "/en/ideas/matches?id=idea-1", "hubs/view?id=hub-1"],
-])("%s at stop %i goes to %s", async (name, step, address, path) => {
-  atStop(step);
+  ["Start the route", 0, "/en/feed", "village"],
+  ["Next", 1, "/en/posts/view?id=post-1", "feed"],
+  ["Next", 2, "/en/ideas/compose?id=idea-1", "posts/view?id=post-1"],
+  ["Next", 3, "/en/ideas/matches?id=idea-1", "ideas/compose?id=idea-1"],
+  ["Next", 4, "/en/hubs/view?id=hub-1#team", "ideas/matches?id=idea-1"],
+  ["Back", 1, "/en/village", "feed"],
+  ["Back", 2, "/en/feed", "posts/view?id=post-1"],
+  ["Back", 3, "/en/posts/view?id=post-1", "ideas/compose?id=idea-1"],
+  ["Back", 4, "/en/ideas/compose?id=idea-1", "ideas/matches?id=idea-1"],
+  ["Back", 5, "/en/ideas/matches?id=idea-1", "hubs/view?id=hub-1"],
+])("%s at step %i goes to %s", async (name, step, address, path) => {
+  atStep(step);
   render(frame(path));
   await panel();
   fireEvent.click(button(name));
-  expect(nav.push).toHaveBeenCalledExactlyOnceWith(address, undefined);
+  expect(nav.push).toHaveBeenCalledExactlyOnceWith(address);
 });
 
-// a part of the hub's page, as the page gives it: inside the same frame as the panel
-function part(id: string, top: number) {
-  const section = document.createElement("section");
-  section.id = id;
-  section.getBoundingClientRect = () => ({ top }) as DOMRect;
-  document.querySelector("[data-frame]")!.append(section);
-  return section;
-}
-
-test("the last two stops are one screen: Next and Back scroll to the phases and to the team, under the panel, and the router leaves the scroll alone", async () => {
-  atStop(3);
-  render(frame("hubs/view?id=hub-1"));
-  const region = await panel();
-  region.getBoundingClientRect = () => ({ height: 180 }) as DOMRect;
-  part("team", 600);
-  part("phases", 1400);
-  // a hidden screen kept in memory has the same ids: it is not the one to scroll to
-  const kept = document.createElement("section");
-  kept.id = "phases";
-  document.body.prepend(kept);
-
-  fireEvent.click(button("Next"));
-  expect(nav.push).toHaveBeenLastCalledWith("/en/hubs/view?id=hub-1#phases", { scroll: false });
-  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 1400 - 180, behavior: "smooth" });
-  expect((await panel()).querySelector("h2")?.textContent).toBe("Follow the hub's four phases");
-
-  (await panel()).getBoundingClientRect = () => ({ height: 180 }) as DOMRect;
-  fireEvent.click(button("Back"));
-  expect(nav.push).toHaveBeenLastCalledWith("/en/hubs/view?id=hub-1#team", { scroll: false });
-  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 600 - 180, behavior: "smooth" });
-  kept.remove();
-});
-
-test("the scroll does not glide when the person asked for less motion", async () => {
-  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
-  atStop(3);
-  render(frame("hubs/view?id=hub-1"));
-  await panel();
-  part("phases", 1400);
-  fireEvent.click(button("Next"));
-  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 1400, behavior: "auto" });
-});
-
-test("a stop on another screen is left to that screen to scroll", async () => {
-  atStop(2);
+// the sixth step is one address, the hub page at its team: the phases are further down the page,
+// and the page scrolls itself once the hub has loaded, so the panel does not
+test("the sixth step is the hub page at its team, and the panel leaves the scrolling to the page", async () => {
+  expect(stepAddress(5, route)).toBe("hubs/view?id=hub-1#team");
+  for (let step = 0; step < 6; step++) expect(stepAddress(step, route)).not.toContain("#phases");
+  atStep(4);
   render(frame("ideas/matches?id=idea-1"));
   await panel();
   fireEvent.click(button("Next"));
-  expect(nav.push).toHaveBeenLastCalledWith("/en/hubs/view?id=hub-1#team", undefined);
+  expect(nav.push).toHaveBeenCalledExactlyOnceWith("/en/hubs/view?id=hub-1#team");
   expect(window.scrollTo).not.toHaveBeenCalled();
 });
 
 test.each([
-  ["en", 0, "Your village", null],
-  ["en", 1, "Share an idea", "Stop 1 of 4"],
-  ["en", 2, "See who the matcher suggests", "Stop 2 of 4"],
-  ["en", 3, "Invite your team", "Stop 3 of 4"],
-  ["en", 4, "Follow the hub's four phases", "Stop 4 of 4"],
-  ["fr", 0, "Votre village", null],
-  ["fr", 2, "Voir qui le matcher propose", "Étape 2 sur 4"],
-  ["fr", 3, "Inviter votre équipe", "Étape 3 sur 4"],
-  ["fr", 4, "Suivre les quatre phases de l'espace", "Étape 4 sur 4"],
+  ["en", 0, "Your village", "Step 1 of 6"],
+  ["en", 1, "The feed", "Step 2 of 6"],
+  ["en", 2, "A conversation", "Step 3 of 6"],
+  ["en", 3, "Share an idea", "Step 4 of 6"],
+  ["en", 4, "The matcher", "Step 5 of 6"],
+  ["en", 5, "Your team and the hub", "Step 6 of 6"],
+  ["fr", 0, "Votre village", "Étape 1 sur 6"],
+  ["fr", 1, "Le fil", "Étape 2 sur 6"],
+  ["fr", 2, "Une conversation", "Étape 3 sur 6"],
+  ["fr", 3, "Partager une idée", "Étape 4 sur 6"],
+  ["fr", 4, "Le matcher", "Étape 5 sur 6"],
+  ["fr", 5, "Votre équipe et l'espace", "Étape 6 sur 6"],
 ] as const)("the %s panel at step %i says its name, its count and the progress", async (lang, step, name, count) => {
-  atStop(step);
-  render(frame(stopAddress(step, route).split("#")[0], lang));
+  atStep(step);
+  render(frame(stepAddress(step, route).split("#")[0], lang));
   const region = await panel(lang);
   expect(region.querySelector("h2")?.textContent).toBe(name);
-  if (count) expect(region.textContent).toContain(count);
-  expect(region.querySelectorAll("[data-filled]")).toHaveLength(step);
-  expect(region.querySelectorAll("[data-current]")).toHaveLength(step > 0 ? 1 : 0);
+  expect(region.querySelector("p")?.textContent).toBe(count);
+  expect(region.querySelectorAll("[aria-hidden] > span")).toHaveLength(6);
+  expect(region.querySelectorAll("[data-filled]")).toHaveLength(step + 1);
+  expect(region.querySelectorAll("[data-current]")).toHaveLength(1);
+  // the closing line with the sign-in link is for the last step only
+  expect(region.querySelector("a") !== null).toBe(step === 5);
 });
 
-test("the last stop says Finish and offers sign-in, which leaves the demo first", async () => {
-  atStop(4);
+test("the last step says Finish and offers sign-in, which leaves the demo first", async () => {
+  atStep(5);
   render(frame("hubs/view?id=hub-1"));
   const region = await panel();
   expect(region.textContent).toContain("That is the route. Keep looking around, or sign in with GitHub to start your own.");
@@ -247,7 +232,7 @@ test("the last stop says Finish and offers sign-in, which leaves the demo first"
 });
 
 test("Finish removes the panel and the person stays in the demo, with the offer to take the tour again", async () => {
-  atStop(4);
+  atStep(5);
   render(frame("hubs/view?id=hub-1"));
   await panel();
   fireEvent.click(button("Finish"));
@@ -259,34 +244,34 @@ test("Finish removes the panel and the person stays in the demo, with the offer 
 
 // ---------- leaving the route ----------
 
-test("off the route the panel shrinks to a line, and Back to the route returns to the stop", async () => {
-  atStop(2);
+test("off the route the panel shrinks to a line, and Back to the route returns to the step", async () => {
+  atStep(2);
   render(frame("feed"));
   const region = await panel();
   expect(region.hasAttribute("data-compact")).toBe(true);
-  expect(region.textContent).toContain("Stop 2 of 4");
-  expect(region.textContent).toContain("See who the matcher suggests");
+  expect(region.textContent).toContain("Step 3 of 6");
+  expect(region.textContent).toContain("A conversation");
   expect(region.querySelector("h2")).toBeNull();
   expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
 
   fireEvent.click(button("Back to the route"));
-  expect(nav.push).toHaveBeenCalledExactlyOnceWith("/en/ideas/matches?id=idea-1", undefined);
+  expect(nav.push).toHaveBeenCalledExactlyOnceWith("/en/posts/view?id=post-1");
 });
 
 test("the way back is in French too, and the shrunk panel can still end the tour", async () => {
-  atStop(3);
+  atStep(5);
   render(frame("village", "fr"));
   const region = await panel("fr");
-  expect(region.textContent).toContain("Étape 3 sur 4");
+  expect(region.textContent).toContain("Étape 6 sur 6");
   fireEvent.click(button("Revenir au parcours"));
-  expect(nav.push).toHaveBeenCalledWith("/fr/hubs/view?id=hub-1#team", undefined);
+  expect(nav.push).toHaveBeenCalledWith("/fr/hubs/view?id=hub-1#team");
   fireEvent.click(button("Quitter la visite"));
   expect(screen.queryByRole("region")).toBeNull();
 });
 
 test("End the tour removes the panel, and the demo line then offers to take it again", async () => {
-  atStop(1);
-  render(frame("ideas/compose?id=idea-1"));
+  atStep(1);
+  render(frame("feed"));
   await panel();
   expect(screen.queryByRole("button", { name: "Take the tour" })).toBeNull();
   fireEvent.click(button("End the tour"));
@@ -317,6 +302,13 @@ test("a failed load says so, and Try again asks again", async () => {
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
+test("a feed with no question gets the same message", async () => {
+  serve({ questions: [] });
+  startTour();
+  render(frame("village"));
+  expect((await screen.findByRole("alert")).textContent).toBe("We couldn't load the route. Nothing was changed, so try again.");
+});
+
 test("an account with no open idea that has a hub it owns gets the same message, in French, and can end the tour", async () => {
   serve({ ideas: [idea({ status: "draft" })] });
   startTour();
@@ -331,8 +323,8 @@ test("an account with no open idea that has a hub it owns gets the same message,
 
 test("an account that is not the demo never sees the panel, even if a tour was left on", async () => {
   serve({ demo: false });
-  atStop(2);
-  render(frame("ideas/matches?id=idea-1"));
+  atStep(2);
+  render(frame("posts/view?id=post-1"));
   await waitFor(() => expect(fetchMock).toHaveBeenCalled());
   await act(async () => {});
   expect(screen.queryByRole("region", { name: "Tour" })).toBeNull();
@@ -341,21 +333,21 @@ test("an account that is not the demo never sees the panel, even if a tour was l
 
 // ---------- focus ----------
 
-test("a stop reached with Next or Back puts focus on the stop's heading on the new screen", async () => {
-  atStop(0);
+test("a step reached with Next or Back puts focus on the step's heading on the new screen", async () => {
+  atStep(0);
   const view = render(frame("village"));
   await waitFor(() => expect(button("Start the route").hasAttribute("aria-disabled")).toBe(false));
   fireEvent.click(button("Start the route"));
   // the new screen shows
-  view.rerender(frame("ideas/compose?id=idea-1"));
+  view.rerender(frame("feed"));
   const region = await panel();
   await waitFor(() => expect(document.activeElement).toBe(region.querySelector("h2")));
-  expect(document.activeElement?.textContent).toBe("Share an idea");
+  expect(document.activeElement?.textContent).toBe("The feed");
   expect(document.activeElement?.getAttribute("tabindex")).toBe("-1");
 
   // the focus was handed over once: later renders leave it alone
   (document.activeElement as HTMLElement).blur();
-  view.rerender(frame("ideas/compose?id=idea-1"));
+  view.rerender(frame("feed"));
   expect(document.activeElement).toBe(document.body);
 
   fireEvent.click(button("Back"));
@@ -363,17 +355,17 @@ test("a stop reached with Next or Back puts focus on the stop's heading on the n
   await waitFor(() => expect(document.activeElement?.textContent).toBe("Your village"));
 });
 
-test("Back to the route also takes focus to the stop", async () => {
-  atStop(2);
+test("Back to the route also takes focus to the step", async () => {
+  atStep(2);
   const view = render(frame("feed"));
   await panel();
   fireEvent.click(button("Back to the route"));
-  view.rerender(frame("ideas/matches?id=idea-1"));
-  await waitFor(() => expect(document.activeElement?.textContent).toBe("See who the matcher suggests"));
+  view.rerender(frame("posts/view?id=post-1"));
+  await waitFor(() => expect(document.activeElement?.textContent).toBe("A conversation"));
 });
 
 test("a plain page load, or a reload, leaves focus alone", async () => {
-  atStop(3);
+  atStep(5);
   render(frame("hubs/view?id=hub-1"));
   const region = await panel();
   await act(async () => {});
@@ -381,23 +373,28 @@ test("a plain page load, or a reload, leaves focus alone", async () => {
   expect(document.activeElement).toBe(document.body);
 });
 
-// ---------- keeping the stop ----------
+// ---------- keeping the step ----------
 
 function Where({ useTour }: { useTour: typeof import("./tour").useTour }) {
   const { tour } = useTour();
-  return <p>{tour ? `stop ${tour.step}, hub ${tour.route?.hub}` : "no tour"}</p>;
+  return <p>{tour ? `step ${tour.step}, hub ${tour.route?.hub}` : "no tour"}</p>;
 }
 
-test("a reload keeps the stop and the route", async () => {
-  atStop(3);
+test("a reload keeps the step and the route", async () => {
+  atStep(5);
+  expect(JSON.parse(sessionStorage.getItem("vs_tour")!)).toEqual({ step: 5, route });
   vi.resetModules();
   const fresh = await import("./tour");
   render(<Where useTour={fresh.useTour} />);
-  expect(screen.getByText("stop 3, hub hub-1")).toBeTruthy();
+  expect(screen.getByText("step 5, hub hub-1")).toBeTruthy();
 });
 
-test("what another script left under the key is not a tour", async () => {
-  sessionStorage.setItem("vs_tour", JSON.stringify({ step: 9, route: null }));
+// the first is past the sixth step; the second is a tour kept by the four-stop version, whose route had no post
+test.each([
+  { step: 6, route: null },
+  { step: 2, route: { idea: "idea-1", hub: "hub-1" } },
+])("what another script or an older version left under the key is not a tour", async (kept) => {
+  sessionStorage.setItem("vs_tour", JSON.stringify(kept));
   vi.resetModules();
   const fresh = await import("./tour");
   render(<Where useTour={fresh.useTour} />);
@@ -419,13 +416,13 @@ test("storage that throws does not stop the tour: it lasts as long as the page",
   render(<Where useTour={fresh.useTour} />);
   expect(screen.getByText("no tour")).toBeTruthy();
   act(() => fresh.startTour());
-  expect(screen.getByText("stop 0, hub undefined")).toBeTruthy();
+  expect(screen.getByText("step 0, hub undefined")).toBeTruthy();
   act(() => fresh.endTour());
   expect(screen.getByText("no tour")).toBeTruthy();
 });
 
 test("signing out clears the tour", () => {
-  atStop(2);
+  atStep(2);
   expect(sessionStorage.getItem("vs_tour")).not.toBeNull();
   signOut("en");
   expect(sessionStorage.getItem("vs_tour")).toBeNull();
