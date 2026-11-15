@@ -92,6 +92,12 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `PUT /v1/hubs/{hub_id}/repository` (the owner) sets the public GitHub address, all only during
   build. `POST /v1/hubs/{hub_id}/commits/refresh` copies the repository's latest 20 commits from
   GitHub, at most once a minute per hub, in build and review.
+  In the review phase the team checks each other's work: `GET /v1/hubs/{hub_id}/review` reads
+  the checks of every piece, `POST /v1/hubs/{hub_id}/pieces/{piece_id}/checks` adds one,
+  `POST /v1/hubs/{hub_id}/checks/{check_id}/tick` and
+  `DELETE /v1/hubs/{hub_id}/checks/{check_id}/tick` tick and untick it (never the piece's
+  holder), `DELETE /v1/hubs/{hub_id}/checks/{check_id}` removes it, and
+  `POST /v1/hubs/{hub_id}/finish` lets the owner finish the hub once every check is ticked.
   Active members also chat, in any phase: `GET /v1/hubs/{hub_id}/messages` (newest first),
   `POST /v1/hubs/{hub_id}/messages` (optionally quoting one),
   `PATCH /v1/hubs/{hub_id}/messages/{message_id}` (the author) and

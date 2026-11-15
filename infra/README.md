@@ -41,6 +41,7 @@ erDiagram
   hubs ||--o{ hub_notes : "brainstorm"
   hubs ||--o{ hub_pieces : "design"
   hub_pieces ||--o{ hub_piece_links : "links"
+  hub_pieces ||--o{ hub_checks : "review"
   users ||--o{ posts : "writes"
   posts ||--o{ comments : "has"
 ```
@@ -91,6 +92,7 @@ They run in file name order, once, on an empty database:
 | `017-hub-notes.sql` | `hub_notes`, the brainstorm sticky notes of a hub: 1 to 280 characters, removed softly with `deleted_at`. Running it twice is safe. |
 | `018-hub-design.sql` | `hub_pieces` and `hub_piece_links`, the design sketch of a hub: pieces with a name and a summary, and labelled links from one piece to another, removed softly with `deleted_at`. Running it twice is safe. |
 | `019-hub-build.sql` | The build tab of a hub: who holds a piece (`hub_pieces.claimed_by` and `claimed_at`), the public GitHub address the owner pastes (`hubs.repository_url`, with `commits_refreshed_at`), and `hub_commits`, a copy of the repository's latest commits that every refresh replaces, so its rows are really deleted. Running it twice is safe. |
+| `021-hub-review.sql` | The review checklist of a hub: `hub_checks`, short checks written against a piece and ticked by a teammate, removed softly with `deleted_at` and `deleted_by`, and `hubs.finished_at`, empty until the owner finishes the hub. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:

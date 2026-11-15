@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(api): add the review checklist and finishing to a hub
 - feat(web): credit the ai unipod in the landing footer (#194)
 - docs: rewrite the readmes for the public repository (#192)
 - feat(api): add the build tab of claims and commits to a hub (#193)
