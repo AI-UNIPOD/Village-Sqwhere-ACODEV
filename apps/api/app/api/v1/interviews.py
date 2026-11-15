@@ -1,9 +1,12 @@
+import secrets
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.api.deps import CurrentUser, DbSession
 from app.config import (
     GEMINI_API_KEY,
     GEMINI_INTERVIEW_MODEL,
@@ -24,6 +27,7 @@ from app.models.users import (
     VerificationSession,
     VerificationStatus,
 )
+from app.schemas.verification import InterviewTicket, InterviewTicketResponse
 from app.services.gemini_interview import GeminiAudioTranscriber, GeminiInterviewAgent
 from app.services.groq_interview import (
     GroqInterviewAgent,
@@ -46,6 +50,35 @@ from app.services.interview import (
 )
 
 router = APIRouter()
+
+# One-use tickets to open the interview socket, so the access token never goes in a URL, where
+# servers and proxies log it. Kept in memory like the sign-in codes in auth.py: the API runs
+# as one process. ticket -> (user id, session id, expires at)
+TICKET_LIFETIME = timedelta(seconds=60)
+_TICKETS: dict[str, tuple[UUID, UUID, datetime]] = {}
+
+
+def issue_ticket(user_id: UUID, session_id: UUID) -> tuple[str, datetime]:
+    now = datetime.now(UTC)
+    for key in [key for key, value in _TICKETS.items() if value[2] <= now]:
+        del _TICKETS[key]
+    ticket = secrets.token_urlsafe(32)
+    expires_at = now + TICKET_LIFETIME
+    _TICKETS[ticket] = (user_id, session_id, expires_at)
+    return ticket, expires_at
+
+
+def redeem_ticket(ticket: str, session_id: UUID) -> UUID | None:
+    """The user a ticket was issued to, once, while it lasts and only for its own session."""
+    found = _TICKETS.pop(ticket, None)
+    if found is None:
+        return None
+    user_id, ticket_session_id, expires_at = found
+    if ticket_session_id != session_id or expires_at <= datetime.now(UTC):
+        return None
+    return user_id
+
+
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 MAX_ANSWER_CHARS = 10_000
 # The audio type comes from the client and ends up in a request header, so only these exact
@@ -78,6 +111,22 @@ async def websocket_user(token: str | None, db) -> User | None:
         return None
     result = await db.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
     return result.scalar_one_or_none()
+
+
+async def ticket_user(ticket: str, session_id: UUID, db) -> User | None:
+    user_id = redeem_ticket(ticket, session_id)
+    if user_id is None:
+        return None
+    result = await db.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
+    return result.scalar_one_or_none()
+
+
+def interview_open(session: VerificationSession | None) -> bool:
+    return (
+        session is not None
+        and session.status == VerificationStatus.IN_PROGRESS
+        and session.current_phase == VerificationPhase.TECHNICAL_DEFENCE
+    )
 
 
 async def load_interview_session(session_id: UUID, user_id: UUID, db) -> VerificationSession | None:
@@ -143,10 +192,41 @@ async def send_question(websocket: WebSocket, turn: VerificationInterviewTurn) -
     )
 
 
+@router.post(
+    "/me/verifications/{session_id}/interview-ticket",
+    response_model=InterviewTicketResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_interview_ticket(
+    session_id: UUID, current_user: CurrentUser, db: DbSession
+) -> InterviewTicketResponse:
+    session = await load_interview_session(session_id, current_user.id, db)
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "Verification attempt not found."},
+        )
+    if not interview_open(session):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "INTERVIEW_NOT_AVAILABLE",
+                "message": "This attempt is not at its interview. Check its status and try again.",
+            },
+        )
+    ticket, expires_at = issue_ticket(current_user.id, session_id)
+    return InterviewTicketResponse(data=InterviewTicket(ticket=ticket, expires_at=expires_at))
+
+
 @router.websocket("/me/verifications/{session_id}/interview")
 async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
     async with async_session() as db:
-        user = await websocket_user(websocket.query_params.get("token"), db)
+        ticket = websocket.query_params.get("ticket")
+        if ticket is not None:
+            user = await ticket_user(ticket, session_id, db)
+        else:
+            # deprecated: a token in the URL ends up in logs; removed once the web sends tickets
+            user = await websocket_user(websocket.query_params.get("token"), db)
         if not user:
             await websocket.close(code=1008, reason="Authentication required.")
             return
@@ -156,11 +236,7 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
             return
 
         session = await load_interview_session(session_id, user.id, db)
-        if (
-            not session
-            or session.status != VerificationStatus.IN_PROGRESS
-            or session.current_phase != VerificationPhase.TECHNICAL_DEFENCE
-        ):
+        if not interview_open(session):
             await websocket.close(code=1008, reason="Interview is not available.")
             return
 
