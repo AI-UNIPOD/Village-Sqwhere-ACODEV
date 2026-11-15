@@ -47,6 +47,10 @@ PieceSummary = Annotated[
 LinkLabel = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60, pattern=NO_NULL)
 ]
+# the hub_checks_text_length CHECK, counted in characters
+CheckText = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200, pattern=NO_NULL)
+]
 # the hubs_repository_url_format CHECK
 REPOSITORY_URL = r"^https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
 # the hub_messages_body_length CHECK, counted in characters
@@ -164,6 +168,12 @@ class AddLinkRequest(BaseModel):
         if self.from_piece_id == self.to_piece_id:
             raise ValueError("a link joins two different pieces")
         return self
+
+
+class AddCheckRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: CheckText
 
 
 class MovePhaseRequest(BaseModel):
@@ -297,6 +307,8 @@ class Hub(BaseModel):
     # null until the owner confirms the team; `phases` lists all four in order with their state
     phase: HubPhase | None = None
     team_confirmed_at: datetime | None = None
+    # null until the owner finishes the hub, which ends the review checklist for good
+    finished_at: datetime | None = None
     phases: list[HubPhaseStep]
     terms: dict[str, Any]
     idea: HubIdea
@@ -543,3 +555,49 @@ class HubBuild(BaseModel):
 
 class HubBuildResponse(BaseModel):
     data: HubBuild
+
+
+class HubCheckCard(BaseModel):
+    """`ticked_by` and `ticked_at` are null while the check is open. The three `can_` flags say
+    what the viewer may do now: tick it (a teammate of the piece's holder), untick it (whoever
+    ticked it, and the hub's owner) and delete it (whoever wrote it, and the hub's owner)."""
+
+    id: UUID
+    text: str
+    created_by: HubOwner
+    created_at: datetime
+    ticked_by: HubOwner | None
+    ticked_at: datetime | None
+    can_tick: bool
+    can_untick: bool
+    can_delete: bool
+
+
+class HubCheckResponse(BaseModel):
+    data: HubCheckCard
+
+
+class HubReviewPiece(BaseModel):
+    """`claimed_by` is null when nobody holds the piece, and also when the holder is no longer an
+    active member."""
+
+    id: UUID
+    name: str
+    summary: str
+    claimed_by: HubOwner | None
+    checks: list[HubCheckCard]
+
+
+class HubReview(BaseModel):
+    """`can_add` is true while the checklist can change: the hub is active, in review and not
+    finished. `can_finish` is true for the owner when it can change and no check is open."""
+
+    finished_at: datetime | None
+    can_add: bool
+    can_finish: bool
+    open_checks: int
+    pieces: list[HubReviewPiece]
+
+
+class HubReviewResponse(BaseModel):
+    data: HubReview

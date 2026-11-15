@@ -80,6 +80,7 @@ async def hub_card(db: AsyncSession, hub: Hub, viewer_id: UUID) -> HubCard:
         status=hub.status,
         phase=hub.phase,
         team_confirmed_at=hub.team_confirmed_at,
+        finished_at=hub.finished_at,
         phases=phase_steps(hub.phase),
         terms=hub.terms,
         idea=HubIdea.model_validate(hub.idea),
