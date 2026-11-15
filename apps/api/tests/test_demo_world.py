@@ -11,7 +11,7 @@ from sqlalchemy import delete, func, select, text
 
 from app import config
 from app.demo_seed import seed
-from app.demo_world import load_members, load_posts, write_world
+from app.demo_world import IMAGES, load_members, load_posts, write_world
 from app.models import Comment, Post, User
 from tests.conftest import test_async_session as db_session
 
@@ -123,6 +123,35 @@ def test_french_texts_use_the_narrow_no_break_space_before_a_colon_or_question_m
     texts = [body for _, body in every_text()]
     assert any(" ?" in body for body in texts) and any(" :" in body for body in texts)
     assert not any(re.search(r"[A-Za-zÀ-ÿ] [?:;]", body) for body in texts if " " in body)
+
+
+def test_every_picture_is_a_small_webp_file_of_the_size_the_fixture_says() -> None:
+    from io import BytesIO
+
+    from PIL import Image
+
+    pictured = [post for post in POSTS if post.get("images")]
+    assert 100 <= len(pictured) <= 250
+    total = 0
+    for post in pictured:
+        assert len(post["images"]) <= 10
+        for image in post["images"]:
+            data = (IMAGES / image["file"]).read_bytes()
+            total += len(data)
+            assert len(data) <= 4 * 1024 * 1024
+            with Image.open(BytesIO(data)) as picture:
+                assert picture.format == "WEBP"
+                assert picture.size == (image["width"], image["height"])
+    # they live in the database, so the whole set stays small
+    assert total < 12 * 1024 * 1024
+    assert len({image["file"] for post in pictured for image in post["images"]}) == sum(
+        len(post["images"]) for post in pictured
+    )
+
+
+def test_a_picture_is_named_in_no_text_and_the_files_are_all_used() -> None:
+    used = {image["file"] for post in POSTS for image in post.get("images", [])}
+    assert used == {path.name for path in IMAGES.glob("*.webp")}
 
 
 # --- in a database ------------------------------------------------------------------------
@@ -261,3 +290,37 @@ def test_the_visitor_signs_in_and_scrolls_through_the_new_posts(
     assert authors & set(MEMBERS)
     comment_total = _run(lambda session: session.scalar(select(func.count()).select_from(Comment)))
     assert comment_total >= sum(len(post["comments"]) for post in POSTS)
+
+
+def test_every_picture_is_stored_like_an_upload_and_served_without_a_token(world) -> None:
+    wanted = sum(len(post.get("images", [])) for post in POSTS)
+    assert (
+        _scalar(
+            """SELECT count(*) FROM post_attachments a JOIN posts p ON p.id = a.post_id
+               JOIN users u ON u.id = p.author_id WHERE u.username = ANY(:handles)"""
+        )
+        == wanted
+    )
+    # the table's own check: the stored bytes are as long as byte_size says
+    assert (
+        _scalar("SELECT count(*) FROM post_attachments WHERE octet_length(data) <> byte_size") == 0
+    )
+
+
+def test_the_visitor_sees_the_pictures_on_the_feed_and_can_open_one(
+    world, client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(config, "DEMO_ENABLED", True)
+    signed_in = client.post("/v1/auth/demo")
+    assert signed_in.status_code == 200
+    headers = {"Authorization": f"Bearer {signed_in.json()['data']['access_token']}"}
+    pictured = []
+    for offset in range(0, 400, 20):
+        page = client.get("/v1/feed", headers=headers, params={"limit": 20, "offset": offset})
+        assert page.status_code == 200
+        pictured += [post for post in page.json()["data"] if post["attachments"]]
+    assert pictured
+    image = pictured[0]["attachments"][0]
+    served = client.get(image["url"])
+    assert served.status_code == 200 and served.headers["content-type"] == "image/webp"
+    assert len(served.content) == image["byte_size"]

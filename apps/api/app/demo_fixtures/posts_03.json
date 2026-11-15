@@ -5,6 +5,13 @@
   "type": "code_review_request",
   "body": "Hook de polling pour le tableau de bord des entrées en salle pendant le festival. Il relance un fetch toutes les 15 s, double le délai après chaque erreur et plafonne à 2 minutes. Je ne suis pas sûr de deux choses : le délai vit dans un useRef, et je ne sais pas si le cleanup annule bien le timer quand festivalId change.\n\nuseEffect(() => { const c = new AbortController(); poll(c.signal); return () => c.abort(); }, [festivalId]);\n\nRegardez surtout la remise à zéro du backoff après un succès.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0020_1.webp",
+    "width": 1200,
+    "height": 740
+   }
+  ],
   "age_hours": 741.24,
   "likes": 31,
   "comments": [
@@ -42,6 +49,13 @@
   "body": "Quatre data scientists, six GPU T4 sur deux nœuds, des entraînements de 2 à 20 heures. Aujourd'hui chacun lance son Job quand il veut et les pods restent en Pending sans que personne sache qui est devant. Trois pistes : des Jobs natifs avec un ResourceQuota par namespace, Kueue avec une file par personne, ou un petit ordonnanceur maison en Go qui range les demandes dans PostgreSQL. Contraintes : pas de préemption sans checkpoint, et je suis le seul à maintenir le cluster. Je penche pour Kueue mais je crains d'ajouter une CRD de plus à porter seul.",
   "topics": [
    "kubernetes"
+  ],
+  "images": [
+   {
+    "file": "p0025_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 1177.73,
   "likes": 5,
@@ -406,6 +420,13 @@
    "ci-cd",
    "kubernetes"
   ],
+  "images": [
+   {
+    "file": "p0231_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 374.68,
   "likes": 0,
   "comments": [
@@ -467,6 +488,13 @@
   "body": "Trained the same TensorFlow classifier with 5 seeds on identical data, 8,400 held-out rows. AUC ranged from 0.871 to 0.882, a spread of 0.011. Our retrain pipeline alerts if AUC falls by more than 0.01 against last month, so that alert was firing on noise. Threshold is now 0.025, plus a rerun with a second seed before anyone is paged.",
   "topics": [
    "tensorflow"
+  ],
+  "images": [
+   {
+    "file": "p0240_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 34.27,
   "likes": 11,
@@ -982,6 +1010,13 @@
   "title": "Eleven of 38 Go handlers checked ownership after fetching the record",
   "body": "Reviewed 38 HTTP handlers in a Go service before launch, reading only for authorisation. In 11 of them the handler loaded the record by id first and checked the owner afterwards, and 4 of those had already put a field from the record into an error message or log line by then. The fix is boring: scope the query itself, WHERE id = $1 AND owner_id = $2, and return not found for both cases. Method was a plain read-through with a checklist, no tooling.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0395_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 862.51,
   "likes": 5,
   "comments": []
@@ -2012,6 +2047,18 @@
   "topics": [
    "nodejs"
   ],
+  "images": [
+   {
+    "file": "p0956_1.webp",
+    "width": 1200,
+    "height": 586
+   },
+   {
+    "file": "p0956_2.webp",
+    "width": 1200,
+    "height": 327
+   }
+  ],
   "age_hours": 56.54,
   "likes": 6,
   "comments": []
@@ -2024,6 +2071,13 @@
   "body": "ewetext 0.5.0 for Node is out. It normalises Ewe text to NFC, restores the letters ɖ ɛ ƒ ɣ ŋ ɔ ʋ when people typed lookalikes from other Unicode blocks, and strips the zero width characters some messaging apps insert. Still rough: tone marks are left untouched, mixed Ewe and English sentences are not handled, and there is no Ga support yet.",
   "topics": [
    "nodejs"
+  ],
+  "images": [
+   {
+    "file": "p0974_1.webp",
+    "width": 1200,
+    "height": 360
+   }
   ],
   "age_hours": 1550.33,
   "likes": 4,
@@ -2073,6 +2127,13 @@
   "body": "Post-training quantisation of our text classifier with TFLite, 2,000 held-out rows, three runs each. Float32: 9.1 MB, accuracy 0.912, 41 ms per input on a 2018 Android phone. Float16: 4.6 MB, 0.911, 36 ms. Int8 dynamic range: 2.4 MB, 0.906, 19 ms. We ship int8 for the smaller download, but I would call float16 the free lunch.",
   "topics": [
    "tensorflow"
+  ],
+  "images": [
+   {
+    "file": "p1002_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 1358.94,
   "likes": 52,
@@ -2840,6 +2901,13 @@
   "title": "Android Keystore key invalidated after a new fingerprint is enrolled",
   "body": "Our wallet opens with biometrics through a key in the Android Keystore. On some phones, when the user adds a new fingerprint, the key is invalidated and the app can no longer open the wallet. Users end up locked out and have to register the device again. How do you handle that: let them fall back to the PIN and create a new key, or disable invalidation on enrolment? The second feels weaker to me.",
   "topics": [],
+  "images": [
+   {
+    "file": "p1325_1.webp",
+    "width": 1200,
+    "height": 327
+   }
+  ],
   "age_hours": 553.76,
   "likes": 1,
   "comments": []
@@ -3280,6 +3348,13 @@
   "body": "Petit service Fastify qui reçoit les webhooks d'un fournisseur de paiement mobile, vérifie la signature, insère un job dans PostgreSQL, puis répond 200. Un worker en Rust consomme la table. Je voudrais savoir si l'ordre est bon (signature, insertion, réponse), si 1 Mo de limite de corps est raisonnable, et si je dois répondre avant la fin de l'insertion pour que le fournisseur ne réessaie pas.",
   "topics": [
    "nodejs"
+  ],
+  "images": [
+   {
+    "file": "p1471_1.webp",
+    "width": 1200,
+    "height": 548
+   }
   ],
   "age_hours": 2115.96,
   "likes": 4,

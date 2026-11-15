@@ -47,6 +47,13 @@
   "topics": [
    "postgresql"
   ],
+  "images": [
+   {
+    "file": "p0010_1.webp",
+    "width": 1200,
+    "height": 655
+   }
+  ],
   "age_hours": 139.25,
   "likes": 2,
   "comments": [
@@ -263,6 +270,13 @@
   "body": "Quantising a 12M parameter Darija text classifier with TFLite. Post-training int8 dropped F1 from 0.91 to 0.84, float16 kept 0.91 and halved the file. Method: 4,000 held-out sentences, same tokenizer, three runs each. The int8 calibration set was 200 sentences from the training data, which is probably too few and too clean. Next: calibrate on 2,000 noisy sentences with Arabizi spelling and see if the gap closes.",
   "topics": [
    "tensorflow"
+  ],
+  "images": [
+   {
+    "file": "p0139_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 147.32,
   "likes": 34,
@@ -544,6 +558,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0267_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 69.65,
   "likes": 0,
   "comments": []
@@ -602,6 +623,13 @@
   "body": "tidewrk 0.6 is out. It is a job queue library for Rust that uses Postgres as the broker (SKIP LOCKED, no extra service to run). New in this release: per-job max attempts with exponential backoff, a dead-letter table you can query, and graceful shutdown that waits for the running job up to a deadline. Rough edges: no cron-style schedules yet, jobs are JSON only, and the minimum sqlx version is 0.7. We have run it for about six months on loan repayment reminders without anyone being paged.",
   "topics": [
    "rust"
+  ],
+  "images": [
+   {
+    "file": "p0330_1.webp",
+    "width": 1200,
+    "height": 591
+   }
   ],
   "age_hours": 549.97,
   "likes": 5,
@@ -1236,6 +1264,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0593_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 248.33,
   "likes": 13,
   "comments": [
@@ -1591,6 +1626,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0763_1.webp",
+    "width": 1200,
+    "height": 532
+   }
+  ],
   "age_hours": 2134.15,
   "likes": 14,
   "comments": [
@@ -1939,6 +1981,13 @@
   "body": "Our Flutter app talks to a USB fingerprint reader through a small Java plugin. On Android 12 the permission dialog appears, I tap allow, and the BroadcastReceiver is never called until I restart the app. Android 10 and 11 are fine. We target SDK 33. Is this the PendingIntent flag issue, or something with how the receiver is registered?",
   "topics": [
    "java"
+  ],
+  "images": [
+   {
+    "file": "p0893_1.webp",
+    "width": 1200,
+    "height": 343
+   }
   ],
   "age_hours": 280.07,
   "likes": 7,
@@ -3332,6 +3381,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p1453_1.webp",
+    "width": 1200,
+    "height": 532
+   }
+  ],
   "age_hours": 1350.1,
   "likes": 5,
   "comments": []
@@ -3345,6 +3401,13 @@
   "topics": [
    "go",
    "rust"
+  ],
+  "images": [
+   {
+    "file": "p1468_1.webp",
+    "width": 1200,
+    "height": 294
+   }
   ],
   "age_hours": 2159.98,
   "likes": 31,

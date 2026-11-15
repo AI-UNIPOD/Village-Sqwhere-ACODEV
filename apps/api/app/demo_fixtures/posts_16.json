@@ -1086,6 +1086,13 @@
    "docker",
    "llms"
   ],
+  "images": [
+   {
+    "file": "p0443_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 405.69,
   "likes": 0,
   "comments": [
@@ -2168,6 +2175,13 @@
    "postgresql",
    "react-native"
   ],
+  "images": [
+   {
+    "file": "p0924_1.webp",
+    "width": 1200,
+    "height": 459
+   }
+  ],
   "age_hours": 933.46,
   "likes": 7,
   "comments": [
@@ -2456,6 +2470,13 @@
   "body": "pointe 0.4 est un binaire Go qui compare deux fichiers de transactions, le relevé du prestataire et notre grand livre, sur la référence et le montant, et sort les écarts en trois fichiers : manquants à gauche, manquants à droite, montants différents. Nouveau : tolérance sur la date en nombre de jours, normalisation des références (espaces, casse) et code de sortie non nul s'il reste des écarts. Brouillon : seulement du CSV en UTF-8.",
   "topics": [
    "nodejs"
+  ],
+  "images": [
+   {
+    "file": "p1148_1.webp",
+    "width": 1200,
+    "height": 459
+   }
   ],
   "age_hours": 806.21,
   "likes": 9,
@@ -3171,6 +3192,13 @@
   "topics": [
    "ci-cd"
   ],
+  "images": [
+   {
+    "file": "p1420_1.webp",
+    "width": 1200,
+    "height": 289
+   }
+  ],
   "age_hours": 1043.13,
   "likes": 8,
   "comments": []
@@ -3228,6 +3256,13 @@
   "body": "Our scheduler process kept growing by about 40 MB after every retraining run. Method: tracemalloc snapshots after run 1 and after run 20, compared by line number. The top difference was a module level dict that cached DataFrames for each model name and never released them, about 790 MB over the 20 runs. With the cache removed, memory stayed flat over 200 runs. Whoever wrote it probably meant it as a speed-up for re-reads, and I have not yet measured what removing it costs.",
   "topics": [
    "python"
+  ],
+  "images": [
+   {
+    "file": "p1466_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 362.81,
   "likes": 18,

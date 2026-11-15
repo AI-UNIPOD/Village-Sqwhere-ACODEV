@@ -152,6 +152,13 @@
   "topics": [
    "tensorflow"
   ],
+  "images": [
+   {
+    "file": "p0072_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 1946.95,
   "likes": 2,
   "comments": [
@@ -284,6 +291,18 @@
   "topics": [
    "go"
   ],
+  "images": [
+   {
+    "file": "p0172_1.webp",
+    "width": 1200,
+    "height": 640
+   },
+   {
+    "file": "p0172_2.webp",
+    "width": 1200,
+    "height": 393
+   }
+  ],
   "age_hours": 2123.47,
   "likes": 0,
   "comments": [
@@ -408,6 +427,13 @@
   "topics": [
    "computer-vision",
    "vector-databases"
+  ],
+  "images": [
+   {
+    "file": "p0178_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 1262.2,
   "likes": 4,
@@ -884,6 +910,13 @@
   "topics": [
    "react-native"
   ],
+  "images": [
+   {
+    "file": "p0348_1.webp",
+    "width": 1200,
+    "height": 451
+   }
+  ],
   "age_hours": 468.99,
   "likes": 16,
   "comments": []
@@ -1137,6 +1170,13 @@
   "body": "Nightly credit bureau lookups for 30k borrowers. The provider allows 5 requests per second and returns a 502 on about 2 percent of calls. The current Java batch takes 2h40 and a crash restarts from the first borrower. Options: a checkpoint table with the last processed id, a Rust worker with a token bucket and per-request retry, or splitting borrowers into id ranges run by several small jobs. I like the checkpoint because it is boring, but it does not fix the 502s. The Rust worker fixes both and adds a second language to maintain.",
   "topics": [
    "java"
+  ],
+  "images": [
+   {
+    "file": "p0449_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 740.38,
   "likes": 11,
@@ -1529,6 +1569,13 @@
   "title": "coopsync 0.5.0 pushes SQLite rows from collection point tablets to Postgres",
   "body": "Released 0.5.0 of a small Go package that pushes rows from a SQLite file on a collection point tablet to a central Postgres. Each device keeps a rising sequence number and the server accepts only the next one, so gaps are visible instead of silent. New in 0.5: batch size adapts to the last round trip time. E don work well on two cooperatives, abeg tell me if you see gaps. Rough: no delete propagation yet, deletes are soft flags only.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0705_1.webp",
+    "width": 1200,
+    "height": 393
+   }
+  ],
   "age_hours": 566.93,
   "likes": 4,
   "comments": []
@@ -1833,6 +1880,13 @@
    "postgresql",
    "react"
   ],
+  "images": [
+   {
+    "file": "p0773_1.webp",
+    "width": 1200,
+    "height": 581
+   }
+  ],
   "age_hours": 377.89,
   "likes": 7,
   "comments": [
@@ -2058,6 +2112,18 @@
   "topics": [
    "nodejs",
    "react"
+  ],
+  "images": [
+   {
+    "file": "p0855_1.webp",
+    "width": 1200,
+    "height": 644
+   },
+   {
+    "file": "p0855_2.webp",
+    "width": 1200,
+    "height": 544
+   }
   ],
   "age_hours": 341.9,
   "likes": 6,
@@ -2444,6 +2510,13 @@
   "body": "Compared three ways to find duplicate product names across 2.1 million wholesaler listings. Method: 500 hand-labelled pairs. Exact lowercase comparison: precision 1.00, recall 0.38. pg_trgm similarity above 0.8 with a GIN index: precision 0.93, recall 0.71, 11 minutes. Sentence embeddings with cosine above 0.9: precision 0.81, recall 0.86, 47 minutes on CPU. None is good enough alone.",
   "topics": [
    "python"
+  ],
+  "images": [
+   {
+    "file": "p1110_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 64.81,
   "likes": 6,
@@ -3024,6 +3097,13 @@
    "python",
    "rust"
   ],
+  "images": [
+   {
+    "file": "p1269_1.webp",
+    "width": 1200,
+    "height": 532
+   }
+  ],
   "age_hours": 143.34,
   "likes": 16,
   "comments": [
@@ -3347,6 +3427,18 @@
   "body": "Our weekly retraining job for a TensorFlow classifier gives slightly different validation accuracy on identical data each run, between 0.912 and 0.921. I set the seeds but still see it, on GPU. Is that normal, or should I enable deterministic ops, and does that cost much?",
   "topics": [
    "tensorflow"
+  ],
+  "images": [
+   {
+    "file": "p1472_1.webp",
+    "width": 1200,
+    "height": 581
+   },
+   {
+    "file": "p1472_2.webp",
+    "width": 1200,
+    "height": 294
+   }
   ],
   "age_hours": 214.79,
   "likes": 41,

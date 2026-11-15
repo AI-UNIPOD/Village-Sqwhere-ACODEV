@@ -196,6 +196,13 @@
   "title": "Six comptes cloud, les mêmes modules Terraform, comment éviter la dérive",
   "body": "Je gère six comptes cloud avec Terraform, un par client, et les mêmes modules de base (réseau, bastion, sauvegardes). Aujourd'hui les modules sont copiés dans chaque dépôt, donc les corrections divergent peu à peu. Trois options. Un dépôt de modules avec des tags semver, chaque compte épingle sa version. Un monorepo avec tous les comptes. Ou garder les copies et écrire un script qui les synchronise. Contraintes : nous sommes deux, il n'y a pas de pipeline commun pour l'instant, et un client refuse que son code sorte de son compte. Je penche pour les tags, mais je crains de passer mon temps à monter des versions à six endroits.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0054_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 765.07,
   "likes": 2,
   "comments": []
@@ -438,6 +445,13 @@
   "body": "Porting a sensor sampling loop from C to Rust on an STM32F0 with 32 KB of flash. The part I am unsure about is a fixed ring buffer shared between the ADC interrupt and the main loop. I wrap it in the cortex-m critical section mutex and pop from main. It works on the bench, but I do not like holding the critical section while copying 16 samples. Please look at whether a single producer single consumer queue without locks would be safer here, and at the unsafe block around the static.",
   "topics": [
    "rust"
+  ],
+  "images": [
+   {
+    "file": "p0208_1.webp",
+    "width": 1200,
+    "height": 740
+   }
   ],
   "age_hours": 731.36,
   "likes": 3,
@@ -744,6 +758,13 @@
    "ci-cd",
    "python"
   ],
+  "images": [
+   {
+    "file": "p0304_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 624.21,
   "likes": 11,
   "comments": []
@@ -1022,6 +1043,13 @@
   "topics": [
    "kubernetes",
    "terraform"
+  ],
+  "images": [
+   {
+    "file": "p0538_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 1948.95,
   "likes": 21,
@@ -1470,6 +1498,13 @@
    "ci-cd",
    "python"
   ],
+  "images": [
+   {
+    "file": "p0827_1.webp",
+    "width": 1200,
+    "height": 327
+   }
+  ],
   "age_hours": 329.7,
   "likes": 8,
   "comments": [
@@ -1561,6 +1596,13 @@
   "title": "Extracting inventory from the monolith while both still write to the same table",
   "body": "Our Java monolith owns an inventory table that fourteen places in the code write to, including the order flow. I want to move stock into its own service. Option one: the new service becomes the only writer, the monolith calls it, and old readers use a view for now. Option two: both write for a few weeks with a nightly comparison. Option three: change data capture from the monolith's table into the new service's own store. Constraints: three engineers, no message broker today, and order placement decrements stock in the same transaction as the order.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0848_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 1079.72,
   "likes": 21,
   "comments": [
@@ -2774,6 +2816,13 @@
   "topics": [
    "flutter",
    "react"
+  ],
+  "images": [
+   {
+    "file": "p1314_1.webp",
+    "width": 1200,
+    "height": 559
+   }
   ],
   "age_hours": 403.82,
   "likes": 32,

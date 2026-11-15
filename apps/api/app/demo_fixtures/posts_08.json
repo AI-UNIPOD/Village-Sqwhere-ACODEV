@@ -44,6 +44,13 @@
   "topics": [
    "postgresql"
   ],
+  "images": [
+   {
+    "file": "p0061_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 969.85,
   "likes": 10,
   "comments": [
@@ -1333,6 +1340,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0491_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 203.67,
   "likes": 25,
   "comments": [
@@ -1600,6 +1614,13 @@
   "topics": [
    "python",
    "rust"
+  ],
+  "images": [
+   {
+    "file": "p0633_1.webp",
+    "width": 1200,
+    "height": 393
+   }
   ],
   "age_hours": 1648.8,
   "likes": 8,
@@ -2058,6 +2079,13 @@
   "topics": [
    "go",
    "python"
+  ],
+  "images": [
+   {
+    "file": "p0839_1.webp",
+    "width": 1200,
+    "height": 613
+   }
   ],
   "age_hours": 1828.32,
   "likes": 56,
@@ -2684,6 +2712,13 @@
   "title": "A naive seasonal baseline beat our LSTM on 40 percent of shops",
   "body": "For weekly demand forecasts across 180 small shops I compared three models on the last 26 weeks with a rolling origin: last year's same week (naive seasonal), gradient boosting, and an LSTM. Median MAPE: 24.8 for the naive seasonal, 19.1 for boosting, 18.7 for the LSTM. But per shop, the naive baseline won on 72 shops, mostly the ones with very small volumes. For those we now keep the naive baseline and use the LSTM only where volume is above 50 units a week.",
   "topics": [],
+  "images": [
+   {
+    "file": "p1222_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 142.87,
   "likes": 1,
   "comments": []
@@ -3320,6 +3355,13 @@
   "title": "Gapless order numbers per branch when Postgres sequences leave holes",
   "body": "Accounting wants invoice numbers per branch with no gaps: 1, 2, 3 and so on, per branch per year. A normal Postgres sequence skips numbers when a transaction rolls back. Options: a counter row per branch locked with SELECT FOR UPDATE inside the order transaction (correct, but orders in one branch serialise); a sequence plus a nightly renumber of voided numbers (gaps hidden, but numbers change after being printed); or allocate numbers only at the moment an invoice is finalised, separate from the order. I like the third, but it needs a draft state everywhere. Which would you choose?",
   "topics": [],
+  "images": [
+   {
+    "file": "p1478_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 707.86,
   "likes": 0,
   "comments": [

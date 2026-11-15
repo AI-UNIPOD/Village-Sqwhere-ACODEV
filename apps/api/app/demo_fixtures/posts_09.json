@@ -8,6 +8,13 @@
   "topics": [
    "react"
   ],
+  "images": [
+   {
+    "file": "p0066_1.webp",
+    "width": 1200,
+    "height": 708
+   }
+  ],
   "age_hours": 545.77,
   "likes": 1,
   "comments": [
@@ -28,6 +35,13 @@
   "body": "Swapped a dropdown of 16 regions for a searchable bottom sheet in a Flutter form and abandonment at that step roughly halved over two weeks. Dropdowns on a small screen make people scroll inside a scroll.",
   "topics": [
    "flutter"
+  ],
+  "images": [
+   {
+    "file": "p0068_1.webp",
+    "width": 1200,
+    "height": 586
+   }
   ],
   "age_hours": 389.66,
   "likes": 10,
@@ -77,6 +91,13 @@
   "topics": [
    "java",
    "nodejs"
+  ],
+  "images": [
+   {
+    "file": "p0123_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 997.63,
   "likes": 45,
@@ -298,6 +319,13 @@
   "body": "Mon Dockerfile pour le tableau de bord du festival, en deux étapes : une image node 20 pour le build, puis nginx alpine pour servir les fichiers. Le build prend 4 min 10 en CI même quand je change une seule ligne de CSS. Je copie les fichiers ainsi :\n\nCOPY package*.json ./\nRUN npm ci\nCOPY . .\nRUN npm run build\n\nJe pense que le cache saute à cause du dossier .git ou du lockfile, mais je ne suis pas sûr. Regardez surtout l'ordre des COPY et ce que je n'exclus pas du contexte.",
   "topics": [
    "docker"
+  ],
+  "images": [
+   {
+    "file": "p0234_1.webp",
+    "width": 1200,
+    "height": 470
+   }
   ],
   "age_hours": 1601.97,
   "likes": 29,
@@ -773,6 +801,13 @@
   "title": "Mobile money callbacks that need an answer in 5 seconds but take 7",
   "body": "Callbacks from a mobile money provider must be acknowledged within 5 seconds or they retry, up to 6 times over an hour. Our handler checks the signature, finds the pending payment, updates the ledger and notifies the merchant. The p99 is 7 seconds when the ledger is busy. Options: acknowledge after the signature check and store the raw callback, then process it asynchronously; keep it synchronous and add pods; or move the ledger write into its own consumer. Duplicate callbacks and ordering both matter here. Which would you choose?",
   "topics": [],
+  "images": [
+   {
+    "file": "p0334_1.webp",
+    "width": 1200,
+    "height": 368
+   }
+  ],
   "age_hours": 1177.88,
   "likes": 86,
   "comments": [
@@ -927,6 +962,13 @@
   "body": "A single state with about 1,100 resources took 6 minutes to plan on the CI runner. After splitting it into five states by service, each plan takes between 40 and 90 seconds. Method: ten plans before and ten after, same runner, no changes pending, median time. Almost all of the old time was refresh, the provider API reads, not graph building. Skipping refresh on the single state got it to 1 minute 10, but I do not want to skip refresh in production runs.",
   "topics": [
    "terraform"
+  ],
+  "images": [
+   {
+    "file": "p0341_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 2037.27,
   "likes": 2,
@@ -1114,6 +1156,13 @@
    "ci-cd",
    "go"
   ],
+  "images": [
+   {
+    "file": "p0492_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 1741.36,
   "likes": 1,
   "comments": [
@@ -1211,6 +1260,13 @@
   "body": "Released 0.3 of pathguard, a small Rust crate that normalises a file path from untrusted input and checks it against an allowed root. Changes: symlink resolution is now optional, Windows reserved names like CON and NUL are rejected, and long paths are about 40 percent faster. Still rough: no async API, error messages are terse, and case insensitive filesystems on macOS are not handled yet.",
   "topics": [
    "rust"
+  ],
+  "images": [
+   {
+    "file": "p0609_1.webp",
+    "width": 1200,
+    "height": 294
+   }
   ],
   "age_hours": 480.74,
   "likes": 6,
@@ -1460,6 +1516,13 @@
   "topics": [
    "ci-cd"
   ],
+  "images": [
+   {
+    "file": "p0676_1.webp",
+    "width": 1200,
+    "height": 544
+   }
+  ],
   "age_hours": 902.37,
   "likes": 6,
   "comments": [
@@ -1512,6 +1575,13 @@
   "body": "Mon pipeline déploie en dix minutes mais un rollback manuel en prend vingt. L'API de réservation de billets de bus (Go) tourne sur 3 instances derrière Nginx. Options : blue green avec deux jeux d'instances (coût doublé), mise à jour progressive avec vérification de santé et retour automatique si le taux d'erreur dépasse 2 % pendant 5 minutes, ou canary à 10 % du trafic. Contrainte : le pic de départs à 6 h du matin, où personne ne doit rien casser. Je penche pour la mise à jour progressive. Qu'est-ce qui me manque ?",
   "topics": [
    "go"
+  ],
+  "images": [
+   {
+    "file": "p0682_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 92.41,
   "likes": 24,
@@ -2508,6 +2578,13 @@
   "topics": [
    "rust"
   ],
+  "images": [
+   {
+    "file": "p1147_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 421.27,
   "likes": 16,
   "comments": [
@@ -2765,6 +2842,13 @@
   "body": "Découverte du jour : docker system df montrait 41 Go d'images et de caches de build sur le serveur de CI. Un docker builder prune planifié chaque semaine a réglé le problème, et plus personne ne se plaint de disque plein le lundi matin.",
   "topics": [
    "docker"
+  ],
+  "images": [
+   {
+    "file": "p1318_1.webp",
+    "width": 1200,
+    "height": 360
+   }
   ],
   "age_hours": 390.27,
   "likes": 1,
@@ -3155,6 +3239,13 @@
   "body": "Our Pinia cart store persists to localStorage in a Vue checkout, and a user who opens the shop in two tabs ends up with different carts after adding items in both. What do you do: listen for the storage event and merge, or move the cart to the server and treat the local copy as a cache?",
   "topics": [
    "vue"
+  ],
+  "images": [
+   {
+    "file": "p1358_1.webp",
+    "width": 1200,
+    "height": 644
+   }
   ],
   "age_hours": 200.05,
   "likes": 3,

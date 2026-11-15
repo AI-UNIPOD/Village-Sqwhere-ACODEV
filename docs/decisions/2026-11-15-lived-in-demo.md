@@ -38,6 +38,14 @@ set was written.
 - **Handles that no real developer can hold.** Every handle contains an underscore, which GitHub
   never allows. The 143 new full members' names were also searched on GitHub before shipping
   (see the pull request).
+- **About 160 posts carry a picture, and each picture matches its post.** Code review requests
+  show their code, architecture challenges their options as a diagram, research notes a chart
+  with the post's own numbers, release posts and some questions the terminal output. A few posts
+  have two. They were drawn once by a script from specs written to agree with each post, in the
+  post's language, and stored as 173 small WebP files in `demo_fixtures/images` (about 3.5 MB).
+  The seed stores them like uploads, bytes in `post_attachments`, so the feed's own code shows
+  them. Nothing on a picture says it is made up. The script is not in the repository, as with
+  the names.
 - **Counts are true counts.** Nothing stores a made-up number. A post's likes, a comment's likes
   and replies, and a post's comments are the database's own counters, kept by triggers from
   the rows the seed writes, and a test compares each against a COUNT. Who likes what comes from
@@ -84,7 +92,9 @@ set was written.
 
 ## Consequences
 
-- The demo's database grows by about 1,150 users, 1,500 posts, 6,000 comments and 22,000 likes.
+- The demo's database grows by about 1,150 users, 1,500 posts, 6,000 comments, 22,000 likes and
+  3.5 MB of pictures. The daily re-date writes the pictures again with the posts, so Neon sees
+  about 3.5 MB of churn a day.
 - A rerun takes seconds, not milliseconds, because every post is written again. The worker
   needs `DEMO_ENABLED=true` in its own environment, as the API does; without it the feed ages.
 - A new post type, topic or language needs new text written and read before it is in the demo.

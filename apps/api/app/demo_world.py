@@ -25,6 +25,7 @@ from app.models import (
     Comment,
     CommentLike,
     Post,
+    PostAttachment,
     PostLike,
     PostTopic,
     PostType,
@@ -38,6 +39,7 @@ from app.models import (
 )
 
 FIXTURES = Path(__file__).parent / "demo_fixtures"
+IMAGES = FIXTURES / "images"
 # Fixed, so a post or comment keeps its address from one run to the next.
 NAMESPACE = UUID("6f3d2c1e-8b47-4a59-9d0e-2c7b1a5f4e83")
 # A like arrives within three days of what it likes, and never later than now.
@@ -151,7 +153,7 @@ async def write_world(db: AsyncSession) -> tuple[int, int]:
     # topics go with them
     await db.execute(delete(Post).where(Post.author_id.in_(members)))
 
-    post_rows, topic_rows, like_rows, comments = [], [], [], []
+    post_rows, topic_rows, like_rows, image_rows, comments = [], [], [], [], []
     for post in posts:
         post_id = uuid5(NAMESPACE, post["key"])
         posted = now - timedelta(hours=post["age_hours"])
@@ -172,6 +174,10 @@ async def write_world(db: AsyncSession) -> tuple[int, int]:
             for slug in post["topics"]
             if slug in techs
         ]
+        image_rows += [
+            _image_row(post["key"], post_id, position, image, posted)
+            for position, image in enumerate(post.get("images", []))
+        ]
         like_rows += _likes(
             PostLike.post_id.key, post["key"], post_id, post["likes"], posted, now, pool, author
         )
@@ -184,6 +190,7 @@ async def write_world(db: AsyncSession) -> tuple[int, int]:
 
     await _insert(db, Post, post_rows)
     await _insert(db, PostTopic, topic_rows)
+    await _insert(db, PostAttachment, image_rows, batch=40)
 
     comment_rows, comment_like_rows, depth, root = [], [], {None: -1}, {}
     for post_id, post_key, comment, made in comments:
@@ -223,9 +230,25 @@ async def write_world(db: AsyncSession) -> tuple[int, int]:
     return len(post_rows), len(comment_rows)
 
 
-async def _insert(db: AsyncSession, model, rows: list[dict]) -> None:
-    for start in range(0, len(rows), 5000):
-        await db.execute(insert(model), rows[start : start + 5000])
+async def _insert(db: AsyncSession, model, rows: list[dict], batch: int = 5000) -> None:
+    for start in range(0, len(rows), batch):
+        await db.execute(insert(model), rows[start : start + batch])
+
+
+def _image_row(post_key: str, post_id: UUID, position: int, image: dict, posted: datetime) -> dict:
+    """A picture is a file in demo_fixtures/images, stored like an upload: its bytes in the row."""
+    data = (IMAGES / image["file"]).read_bytes()
+    return {
+        "id": uuid5(NAMESPACE, f"{post_key}:image{position}"),
+        "post_id": post_id,
+        "data": data,
+        "mime_type": "image/webp",
+        "byte_size": len(data),
+        "width": image["width"],
+        "height": image["height"],
+        "position": position,
+        "created_at": posted,
+    }
 
 
 def _likes(column, key, target, count, made, now, pool, author) -> list[dict]:

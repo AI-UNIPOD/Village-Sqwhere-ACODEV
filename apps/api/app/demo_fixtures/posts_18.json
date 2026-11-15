@@ -133,6 +133,13 @@
   "title": "Fluidité d'une liste de courses Flutter sur un téléphone de 2 Go",
   "body": "Mesure faite sur un Tecno de 2 Go avec flutter run en mode profile et DevTools ouvert. Liste de 400 courses, 5 défilements complets de haut en bas, je note le p90 du temps de build des frames. Départ : 21 ms. Deux changements ont compté : retirer le widget Opacity autour de chaque carte (remplacé par une couleur avec alpha) et mettre const sur les icônes et les textes fixes. Arrivée : 9 ms. RepaintBoundary et cacheExtent n'ont rien changé de mesurable. Un seul appareil, donc à vérifier ailleurs.",
   "topics": [],
+  "images": [
+   {
+    "file": "p0055_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 1235.73,
   "likes": 2,
   "comments": [
@@ -184,6 +191,18 @@
   "body": "Method: ResNet-18 training loop, 60,000 JPEG files of about 80 KB on local disk, 4 vCPU and 16 GB RAM, batch 128. First epoch dropped as warm-up, then the mean images per second over three epochs. Results for num_workers 0, 2, 3, 4 and 8: 210, 540, 690, 650 and 410. The 8 worker run was slower than the 2 worker one and used 11 GB of RAM. Past the core count the workers just fight each other for CPU and page cache. Persistent workers saved about 4 seconds per epoch.",
   "topics": [
    "pytorch"
+  ],
+  "images": [
+   {
+    "file": "p0078_1.webp",
+    "width": 1200,
+    "height": 640
+   },
+   {
+    "file": "p0078_2.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 180.84,
   "likes": 25,
@@ -808,6 +827,13 @@
   "topics": [
    "go"
   ],
+  "images": [
+   {
+    "file": "p0312_1.webp",
+    "width": 1200,
+    "height": 591
+   }
+  ],
   "age_hours": 1611.01,
   "likes": 15,
   "comments": [
@@ -905,6 +931,13 @@
   "body": "Fine-tuning a 350M parameter language model with sequence length 1024, batch 8, fp16, on one 16 GB T4. Without checkpointing, peak memory by torch.cuda.max_memory_allocated was 14.8 GB. With gradient checkpointing on all blocks it was 9.1 GB, a saving of 38 percent. Step time went from 0.62 s to 0.79 s, so 27 percent slower. The freed memory let me double the batch size, and the time per sequence then came out about 12 percent better than before. Averages over 100 steps after warm-up, one run each.",
   "topics": [
    "pytorch"
+  ],
+  "images": [
+   {
+    "file": "p0372_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 775.2,
   "likes": 9,
@@ -1803,6 +1836,13 @@
   "topics": [
    "nodejs"
   ],
+  "images": [
+   {
+    "file": "p0744_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 2028.84,
   "likes": 8,
   "comments": []
@@ -2121,6 +2161,13 @@
    "react",
    "vue"
   ],
+  "images": [
+   {
+    "file": "p0909_1.webp",
+    "width": 1200,
+    "height": 292
+   }
+  ],
   "age_hours": 448.36,
   "likes": 1,
   "comments": [
@@ -2158,6 +2205,13 @@
   "body": "Our staging cluster runs 24/7 for a team that works roughly 8 to 6. It costs about $1,100 a month out of a $4,800 cloud bill, and my estimate is that shutting it down at night and at weekends saves around $340 on the node group. Cold start is the worry: some of our images are 2 GB and a fresh node takes about 6 minutes to pull them. Options: scale the node group to zero on a schedule, or move staging to spot nodes and live with interruptions. What did you do?",
   "topics": [
    "docker"
+  ],
+  "images": [
+   {
+    "file": "p0919_1.webp",
+    "width": 1200,
+    "height": 327
+   }
   ],
   "age_hours": 2146.8,
   "likes": 32,
@@ -3016,6 +3070,13 @@
   "body": "React Native app for local publishers, used on weak signal and often offline. Readers save articles, bookmark them and keep a reading position, on a phone and sometimes a tablet. The backend is a Rust API in a Docker container with Postgres. I need sync that survives hours offline and two devices editing.\n\nOptions: last write wins per field with timestamps, simplest but phone clocks are wrong more often than I would like; an append-only change log per user with a cursor that the client replays; or CRDTs for the bookmark set, probably overkill for this data. I lean towards the change log. What would you pick, and how do you deal with device clocks?",
   "topics": [
    "docker"
+  ],
+  "images": [
+   {
+    "file": "p1395_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 14.07,
   "likes": 3,

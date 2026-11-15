@@ -167,6 +167,13 @@
    "flutter",
    "vue"
   ],
+  "images": [
+   {
+    "file": "p0166_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 1898.09,
   "likes": 14,
   "comments": [
@@ -259,6 +266,13 @@
   "topics": [
    "nodejs"
   ],
+  "images": [
+   {
+    "file": "p0181_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 861.89,
   "likes": 5,
   "comments": [
@@ -336,6 +350,13 @@
   "body": "Our Rust workers send repayment reminders and process mobile money callbacks. About 20,000 messages a day, with peaks of 40 per second after the 1st of the month. Today the queue is a Postgres table with FOR UPDATE SKIP LOCKED, and it has been quiet for a year. The lenders now want retries with backoff and a dead-letter view. I can add columns and a view (attempt count, next_run_at), or move to Redis streams or a hosted queue. Constraints: one engineer on call, no new thing to monitor if I can avoid it, and an audit trail of every attempt.",
   "topics": [
    "postgresql"
+  ],
+  "images": [
+   {
+    "file": "p0241_1.webp",
+    "width": 1200,
+    "height": 520
+   }
   ],
   "age_hours": 2073.48,
   "likes": 14,
@@ -536,6 +557,13 @@
   "topics": [
    "docker"
   ],
+  "images": [
+   {
+    "file": "p0343_1.webp",
+    "width": 1200,
+    "height": 459
+   }
+  ],
   "age_hours": 2055.36,
   "likes": 22,
   "comments": [
@@ -673,6 +701,13 @@
   "topics": [
    "java"
   ],
+  "images": [
+   {
+    "file": "p0414_1.webp",
+    "width": 1200,
+    "height": 478
+   }
+  ],
   "age_hours": 1635.24,
   "likes": 11,
   "comments": [
@@ -703,6 +738,13 @@
   "topics": [
    "go",
    "kubernetes"
+  ],
+  "images": [
+   {
+    "file": "p0415_1.webp",
+    "width": 1200,
+    "height": 459
+   }
   ],
   "age_hours": 84.71,
   "likes": 4,
@@ -880,6 +922,13 @@
   "topics": [
    "nodejs"
   ],
+  "images": [
+   {
+    "file": "p0455_1.webp",
+    "width": 1200,
+    "height": 478
+   }
+  ],
   "age_hours": 1154.49,
   "likes": 94,
   "comments": [
@@ -1039,6 +1088,13 @@
    "java",
    "nodejs"
   ],
+  "images": [
+   {
+    "file": "p0478_1.webp",
+    "width": 1200,
+    "height": 294
+   }
+  ],
   "age_hours": 187.37,
   "likes": 20,
   "comments": [
@@ -1154,6 +1210,13 @@
   "topics": [
    "kubernetes",
    "postgresql"
+  ],
+  "images": [
+   {
+    "file": "p0512_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 1069.05,
   "likes": 21,
@@ -1373,6 +1436,18 @@
   "topics": [
    "go"
   ],
+  "images": [
+   {
+    "file": "p0683_1.webp",
+    "width": 1200,
+    "height": 388
+   },
+   {
+    "file": "p0683_2.webp",
+    "width": 1200,
+    "height": 327
+   }
+  ],
   "age_hours": 579.53,
   "likes": 6,
   "comments": [
@@ -1489,6 +1564,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p0685_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
   "age_hours": 1992.32,
   "likes": 0,
   "comments": [
@@ -1538,6 +1620,13 @@
   "body": "Cut our Go service pipeline from 7 minutes to just over 2 by caching the Go build cache and the module directory between runs instead of only the modules. The cache key is the hash of the module checksum file plus the Go version. One catch: the cache grew to 1.4 GB until we added a 7 day expiry.",
   "topics": [
    "ci-cd"
+  ],
+  "images": [
+   {
+    "file": "p0700_1.webp",
+    "width": 1200,
+    "height": 640
+   }
   ],
   "age_hours": 1148.52,
   "likes": 11,
@@ -2460,6 +2549,13 @@
   "topics": [
    "python"
   ],
+  "images": [
+   {
+    "file": "p1044_1.webp",
+    "width": 1200,
+    "height": 640
+   }
+  ],
   "age_hours": 1014.54,
   "likes": 0,
   "comments": [
@@ -2605,6 +2701,13 @@
   "body": "Our CI runners start clean every time, and the Docker build for a Python service spends about 3 minutes downloading wheels. I tried BuildKit cache mounts for pip, but they do nothing when the runner has no disk from the previous run. Options: export the cache to the registry, restore a tarball of the pip cache from object storage before the build, or run a small pull-through proxy for PyPI. The pipeline target is under ten minutes in total and we are at 12. What do you use?",
   "topics": [
    "docker"
+  ],
+  "images": [
+   {
+    "file": "p1157_1.webp",
+    "width": 1200,
+    "height": 393
+   }
   ],
   "age_hours": 864.29,
   "likes": 3,
