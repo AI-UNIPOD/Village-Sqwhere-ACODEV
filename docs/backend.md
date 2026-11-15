@@ -1265,6 +1265,40 @@ left or were removed. Returns `{"data": [<member card>]}` with the same card as 
 
 * **Errors:** `403 NOT_HUB_MEMBER`.
 
+#### `GET /v1/hubs/{hub_id}/membership`
+
+The caller's own membership in this hub, in any status, with the signature it rests on. The
+hub card's `viewer` says only the status and role; this adds the dates and what was signed, so
+a person can see what they agreed to, even after leaving.
+
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "member_role": "member",
+      "status": "active",
+      "decline_kind": null,
+      "can_ask_again_at": null,
+      "created_at": "2026-11-14T09:00:00Z",
+      "joined_at": "2026-11-14T09:30:00Z",
+      "left_at": null,
+      "signature": {
+        "template_id": "0193f2e0-4a5c-7f6e-9b54-0000000000a1",
+        "version": 1,
+        "template_sha256": "<64 hex characters>",
+        "signed_legal_name": "Kwame Mensah",
+        "terms_snapshot": { "ownership_model": "equal_split" },
+        "signed_at": "2026-11-14T09:30:00Z"
+      }
+    }
+  }
+  ```
+  `signature` is `null` until the person signs (requested, invited, or a declined invitation),
+  and stays after they leave or are removed. `can_ask_again_at` shows only while the wait is
+  ahead. The address and browser a signature came from are stored but never returned.
+* **Errors:** `404 NOT_FOUND` (no such hub), `404 MEMBERSHIP_NOT_FOUND` (you have never been
+  invited or asked to join).
+
 #### `GET /v1/hubs/{hub_id}/idea`
 
 The idea behind the hub, with its confidential `details`, for active members only. Returns
