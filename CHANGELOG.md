@@ -15,6 +15,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(api): let a developer delete their account (#176)
 - feat(api): show my hub membership and the agreement I signed (#170)
 - feat(api): let the owner rename, describe and archive a hub (#169)
 - feat(api): add the design sketch of pieces and links to a hub (#174)
