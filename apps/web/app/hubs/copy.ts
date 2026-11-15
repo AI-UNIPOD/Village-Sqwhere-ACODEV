@@ -236,6 +236,16 @@ type Copy = {
     failed: string;
   };
   declinedNote: string;
+  // the owner's own tools for an active hub: rename or describe it, and archive it for good
+  manage: {
+    edit: string;
+    save: string;
+    cancel: string;
+    saved: string;
+    changed: string;
+    failed: string;
+    archive: { heading: string; text: string; button: string; title: string; dialog: string; confirm: string; cancel: string; done: string };
+  };
   // an active member who is not the owner may leave; leaving and being removed each have their line
   leave: { button: string; title: string; text: string; confirm: string; cancel: string; failed: string };
   leftNote: string;
@@ -661,6 +671,24 @@ const en: Copy = {
     failed: "We couldn't decline the invitation. Nothing was changed, so try again.",
   },
   declinedNote: "You are not in this hub. You declined its invitation, the owner declined your request, or you withdrew it.",
+  manage: {
+    edit: "Edit the name and description",
+    save: "Save",
+    cancel: "Cancel",
+    saved: "The hub was saved.",
+    changed: "This hub can no longer be edited. This is how it stands now.",
+    failed: "We couldn't save that. Nothing changed, so try again.",
+    archive: {
+      heading: "Archive the hub",
+      text: "When the work is over, archive the hub. Members keep reading everything in it, but nothing can change any more.",
+      button: "Archive this hub",
+      title: "Archive this hub?",
+      dialog: "Nobody can invite, join, move the phase, write notes, chat or edit it any more. Members can still read it and leave. This cannot be undone.",
+      confirm: "Archive the hub",
+      cancel: "Keep it active",
+      done: "The hub was archived. It stays here to read.",
+    },
+  },
   leave: {
     button: "Leave this hub",
     title: "Leave this hub?",
@@ -1109,6 +1137,24 @@ const fr: Copy = {
     failed: "Nous n'avons pas pu refuser l'invitation. Rien n'a été modifié, réessayez.",
   },
   declinedNote: "Vous n'êtes pas dans cet espace. Vous avez refusé son invitation, le porteur a refusé votre demande, ou vous l'avez retirée.",
+  manage: {
+    edit: "Modifier le nom et la description",
+    save: "Enregistrer",
+    cancel: "Annuler",
+    saved: "L'espace a été enregistré.",
+    changed: "Cet espace ne peut plus être modifié. Voici où il en est maintenant.",
+    failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
+    archive: {
+      heading: "Archiver l'espace",
+      text: "Quand le travail est terminé, archivez l'espace. Les membres peuvent toujours tout y lire, mais plus rien ne peut changer.",
+      button: "Archiver l'espace",
+      title: "Archiver cet espace\u202f?",
+      dialog: "Plus personne ne pourra inviter, rejoindre, changer de phase, écrire des notes, discuter ou le modifier. Les membres pourront toujours le lire et le quitter. Cette action est définitive.",
+      confirm: "Archiver l'espace",
+      cancel: "Le garder actif",
+      done: "L'espace a été archivé. Il reste ici à lire.",
+    },
+  },
   leave: {
     button: "Quitter l'espace",
     title: "Quitter cet espace\u202f?",
