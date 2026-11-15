@@ -22,6 +22,10 @@ const STEPS = ["profile", "verify", "idea", "hub"] as const;
 // "next" is the one step to do now; "open" can be started too, without being the main thing
 type StepState = "done" | "next" | "open" | "later";
 
+// How long the steps wait for what the developer has done. A read that has not answered by then
+// counts as nothing known, so one stalled request cannot keep the village hidden.
+export const READS_WAIT_MS = 6000;
+
 const ICONS = { done: Check, next: ArrowRight, open: ArrowRight, later: Clock };
 
 // Shown while the profile loads: blocks where the card and the steps will be.
@@ -53,12 +57,16 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
   const attemptUnderWay = ["pending", "in_progress", "awaiting_review"].includes(role?.verification?.latest_status ?? "");
   // Invitations to a hub wait on Your hubs, where nobody looks unprompted: say so here. What the
   // developer has already done comes from their ideas and hubs. The steps stay a skeleton until
-  // all three reads settle, so no step shows as Next and then moves to Done under the pointer. A
-  // read that fails counts as nothing known: its step says what it says without it.
+  // all three reads settle (or READS_WAIT_MS passes), so no step shows as Next and then moves to
+  // Done under the pointer. A read that fails counts as nothing known: its step says what it
+  // says without it.
   const invited = useKeptInvitations()?.length ?? 0;
   const [done, setDone] = useState<{ idea: boolean; hub: boolean } | null>(null);
   useEffect(() => {
     let current = true;
+    const limit = setTimeout(() => {
+      if (current) setDone((known) => known ?? { idea: false, hub: false });
+    }, READS_WAIT_MS);
     Promise.all([
       hasSharedIdea().catch(() => false),
       // every hub listed here is one the developer is an active member of, archived ones included:
@@ -66,10 +74,16 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
       loadMyHubs().then((page) => page.data.length > 0, () => false),
       refreshInvitations().catch(() => {}),
     ]).then(([idea, hub]) => {
+      clearTimeout(limit);
       if (current) setDone({ idea, hub });
     });
     return () => {
       current = false;
+      clearTimeout(limit);
+      // The app keeps a page it has left, state included, and shows it again as it was. Hiding the
+      // village ends this effect: forget the answers, so that the skeleton is what shows when it
+      // is revealed, not steps that are about to change.
+      setDone(null);
     };
   }, []);
   // Sharing an idea needs a role but not a Green Tick, so it opens beside verifying. Being in a

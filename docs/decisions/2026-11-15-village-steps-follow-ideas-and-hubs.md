@@ -24,7 +24,11 @@ We chose:
 - **The steps stay a skeleton until all the reads settle** (ideas, hubs and invitations), so no
   step shows as Next and then moves to Done under the pointer. Profile and verification do not
   depend on the reads but wait with the others: one list that appears once is calmer than two
-  that change at different times.
+  that change at different times. The wait ends after six seconds at most: a read that has not
+  answered by then counts as nothing known, and its answer is still used if it comes later.
+- **The skeleton comes back each time the village is shown.** The app keeps a page it has left,
+  state included, so the village clears what it knew when it is hidden and reads again when it
+  is shown.
 - **A read that fails counts as "nothing known"**: its step says what it said before the
   change. A step never claims something the API did not confirm. There is no retry button,
   because the rest of the village works without the reads.
@@ -47,6 +51,8 @@ We chose:
 ## Consequences
 
 - The village makes three small requests on each visit and each time it is shown again, and
-  follows their answers, so a step is never stale after an idea is shared or a hub is joined.
+  clears its steps until they answer, so a step is never stale after an idea is shared or a hub
+  is joined.
+- A request that stalls delays the steps by six seconds, not for good.
 - A developer with many drafts costs a few more requests to the ideas list, until a published
   idea is found.

@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { Activity } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import VillageError from "../[lang]/village/error";
@@ -6,7 +7,7 @@ import landing from "../landing/landing-page.module.css";
 import { keepInvitations } from "../hubs/invitations";
 import { SESSION_KEY } from "../session/session";
 import { copy } from "./copy";
-import { Village } from "./village";
+import { READS_WAIT_MS, Village } from "./village";
 
 const route = vi.hoisted(() => ({ lang: "en" }));
 // useRouter is for the demo bar, which the frame draws for the demo account
@@ -296,6 +297,68 @@ test("the steps follow the ideas and hubs again when the village is shown once m
   signedInAs({ roles: verifiedBackend() }, { ideas: [{ status: "open" }] });
   render(<Village lang="en" />);
   expect(within(await step(IDEA)).getByText("Done")).toBeTruthy();
+});
+
+// A hub list that answers when told to; everything else answers as signedInAs set it up.
+function holdHubs() {
+  const hubs = Promise.withResolvers<Response>();
+  const answer = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation((url: string) => (String(url).includes("/v1/me/hubs?offset") ? hubs.promise : answer(url)));
+  return hubs;
+}
+
+test("a village kept hidden and shown again asks again, with no step from the last visit", async () => {
+  signedInAs({ roles: verifiedBackend() });
+  const { rerender } = render(
+    <Activity mode="visible">
+      <Village lang="en" />
+    </Activity>,
+  );
+  expect(within(await step(IDEA)).getByText("Next")).toBeTruthy();
+  // the developer joins a hub elsewhere, then comes back to the village that was kept
+  const hubs = holdHubs();
+  rerender(
+    <Activity mode="hidden">
+      <Village lang="en" />
+    </Activity>,
+  );
+  rerender(
+    <Activity mode="visible">
+      <Village lang="en" />
+    </Activity>,
+  );
+  // at once: the wait, and no step that is about to change
+  expect(screen.getByText("Checking where you are")).toBeTruthy();
+  expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
+  expect(screen.queryByText("Next")).toBeNull();
+  hubs.resolve(new Response(JSON.stringify({ data: [{ status: "active" }], next_offset: null }), { status: 200 }));
+  const { idea, hub } = await ideaAndHub();
+  expect(idea.getByText("Done")).toBeTruthy();
+  expect(hub.getByText("Done")).toBeTruthy();
+});
+
+test("a read that never answers does not keep the village hidden", async () => {
+  signedInAs({ roles: verifiedBackend() });
+  holdHubs();
+  const limits: (() => void)[] = [];
+  const realTimeout = globalThis.setTimeout;
+  vi.spyOn(globalThis, "setTimeout").mockImplementation(((run: () => void, ms?: number, ...rest: unknown[]) => {
+    if (ms === READS_WAIT_MS) {
+      limits.push(run);
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }
+    return realTimeout(run, ms, ...rest);
+  }) as typeof setTimeout);
+  render(<Village lang="en" />);
+  expect(await screen.findByText("Checking where you are")).toBeTruthy();
+  expect(limits).toHaveLength(1);
+  act(() => limits[0]());
+  // the hub read counts as nothing known: both steps say what they said before the reads
+  const { idea, hub } = await ideaAndHub();
+  expect(idea.getByText("Next")).toBeTruthy();
+  expect(hub.getByText("Later")).toBeTruthy();
+  expect(screen.queryByText("Checking where you are")).toBeNull();
+  vi.restoreAllMocks();
 });
 
 test("the done steps and the wait are in French", async () => {
