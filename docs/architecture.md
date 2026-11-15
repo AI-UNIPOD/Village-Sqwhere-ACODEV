@@ -112,7 +112,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   Active members also chat, in any phase: `GET /v1/hubs/{hub_id}/messages` (newest first),
   `POST /v1/hubs/{hub_id}/messages` (optionally quoting one),
   `PATCH /v1/hubs/{hub_id}/messages/{message_id}` (the author) and
-  `DELETE /v1/hubs/{hub_id}/messages/{message_id}` (the author or the owner).
+  `DELETE /v1/hubs/{hub_id}/messages/{message_id}` (the author or the owner). They hear
+  changes live on the WebSocket `WS /v1/hubs/{hub_id}/messages/live` (the token goes in its
+  first frame, never the URL; one API process only).
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
   `POST /v1/me/ideas/{idea_id}/publish`, `POST /v1/me/ideas/{idea_id}/close` and
