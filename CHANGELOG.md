@@ -11,6 +11,7 @@ its number:
 ## 2026-11-15
 
 - fix(api): accept the neon database url from vercel (#229)
+- feat(web): add a waving Nigeria flag to the landing footer
 - feat(api): let a developer pause matching (#213)
 - docs: name the live address for sign-in settings and add a check (#228)
 - feat(api): record when a developer finishes onboarding (#212)
