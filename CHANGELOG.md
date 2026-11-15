@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- feat(api): add the review checklist and finishing to a hub
+- feat(api): add the review checklist and finishing to a hub (#204)
 - feat(infra): publish the hub agreement as version 2 (#195)
 - fix(api): remove the made-up label from the demo private brief (#198)
 - fix(web): drop the made-up and sample labels from the landing page (#196)
