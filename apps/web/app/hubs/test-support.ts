@@ -20,8 +20,8 @@ export const idea = (over: Record<string, unknown> = {}) => ({
 
 export const agreement = (over: Record<string, unknown> = {}) => ({
   template_id: "template-1",
-  version: 1,
-  title: "TEST AGREEMENT (NOT LEGAL TEXT)",
+  version: 2,
+  title: "Village Sqwhere hub agreement",
   body: "# Hub agreement\n\nMembers keep the idea private.\n\n- No <b>sharing</b>\n- See [the terms](http://example.com)\n\n1. First clause\n2. Second clause",
   body_sha256: "a".repeat(64),
   hub_terms: {},
