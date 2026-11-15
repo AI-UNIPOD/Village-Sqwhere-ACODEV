@@ -114,6 +114,17 @@ def check_card(
     )
 
 
+async def clear_ticks_on_own_pieces(db: AsyncSession, hub: Hub) -> None:
+    """Take back a tick made by the member who now holds the piece. Claims change in build, and
+    a tick made before the claim would let a builder read their own piece. The change commits
+    with the phase move that calls this."""
+    holders = {piece.id: holder for piece, holder in (await db.execute(pieces_with_holder(hub.id)))}
+    for check in await db.scalars(live_checks(hub.id).where(HubCheck.ticked_by.is_not(None))):
+        holder = holders.get(check.piece_id)
+        if holder is not None and holder.id == check.ticked_by:
+            check.ticked_by = check.ticked_at = None
+
+
 async def find_check(
     db: AsyncSession, hub: Hub, check_id: UUID
 ) -> tuple[HubCheck, User, User | None, User | None]:

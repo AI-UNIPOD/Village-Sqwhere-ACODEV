@@ -24,7 +24,8 @@ We added for Tanny to review, because the plan did not say:
   proof that someone else looked, so the builder ticking it would prove nothing. Adding a check is
   only saying what to look at, and the builder knows best where the risk is. The owner is held to
   the same rule for a piece they build. A piece nobody holds can be ticked by any member, and a
-  holder who left or was removed counts as nobody, as in the build tab.
+  holder who left or was removed counts as nobody, as in the build tab. A claim can change in build
+  after a tick, so moving the hub to review takes back any tick made by the piece's holder.
 - **The member who ticked a check, or the hub's owner, can untick it.** A tick made by mistake
   must be undoable, and the owner can undo any tick so one absent member cannot block the team.
 - **The member who wrote a check, or the hub's owner, removes it,** ticked or not. Removal is

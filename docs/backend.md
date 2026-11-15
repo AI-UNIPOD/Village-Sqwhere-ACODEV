@@ -1703,7 +1703,8 @@ finished. Why these rules: `docs/decisions/2026-11-15-hub-review-checklist.md`.
   what to look at.
 * Nobody ticks a check of a piece they hold, the owner included, so the team reads each other's
   work. A piece nobody holds can be ticked by any member. A holder who is no longer an active
-  member counts as nobody, as in the build tab.
+  member counts as nobody, as in the build tab. Claims change only in `build`, so when the owner
+  moves the hub to `review`, a tick made by the member who now holds the piece is taken back.
 * The member who ticked a check, or the hub's owner, unticks it. The member who wrote a check, or
   the hub's owner, removes it, ticked or not. Removal is soft: the row stays.
 * The owner finishes the hub when no check that is not removed is open. A hub with no checks may

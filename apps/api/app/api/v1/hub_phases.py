@@ -12,7 +12,7 @@ from fastapi import APIRouter, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.api.v1.hub_members import find_hub, require_active_hub, require_owner
-from app.api.v1.hub_review import require_not_finished
+from app.api.v1.hub_review import clear_ticks_on_own_pieces, require_not_finished
 from app.api.v1.hubs import hub_error
 from app.models import Hub, HubPhase, HubPhaseMove
 from app.schemas.hubs import HubResponse, MovePhaseRequest
@@ -73,4 +73,7 @@ async def move_phase(
             "PHASE_NOT_ADJACENT",
             f"The hub is in {hub.phase.value}. It moves one phase at a time, forward or back.",
         )
+    if payload.phase == HubPhase.REVIEW:
+        # A claim made in build may have given a piece to the member who ticked its checks.
+        await clear_ticks_on_own_pieces(db, hub)
     return await save_move(db, hub, current_user, payload.phase)

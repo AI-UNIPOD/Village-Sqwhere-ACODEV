@@ -20,7 +20,7 @@ from app.models import Hub, HubCheck, HubMemberStatus, HubPiece, HubStatus, User
 from tests.conftest import test_async_session as db_session
 from tests.conftest import test_engine
 from tests.hub_support import add_member, auth, make_hub, make_user, run
-from tests.test_hub_build import building_hub, claim
+from tests.test_hub_build import building_hub, claim, free
 from tests.test_hub_design import (
     AUTHOR_KEYS,
     UNKNOWN_ID,
@@ -511,6 +511,33 @@ def test_the_checklist_is_closed_until_the_hub_reaches_review(
 
     for resp in (read(client, hub, owner), *writes(client, hub, owner)):
         assert_error(resp, 409, code)
+
+
+@pytest.mark.parametrize("order", ["claim after the tick", "release, tick, claim again"])
+def test_a_tick_by_the_member_who_later_holds_the_piece_is_taken_back(
+    client: TestClient, order: str
+) -> None:
+    hub, owner, member, (piece, other) = building_hub(client)
+    if order != "claim after the tick":
+        assert claim(client, hub, member, piece["id"]).status_code == 200
+        assert free(client, hub, member, piece["id"]).status_code == 204
+    assert move(client, hub, owner, "review").status_code == 200
+    mine = make_check(client, hub, owner, piece)
+    elsewhere = make_check(client, hub, owner, other)
+    assert tick(client, hub, member, mine["id"]).status_code == 200
+    assert tick(client, hub, member, elsewhere["id"]).status_code == 200
+    assert move(client, hub, owner, "build").status_code == 200
+    assert claim(client, hub, member, piece["id"]).status_code == 200
+
+    assert move(client, hub, owner, "review").status_code == 200
+
+    seen = {check["id"]: check for check in checks_of(client, hub, owner)}
+    assert seen[mine["id"]]["ticked_by"] is None and seen[mine["id"]]["ticked_at"] is None
+    assert seen[elsewhere["id"]]["ticked_by"]["id"] == str(member.id)
+    assert review(client, hub, owner)["open_checks"] == 1
+    assert_error(finish(client, hub, owner), 409, "CHECKS_OPEN")
+    assert_error(tick(client, hub, member, mine["id"]), 403, "OWN_PIECE")
+    assert tick(client, hub, owner, mine["id"]).status_code == 200
 
 
 def test_going_back_to_build_closes_the_checklist_and_keeps_the_checks(
