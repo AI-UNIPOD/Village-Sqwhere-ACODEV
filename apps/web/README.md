@@ -352,7 +352,10 @@ API does not know.
 Comments are a section of the post page (`comments.tsx`, `comment.tsx`, `comment-form.tsx`),
 loaded after the post, at `#comments`. The list gives each top-level comment its first two
 replies; "Show all N replies" loads the rest, and a reply's own replies open the same way, one
-level at a time (`GET /v1/comments/{id}/replies`). Indent stops at the third level. A deleted
+level at a time (`GET /v1/comments/{id}/replies`). Indent stops at the third level. Below it, a
+reply's replies open as "Continue this thread": that reply and five levels under it, on their
+own in place of all the comments, with "Back to all comments" (`GET /v1/comments/{id}/thread`).
+A deleted
 comment that still has replies is drawn as a placeholder with its replies under it. Comments
 are plain text. A comment is liked like a post: the screen changes at once and the request
 follows (`PUT` and `DELETE /v1/comments/{id}/like`).
