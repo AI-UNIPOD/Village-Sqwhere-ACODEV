@@ -52,6 +52,25 @@ type Copy = {
   stack: Choices;
   sectors: Choices;
   account: { heading: string; language: string };
+  // deleting the account for good, behind a dialog with two checks
+  deletion: {
+    heading: string;
+    text: string;
+    open: string;
+    title: string;
+    goes: string;
+    gone: string[];
+    stays: string;
+    kept: string[];
+    understand: string;
+    username: { label: string; help: string; mismatch: string };
+    confirm: string;
+    cancel: string;
+    ownsHub: string;
+    hubs: string;
+    failed: string;
+    goodbye: { pageTitle: string; title: string; text: string; home: string };
+  };
 };
 
 const en: Copy = {
@@ -130,6 +149,40 @@ const en: Copy = {
     failed: "We couldn't save your sectors. Your selection is still here, so check your connection and try again.",
   },
   account: { heading: "Account", language: "Language" },
+  deletion: {
+    heading: "Delete your account",
+    text: "Deleting your account cannot be undone. You will be asked to confirm twice.",
+    open: "Delete my account",
+    title: "Delete your account for good?",
+    goes: "What goes:",
+    gone: [
+      "Your name, username, bio, country, email and avatar.",
+      "Your link to GitHub, your stack, your sectors and your feed topics.",
+      "Your open ideas are closed, and a hub where you are the only member is archived.",
+      "Your place in other hubs, your invitations and your requests to join.",
+    ],
+    stays: "What stays:",
+    kept: [
+      "Your posts, comments and signed agreements, shown under \"Deleted account\".",
+    ],
+    understand: "I understand that my account cannot be restored. Signing in again makes a new, empty account.",
+    username: {
+      label: "Type your username to confirm",
+      help: "Your username is {username}.",
+      mismatch: "That is not your username. Type it exactly as shown.",
+    },
+    confirm: "Delete my account",
+    cancel: "Keep my account",
+    ownsHub: "You own a hub that other members are still in. Your account can be deleted once nobody else is in it.",
+    hubs: "Go to your hubs",
+    failed: "We couldn't delete your account. Nothing changed, so try again.",
+    goodbye: {
+      pageTitle: "Account deleted | Village Sqwhere",
+      title: "Your account was deleted",
+      text: "You are signed out. Thank you for building with the village.",
+      home: "Go to the home page",
+    },
+  },
 };
 
 // Needs a native French review before launch.
@@ -214,6 +267,40 @@ const fr: Copy = {
       "Nous n'avons pas pu enregistrer vos domaines. Votre sélection est toujours là, vérifiez donc votre connexion et réessayez.",
   },
   account: { heading: "Compte", language: "Langue" },
+  deletion: {
+    heading: "Supprimer votre compte",
+    text: "La suppression de votre compte est définitive. Il vous sera demandé de confirmer deux fois.",
+    open: "Supprimer mon compte",
+    title: "Supprimer votre compte pour de bon\u202f?",
+    goes: "Ce qui disparaît\u202f:",
+    gone: [
+      "Votre nom, votre nom d'utilisateur, votre bio, votre pays, votre e\u2011mail et votre avatar.",
+      "Votre lien avec GitHub, vos technologies, vos secteurs et vos sujets de fil.",
+      "Vos idées ouvertes sont fermées, et un espace dont vous êtes le seul membre est archivé.",
+      "Votre place dans les autres espaces, vos invitations et vos demandes d'adhésion.",
+    ],
+    stays: "Ce qui reste\u202f:",
+    kept: [
+      "Vos publications, vos commentaires et vos accords signés, affichés sous «\u202fCompte supprimé\u202f».",
+    ],
+    understand: "Je comprends que mon compte ne peut pas être restauré. Me reconnecter crée un nouveau compte vide.",
+    username: {
+      label: "Saisissez votre nom d'utilisateur pour confirmer",
+      help: "Votre nom d'utilisateur est {username}.",
+      mismatch: "Ce n'est pas votre nom d'utilisateur. Saisissez-le exactement comme indiqué.",
+    },
+    confirm: "Supprimer mon compte",
+    cancel: "Garder mon compte",
+    ownsHub: "Vous êtes porteur d'un espace où d'autres membres sont encore présents. Votre compte pourra être supprimé quand plus personne d'autre n'y sera.",
+    hubs: "Aller à vos espaces",
+    failed: "Nous n'avons pas pu supprimer votre compte. Rien n'a changé, réessayez.",
+    goodbye: {
+      pageTitle: "Compte supprimé | Village Sqwhere",
+      title: "Votre compte a été supprimé",
+      text: "Vous êtes déconnecté. Merci d'avoir construit avec le village.",
+      home: "Aller à l'accueil",
+    },
+  },
 };
 
 export const copy: Record<Lang, Copy> = { en, fr };
