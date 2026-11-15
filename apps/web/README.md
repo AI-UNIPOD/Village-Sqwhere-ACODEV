@@ -193,6 +193,13 @@ other signed-in developers can see it), the roles
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
 
+"Delete your account" ends the profile (`profile/delete-account.tsx`, `POST /v1/me/deletion`).
+It cannot be undone, so it opens a dialog that lists what goes and what stays, and its delete
+button does nothing until the person ticks that they understand and types their username (any
+capital letters). Closing the dialog clears both. On success the session is forgotten and the
+page is `/en/goodbye`. An owner of a hub others are still in is refused (`OWNS_HUB_WITH_TEAM`)
+and pointed to Your hubs.
+
 "Try the demo" on the landing page (`landing/demo-button.tsx`, `session/demo.ts`) signs in as the
 shared demo account with `POST /v1/auth/demo` and opens the village. The account can change
 nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that
