@@ -411,7 +411,8 @@ def test_the_demo_hub_has_claims_a_repository_and_commits_the_visitor_can_read_n
     for piece in pieces:
         if piece["claimed_by"]:
             claimed = datetime.fromisoformat(piece["claimed_at"])
-            assert now - timedelta(days=3) < claimed < now
+            # dated from the hub's move to build, so it ages with the hub and never leads it
+            assert claimed < now
     # the address cannot be a real repository, and eight commits by the two members
     assert (
         seen["repository_url"] == OWN_HUB_REPOSITORY == "https://github.com/naira_payouts/payouts"
@@ -476,6 +477,8 @@ def test_a_rerun_adds_claims_the_repository_and_commits_only_when_they_are_missi
     assert [(p["name"], p["claimed_by"] and p["claimed_by"]["id"]) for p in again["pieces"]] == [
         (p["name"], p["claimed_by"] and p["claimed_by"]["id"]) for p in seen["pieces"]
     ]
+    # a claim written again gets the time it had, so the chat that mentions it still follows it
+    assert [p["claimed_at"] for p in again["pieces"]] == [p["claimed_at"] for p in seen["pieces"]]
 
     # a piece that is held is left as it is, even when the seed would give it to someone else
     kwabena = next(p for p in seen["pieces"] if p["name"] == "Mobile app")["claimed_by"]["id"]
