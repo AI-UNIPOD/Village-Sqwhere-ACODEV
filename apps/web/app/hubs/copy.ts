@@ -178,6 +178,10 @@ type Copy = {
     requestGone: string;
     declineDialog: { title: string; text: string; confirm: string; cancel: string };
     withdrawDialog: { title: string; text: string; confirm: string; cancel: string };
+    remove: string;
+    removeDialog: { title: string; text: string; confirm: string; cancel: string };
+    removed: string;
+    removeGone: string;
     loadFailed: string;
     actionFailed: string;
     full: string;
@@ -196,6 +200,10 @@ type Copy = {
     failed: string;
   };
   declinedNote: string;
+  // an active member who is not the owner may leave; leaving and being removed each have their line
+  leave: { button: string; title: string; text: string; confirm: string; cancel: string; failed: string };
+  leftNote: string;
+  removedNote: string;
   joined: string;
   invitations: { heading: string; by: string };
   // for a developer who asked to join: on the idea's page, and while the owner has not answered
@@ -500,6 +508,15 @@ const en: Copy = {
       confirm: "Withdraw",
       cancel: "Keep it",
     },
+    remove: "Remove",
+    removeDialog: {
+      title: "Remove this member?",
+      text: "They lose the brief, the team and the hub's tools at once. Their signature and what they wrote stay. They can ask to join again.",
+      confirm: "Remove",
+      cancel: "Keep them",
+    },
+    removed: "{name} was removed from the hub.",
+    removeGone: "{name} is no longer an active member. The list is up to date.",
     loadFailed: "We couldn't load the team. Nothing was changed, so check your connection and try again.",
     actionFailed: "That did not go through. Nothing was changed, so try again.",
     full: "The team is full: five members is the most a hub takes.",
@@ -541,6 +558,16 @@ const en: Copy = {
     failed: "We couldn't decline the invitation. Nothing was changed, so try again.",
   },
   declinedNote: "You are not in this hub. You declined its invitation, the owner declined your request, or you withdrew it.",
+  leave: {
+    button: "Leave this hub",
+    title: "Leave this hub?",
+    text: "You lose the brief, the team and the hub's tools at once. Your signature stays, because the agreement still covers what you saw, and your notes stay under your name.",
+    confirm: "Leave the hub",
+    cancel: "Stay",
+    failed: "We couldn't take you out of the hub. Nothing was changed, so try again.",
+  },
+  leftNote: "You left this hub. The agreement you signed still covers what you saw.",
+  removedNote: "The owner removed you from this hub. The agreement you signed still covers what you saw.",
   joined: "You are in. The brief and the team are now open to you.",
   invitations: { heading: "Invitations", by: "Invited by {name}" },
   ask: {
@@ -862,6 +889,15 @@ const fr: Copy = {
       confirm: "Retirer l'invitation",
       cancel: "La garder",
     },
+    remove: "Retirer",
+    removeDialog: {
+      title: "Retirer ce membre\u202f?",
+      text: "Cette personne perd aussitôt le dossier, l'équipe et les outils de l'espace. Sa signature et ce qu'elle a écrit restent. Elle pourra demander à rejoindre de nouveau.",
+      confirm: "Retirer",
+      cancel: "La garder",
+    },
+    removed: "{name} a été retiré de l'espace.",
+    removeGone: "{name} n'est plus membre actif. La liste est à jour.",
     loadFailed: "Nous n'avons pas pu charger l'équipe. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
     actionFailed: "Cela n'a pas abouti. Rien n'a été modifié, réessayez.",
     full: "L'équipe est complète\u202f: cinq membres, c'est le maximum pour un espace.",
@@ -903,6 +939,16 @@ const fr: Copy = {
     failed: "Nous n'avons pas pu refuser l'invitation. Rien n'a été modifié, réessayez.",
   },
   declinedNote: "Vous n'êtes pas dans cet espace. Vous avez refusé son invitation, le porteur a refusé votre demande, ou vous l'avez retirée.",
+  leave: {
+    button: "Quitter l'espace",
+    title: "Quitter cet espace\u202f?",
+    text: "Vous perdez aussitôt le dossier, l'équipe et les outils de l'espace. Votre signature reste, car l'accord couvre toujours ce que vous avez vu, et vos notes restent à votre nom.",
+    confirm: "Quitter l'espace",
+    cancel: "Rester",
+    failed: "Nous n'avons pas pu vous retirer de l'espace. Rien n'a été modifié, réessayez.",
+  },
+  leftNote: "Vous avez quitté cet espace. L'accord que vous avez signé couvre toujours ce que vous avez vu.",
+  removedNote: "Le porteur vous a retiré de cet espace. L'accord que vous avez signé couvre toujours ce que vous avez vu.",
   joined: "C'est fait, vous êtes dans l'équipe. Le brief et l'équipe vous sont maintenant ouverts.",
   invitations: { heading: "Invitations", by: "Invitation de {name}" },
   ask: {
