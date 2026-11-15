@@ -154,9 +154,9 @@
   .kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* the sticky row sits over the bottom of the screen: a field that takes focus is kept clear of it,
+/* the sticky row sits over the bottom of the screen: a field or a remove button that takes focus is kept clear of it,
    by the same distance as a chip or a card (onboarding.module.css) */
-.form :is(input, textarea) {
+.form :is(input, textarea, .thumb button) {
   scroll-margin-block-end: calc(var(--tap-min) + var(--space-6) + var(--space-3));
 }
 
