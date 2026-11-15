@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(web): show another developer's public profile (#186)
 - feat(web): let the team edit the design sketch (#182)
 - fix(web): show the real score and live brainstorm notes on the landing (#181)
 
