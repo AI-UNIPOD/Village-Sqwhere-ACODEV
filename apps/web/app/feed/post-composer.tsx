@@ -22,6 +22,7 @@ import { createPost, KINDS, loadPost, POST_LIMITS, toFields, updatePost, type Po
 import { FeedSkeleton } from "./feed";
 import styles from "./feed.module.css";
 import { Gone } from "./post-page";
+import { isDemoRefusal, NotSaved } from "./not-saved";
 import { PostTopics } from "./post-parts";
 
 const EMPTY: PostFields = { kind: "general", title: "", body: "", link: "", topics: [] };
@@ -81,6 +82,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  const [notSaved, setNotSaved] = useState(false);
 
   useEffect(() => {
     if (!id || saved !== undefined) return;
@@ -110,6 +112,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
     const next = { ...fields, ...patch };
     setFields(next);
     setFailed(null);
+    setNotSaved(false);
     // an error that is showing goes the moment the value is fixed; new ones wait for the button
     const found = validate(next, c.errors);
     setErrors((shown) => Object.fromEntries(Object.entries(shown).filter(([key]) => found[key as Problem])));
@@ -132,6 +135,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
 
   function fail(error: unknown) {
     if (error instanceof SignedOutError) return;
+    if (isDemoRefusal(error)) return setNotSaved(true);
     const found = error instanceof IdeaError ? refusal(error, c.errors) : null;
     if (error instanceof IdeaError && error.status === 404) setMissing(true);
     else if (error instanceof IdeaError && error.code === "NOT_POST_AUTHOR") setForeign(true);
@@ -145,6 +149,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
     if (busy || !ready()) return;
     setBusy(true);
     setFailed(null);
+    setNotSaved(false);
     try {
       if (saved) {
         // the app keeps this page, so it must hold the post as it now is
@@ -343,6 +348,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
               {failed}
             </p>
           )}
+          {notSaved && <NotSaved lang={lang} className={ideas.failed} />}
           <button type="submit" className={landing.btn} aria-busy={busy || undefined}>
             {saved ? c.saveChanges : c.publish}
           </button>

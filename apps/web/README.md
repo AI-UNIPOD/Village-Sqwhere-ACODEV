@@ -386,6 +386,8 @@ shared demo account with `POST /v1/auth/demo` and opens the village. The account
 nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that
 answer for every screen, and `AppFrame` shows the demo account a line under the header that
 says what the demo is, says so when a change was refused, and offers the way out.
+In the feed, a refused write also says so beside the control that was pressed (`NotSaved` in
+`feed/not-saved.tsx`: "Nothing was saved"), where other screens show their usual failure sentence.
 
 The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
 village, then four stops on the demo account's own open idea and hub (the composer, the matches,

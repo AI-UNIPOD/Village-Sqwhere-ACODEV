@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(web): say nothing was saved next to each refused write in the demo
 - feat(web): continue a deep reply's thread on its own (#231)
 - fix(api): accept the neon database url from vercel (#229)
 - feat(web): add a waving Nigeria flag to the landing footer

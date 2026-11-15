@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { Person } from "../hubs/team";
-import { IdeaError } from "../ideas/ideas-api";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -17,6 +16,7 @@ import village from "../village/village.module.css";
 import { copy } from "./copy";
 import { setMark, type Post } from "./feed-api";
 import styles from "./feed.module.css";
+import { isDemoRefusal, NotSaved } from "./not-saved";
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 
@@ -101,7 +101,7 @@ export function PostActions({ lang, post, onChange, commentsHref }: { lang: Lang
   const t = copy[lang];
   // a second press of the same button while its request is out would send the same thing twice
   const sending = useRef(new Set<"like" | "save">());
-  const [failed, setFailed] = useState<"like" | "save" | null>(null);
+  const [failed, setFailed] = useState<"like" | "save" | "demo" | null>(null);
 
   function toggle(mark: "like" | "save") {
     if (sending.current.has(mark)) return;
@@ -121,8 +121,8 @@ export function PostActions({ lang, post, onChange, commentsHref }: { lang: Lang
         // a refused session is handled by the page: it sends the person to sign in
         if (error instanceof SignedOutError) return;
         onChange(undo);
-        // in the demo the frame says why; "try again" would be wrong
-        if (!(error instanceof IdeaError && error.code === "DEMO_READ_ONLY")) setFailed(mark);
+        // in the demo "try again" would be wrong
+        setFailed(isDemoRefusal(error) ? "demo" : mark);
       })
       .finally(() => sending.current.delete(mark));
   }
@@ -162,7 +162,8 @@ export function PostActions({ lang, post, onChange, commentsHref }: { lang: Lang
           <span className={styles.comments}>{count}</span>
         )}
       </div>
-      {failed && (
+      {failed === "demo" && <NotSaved lang={lang} />}
+      {(failed === "like" || failed === "save") && (
         <p className={onboarding.error} role="alert">
           <AlertCircle />
           {failed === "like" ? t.likeFailed : t.saveFailed}

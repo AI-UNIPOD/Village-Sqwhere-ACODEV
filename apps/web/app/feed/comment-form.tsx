@@ -12,10 +12,12 @@ import onboarding from "../onboarding/onboarding.module.css";
 import styles from "./comments.module.css";
 import { copy } from "./copy";
 import { COMMENT_MAX } from "./feed-api";
+import { NotSaved } from "./not-saved";
 
 // What to say when a comment was not sent: `field` is about the text itself, `failed` about the
-// sending. Both empty means there is nothing to say (the session ended and the page moves on).
-export type Problem = { field?: string; failed?: string };
+// sending, `notSaved` that the demo account's change was refused. All empty means there is
+// nothing to say (the session ended and the page moves on).
+export type Problem = { field?: string; failed?: string; notSaved?: true };
 
 // One box for a new comment, a reply and an edit. `onSend` answers null once it is sent.
 export function CommentForm(props: {
@@ -35,6 +37,7 @@ export function CommentForm(props: {
   const [text, setText] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const [notSaved, setNotSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
   const form = useRef<HTMLFormElement>(null);
@@ -56,6 +59,7 @@ export function CommentForm(props: {
   function change(value: string) {
     setText(value);
     setFailed(null);
+    setNotSaved(false);
     // an error that is showing goes the moment the text is fixed
     if (error && !problem(value)) setError(null);
   }
@@ -71,12 +75,14 @@ export function CommentForm(props: {
     }
     setBusy(true);
     setFailed(null);
+    setNotSaved(false);
     try {
       const outcome = await onSend(text);
       if (!outcome) setText("");
       else {
         setError(outcome.field ?? null);
         setFailed(outcome.failed ?? null);
+        setNotSaved(!!outcome.notSaved);
         if (outcome.field) area.current?.focus();
       }
     } finally {
@@ -120,6 +126,7 @@ export function CommentForm(props: {
           {failed}
         </p>
       )}
+      {notSaved && <NotSaved lang={lang} />}
       <div className={styles.formActions}>
         <button type="submit" className={main ? landing.btn : landing.ghost} aria-busy={busy || undefined}>
           {action}

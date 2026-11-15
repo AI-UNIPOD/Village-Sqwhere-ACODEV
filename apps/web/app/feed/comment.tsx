@@ -15,6 +15,7 @@ import styles from "./comments.module.css";
 import { copy } from "./copy";
 import type { PostComment } from "./feed-api";
 import feed from "./feed.module.css";
+import { NotSaved } from "./not-saved";
 import { when } from "./post-parts";
 
 // The one form that is open at a time, under a comment: a reply to it or an edit of it.
@@ -25,6 +26,8 @@ export type Tools = {
   lang: Lang;
   now: number;
   username: string | undefined;
+  /** The comment whose like was refused for the demo account. */
+  unsaved: string | null;
   open: Open | null;
   setOpen: (open: Open | null) => void;
   arrived: string | null;
@@ -176,6 +179,7 @@ export function CommentThread({ item, level, to }: { item: Thread; level: number
               </>
             )}
           </div>
+          {tools.unsaved === comment.id && <NotSaved lang={lang} />}
           {form === "reply" && (
             <CommentForm
               lang={lang}

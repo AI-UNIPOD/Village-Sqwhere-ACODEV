@@ -18,6 +18,7 @@ import { CommentThread, ToolsContext, type Open, type Tools } from "./comment";
 import styles from "./comments.module.css";
 import { copy } from "./copy";
 import { createComment, deleteComment, loadComments, loadReplies, loadThread, setCommentLike, updateComment, type PostComment } from "./feed-api";
+import { isDemoRefusal } from "./not-saved";
 
 type What = "comment" | "reply" | "edit";
 
@@ -143,6 +144,7 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
   // The sentence for a refused or failed write, and what else the page must do about it.
   function refused(error: unknown, what: What): Problem {
     if (error instanceof SignedOutError) return {};
+    if (isDemoRefusal(error)) return { notSaved: true };
     if (error instanceof IdeaError) {
       if (error.code === "POST_NOT_FOUND") {
         onGone();
@@ -196,11 +198,14 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
 
   // a second press while the first is being sent would send the same thing twice
   const liking = useRef(new Set<string>());
+  // the comment whose like the API refused for the demo account
+  const [unsaved, setUnsaved] = useState<string | null>(null);
 
   function like(target: PostComment) {
     if (liking.current.has(target.id)) return;
     liking.current.add(target.id);
     setNotice(null);
+    setUnsaved(null);
     const on = !target.liked_by_me;
     const set = (liked: boolean, count: number) =>
       setThreads((have) => change(have ?? [], target.id, (found) => ({ ...found, comment: { ...found.comment, liked_by_me: liked, like_count: count } })));
@@ -209,8 +214,8 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
       .catch((error: unknown) => {
         if (error instanceof SignedOutError) return;
         set(target.liked_by_me, target.like_count);
-        // in the demo the frame says why; "try again" would be wrong
-        if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return;
+        // in the demo "try again" would be wrong
+        if (isDemoRefusal(error)) return setUnsaved(target.id);
         setNotice(t.likeFailed);
         reveal.current = { element: "comments-notice" };
       })
@@ -277,7 +282,7 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
     }
   }
 
-  const tools: Tools = { lang, now, username: me?.username, open, setOpen, arrived, reply, edit, like, ask: setAsking, showReplies, openThread: (from) => view(from.comment.id) };
+  const tools: Tools = { lang, now, username: me?.username, unsaved, open, setOpen, arrived, reply, edit, like, ask: setAsking, showReplies, openThread: (from) => view(from.comment.id) };
   const heading = count === 0 ? c.none : fill(new Intl.PluralRules(lang).select(count) === "one" ? t.commentOne : t.commentMany, { n: count });
 
   return (
