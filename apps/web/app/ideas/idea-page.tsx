@@ -63,11 +63,7 @@ function OpenIdea({ lang, id }: { lang: Lang; id: string | null }) {
 
   const { author } = idea;
   const named = author.display_name !== author.username;
-  const github = (text: string) => (
-    <a href={`https://github.com/${encodeURIComponent(author.username)}`} target="_blank" rel="noopener noreferrer">
-      {text} <span className={landing.srOnly}>({t.open.githubProfile})</span>
-    </a>
-  );
+  const profile = (text: string) => <Link href={`/${lang}/people/view?username=${encodeURIComponent(author.username)}`}>{text}</Link>;
   return (
     <main className={`${onboarding.column} ${styles.main}`}>
       <Link className={`${onboarding.back} ${styles.backLink}`} href={`/${lang}/ideas`}>
@@ -102,8 +98,8 @@ function OpenIdea({ lang, id }: { lang: Lang; id: string | null }) {
             .toUpperCase()}
         </span>
         <div>
-          <p className={village.name}>{named ? author.display_name : github(author.username)}</p>
-          {named && <p className={village.username}>{github(`@${author.username}`)}</p>}
+          <p className={village.name}>{named ? profile(author.display_name) : profile(author.username)}</p>
+          {named && <p className={village.username}>@{author.username}</p>}
           {author.is_verified && (
             <p className={styles.verified}>
               <Check />

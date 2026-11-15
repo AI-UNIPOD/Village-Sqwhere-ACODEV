@@ -1,16 +1,111 @@
 # apps/web
 
-The Village Sqwhere web app: Next.js (App Router) with TypeScript.
+The Village Sqwhere web app: Next.js 16 (App Router), React 19 and TypeScript, in English and
+French. It is only a client of the API in `apps/api`: no database, no secrets.
 
-From the repository root:
+<img src="../../docs/images/screens/7-collaboration-hub.webp" alt="A hub page in the web app: the hub's name, its idea, the private brief and the team" width="720" />
 
 ```bash
-pnpm install
-pnpm dev:web      # http://localhost:3000
+pnpm dev:web      # http://localhost:3000 (the API must run on :8000)
+pnpm test:web     # 1,313 Vitest + Testing Library tests, next to the code they test
 pnpm lint:web
-pnpm test:web     # Vitest + Testing Library; tests sit next to the code as *.test.tsx
 pnpm build:web
 ```
+
+## Every address, and the folder behind it
+
+Each page is served in both languages: `/en/...` and `/fr/...`. `proxy.ts` sends an address
+without a language to the visitor's.
+
+| Address | Folder | What it shows |
+|---|---|---|
+| `/en` | `app/landing/` | The landing page and "Try the demo" |
+| `/en/sign-in`, `/en/auth/callback` | `app/sign-in/`, `app/auth-callback/` | [GitHub sign-in](../../docs/images/screens/1-sign-up.webp) |
+| `/en/onboarding` | `app/onboarding/` | Role, stack, sectors, country |
+| `/en/village` | `app/village/` | Home: who you are and your next step |
+| `/en/profile`, `/en/people/view?username=` | `app/profile/`, `app/people/` | [Your profile](../../docs/images/screens/2-developer-profile.webp), someone else's |
+| `/en/verification`, `/en/verification/interview` | `app/verification/`, `app/verification-interview/` | Start a role check, the AI interview |
+| `/en/reviews`, `/en/reviews/case?id=` | `app/reviews/` | Peer review of other developers' attempts |
+| `/en/ideas`, `/for-you`, `/mine`, `/compose`, `/view`, `/matches` | `app/ideas/` | [Write an idea](../../docs/images/screens/3-submit-idea.webp), [who matches it](../../docs/images/screens/4-ai-matches.webp) |
+| `/en/hubs`, `/new`, `/join`, `/view?id=` | `app/hubs/` | [Invitation](../../docs/images/screens/5-accept-match.webp), [signing](../../docs/images/screens/6-sign-nda.webp), [the hub](../../docs/images/screens/8-build-together.webp) |
+| `/en/feed`, `/en/posts/...` | `app/feed/` | Posts, comments, likes, saves |
+| `/en/goodbye` | `app/[lang]/goodbye/` | After deleting an account |
+
+## One feature folder, file by file
+
+Every feature folder has the same shape. Here is `app/hubs/`, trimmed:
+
+```text
+app/hubs/
+  hubs-api.ts          every call to /v1/hubs, typed: loadHub, leaveHub, sendMessage ...
+  copy.ts              every word on the hub screens, English and French side by side
+  hubs.module.css      styles, built only from the design tokens
+  hub-page.tsx         the page: loads the hub, then places the sections below
+  chat.tsx             team chat          chat.test.tsx
+  notes.tsx            brainstorm notes   notes.test.tsx
+  design.tsx           design sketch      design.test.tsx
+  team.tsx             members, invite, remove, leave
+  test-support.ts      made-up API answers shared by the tests
+```
+
+The route file in `app/[lang]/` stays small and only checks the language:
+
+```tsx
+// app/[lang]/hubs/view/page.tsx
+export default async function HubViewPage({ params }: PageProps<"/[lang]/hubs/view">) {
+  const { lang } = await params;
+  if (!hasLocale(lang)) notFound();
+  return (
+    <Suspense fallback={<HubsLoading lang={lang} />}>
+      <HubPage lang={lang} />
+    </Suspense>
+  );
+}
+```
+
+An API call is one typed line, and the copy keeps both languages in one place:
+
+```ts
+// app/hubs/hubs-api.ts
+export const leaveHub = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/membership/leave`, "POST")).data;
+
+// app/hubs/copy.ts
+leave: { button: "Leave this hub", cancel: "Stay", ... }       // en
+leave: { button: "Quitter l'espace", cancel: "Rester", ... }   // fr
+```
+
+## What happens on every request
+
+```mermaid
+sequenceDiagram
+  participant P as A page
+  participant C as call() in ideas-api.ts
+  participant F as apiFetch() in session.ts
+  participant A as API
+  P->>C: leaveHub(id)
+  C->>F: POST /v1/hubs/{id}/membership/leave
+  F->>A: Authorization: Bearer access token
+  A-->>F: 401, the token expired
+  F->>A: POST /v1/auth/token (refresh, once)
+  F->>A: the same request, new token
+  A-->>C: 200 {"data": ...} or 409 {"detail": {"code": "OWNER_CANNOT_LEAVE"}}
+  C-->>P: the hub, or an IdeaError(status, code) the page turns into a message
+```
+
+Every screen has a loading, empty, error and success state, works at 360px and speaks both
+languages, and the tests check exactly that: each one renders a page with made-up API answers
+and reads what a person would see.
+
+```tsx
+// the shape of every test (app/hubs/leave-remove.test.tsx)
+api({ "GET /v1/hubs/hub-1": { data: hub(asMember) }, "POST /v1/hubs/hub-1/membership/leave": { data: hub(left) } });
+render(<HubPage lang="en" />);
+fireEvent.click(await screen.findByRole("button", { name: "Leave this hub" }));
+```
+
+## Feature notes
+
+What each screen relies on, kept up to date by every pull request.
 
 Copy `.env.example` from the repo root to `apps/web/.env.local` if you need to override the API URL.
 The site is bilingual by address: pages live in `app/[lang]/` and are served at `/en` and `/fr`.
@@ -68,6 +163,10 @@ Ideas are `app/ideas/`: your own at `/en/ideas/mine`, and the composer at `/en/i
 apart from the private brief, saves only the fields that changed, and asks before publishing or
 closing (`ConfirmDialog` in `app/confirm-dialog.tsx`, for anything that cannot be undone). The
 app keeps pages in memory between visits, so a form is keyed by the id in its address.
+"Delete the idea" at the end of a saved idea's form (`app/ideas/delete-idea.tsx`,
+`DELETE /v1/me/ideas/{id}`) asks first, then returns to Your ideas with a line saying it went.
+An idea with a hub is refused (`IDEA_HAS_HUB`, its members signed an agreement about it), and
+the page says to close it instead.
 Open ideas are at `/en/ideas`, and one idea's public page at `/en/ideas/view?id=`: the public
 part only, a "Needs your role" line when a role slug matches, and "Ask to join" when the idea
 has a hub (`hubs/ask-to-join.tsx`, `POST /v1/hubs/{id}/join-requests`). The page reads the
@@ -108,11 +207,23 @@ paragraphs only, never as markup.
 The hub page shows a member the team (`GET /v1/hubs/{id}/members`) and the private brief
 (`GET /v1/hubs/{id}/idea`). The owner invites by GitHub username, withdraws an invitation and
 invites again after a decline (`team.tsx`); an invited developer sees the invitation, not the
-team's brief. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
+team's brief. The owner of an active hub edits its name and description in place under the title
+(`PATCH /v1/hubs/{id}`; an emptied description is sent as `null`) and archives it at the end of the
+page behind a confirm dialog (`POST /v1/hubs/{id}/archive`, `hubs/manage.tsx`). Archiving cannot be
+undone; the page then shows the hub as archived, read only, and the owner's tools go. In an active
+hub the owner removes an active member behind a confirm dialog
+(`POST /v1/hubs/{id}/members/{user_id}/remove`), and a member who is not the owner leaves the same
+way (`POST /v1/hubs/{id}/membership/leave`); the page then shows the hub as someone who left, or
+was removed, with a line that says so. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
 The village and Your hubs keep that list for the visit (`app/hubs/invitations.ts`): the village
 makes a waiting invitation its next step, and the places bar marks Hubs with a dot. Signing or
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
 page of the developer's hubs (`loadHubsByIdea`), because the API cannot look one up by idea.
+
+Under the hub's terms, "Your signature" (`hubs/my-signature.tsx`, `GET /v1/hubs/{id}/membership`)
+tells a member, or someone who left or was removed, which version they signed, the name they typed
+and the day. "Read the agreement you signed" loads the hub's agreement and compares its hash with
+the one in the signature, so the page says whether it is the exact text signed.
 
 The hub card carries `phase`, `team_confirmed_at` and `phases` (each phase with its state). The
 page lists the four phases with their real state for everyone who sees the hub and marks the one
@@ -150,6 +261,16 @@ language: a taken name is a field error, a vanished piece or link reloads the sk
 on (`PHASE_CLOSED`, `PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`, `HUB_ARCHIVED`, `NOT_HUB_MEMBER`) the page
 loads the hub again and the section follows it. In build, review and an archived hub the sketch is for
 reading only. The tools for build and review are not built yet.
+
+At the end of the page, every active member sees the team chat (`hubs/chat.tsx`, `id="chat"`), in any
+phase and before the team is confirmed. The API sends the newest 50 messages first
+(`GET /v1/hubs/{id}/messages`); the page shows them oldest first, and Show earlier messages reads the
+next page. A member sends 1 to 10,000 characters (`POST`), and Reply quotes one message (`reply_to_id`).
+A quote of a deleted message says so. The author edits a message in place (`PATCH`, marked edited), and
+the author or the hub's owner deletes one behind a confirm dialog (`DELETE`); quotes of it follow both. In
+an archived hub the chat is for reading only. There are no live updates: a Refresh button reads the
+newest page again. When the API says the hub changed (`HUB_ARCHIVED`, `HUB_CHANGED`, `NOT_HUB_MEMBER`),
+the page loads the hub again and says so.
 
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares
@@ -192,6 +313,19 @@ other signed-in developers can see it), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
+
+"Delete your account" ends the profile (`profile/delete-account.tsx`, `POST /v1/me/deletion`).
+It cannot be undone, so it opens a dialog that lists what goes and what stays, and its delete
+button does nothing until the person ticks that they understand and types their username (any
+capital letters). Closing the dialog clears both. On success the session is forgotten and the
+page is `/en/goodbye`. An owner of a hub others are still in is refused (`OWNS_HUB_WITH_TEAM`)
+and pointed to Your hubs.
+
+Another developer's profile is `app/people/`, at `/en/people/view?username=...`
+(`GET /v1/users/{username}`): the name, country, bio, verified roles, stack and sectors, and a
+link to their GitHub. Names on team lists, match cards, posts and an idea's author lead there.
+An unknown or deleted account says the developer can't be found. Opened on yourself, it offers
+"Edit your profile".
 
 "Try the demo" on the landing page (`landing/demo-button.tsx`, `session/demo.ts`) signs in as the
 shared demo account with `POST /v1/auth/demo` and opens the village. The account can change

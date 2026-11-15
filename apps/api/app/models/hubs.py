@@ -149,6 +149,12 @@ class Hub(Base):
     team_confirmed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # infra/db/init/019-hub-build.sql; a public GitHub address the owner pastes, and when its
+    # commits were last copied into hub_commits
+    repository_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    commits_refreshed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # set once at creation; the hubs_terms_immutable trigger refuses any change
     terms: Mapped[dict[str, Any]] = mapped_column(
         JSONB, server_default=text("'{}'::jsonb"), nullable=False
@@ -249,7 +255,8 @@ class HubMessage(Base):
 
 
 class HubPiece(Base):
-    """A piece of the hub's design sketch. Deleting one sets deleted_at; the row stays."""
+    """A piece of the hub's design sketch. Deleting one sets deleted_at; the row stays. Whoever
+    holds it in the build phase is claimed_by, with the time in claimed_at (both or neither)."""
 
     __tablename__ = "hub_pieces"
 
@@ -273,6 +280,10 @@ class HubPiece(Base):
         nullable=False,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    claimed_by: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class HubPieceLink(Base):
@@ -295,6 +306,22 @@ class HubPieceLink(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HubCommit(Base):
+    """One of the repository's latest commits, copied from GitHub. A refresh replaces the whole
+    list, so these rows are really deleted. position 0 is the newest."""
+
+    __tablename__ = "hub_commits"
+
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), primary_key=True
+    )
+    sha: Mapped[str] = mapped_column(Text, primary_key=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    author_name: Mapped[str] = mapped_column(Text, nullable=False)
+    committed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
 
 
 class AgreementSignature(Base):

@@ -17,3 +17,7 @@ export const saveStack = async (slugs: string[]) =>
 
 export const saveSectors = async (slugs: string[]) =>
   (await call<{ data: Me["sectors"] }>("/v1/me/sectors", "PUT", { sectors: slugs })).data;
+
+// Deletes the account for good. The API wants the username typed as confirmation, and refuses
+// with OWNS_HUB_WITH_TEAM while the person owns a hub others are still in.
+export const deleteAccount = (username: string) => call<null>("/v1/me/deletion", "POST", { username });
