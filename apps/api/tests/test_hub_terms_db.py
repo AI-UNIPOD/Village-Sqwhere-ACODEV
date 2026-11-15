@@ -190,6 +190,30 @@ def test_a_signature_on_a_hub_without_terms_records_an_empty_object() -> None:
     assert in_rolled_back_transaction(work) == {}
 
 
+def test_the_real_agreement_is_published_in_english_and_french() -> None:
+    async def work(conn: AsyncConnection) -> Any:
+        return (
+            await conn.execute(
+                text(
+                    "SELECT title, body, body_sha256, published_at "
+                    "FROM agreement_templates WHERE version = 2"
+                )
+            )
+        ).one()
+
+    template = in_rolled_back_transaction(work)
+    assert template.published_at is not None
+    assert template.title == "Village Sqwhere hub agreement"
+    assert template.body.startswith("# Village Sqwhere hub agreement\n")
+    assert "# Accord d'espace Village Sqwhere\n" in template.body
+    # the French colon keeps its narrow no-break space, and no escape was stored as text
+    assert "\u202f:" in template.body
+    assert "u202f" not in template.body
+    for word in ("TEST", "NOT LEGAL", "placeholder"):
+        assert word not in template.body
+    assert len(template.body_sha256) == 64
+
+
 def test_the_test_agreement_exists_and_is_published() -> None:
     async def work(conn: AsyncConnection) -> Any:
         return (

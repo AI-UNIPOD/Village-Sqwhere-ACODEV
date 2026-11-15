@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(infra): publish the hub agreement as version 2 (#195)
 - fix(api): remove the made-up label from the demo private brief (#198)
 - feat(web): credit the ai unipod in the landing footer (#194)
 - docs: rewrite the readmes for the public repository (#192)
