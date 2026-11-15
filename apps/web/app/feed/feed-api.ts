@@ -127,6 +127,11 @@ export const loadComments = (postId: string, offset = 0) =>
 export const loadReplies = (commentId: string, offset = 0) =>
   call<{ data: PostComment[]; next_offset: number | null }>(`/v1/comments/${encodeURIComponent(commentId)}/replies?${paging(offset)}`);
 
+// A comment and the replies under it, down to five levels below it, ordered by depth and then
+// oldest first. `fromThread` puts them back into a tree.
+export const loadThread = (commentId: string, offset = 0) =>
+  call<{ data: PostComment[]; next_offset: number | null }>(`/v1/comments/${encodeURIComponent(commentId)}/thread?${paging(offset)}`);
+
 // With a `parentId` it is a reply to that comment.
 export async function createComment(postId: string, body: string, parentId?: string): Promise<PostComment> {
   const sent = { body, ...(parentId && { parent_id: parentId }) };
