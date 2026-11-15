@@ -46,7 +46,7 @@ Keep the file under 60 lines: history goes in `CHANGELOG.md` and `docs/decisions
    Systalink platform access, a deploy job in CI.
 4. Save an onboarding completion flag once the API has a field (the country, the sectors and
    the feed's technologies are saved).
-5. Replace the TEST agreement with the real text, as version 2 in a new script, before launch.
+5. Have a qualified person review the hub agreement (version 2 is live); changes go in as version 3.
 6. Web next: a French-speaking teammate's check of the copy.
 7. Before launch, move the session out of localStorage and sign-in state out of API memory
    (a `refresh_tokens` table, per the sign-in record); have the API carry the language via GitHub.
