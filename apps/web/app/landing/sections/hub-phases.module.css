@@ -2,17 +2,6 @@
   margin-block-start: var(--space-8);
 }
 
-.sample {
-  display: inline-block;
-  margin: 0 0 var(--space-4);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-full);
-  color: var(--text-muted);
-  font: var(--type-caption);
-  line-height: var(--space-6);
-}
-
 /* ---------- the tabs and their rail ---------- */
 /* On a phone the four tabs are wider than the screen and scroll sideways inside this box, one
    snap at a time: the page itself never scrolls sideways. From 768px they share the row. */

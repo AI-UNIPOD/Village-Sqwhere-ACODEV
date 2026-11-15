@@ -25,8 +25,8 @@ export const copy: Record<Lang, Copy> = {
     count: "Stop {n} of {total}",
     stops: [
       {
-        name: "The demo village",
-        text: "This is the village of a demo developer. Four stops, about three minutes, and nothing is saved.",
+        name: "Your village",
+        text: "A developer's village holds their ideas, their hubs and their matches. Four stops, about three minutes, and nothing is saved.",
       },
       {
         name: "Share an idea",
@@ -34,7 +34,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "See who the matcher suggests",
-        text: "The matcher suggests verified developers whose role the idea needs. It says why each one matched.",
+        text: "The matcher suggests verified developers whose role the idea needs. It gives each one a score and says how it was counted.",
       },
       {
         name: "Invite your team",
@@ -42,7 +42,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Follow the hub's four phases",
-        text: "A hub moves through four phases: brainstorm, design and architecture, build, then review and test. Its owner moves it from one to the next. This hub is in Build; the brainstorm notes are below it, and the tools for the other phases are still to come.",
+        text: "A hub moves through four phases: brainstorm, design and architecture, build, then review and test. Its owner moves it from one to the next. This hub is in Build; its notes, its sketch and its build tab are below, and the review tool is still to come.",
       },
     ],
     start: "Start the route",
@@ -60,8 +60,8 @@ export const copy: Record<Lang, Copy> = {
     count: "Étape {n} sur {total}",
     stops: [
       {
-        name: "Le village de démo",
-        text: "Voici le village d'un développeur de démo. Quatre étapes, environ trois minutes, et rien n'est enregistré.",
+        name: "Votre village",
+        text: "Le village d'un développeur réunit ses idées, ses espaces et ses correspondances. Quatre étapes, environ trois minutes, et rien n'est enregistré.",
       },
       {
         name: "Partager une idée",
@@ -69,7 +69,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Voir qui le matcher propose",
-        text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il dit pourquoi chacun correspond.",
+        text: "Le matcher propose des développeurs vérifiés dont le rôle manque à l'idée. Il donne à chacun un score et dit comment il a été compté.",
       },
       {
         name: "Inviter votre équipe",
@@ -77,7 +77,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Suivre les quatre phases de l'espace",
-        text: "Un espace traverse quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Son porteur le fait passer de l'une à l'autre. Cet espace est en Construction\u202f; les notes du brainstorm sont en dessous, et les outils des autres phases restent à venir.",
+        text: "Un espace traverse quatre phases\u202f: brainstorm, conception et architecture, construction, puis revue et tests. Son porteur le fait passer de l'une à l'autre. Cet espace est en Construction\u202f; ses notes, son schéma et son onglet de construction sont en dessous, et l'outil de revue reste à venir.",
       },
     ],
     start: "Commencer le parcours",

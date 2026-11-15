@@ -149,6 +149,12 @@ class Hub(Base):
     team_confirmed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # infra/db/init/019-hub-build.sql; a public GitHub address the owner pastes, and when its
+    # commits were last copied into hub_commits
+    repository_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    commits_refreshed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # set once at creation; the hubs_terms_immutable trigger refuses any change
     terms: Mapped[dict[str, Any]] = mapped_column(
         JSONB, server_default=text("'{}'::jsonb"), nullable=False
@@ -213,6 +219,109 @@ class HubNote(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HubMessage(Base):
+    """A hub chat message, optionally quoting another in the same hub. Deleting one sets
+    deleted_at; the row stays. The database lets only active members of an active hub post, and
+    sets edited_at when the body changes (002-schema.sql)."""
+
+    __tablename__ = "hub_messages"
+    __mapper_args__ = {"eager_defaults": True}
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), nullable=False
+    )
+    author_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    reply_to_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    # set by triggers: hub_messages_set_updated_at and hub_messages_before_update
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        server_onupdate=FetchedValue(),
+        nullable=False,
+    )
+    edited_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_onupdate=FetchedValue(), nullable=True
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HubPiece(Base):
+    """A piece of the hub's design sketch. Deleting one sets deleted_at; the row stays. Whoever
+    holds it in the build phase is claimed_by, with the time in claimed_at (both or neither)."""
+
+    __tablename__ = "hub_pieces"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    summary: Mapped[str] = mapped_column(Text, server_default=text("''"), nullable=False)
+    created_by: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    # set by the hub_pieces_set_updated_at trigger
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        server_onupdate=FetchedValue(),
+        nullable=False,
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    claimed_by: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HubPieceLink(Base):
+    """A labelled arrow from one piece to another in the same hub. Deleting one sets deleted_at."""
+
+    __tablename__ = "hub_piece_links"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), nullable=False
+    )
+    # the database checks that both pieces belong to hub_id and that they differ
+    from_piece_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
+    to_piece_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HubCommit(Base):
+    """One of the repository's latest commits, copied from GitHub. A refresh replaces the whole
+    list, so these rows are really deleted. position 0 is the newest."""
+
+    __tablename__ = "hub_commits"
+
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), primary_key=True
+    )
+    sha: Mapped[str] = mapped_column(Text, primary_key=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    author_name: Mapped[str] = mapped_column(Text, nullable=False)
+    committed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
 
 
 class AgreementSignature(Base):

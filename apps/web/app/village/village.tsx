@@ -68,11 +68,15 @@ function Home({ lang, me }: { lang: Lang; me: Me }) {
   const first = invited ? "hub" : STEPS.find((id) => states[id] === "next");
   for (const id of STEPS) if (states[id] === "next" && id !== first) states[id] = "open";
   const button = (id: (typeof STEPS)[number]) => `${id === first ? landing.btn : landing.ghost} ${styles.action}`;
-  const github = (text: string) => (
-    <a href={`https://github.com/${encodeURIComponent(profile.username)}`} target="_blank" rel="noopener noreferrer">
-      {text} <span className={landing.srOnly}>({t.githubProfile})</span>
-    </a>
-  );
+  // the demo's people are not on GitHub, so their username would lead nowhere there
+  const github = (text: string) =>
+    me.is_demo ? (
+      text
+    ) : (
+      <a href={`https://github.com/${encodeURIComponent(profile.username)}`} target="_blank" rel="noopener noreferrer">
+        {text} <span className={landing.srOnly}>({t.githubProfile})</span>
+      </a>
+    );
   return (
     <AppFrame lang={lang} path="village">
       <main className={`${onboarding.column} ${styles.main}`}>

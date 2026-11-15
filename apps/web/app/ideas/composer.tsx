@@ -28,6 +28,7 @@ import {
   type OwnedIdea,
 } from "./ideas-api";
 import styles from "./ideas.module.css";
+import { DeleteIdea } from "./delete-idea";
 import { IdeasSkeleton } from "./my-ideas";
 
 const EMPTY: IdeaFields = { title: "", summary: "", details: "", stage: "concept", roles: [] };
@@ -426,6 +427,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
           </div>
         )}
       </form>
+      {saved && <DeleteIdea lang={lang} id={saved.id} />}
 
       <ConfirmDialog
         open={asking === "publish"}

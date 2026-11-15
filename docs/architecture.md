@@ -35,7 +35,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `JWT_SECRET_KEY`. Bitbucket is not built and returns `503`. A new account also gets a
   verified email from GitHub when there is one (`apps/api/app/services/provider_emails.py`).
   A missing, clashing or unreadable email never blocks sign-in.
-- **Profile** (Bearer token): `GET /v1/me` and `PATCH /v1/me`.
+- **Profile** (Bearer token): `GET /v1/me`, `PATCH /v1/me` and `POST /v1/me/deletion`
+  (anonymises the account and keeps its posts). Another developer's public profile (card
+  fields and bio, never email or names) is `GET /v1/users/{username}`.
 - **Roles, technologies, feed topics and sectors** (Bearer token): `POST /v1/me/roles`,
   `PATCH /v1/me/roles/{role_slug}` (make it the primary role), `DELETE /v1/me/roles/{role_slug}`
   (refused with `409` once the role has verification attempts), `PUT /v1/me/technologies`
@@ -66,16 +68,39 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/hubs/{hub_id}/members/{user_id}/approve` (an invitation, signed the same way) or
   `POST /v1/hubs/{hub_id}/members/{user_id}/decline`. Only active members read
   `GET /v1/hubs/{hub_id}/members` and `GET /v1/hubs/{hub_id}/idea` (the confidential brief).
+  Anyone with a membership row reads their own, with what they signed, at
+  `GET /v1/hubs/{hub_id}/membership`.
+  A member leaves with `POST /v1/hubs/{hub_id}/membership/leave`, and the owner removes one
+  with `POST /v1/hubs/{hub_id}/members/{user_id}/remove`.
+  The owner renames or describes the hub with `PATCH /v1/hubs/{hub_id}` and archives it, for
+  good, with `POST /v1/hubs/{hub_id}/archive`.
   The owner starts the work with `POST /v1/hubs/{hub_id}/team/confirm` (any team size, which
   opens brainstorm) and moves the hub one phase forward or back with
   `POST /v1/hubs/{hub_id}/phase`; the hub card says which phase it is in. Active members write
   short brainstorm notes: `GET /v1/hubs/{hub_id}/notes` reads them in every phase once the team
   is confirmed, `POST /v1/hubs/{hub_id}/notes` adds one and
-  `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm.
+  `DELETE /v1/hubs/{hub_id}/notes/{note_id}` removes one, both only during brainstorm. In the
+  design phase they sketch the system: `GET /v1/hubs/{hub_id}/design` reads the pieces and the
+  labelled links between them in design, build and review, `POST /v1/hubs/{hub_id}/pieces`,
+  `PATCH /v1/hubs/{hub_id}/pieces/{piece_id}` and `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}`
+  change the pieces, and `POST /v1/hubs/{hub_id}/links` and
+  `DELETE /v1/hubs/{hub_id}/links/{link_id}` change the links, all only during design. In the
+  build phase they split the work and follow the code: `GET /v1/hubs/{hub_id}/build` reads who
+  holds each piece, the repository address and the latest commits in build and review,
+  `POST /v1/hubs/{hub_id}/pieces/{piece_id}/claim` and
+  `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}/claim` take and free a piece, and
+  `PUT /v1/hubs/{hub_id}/repository` (the owner) sets the public GitHub address, all only during
+  build. `POST /v1/hubs/{hub_id}/commits/refresh` copies the repository's latest 20 commits from
+  GitHub, at most once a minute per hub, in build and review.
+  Active members also chat, in any phase: `GET /v1/hubs/{hub_id}/messages` (newest first),
+  `POST /v1/hubs/{hub_id}/messages` (optionally quoting one),
+  `PATCH /v1/hubs/{hub_id}/messages/{message_id}` (the author) and
+  `DELETE /v1/hubs/{hub_id}/messages/{message_id}` (the author or the owner).
 - **Ideas** (Bearer token): `POST /v1/me/ideas`, `GET /v1/me/ideas`,
   `GET /v1/me/ideas/{idea_id}`, `PATCH /v1/me/ideas/{idea_id}`,
-  `POST /v1/me/ideas/{idea_id}/publish` and `POST /v1/me/ideas/{idea_id}/close` create and
-  manage the owner's private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
+  `POST /v1/me/ideas/{idea_id}/publish`, `POST /v1/me/ideas/{idea_id}/close` and
+  `DELETE /v1/me/ideas/{idea_id}` (only while it has no hub) create and manage the owner's
+  private ideas. `GET /v1/ideas` and `GET /v1/ideas/{idea_id}` show only
   open idea cards to signed-in developers. A card has the summary and roles needed, never the
   confidential brief. Guide: `docs/backend.md`.
 - **Matching** (Bearer token): `GET /v1/me/ideas/{idea_id}/matches` ranks developers verified
@@ -111,6 +136,6 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 
 - Monorepo with one folder per app (`apps/web`, `apps/api`), shared tooling at the root.
 - pnpm workspace for JavaScript, uv for Python, Docker Compose for local services.
-- GitHub Flow with squash merges (see `AGENTS.md` and `CONTRIBUTING.md`).
+- GitHub Flow with squash merges (see `CONTRIBUTING.md`).
 
 Each decision someone might question gets a record in `docs/decisions/`.

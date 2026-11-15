@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
 const invited = { viewer: { membership_status: "invited", member_role: "member" } };
 // the hub's own agreement carries the terms it was created with
 const hubAgreement = (over: Record<string, unknown> = {}) =>
-  agreement({ title: "Hub agreement v1", hub_terms: { ownership_model: "owner_majority", notes: "The owner keeps 60%." }, ...over });
+  agreement({ version: 1, title: "Hub agreement v1", hub_terms: { ownership_model: "owner_majority", notes: "The owner keeps 60%." }, ...over });
 
 async function join(routes: Record<string, unknown> = {}, hubOver: Record<string, unknown> = invited) {
   api({
@@ -74,12 +74,10 @@ test("the page shows the hub's own terms and agreement, as the server sends them
   expect(asked().some((call) => call.includes("/agreements/current"))).toBe(false);
 });
 
-test("the placeholder warning shows only while the agreement's title says TEST", async () => {
+test("a hub on the first agreement shows its text with no warning", async () => {
   await join({ "GET /v1/hubs/hub-1/agreement": { data: hubAgreement({ title: "TEST AGREEMENT (NOT LEGAL TEXT)" }) } });
-  expect(screen.getByText("This is placeholder text, not a legal agreement")).toBeTruthy();
-  cleanup();
-  await join();
-  expect(screen.queryByText("This is placeholder text, not a legal agreement")).toBeNull();
+  expect(screen.getByText("TEST AGREEMENT (NOT LEGAL TEXT)")).toBeTruthy();
+  expect(screen.queryByText(/placeholder/i)).toBeNull();
 });
 
 test("nothing is sent without the box ticked and a legal name", async () => {

@@ -19,6 +19,7 @@ type Copy = {
   loadMore: string;
   donePublished: string;
   doneClosed: string;
+  doneDeleted: string;
   newTitle: string;
   editTitle: string;
   closedTitle: string;
@@ -44,6 +45,8 @@ type Copy = {
   closedNote: string;
   publishConfirm: Confirm & { noRoles: string };
   closeConfirm: Confirm;
+  // deleting an idea for good; refused once it has a hub
+  remove: Confirm & { heading: string; button: string; dialog: string; hasHub: string; failed: string };
   errors: {
     titleShort: string;
     titleLong: string;
@@ -79,6 +82,19 @@ type Copy = {
     emptyTitle: string;
     emptyText: string;
   };
+  score: {
+    why: string;
+    parts: { roles: string; technologies: string; sectors: string; meaning: string };
+    points: string;
+    notCompared: string;
+    noTechnologies: string;
+    noSectors: string;
+    partial: string;
+    steps: { strong: string; possible: string; weak: string; poor: string };
+    // what a screen reader says in place of the number and its step, once
+    heard: { strong: string; possible: string; weak: string; poor: string };
+    heardPartial: string;
+  };
   seeMatches: string;
   matches: {
     pageTitle: string;
@@ -86,6 +102,7 @@ type Copy = {
     lead: string;
     verifiedIn: string;
     inCommon: string;
+    sectors: string;
     inCommonTag: string;
     technologies: string;
     invite: string;
@@ -111,6 +128,7 @@ type Copy = {
     whyOne: string;
     whyMany: string;
     inCommon: string;
+    sectors: string;
     emptyTitle: string;
     emptyText: string;
     emptyAction: string;
@@ -126,7 +144,6 @@ type Copy = {
     back: string;
     noRoles: string;
     sharedBy: string;
-    githubProfile: string;
     edit: string;
     goneTitle: string;
     goneText: string;
@@ -154,6 +171,7 @@ const en: Copy = {
   loadMore: "Show more",
   donePublished: "Your idea is open. Signed-in developers can now find it.",
   doneClosed: "Your idea is closed. It no longer shows to other developers.",
+  doneDeleted: "Your idea was deleted.",
   newTitle: "Share an idea",
   editTitle: "Edit your idea",
   closedTitle: "A closed idea",
@@ -198,6 +216,17 @@ const en: Copy = {
     confirm: "Close the idea",
     cancel: "Keep it open",
   },
+  remove: {
+    heading: "Delete the idea",
+    text: "Delete an idea you no longer want, with its private brief. An idea with a hub can only be closed.",
+    button: "Delete this idea",
+    title: "Delete this idea?",
+    dialog: "It goes from your ideas and from everyone else's view, with its private brief. This cannot be undone.",
+    confirm: "Delete the idea",
+    cancel: "Keep it",
+    hasHub: "This idea has a hub, and its members signed an agreement about it, so it can't be deleted. Close it instead.",
+    failed: "We couldn't delete the idea. Nothing changed, so try again.",
+  },
   errors: {
     titleShort: "Give the title at least 5 characters.",
     titleLong: "Shorten the title to 150 characters or fewer.",
@@ -234,13 +263,32 @@ const en: Copy = {
     emptyTitle: "No open ideas yet",
     emptyText: "Be the first: share what you want to build.",
   },
+  score: {
+    why: "Why this score",
+    parts: { roles: "Roles", technologies: "Technologies", sectors: "Sectors", meaning: "Meaning" },
+    points: "{points} of {max}",
+    notCompared: "Not compared yet",
+    noTechnologies: "No technologies in common",
+    noSectors: "No sectors in common",
+    partial:
+      "Partial score: it counts roles, technologies and sectors. It does not yet compare what the idea and the profile say.",
+    steps: { strong: "Strong match", possible: "Possible match", weak: "Weak match", poor: "Poor match" },
+    heard: {
+      strong: "Match score: {score} out of 100, Strong match.",
+      possible: "Match score: {score} out of 100, Possible match.",
+      weak: "Match score: {score} out of 100, Weak match.",
+      poor: "Match score: {score} out of 100, Poor match.",
+    },
+    heardPartial: "Partial score.",
+  },
   seeMatches: "See who matches",
   matches: {
     pageTitle: "Developers who match your idea | Village Sqwhere",
     title: "Who matches {title}",
-    lead: "Developers verified in a role your idea needs. Each one shows why they matched.",
-    verifiedIn: "Verified in: {roles}",
+    lead: "Developers verified in a role your idea needs, best score first. Each card says how its score was counted.",
+    verifiedIn: "Verified in {roles}",
     inCommon: "In common with you: {technologies}",
+    sectors: "You both build for {sectors}",
     inCommonTag: "in common",
     technologies: "Technologies",
     invite: "Invite to the hub",
@@ -266,10 +314,11 @@ const en: Copy = {
   forYou: {
     pageTitle: "Ideas that need you | Village Sqwhere",
     title: "Ideas that need you",
-    lead: "Open ideas that need a role you are verified in. Each one says which role.",
+    lead: "Open ideas that need a role you are verified in, best score first. Each one says which role.",
     whyOne: "Needs your verified role: {roles}",
     whyMany: "Needs your verified roles: {roles}",
     inCommon: "In common with {name}: {technologies}",
+    sectors: "You and {name} both build for {sectors}",
     emptyTitle: "No open idea needs your role yet",
     emptyText:
       "New ideas show up here when their owners say they need a role you are verified in. Until then, you can read every open idea.",
@@ -288,7 +337,6 @@ const en: Copy = {
     back: "Open ideas",
     noRoles: "The owner has not said which roles are needed yet.",
     sharedBy: "Shared by",
-    githubProfile: "GitHub profile, opens in a new tab",
     edit: "Edit your idea",
     goneTitle: "This idea is not open",
     goneText: "It may have been closed by its owner, or the address is wrong.",
@@ -318,6 +366,7 @@ const fr: Copy = {
   loadMore: "Afficher plus",
   donePublished: "Votre idée est ouverte. Les développeurs connectés peuvent maintenant la trouver.",
   doneClosed: "Votre idée est fermée. Elle n'est plus montrée aux autres développeurs.",
+  doneDeleted: "Votre idée a été supprimée.",
   newTitle: "Partager une idée",
   editTitle: "Modifier votre idée",
   closedTitle: "Une idée fermée",
@@ -369,6 +418,17 @@ const fr: Copy = {
     confirm: "Fermer l'idée",
     cancel: "La garder ouverte",
   },
+  remove: {
+    heading: "Supprimer l'idée",
+    text: "Supprimez une idée dont vous ne voulez plus, avec son dossier privé. Une idée qui a un espace peut seulement être fermée.",
+    button: "Supprimer cette idée",
+    title: "Supprimer cette idée ?",
+    dialog: "Elle disparaît de vos idées et de la vue de tous, avec son dossier privé. Cette action est définitive.",
+    confirm: "Supprimer l'idée",
+    cancel: "La garder",
+    hasHub: "Cette idée a un espace, et ses membres ont signé un accord à son sujet : elle ne peut pas être supprimée. Fermez-la plutôt.",
+    failed: "Nous n'avons pas pu supprimer l'idée. Rien n'a changé, réessayez.",
+  },
   errors: {
     titleShort: "Donnez au titre au moins 5 caractères.",
     titleLong: "Raccourcissez le titre à 150 caractères au plus.",
@@ -405,13 +465,37 @@ const fr: Copy = {
     emptyTitle: "Pas encore d'idée ouverte",
     emptyText: "Lancez-vous en premier\u202f: partagez ce que vous voulez construire.",
   },
+  score: {
+    why: "Pourquoi ce score",
+    parts: { roles: "Rôles", technologies: "Technologies", sectors: "Domaines", meaning: "Sens" },
+    points: "{points} sur {max}",
+    notCompared: "Pas encore comparé",
+    noTechnologies: "Aucune technologie en commun",
+    noSectors: "Aucun domaine en commun",
+    partial:
+      "Score partiel\u202f: il compte les rôles, les technologies et les domaines. Il ne compare pas encore ce que disent l'idée et le profil.",
+    steps: {
+      strong: "Très bonne correspondance",
+      possible: "Correspondance possible",
+      weak: "Correspondance faible",
+      poor: "Correspondance insuffisante",
+    },
+    heard: {
+      strong: "Score de correspondance\u202f: {score} sur 100, très bonne correspondance.",
+      possible: "Score de correspondance\u202f: {score} sur 100, correspondance possible.",
+      weak: "Score de correspondance\u202f: {score} sur 100, correspondance faible.",
+      poor: "Score de correspondance\u202f: {score} sur 100, correspondance insuffisante.",
+    },
+    heardPartial: "Score partiel.",
+  },
   seeMatches: "Voir qui correspond",
   matches: {
     pageTitle: "Développeurs qui correspondent à votre idée | Village Sqwhere",
     title: "Qui correspond à {title}",
-    lead: "Des développeurs vérifiés dans un rôle que votre idée recherche. Chacun montre pourquoi il correspond.",
-    verifiedIn: "Vérifié dans\u202f: {roles}",
+    lead: "Des développeurs vérifiés dans un rôle que votre idée recherche, meilleur score d'abord. Chaque carte dit comment son score a été compté.",
+    verifiedIn: "Vérifié dans {roles}",
     inCommon: "En commun avec vous\u202f: {technologies}",
+    sectors: "Vous construisez tous deux pour {sectors}",
     inCommonTag: "en commun",
     technologies: "Technologies",
     invite: "Inviter dans l'espace",
@@ -437,10 +521,11 @@ const fr: Copy = {
   forYou: {
     pageTitle: "Idées qui ont besoin de vous | Village Sqwhere",
     title: "Idées qui ont besoin de vous",
-    lead: "Des idées ouvertes qui recherchent un rôle dans lequel vous êtes vérifié. Chacune dit lequel.",
+    lead: "Des idées ouvertes qui recherchent un rôle dans lequel vous êtes vérifié, meilleur score d'abord. Chacune dit lequel.",
     whyOne: "Recherche votre rôle vérifié\u202f: {roles}",
     whyMany: "Recherche vos rôles vérifiés\u202f: {roles}",
     inCommon: "En commun avec {name}\u202f: {technologies}",
+    sectors: "Vous et {name} construisez tous deux pour {sectors}",
     emptyTitle: "Aucune idée ouverte ne recherche encore votre rôle",
     emptyText:
       "Les nouvelles idées apparaissent ici quand leurs porteurs disent chercher un rôle dans lequel vous êtes vérifié. En attendant, vous pouvez lire toutes les idées ouvertes.",
@@ -459,7 +544,6 @@ const fr: Copy = {
     back: "Idées ouvertes",
     noRoles: "Le porteur de l'idée n'a pas encore indiqué les rôles recherchés.",
     sharedBy: "Partagée par",
-    githubProfile: "profil GitHub, s'ouvre dans un nouvel onglet",
     edit: "Modifier votre idée",
     goneTitle: "Cette idée n'est pas ouverte",
     goneText: "Elle a peut-être été fermée par son porteur, ou l'adresse est incorrecte.",

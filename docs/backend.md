@@ -399,6 +399,30 @@ Updates editable fields on the user's profile.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
 * **Error Responses:** `422` when a field breaks a limit (the error names the field). `409` `EMAIL_TAKEN` when another account already uses the email, in any mix of upper and lower case.
 
+#### `POST /v1/me/deletion`
+
+Deletes the signed-in account. The person types their username to confirm (any capital
+letters): `{"username": "kofi-b"}`. Answers `204` with no body, and every token stops working
+at once.
+
+What happens, in one transaction:
+* The account is anonymised: the username becomes `deleted-` and 12 characters of the id, the
+  display name "Deleted account", and the names, email, avatar, bio and country are cleared.
+  The GitHub link, technologies, sectors and feed topics are removed. Signing in with the same
+  GitHub account later makes a new, empty account.
+* Posts, comments and likes stay, shown under "Deleted account". Signatures stay: they are
+  append-only legal records.
+* Open ideas are closed. Hubs the person owns are archived (only possible when nobody else is
+  in them). In other hubs, an active membership becomes `left`, an invitation is removed and a
+  request is withdrawn.
+* Verifications still in progress or waiting for review are abandoned, so no reviewer gets a
+  case nobody will hear back about. Finished verification records stay for the review audit.
+
+* **Errors:** `409 OWNS_HUB_WITH_TEAM` (an active hub you own still has other active members),
+  `422 CONFIRMATION_MISMATCH` (the username does not match), `422` (no username),
+  `403 DEMO_READ_ONLY` (the demo account).
+* Why: `docs/decisions/2026-11-14-account-deletion.md`.
+
 #### `POST /v1/me/roles`
 Claims a developer role for the authenticated user (e.g. during onboarding or profile editing).
 
@@ -456,6 +480,37 @@ Removes a claimed role from the user's profile.
   * If the user has started or completed any verification attempt for this role, deletion is refused to preserve the 3-attempt audit trail:
     `409 Conflict`: `{"detail": {"code": "ROLE_HAS_VERIFICATION_HISTORY", "message": "A role with verification attempts can't be removed (it would reset the 3-attempt limit)."}}`
   * `404 Not Found`: `{"detail": {"code": "NOT_FOUND", "message": "Role '...' is not claimed."}}`
+
+#### `GET /v1/users/{username}`
+
+Another developer's profile, for any signed-in developer. The username matches without regard
+to capital letters.
+
+* **Authentication:** Bearer token required (any signed-in user)
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "id": "0193f2e0-4a5c-7f6e-9b54-0000000000c3",
+      "username": "adaeze-o",
+      "display_name": "Adaeze Okafor",
+      "avatar_url": null,
+      "bio": "I build payment tools for market traders in Ibadan.",
+      "country_code": "NG",
+      "is_verified": true,
+      "verified_roles": [{ "slug": "backend-engineer", "name": "Backend & Systems Engineer" }],
+      "technologies": [{ "slug": "python", "name": "Python" }],
+      "sectors": [{ "slug": "fintech", "name": "Fintech" }]
+    }
+  }
+  ```
+  `verified_roles` holds only roles the developer passed verification in that are still
+  offered, earliest first. Never sent: email, first and last name, sign-in accounts, claimed
+  but unverified roles, verification attempts, feed topics. A developer's posts are at
+  `GET /v1/posts?author={username}`.
+* **Errors:** `401`, `404 USER_NOT_FOUND` (no such developer, a deleted account, or a made-up
+  demo developer seen from outside the demo).
+* Why: `docs/decisions/2026-11-14-public-profile.md`.
 
 #### `PUT /v1/me/technologies`
 Full replacement of the developer's tech stack (skills and tools).
@@ -743,6 +798,16 @@ in this first version.
 Moves an open idea to `closed`. The owner retains the full record, but it no longer appears in
 discovery or matching candidates.
 
+#### `DELETE /v1/me/ideas/{idea_id}`
+
+The author deletes an idea in any status, as long as it has no hub. Answers `204` with no body.
+The idea leaves every list, read and match at once, and its confidential brief (`details`) is
+erased. The row is kept with `deleted_at`, like all user content.
+
+* **Errors:** `404 NOT_FOUND` (no such idea of yours, or already deleted), `409 IDEA_HAS_HUB`
+  (its hub's members signed an agreement about it: close the idea instead).
+* Why: `docs/decisions/2026-11-14-deleting-an-idea.md`.
+
 #### `GET /v1/ideas` and `GET /v1/ideas/{idea_id}`
 
 Returns only open idea cards to signed-in developers. A card contains title, summary, stage,
@@ -865,19 +930,33 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | --- | --- | --- |
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
-| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team or move the phase. |
-| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list or the notes. |
+| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team, move the phase or set the repository. |
+| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list, the notes, the design sketch or the build tab. |
 | `403` | `NOT_NOTE_AUTHOR` | Only a note's author or the hub's owner can remove it. |
+| `403` | `NOT_PIECE_AUTHOR` | Only a piece's creator or the hub's owner can remove it. |
+| `403` | `NOT_LINK_AUTHOR` | Only a link's creator or the hub's owner can remove it. |
+| `403` | `NOT_PIECE_HOLDER` | Only the member who holds a piece or the hub's owner can free it. |
 | `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
 | `404` | `NOTE_NOT_FOUND` | The note does not exist, is already removed, or belongs to another hub. |
+| `404` | `PIECE_NOT_FOUND` | The piece does not exist, is already removed, or belongs to another hub. For a link, either of its two pieces. Also when claiming or freeing. |
+| `404` | `LINK_NOT_FOUND` | The link does not exist, is already removed, or belongs to another hub. |
 | `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
 | `409` | `ALREADY_MEMBER` | The person is already an active member. |
 | `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
-| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes added or removed. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes, pieces, links, claims or repository changed, nor its commits refreshed. |
 | `409` | `TEAM_ALREADY_CONFIRMED` | The owner already confirmed the team. Move the phase instead. |
-| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes cannot be read or written, before the owner confirms the team. |
-| `409` | `PHASE_CLOSED` | The hub is past brainstorm, so notes can no longer be added or removed. They stay readable. |
+| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes, the design sketch and the build tab cannot be read or written, before the owner confirms the team. |
+| `409` | `PHASE_NOT_STARTED` | The hub is still in brainstorm, so the design sketch cannot be read or written yet, or still in brainstorm or design, so the build tab cannot. |
+| `409` | `PHASE_CLOSED` | The hub is past brainstorm, so notes can no longer be added or removed, past design, so the sketch can no longer change, or past build, so pieces can no longer be claimed or freed and the repository can no longer change. They stay readable. |
 | `409` | `NOTES_FULL` | The hub already has 200 notes that are not removed. |
+| `409` | `PIECES_FULL` | The hub already has 30 pieces that are not removed. |
+| `409` | `LINKS_FULL` | The hub already has 60 links that are not removed. |
+| `409` | `PIECE_NAME_TAKEN` | Another piece of the hub that is not removed has the same name, ignoring case and outer spaces. |
+| `409` | `LINK_EXISTS` | A link that is not removed already goes from that piece to that piece. |
+| `409` | `PIECE_CLAIMED` | Another active member already holds the piece. |
+| `409` | `REPOSITORY_NOT_SET` | The hub has no repository address, so there are no commits to refresh. |
+| `409` | `REFRESH_TOO_SOON` | The commits were refreshed less than a minute ago. The message says how many seconds to wait. |
+| `409` | `REPOSITORY_CHANGED` | The owner changed the repository while a refresh was waiting for GitHub, so its commits were not kept. Refresh again. |
 | `409` | `PHASE_NOT_ADJACENT` | The phase asked for is not the one just before or just after the hub's current phase. This includes the current phase itself. |
 | `409` | `TEAM_FULL` | The hub already has 5 active members, the owner included. |
 | `404` | `NOT_FOUND` | The hub does not exist. When creating a hub: the idea does not exist, is deleted, or is someone else's draft. |
@@ -885,6 +964,7 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | `409` | `HUB_ALREADY_EXISTS` | The idea already has a hub (one hub per idea). |
 | `409` | `AGREEMENT_MISMATCH` | The signed `template_id` or `template_sha256` is not the agreement being signed: the current one when creating a hub, the hub's own one when accepting. Fetch it again and show it before signing. |
 | `422` | (FastAPI's list) | A field or query parameter breaks a rule. `detail` is a list, and each item's `loc` names it. |
+| `502` | `REPOSITORY_UNAVAILABLE` | GitHub could not give the commits: the repository is not found or private, GitHub is rate limiting the server or is down, it did not answer within 10 seconds, or its answer was not a list of commits. The stored commits stay as they were. |
 | `503` | `AGREEMENT_NOT_PUBLISHED` | No agreement is published on this server, so no hub can be created. A setup problem, not something the person can fix. |
 
 #### `GET /v1/agreements/current`
@@ -899,9 +979,9 @@ old one here at once. Send its `template_id` and `body_sha256` back when creatin
   {
     "data": {
       "template_id": "0193f2f0-5b6d-7a7f-8c65-0000000000f1",
-      "version": 1,
-      "title": "TEST AGREEMENT (NOT LEGAL TEXT)",
-      "body": "# TEST AGREEMENT, NOT LEGAL TEXT\n\nThis text is a placeholder...",
+      "version": 2,
+      "title": "Village Sqwhere hub agreement",
+      "body": "# Village Sqwhere hub agreement\n\nVersion 2.\n\nThis is the agreement between the people who build one idea...",
       "body_sha256": "4f0c3a...64 lowercase hex characters",
       "published_at": "2026-11-11T09:12:44.120000Z",
       "hub_terms": {}
@@ -1019,6 +1099,26 @@ see the hub before answering. Archived hubs can still be read.
 * **Errors:** `401 UNAUTHENTICATED` or `401 TOKEN_EXPIRED`, `404 NOT_FOUND` (no hub with this
   id), `422` (the id is not a UUID).
 
+#### `PATCH /v1/hubs/{hub_id}`
+
+The owner renames or describes the hub. Send `name` (1 to 120 characters, trimmed),
+`description` (up to 2,000 characters, `null` clears it) or both; a left-out field keeps its
+value. Answers `200` with the hub card.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED`, `422` (no field, a null
+  or blank name, a field too long, or any other field).
+
+#### `POST /v1/hubs/{hub_id}/archive`
+
+The owner archives the hub when the work is over. No body. Answers `200` with the hub card,
+`status: "archived"` and `archived_at`. There is no way back. Members keep reading the hub,
+the team, the brief and its notes, but nothing changes any more: no invitations, requests,
+approvals, phase moves, notes or edits (`409 HUB_ARCHIVED`). A member may still leave, and a
+pending request may still be withdrawn or declined.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED` (already archived).
+* Why: `docs/decisions/2026-11-14-hub-edit-and-archive.md`.
+
 #### `GET /v1/me/hubs`
 
 Lists the hubs the signed-in person is in, newest hub first. Archived hubs stay in the list.
@@ -1062,10 +1162,12 @@ full (`409 TEAM_FULL`). Pending invitations do not count. Why five:
 `docs/decisions/2026-11-13-hub-team-cap.md`.
 
 ```text
-(no row) --invite--> invited --accept + sign--> active
-                        |  \--decline--> declined --invite--> invited
+(no row) --invite--> invited --accept + sign--> active --leave--> left
+                        |  \--decline--> declined     \--remove (owner)--> removed
                         \--withdraw (owner)--> (no row)
 ```
+
+Someone who declined, left or was removed can be invited again, or ask again.
 
 Every route needs a Bearer token. A hub id that does not exist answers `404 NOT_FOUND`. An
 invited person finds their invitations through `GET /v1/me/hubs?status=invited` (#67).
@@ -1193,10 +1295,66 @@ left or were removed. Returns `{"data": [<member card>]}` with the same card as 
 
 * **Errors:** `403 NOT_HUB_MEMBER`.
 
+#### `GET /v1/hubs/{hub_id}/membership`
+
+The caller's own membership in this hub, in any status, with the signature it rests on. The
+hub card's `viewer` says only the status and role; this adds the dates and what was signed, so
+a person can see what they agreed to, even after leaving.
+
+* **Success Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "member_role": "member",
+      "status": "active",
+      "decline_kind": null,
+      "can_ask_again_at": null,
+      "created_at": "2026-11-14T09:00:00Z",
+      "joined_at": "2026-11-14T09:30:00Z",
+      "left_at": null,
+      "signature": {
+        "template_id": "0193f2e0-4a5c-7f6e-9b54-0000000000a1",
+        "version": 1,
+        "template_sha256": "<64 hex characters>",
+        "signed_legal_name": "Kwame Mensah",
+        "terms_snapshot": { "ownership_model": "equal_split" },
+        "signed_at": "2026-11-14T09:30:00Z"
+      }
+    }
+  }
+  ```
+  `signature` is `null` until the person signs (requested, invited, or a declined invitation),
+  and stays after they leave or are removed. `can_ask_again_at` shows only while the wait is
+  ahead. The address and browser a signature came from are stored but never returned.
+* **Errors:** `404 NOT_FOUND` (no such hub), `404 MEMBERSHIP_NOT_FOUND` (you have never been
+  invited or asked to join).
+
 #### `GET /v1/hubs/{hub_id}/idea`
 
 The idea behind the hub, with its confidential `details`, for active members only. Returns
 `id`, `title`, `summary`, `details`, `stage`, `status`, `published_at` and `updated_at`.
+
+#### `POST /v1/hubs/{hub_id}/membership/leave`
+
+An active member leaves. No body. Answers `200` with the hub card,
+`viewer.membership_status: "left"`. They lose the team list, the brief and the hub's tools at
+once. Their signature stays, because the agreement still covers what they saw, and their notes
+stay under their name. An archived hub can still be left. Matching may suggest them for the
+idea again.
+
+* **Errors:** `404 NOT_FOUND` (no such hub), `404 MEMBERSHIP_NOT_FOUND` (you are not an active
+  member), `409 OWNER_CANNOT_LEAVE` (the hub belongs to the idea's author).
+
+#### `POST /v1/hubs/{hub_id}/members/{user_id}/remove`
+
+The owner removes an active member. No body. Answers `200` with the member card,
+`status: "removed"`. The person loses access the same way as someone who leaves, and their
+signature and notes stay. Removal starts no wait: if they ask to join again, the owner can
+decline, which starts the usual wait.
+
+* **Errors:** `403 NOT_HUB_OWNER`, `404 MEMBER_NOT_FOUND` (not an active member here),
+  `409 CANNOT_REMOVE_OWNER`, `409 HUB_ARCHIVED` (an archived hub's team cannot change).
+* Why both: `docs/decisions/2026-11-14-leaving-and-removing-members.md`.
 
 * **Errors:** `403 NOT_HUB_MEMBER`, `404 NOT_FOUND` (also when the idea was deleted).
 
@@ -1287,9 +1445,298 @@ The note's author or the hub's owner removes a note. Answers `204`.
   `403 NOT_NOTE_AUTHOR` (another member's note). The checks run in that order, so a closed phase
   is reported before a missing note.
 
+#### Design sketch
+
+The pieces of the system and the labelled links between them, which the web draws as boxes and
+arrows. A piece has a name of 1 to 60 characters and a summary of 0 to 280. A link goes from one
+piece to another and has a label of 1 to 60 characters, such as "sends payouts to". All text is
+plain, trimmed and counted as characters, and a null character is refused, like in notes. There
+are no positions: the web lays the sketch out itself, and nothing pushes changes to a browser.
+Only active members read or write. Reading opens when the hub reaches `design` and stays open in
+`build` and `review`. Writing works only while the hub is active and in `design`. Every write
+locks the hub row first, so two requests cannot take the last place together, and nothing changes
+while the owner moves the phase. The sketch is confidential to the team: only these routes return
+it, and the hub card does not change. A removed piece or link keeps its row (`deleted_at`) but is
+never listed. Why these rules: `docs/decisions/2026-11-14-hub-design-sketch.md`.
+
+* Any active member may add and correct a piece, because the sketch is shared.
+* A hub holds at most 30 pieces and 60 links that are not removed. Two pieces that are not
+  removed cannot share a name, ignoring case and outer spaces.
+* A link joins two different pieces of this hub that are not removed. It has a direction: a link
+  from A to B and one from B to A are different links, but two from A to B are not allowed.
+* Removing a piece removes its links with it, in one transaction.
+
+A piece and a link:
+
+```json
+{
+  "id": "…",
+  "name": "Payouts API",
+  "summary": "Takes an approved batch and refuses a transfer with no key.",
+  "created_by": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": true },
+  "created_at": "2026-11-14T10:15:00Z",
+  "updated_at": "2026-11-14T10:15:00Z",
+  "can_delete": true
+}
+```
+
+```json
+{
+  "id": "…",
+  "from_piece_id": "…",
+  "to_piece_id": "…",
+  "label": "records the batch",
+  "created_by": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": true },
+  "created_at": "2026-11-14T10:20:00Z",
+  "can_delete": false
+}
+```
+
+`can_delete` is true when the viewer created the piece or link, or owns the hub, and the hub is
+active and in `design`, so the web can show a remove button without working it out.
+
+#### `GET /v1/hubs/{hub_id}/design`
+
+Everything in one answer, with no paging: the pieces and the links that are not removed, each
+oldest first.
+
+* **Success Response (200 OK):** `{"data": {"pieces": [<piece>], "links": [<link>]}}`.
+* **Errors:** `401`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED` (the hub is in brainstorm). The checks run in that order.
+
+#### `POST /v1/hubs/{hub_id}/pieces`
+
+Adds a piece, as the signed-in member.
+
+* **Request Body:** `{ "name": "…", "summary": "…" }`. `summary` is optional and defaults to an
+  empty text. The other fields are refused.
+* **Success Response (201 Created):** the piece, in `data`.
+* **Errors:** `401`, `422` (an empty or too long name, a summary over 280 characters, a null
+  character, or an unknown field), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `409 PIECES_FULL`, `409 PIECE_NAME_TAKEN`. A body that fails validation gets `422` before any
+  other check. After that the checks run in the order listed.
+
+#### `PATCH /v1/hubs/{hub_id}/pieces/{piece_id}`
+
+Corrects a piece. Any active member may do it.
+
+* **Request Body:** `name` and or `summary`. A field left out stays as it is, and a summary sent
+  as an empty text clears it. Sending neither, a `null`, or another field is refused.
+* **Success Response (200 OK):** the piece, in `data`.
+* **Errors:** `401`, `422`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `404 PIECE_NOT_FOUND`,
+  `409 PIECE_NAME_TAKEN` (a piece may take its own name again in other letters).
+
+#### `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}`
+
+The piece's creator or the hub's owner removes a piece and its links. Answers `204`.
+
+* **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `404 PIECE_NOT_FOUND`, `403 NOT_PIECE_AUTHOR`. The checks run in that order, so a closed phase
+  is reported before a missing piece.
+
+#### `POST /v1/hubs/{hub_id}/links`
+
+Adds a link between two pieces of this hub that are not removed.
+
+* **Request Body:** `{ "from_piece_id": "…", "to_piece_id": "…", "label": "…" }`. The other
+  fields are refused.
+* **Success Response (201 Created):** the link, in `data`.
+* **Errors:** `401`, `422` (the two ids are the same, an empty or too long label, a null
+  character, a malformed id, or an unknown field), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `404 PIECE_NOT_FOUND` (either piece is unknown, removed or in another hub), `409 LINK_EXISTS`,
+  `409 LINKS_FULL`. A body that fails validation gets `422` before any other check. After that
+  the checks run in the order listed.
+
+#### `DELETE /v1/hubs/{hub_id}/links/{link_id}`
+
+The link's creator or the hub's owner removes a link. Answers `204`.
+
+* **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `404 LINK_NOT_FOUND`, `403 NOT_LINK_AUTHOR`. The checks run in that order.
+
+#### Build tab
+
+Who builds which piece of the design sketch, and the latest commits of the team's repository.
+Only active members read or write. Reading opens when the hub reaches `build` and stays open in
+`review`. Claiming and freeing a piece and setting the repository work only while the hub is
+active and in `build`. Refreshing the commits works while it is active and in `build` or `review`,
+because the team keeps committing fixes during review. Why these rules:
+`docs/decisions/2026-11-15-hub-build-tab.md`.
+
+* A piece has at most one holder, and a member may hold several pieces. Claiming a piece you
+  already hold changes nothing and answers `200`.
+* The holder or the hub's owner frees a piece.
+* A claim whose holder is no longer an active member (they left or were removed) counts as no
+  claim: the answer shows `claimed_by` and `claimed_at` as `null`, and any active member may
+  claim the piece.
+* The repository is a public GitHub repository whose address the owner pastes. The address is
+  trimmed, and a trailing `/` and a trailing `.git` are dropped. What is left must be
+  `https://github.com/<owner>/<repository>` with letters, digits, `.`, `_` and `-` in each part,
+  and at most 200 characters. The API does not call GitHub when the address is set. A new or
+  cleared address deletes the stored commits and empties `commits_refreshed_at`. Sending the
+  address the hub already has changes nothing.
+* A refresh reads the 20 latest commits of the repository's default branch from GitHub with the
+  server's optional `GITHUB_API_TOKEN` (without it GitHub allows about 60 requests an hour from
+  the server) and replaces the stored copy. Any active member may refresh, at most once a minute
+  per hub. The hub row is not locked while the API waits for GitHub, which has 10 seconds to
+  answer. If GitHub cannot be read, the stored commits stay and nothing is counted as a refresh.
+* A commit keeps the first line of its message (cut to 200 characters, and the first 7
+  characters of its `sha` when that line is empty), the author's name as the commit records it
+  (cut to 100) and the commit date. Both texts come from outside, so they are stored as plain
+  text without null characters: the web shows them as text and never as markup or links.
+
+The answer to every build route that is not a claim:
+
+```json
+{
+  "data": {
+    "repository_url": "https://github.com/acodev/village-ledger",
+    "commits_refreshed_at": "2026-11-15T09:30:00Z",
+    "can_set_repository": true,
+    "can_refresh": true,
+    "pieces": [
+      {
+        "id": "…",
+        "name": "Payouts API",
+        "summary": "Takes an approved batch and refuses a transfer with no key.",
+        "claimed_by": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": true },
+        "claimed_at": "2026-11-15T08:00:00Z",
+        "can_claim": false,
+        "can_release": true
+      }
+    ],
+    "commits": [
+      {
+        "sha": "9fceb02d0ae598e95dc970b74767f19372d61af8",
+        "message": "Retry a failed transfer once with the same key",
+        "author_name": "Amina Bello",
+        "committed_at": "2026-11-15T07:41:00Z"
+      }
+    ]
+  }
+}
+```
+
+`claimed_by` is `null` for a piece nobody holds. The four `can_` flags say what the viewer may do
+now: `can_claim` (the piece is free and the hub is in build), `can_release` (the viewer holds the
+piece or owns the hub, and the hub is in build), `can_set_repository` (the viewer owns the hub
+and it is in build) and `can_refresh` (the hub is active, in build or review, and has a
+repository; it ignores the wait of a minute).
+
+#### `GET /v1/hubs/{hub_id}/build`
+
+Everything in one answer, with no paging. `pieces` are the ones not removed, oldest first, and
+`commits` are newest first.
+
+* **Success Response (200 OK):** the answer above.
+* **Errors:** `401`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED` (the hub is in brainstorm or design). The checks run in that order.
+
+#### `POST /v1/hubs/{hub_id}/pieces/{piece_id}/claim`
+
+The signed-in member takes a piece nobody holds.
+
+* **Success Response (200 OK):** the piece, in `data`, as in the answer above.
+* **Errors:** `401`, `422` (a malformed id), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`,
+  `404 PIECE_NOT_FOUND`, `409 PIECE_CLAIMED`. The checks run in that order.
+
+#### `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}/claim`
+
+The holder or the hub's owner frees a piece. A piece nobody holds is already free, so freeing it
+answers `204` too.
+
+* **Success Response (204 No Content).**
+* **Errors:** `401`, `422`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`, `409 HUB_ARCHIVED`, `404 PIECE_NOT_FOUND`,
+  `403 NOT_PIECE_HOLDER`. The checks run in that order.
+
+#### `PUT /v1/hubs/{hub_id}/repository`
+
+The hub's owner sets, changes or clears the repository address.
+
+* **Request Body:** `{ "repository_url": "https://github.com/owner/repo" }`, or `null` to clear
+  it. The field is required and the other fields are refused.
+* **Success Response (200 OK):** the build answer.
+* **Errors:** `401`, `422` (an address that is not an HTTPS github.com address with exactly an
+  owner and a repository, which names `repository_url`), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`,
+  `403 NOT_HUB_OWNER`, `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 PHASE_CLOSED`,
+  `409 HUB_ARCHIVED`. A body that fails validation gets `422` before any other check. After that
+  the checks run in the order listed.
+
+#### `POST /v1/hubs/{hub_id}/commits/refresh`
+
+Any active member copies the repository's latest commits from GitHub.
+
+* **Success Response (200 OK):** the build answer.
+* **Errors:** `401`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 HUB_ARCHIVED`, `409 REPOSITORY_NOT_SET`, `409 REFRESH_TOO_SOON`,
+  `502 REPOSITORY_UNAVAILABLE`, `409 REPOSITORY_CHANGED` (the owner changed the address while
+  GitHub was answering). The checks run in that order, and they run again after GitHub answers.
+
 ---
 
 ## 4. Frontend Integration Guide: Authentication
+
+#### Hub chat
+
+A flat chat for the team, in any phase, once someone is an active member (the team need not be
+confirmed). A message is 1 to 10,000 characters, trimmed, and may quote one earlier message in
+the same hub. There are no live updates: the page loads the chat again to see new messages.
+Every route answers `403 NOT_HUB_MEMBER` to anyone who is not an active member, and an
+archived hub's chat is read only (`409 HUB_ARCHIVED`). Why: `docs/decisions/2026-11-14-hub-chat.md`.
+
+The message card:
+
+```json
+{
+  "id": "0193f2e0-4a5c-7f6e-9b54-0000000000d4",
+  "body": "Works for me.",
+  "author": { "id": "...", "username": "kofi-b", "display_name": "Kofi", "avatar_url": null, "is_verified": true },
+  "reply_to": { "id": "...", "author": { "...": "the same author card" }, "body": "Standup at 9, Lagos time?" },
+  "created_at": "2026-11-14T09:00:00Z",
+  "edited_at": null,
+  "can_edit": true,
+  "can_delete": true
+}
+```
+
+`reply_to` is `null` for a message that quotes nothing, and its `body` is `null` once the quoted
+message is deleted. `can_edit` is true for the author, and `can_delete` for the author and the
+hub's owner, while the hub is active.
+
+#### `GET /v1/hubs/{hub_id}/messages`
+
+Live messages, newest first, `{"data": [<message card>], "next_offset": 50}`. Takes `offset`
+(0 or more) and `limit` (1 to 50, default 50).
+
+#### `POST /v1/hubs/{hub_id}/messages`
+
+Body: `{"body": "Works for me.", "reply_to_id": "<message id, optional>"}`. Answers `201` with
+the card.
+
+* **Errors:** `404 MESSAGE_NOT_FOUND` (the quoted message is deleted or in another hub),
+  `409 HUB_ARCHIVED`, `409 HUB_CHANGED` (you were removed, or the hub archived, while sending),
+  `422` (an empty or too long body, or a null character).
+
+#### `PATCH /v1/hubs/{hub_id}/messages/{message_id}`
+
+The author changes the text: `{"body": "..."}`. Answers `200` with the card; `edited_at` is set
+when the text changed.
+
+* **Errors:** `403 NOT_MESSAGE_AUTHOR`, `404 MESSAGE_NOT_FOUND`, `409 HUB_ARCHIVED`, `422`.
+
+#### `DELETE /v1/hubs/{hub_id}/messages/{message_id}`
+
+The author or the hub's owner deletes a message. Answers `204`. The row stays with
+`deleted_at`, and replies that quoted it keep showing who wrote it, without the text.
+
+* **Errors:** `403 NOT_MESSAGE_AUTHOR`, `404 MESSAGE_NOT_FOUND`, `409 HUB_ARCHIVED`.
 
 ### How the Sign-In Flow Works for End Users (100% Automated)
 In production and regular use, **the user never touches or sees a `login_code`**. The frontend coordinates the handshake automatically:

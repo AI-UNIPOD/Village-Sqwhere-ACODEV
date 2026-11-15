@@ -9,21 +9,26 @@ import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { ArrowLeft, Check } from "../onboarding/icons";
+import { AlertCircle, ArrowLeft, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { scrollToPartWhileSettling } from "../scroll";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
 import { BriefSection } from "./brief";
+import { BuildTab } from "./build";
+import { Chat } from "./chat";
 import { copy } from "./copy";
+import { DesignSketch } from "./design";
 import { loadHub, type Hub } from "./hubs-api";
+import { ArchiveHub, EditHub, type Managed } from "./manage";
 import { WithdrawRequest, WithdrawnLine, type WithdrawOutcome } from "./withdraw-request";
 import styles from "./hubs.module.css";
 import { HubsSkeleton, MissingHub } from "./my-hubs";
 import { Notes } from "./notes";
 import { Phases } from "./phases";
-import { InvitationCard, Person, Team } from "./team";
+import { MySignature } from "./my-signature";
+import { InvitationCard, LeaveHub, Person, Team } from "./team";
 
 function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null; created: boolean; joined: boolean }) {
   const t = copy[lang];
@@ -34,6 +39,9 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
   const [withdrawal, setWithdrawal] = useState<WithdrawOutcome | null>(null);
   // counts the loads, so the phases drop their last status or error line when the page is shown again
   const [loads, setLoads] = useState(0);
+  // what the owner's last edit or archive did, said once under the title
+  const [managed, setManaged] = useState<Managed | null>(null);
+  const said = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -44,6 +52,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
         setHub(found);
         // the page was left and shown again: what happened on the last visit is no longer news
         setWithdrawal(null);
+        setManaged(null);
         setLoads((n) => n + 1);
       },
       (error: unknown) => {
@@ -67,6 +76,16 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
     if (shown && part && card.current) return scrollToPartWhileSettling(card.current, part);
   }, [shown]);
 
+  // the button that was pressed may be gone (archiving removes it), so the line takes the focus
+  useEffect(() => {
+    if (managed) said.current?.focus();
+  }, [managed]);
+
+  function manage(card: Hub, done: Managed) {
+    setHub(card);
+    setManaged(done);
+  }
+
   if (failure) throw failure;
   if (hub === null) return <MissingHub lang={lang} />;
   if (!hub) return <HubsSkeleton lang={lang} />;
@@ -89,6 +108,20 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
           {hub.status === "active" ? t.active : t.archived}
         </span>
       </p>
+      {managed &&
+        (managed === "changed" ? (
+          <p ref={said} tabIndex={-1} className={`${onboarding.error} ${styles.problem}`} role="alert">
+            <AlertCircle />
+            {t.manage.changed}
+          </p>
+        ) : (
+          <p ref={said} tabIndex={-1} className={ideas.done} role="status">
+            <Check />
+            {managed === "saved" ? t.manage.saved : t.manage.archive.done}
+          </p>
+        ))}
+      {isOwner && hub.status === "active" && <EditHub key={`${hub.name}
+${hub.description}`} lang={lang} hub={hub} onChange={manage} />}
       {created && isOwner && (
         <p className={ideas.done} role="status">
           <Check />
@@ -118,7 +151,9 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       )}
       {/* after a withdrawal the line above has said it: nobody declined */}
       {status === "declined" && withdrawal !== "withdrawn" && <p className={ideas.lead}>{t.declinedNote}</p>}
-      {!isMember && status !== "invited" && status !== "requested" && status !== "declined" && <p className={ideas.lead}>{t.notMember}</p>}
+      {status === "left" && <p className={ideas.lead}>{t.leftNote}</p>}
+      {status === "removed" && <p className={ideas.lead}>{t.removedNote}</p>}
+      {!isMember && !["invited", "requested", "declined", "left", "removed"].includes(status ?? "") && <p className={ideas.lead}>{t.notMember}</p>}
       {hub.description && <p className={styles.text}>{hub.description}</p>}
 
       <h2 className={`${ideas.heading} ${styles.heading}`}>{t.ideaHeading}</h2>
@@ -135,7 +170,10 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       <section id="team" className={styles.part}>
         <h2 className={`${ideas.heading} ${styles.heading}`}>{t.teamHeading}</h2>
         {isMember ? (
-          <Team lang={lang} hub={hub} />
+          <>
+            <Team lang={lang} hub={hub} />
+            {!isOwner && <LeaveHub lang={lang} hub={hub} onChange={setHub} />}
+          </>
         ) : (
           <>
             <p className={ideas.meta}>{fill(t.members, { n: hub.member_count })}</p>
@@ -155,14 +193,27 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       {hub.terms.notes && <p className={styles.text}>{hub.terms.notes}</p>}
       <p className={`${ideas.meta} ${styles.line}`}>{t.termsFrozen}</p>
       <p className={`${ideas.meta} ${styles.line}`}>{fill(t.agreementVersion, { n: hub.agreement.version })}</p>
+      {/* members, and those who left or were removed, signed to get in */}
+      {(isMember || status === "left" || status === "removed") && (
+        <section aria-labelledby="my-signature" className={styles.part}>
+          <h3 id="my-signature" className={`${styles.strong} ${styles.line}`}>
+            {t.signature.heading}
+          </h3>
+          <MySignature key={`signature-${loads}`} lang={lang} hub={hub} />
+        </section>
+      )}
 
       <Phases key={loads} lang={lang} hub={hub} onChange={setHub} />
       {isMember && hub.phase && <Notes key={`notes-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
+      {isMember && hub.phase && hub.phase !== "brainstorm" && <DesignSketch key={`design-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
+      {isMember && (hub.phase === "build" || hub.phase === "review") && <BuildTab key={`build-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
+      {isOwner && hub.status === "active" && <ArchiveHub lang={lang} hub={hub} onChange={manage} />}
+      {isMember && <Chat key={`chat-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
     </main>
   );
 }
 
-// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes.
+// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes and, from design on, its design sketch, from build on its build tab, and the team's chat for its members.
 export function HubPage({ lang }: { lang: Lang }) {
   const search = useSearchParams();
   const id = search.get("id");

@@ -4,13 +4,13 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession, same_world
-from app.models import Idea, IdeaRoleNeed, IdeaStatus, Role
+from app.models import Hub, Idea, IdeaRoleNeed, IdeaStatus, Role
 from app.schemas.ideas import (
     CreateIdeaRequest,
     IdeaAuthor,
@@ -204,6 +204,29 @@ async def close_idea(idea_id: UUID, current_user: CurrentUser, db: DbSession) ->
     await db.commit()
     await db.refresh(idea)
     return IdeaResponse(data=owned_idea(idea))
+
+
+@router.delete("/me/ideas/{idea_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_idea(idea_id: UUID, current_user: CurrentUser, db: DbSession) -> Response:
+    # Locked like hub creation locks it, so a hub cannot be made while the idea is deleted.
+    idea = await db.scalar(
+        select(Idea)
+        .where(Idea.id == idea_id, Idea.author_id == current_user.id, Idea.deleted_at.is_(None))
+        .with_for_update()
+    )
+    if idea is None:
+        raise idea_error(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Idea not found.")
+    if await db.scalar(select(Hub.id).where(Hub.idea_id == idea.id)) is not None:
+        raise idea_error(
+            status.HTTP_409_CONFLICT,
+            "IDEA_HAS_HUB",
+            "This idea has a hub, and its members signed an agreement about it. "
+            "Close the idea instead.",
+        )
+    # Soft delete, as for all user content. Nobody reads the brief again, so it goes now.
+    idea.deleted_at, idea.details = datetime.now(UTC), None
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/ideas", response_model=PublicIdeasResponse)

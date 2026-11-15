@@ -64,13 +64,12 @@ const verbatim = { normalizer: (text: string) => text };
 
 const demo = (container: HTMLElement) => container.querySelector<HTMLElement>("[data-waiting]")!;
 
-test.each(["en", "fr"] as const)("the %s section shows its heading, lead and sample tag", (lang) => {
+test.each(["en", "fr"] as const)("the %s section shows its heading and lead", (lang) => {
   const { container } = render(<HubPhases lang={lang} />);
   const t = copy[lang];
   expect(screen.getByRole("heading", { level: 2, name: t.title })).toBeTruthy();
   expect(container.querySelector("section#hub")!.getAttribute("aria-labelledby")).toBe("hub-title");
   expect(screen.getByText(t.lead, verbatim)).toBeTruthy();
-  expect(screen.getByText(t.sampleTag)).toBeTruthy();
   expect(screen.getByText(t.closing, verbatim)).toBeTruthy();
 });
 
@@ -202,4 +201,21 @@ test("without IntersectionObserver the first phase shows at once", () => {
   belowTheFold();
   const { container } = render(<HubPhases lang="en" />);
   expect(demo(container).dataset.waiting).toBe("false");
+});
+
+// Brainstorm notes and the design sketch ship (hubs/); the build and review tools do not.
+test.each([
+  ["en", "Brainstorm notes and the design sketch are live", "Brainstorm notes", "boxes and arrows", "are not built yet"],
+  ["fr", "Les notes de brainstorm et le schéma de conception sont disponibles", "Notes de brainstorm", "boîtes et en flèches", "ne sont pas encore construits"],
+] as const)("the %s hub section says brainstorm notes and the design sketch are live, and the other two tools are still to come", (lang, live, view, notes, notBuilt) => {
+  render(<HubPhases lang={lang} />);
+  const t = copy[lang];
+  expect(t.lead).toContain(live);
+  expect(t.closing).toContain(notes);
+  expect(t.closing).toContain(notBuilt);
+  expect(t.phases[0].view).toBe(view);
+  // the build and review tools are not built, and the section says so
+  expect(t.lead).toMatch(/still to come|restent à venir/);
+  // no label calls the views made up or a sample
+  expect(`${t.lead} ${t.closing}`).not.toMatch(/made-up|sample|inventé|exemple/i);
 });

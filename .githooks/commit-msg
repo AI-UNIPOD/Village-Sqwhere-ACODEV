@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Checks a commit message against the rule in AGENTS.md section 2.
+# Checks a commit message against the commit rule in CONTRIBUTING.md.
 # CI runs this same file on pull request titles.
 
 # git's own message when merging main into a branch; squash merging keeps it off main
@@ -19,7 +19,7 @@ if [ -z "$msg" ] || [ "$count" -ne 1 ]; then
   echo "Commit message must be exactly one line. No body, no trailers."; exit 1
 fi
 if ! printf '%s' "$line" | grep -Eq "$pattern"; then
-  echo "Use: <type>(<scope>): <what was done>, lowercase, no full stop. See AGENTS.md section 2."
+  echo "Use: <type>(<scope>): <what was done>, lowercase, no full stop. See CONTRIBUTING.md, Commit messages."
   echo "Got: $line"; exit 1
 fi
 if [ ${#line} -gt 72 ]; then

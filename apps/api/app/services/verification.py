@@ -2,12 +2,12 @@ import asyncio
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Protocol
-from urllib.error import HTTPError, URLError
+from http.client import HTTPException
+from typing import Protocol, Self
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, ValidationError, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import GITHUB_API_TOKEN
@@ -22,6 +22,28 @@ class RepositorySnapshot(BaseModel):
     test_paths: list[str] = Field(max_length=500)
     recent_commits: list[dict] = Field(max_length=20)
     tree_truncated: bool = False
+
+
+class RepositoryCommit(BaseModel):
+    """A commit as a hub shows it. GitHub's text is untrusted, so it is kept as plain text, cut
+    to the length hub_commits allows, and the message is never empty."""
+
+    sha: str = Field(pattern=r"^[0-9a-f]{40}$")
+    message: str
+    author_name: str
+    committed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def keep_plain_text(self) -> Self:
+        lines = _plain(self.message).splitlines()
+        self.message = (lines[0].strip() if lines else "")[:200] or self.sha[:7]
+        self.author_name = _plain(self.author_name).strip()[:100]
+        return self
+
+
+def _plain(text: str) -> str:
+    """No null characters, and only valid Unicode, which the database would refuse."""
+    return text.replace("\x00", "").encode("utf-8", "replace").decode()
 
 
 class RepositorySnapshotClient(Protocol):
@@ -75,10 +97,35 @@ class GitHubRepositoryClient:
             tree_truncated=bool(tree.get("truncated", False)),
         )
 
+    async def latest_commits(self, repository_url: str, count: int = 20) -> list[RepositoryCommit]:
+        """The newest commits of the repository's default branch, newest first."""
+        owner, repository = self._repository_parts(repository_url)
+        url = f"https://api.github.com/repos/{owner}/{repository}/commits?per_page={count}"
+        items = await self._get_json(url)
+        try:
+            if not isinstance(items, list):
+                raise TypeError("GitHub did not return a list of commits.")
+            commits = [
+                RepositoryCommit(
+                    sha=item["sha"],
+                    message=item["commit"]["message"],
+                    author_name=item["commit"]["author"]["name"],
+                    committed_at=item["commit"]["committer"]["date"],
+                )
+                for item in items[:count]
+            ]
+        except (KeyError, TypeError, ValidationError) as error:
+            raise GitHubRepositoryError(
+                "GitHub returned commits in a shape we do not read."
+            ) from error
+        if len({commit.sha for commit in commits}) != len(commits):
+            raise GitHubRepositoryError("GitHub returned the same commit twice.")
+        return commits
+
     async def _get_json(self, url: str) -> object:
         try:
             return await asyncio.to_thread(self._get_json_sync, url)
-        except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError) as error:
+        except (OSError, HTTPException, ValueError) as error:
             raise GitHubRepositoryError("GitHub repository data could not be loaded.") from error
 
     def _get_json_sync(self, url: str) -> object:

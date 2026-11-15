@@ -9,6 +9,7 @@ import onboarding from "../onboarding/onboarding.module.css";
 import { keepMe, useMe } from "../session/me";
 import { RequireSession, SignOutButton } from "../session/session-ui";
 import { copy } from "./copy";
+import { DeleteAccount } from "./delete-account";
 import styles from "./profile.module.css";
 import { RolesSection } from "./roles-section";
 import { SectorsSection, StackSection } from "./stack-section";
@@ -83,6 +84,7 @@ function Profile({ lang }: { lang: Lang }) {
       <StackSection lang={lang} me={me} onMe={onMe} />
       <SectorsSection lang={lang} me={me} onMe={onMe} />
       <Account lang={lang} />
+      <DeleteAccount lang={lang} username={me.username} />
     </main>
   );
 }
