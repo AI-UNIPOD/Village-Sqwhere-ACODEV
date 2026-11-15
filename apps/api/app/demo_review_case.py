@@ -7,9 +7,9 @@ underscore, so these addresses can never be a stranger's repositories.
 """
 
 REPOSITORIES = [
-    "https://github.com/tendai_moyo/payments-api",
-    "https://github.com/tendai_moyo/job-queue",
-    "https://github.com/tendai_moyo/receipts-service",
+    "https://github.com/tm_codes/payments-api",
+    "https://github.com/tm_codes/job-queue",
+    "https://github.com/tm_codes/receipts-service",
 ]
 
 MODEL = "gemini-2.5-flash"
