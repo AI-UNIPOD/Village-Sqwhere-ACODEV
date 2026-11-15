@@ -31,7 +31,7 @@ from tests.hub_support import (
     run,
 )
 
-MEMBER_CARD = {"user", "member_role", "status", "decline_kind", "joined_at", "updated_at"}
+MEMBER_CARD = {"user", "member_role", "status", "decline_kind", "joined_at", "updated_at", "fit"}
 
 
 def invite(client: TestClient, hub: Hub, owner: User, username: str) -> Any:

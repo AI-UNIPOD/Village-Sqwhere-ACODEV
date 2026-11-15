@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { hub } from "../hubs/test-support";
@@ -175,11 +175,17 @@ test("the two idea pages point at each other and mark where you are", async () =
 
 // ---------- one open idea ----------
 
-function view(roles: unknown[], over: Record<string, unknown> = {}, username?: string) {
+function view(roles: unknown[], over: Record<string, unknown> = {}, username?: string, routes: Record<string, unknown> = {}, lang: "en" | "fr" = "en") {
   nav.search = "id=idea-1";
   const noPlace = { viewer: { membership_status: null, member_role: null } };
-  api({ "/v1/me": { data: me(roles, username) }, "/v1/ideas/idea-1": { data: idea(over) }, "/v1/hubs/hub-1": { data: hub(noPlace) } });
-  render(<IdeaPage lang="en" />);
+  api({
+    "/v1/me": { data: me(roles, username) },
+    "/v1/ideas/idea-1": { data: idea(over) },
+    "/v1/ideas/idea-1/similar": { data: [] },
+    "/v1/hubs/hub-1": { data: hub(noPlace) },
+    ...routes,
+  });
+  render(<IdeaPage lang={lang} />);
   return screen.findByRole("heading", { level: 1, name: "Clinic queue for Kano" });
 }
 
@@ -204,6 +210,66 @@ test("the idea's own author is offered the composer", async () => {
   // the owner has their own links: no ask, and no need to read the hub's card
   expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
   expect(asked().some((path) => path.startsWith("/v1/hubs"))).toBe(false);
+});
+
+// ---------- ideas that read close ----------
+
+const close = (n: number, over: Record<string, unknown> = {}) =>
+  idea({ id: `idea-${n + 1}`, title: `Close idea ${n}`, summary: `Summary of close idea ${n}.`, author: { username: "yusuf-bello", display_name: "Yusuf Bello", is_verified: false }, ...over });
+
+const similar = (ideas: unknown[]) => ({ "/v1/ideas/idea-1/similar": { data: ideas } });
+
+test("an idea's page lists ideas that read close under it, each a link with its summary, and no number", async () => {
+  await view([], {}, undefined, similar([close(1), close(2)]));
+  const section = await screen.findByRole("heading", { level: 2, name: "Ideas that read close to this one" });
+  const items = within(section.closest("section")!).getAllByRole("listitem");
+  expect(items.map((item) => item.textContent)).toEqual(["Close idea 1Summary of close idea 1.", "Close idea 2Summary of close idea 2."]);
+  expect(within(items[0]).getByRole("link", { name: "Close idea 1" }).getAttribute("href")).toBe("/en/ideas/view?id=idea-2");
+  expect(section.closest("section")!.textContent).not.toMatch(/\d%|AI/);
+  // under the idea, after the step towards its team
+  expect(screen.getByRole("heading", { level: 2, name: "Join the team" }).compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test("only five similar ideas show, however many come", async () => {
+  await view([], {}, undefined, similar([1, 2, 3, 4, 5, 6, 7].map((n) => close(n))));
+  const section = (await screen.findByRole("heading", { level: 2, name: "Ideas that read close to this one" })).closest("section")!;
+  expect(within(section).getAllByRole("listitem")).toHaveLength(5);
+  expect(within(section).queryByText("Close idea 6")).toBeNull();
+});
+
+test("the titles of similar ideas are shown as text", async () => {
+  await view([], {}, undefined, similar([close(1, { title: "<b>Bold</b> idea" })]));
+  const link = await screen.findByRole("link", { name: "<b>Bold</b> idea" });
+  expect(link.querySelector("b")).toBeNull();
+});
+
+test("with no similar idea the page has no section and no empty note", async () => {
+  await view([]);
+  await waitFor(() => expect(asked()).toContain("/v1/ideas/idea-1/similar"));
+  expect(screen.queryByText("Ideas that read close to this one")).toBeNull();
+});
+
+test("a failed read of the similar ideas shows nothing and leaves the rest of the page as it is", async () => {
+  await view([], {}, undefined, { "/v1/ideas/idea-1/similar": reply(500, { detail: { code: "BOOM", message: "x" } }) });
+  await waitFor(() => expect(asked()).toContain("/v1/ideas/idea-1/similar"));
+  expect(screen.queryByText("Ideas that read close to this one")).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByRole("heading", { level: 1, name: "Clinic queue for Kano" })).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 2, name: "Join the team" })).toBeTruthy();
+});
+
+test("an idea the viewer cannot read asks for no similar ideas", async () => {
+  nav.search = "id=idea-1";
+  api({ "/v1/me": { data: me() }, "/v1/ideas/idea-1": reply(404, { detail: { code: "NOT_FOUND", message: "Idea not found." } }) });
+  render(<IdeaPage lang="en" />);
+  await screen.findByRole("heading", { level: 1, name: "This idea is not open" });
+  expect(asked().some((path) => path.includes("/similar"))).toBe(false);
+});
+
+test("the similar section is in French", async () => {
+  await view([], {}, undefined, similar([close(1)]), "fr");
+  expect(await screen.findByRole("heading", { level: 2, name: "Idées proches de celle-ci" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Close idea 1" }).getAttribute("href")).toBe("/fr/ideas/view?id=idea-2");
 });
 
 test("an idea with no roles says the owner has not chosen any", async () => {

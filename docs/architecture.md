@@ -27,7 +27,8 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   changes, a database trigger removes the vector and the next run makes a new one. Without
   `GEMINI_API_KEY` the step does nothing. Why:
   `docs/decisions/2026-11-15-embeddings-on-gemini.md`.
-- **Hosting**: everything is deployed on Systalink (see `infra/README.md`).
+- **Hosting**: one Vercel project, from `vercel.json`: the web app, the API and the verification
+  worker on one domain (see `infra/README.md`).
 
 ## What the API does today
 
@@ -56,9 +57,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   `POST /v1/me/verifications/{role_slug}` (start, with GitHub repositories as evidence),
   `GET /v1/me/verifications`, `GET /v1/me/verifications/{session_id}` (poll one attempt)
   and `POST /v1/me/verifications/{session_id}/abandon`. The technical defence runs over a
-  WebSocket, `WS /v1/me/verifications/{session_id}/interview`, which takes the access token in
-  the `token` query parameter. It is not in the OpenAPI schema, so the route test does not
-  cover it.
+  WebSocket, `WS /v1/me/verifications/{session_id}/interview`, opened with a one-use ticket
+  from `POST /v1/me/verifications/{session_id}/interview-ticket` in the `ticket` query
+  parameter (the older `token` parameter is deprecated). The socket is not in the OpenAPI
+  schema, so the route test does not cover it.
 - **Peer review** (Bearer token, for developers verified in the attempt's role, never their
   own attempt): `GET /v1/reviews/verifications`, `GET /v1/reviews/verifications/{session_id}`
   and `POST /v1/reviews/verifications/{session_id}/decision` (`passed` or `failed`).

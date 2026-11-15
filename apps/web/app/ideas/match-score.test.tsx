@@ -183,6 +183,31 @@ test("nothing in common says so in words, and the points are zero", () => {
   ]);
 });
 
+test("a compared match counts the meaning part like the others, says what it is, and has no partial line", () => {
+  reasons({ scored: { ...scored(88, [40, 12, 10], [fintech], 26), shared_technologies: [go] } });
+  expect(lines()).toEqual([
+    "Roles40 of 40Verified in Backend Engineer and Systems Engineer",
+    "Technologies12 of 20In common with you: Go",
+    "Sectors10 of 10You both build for Fintech",
+    "Meaning26 of 30How close what the idea says is to what the developer's profile says.",
+  ]);
+  expect(screen.queryByText(/Partial score/)).toBeNull();
+  expect(screen.queryByText("Not compared yet")).toBeNull();
+});
+
+test("a compared match with no meaning points at all still reads as compared", () => {
+  reasons({ scored: { ...scored(60, [30, 0, 0], [], 0), shared_technologies: [] } });
+  expect(lines().at(-1)).toBe("Meaning0 of 30How close what the idea says is to what the developer's profile says.");
+});
+
+test("the meaning row of a compared match is in French", () => {
+  reasons({ lang: "fr", scored: { ...scored(88, [40, 12, 10], [], 26), shared_technologies: [] } });
+  const list = screen.getByRole("list", { name: "Pourquoi ce score" });
+  expect(within(list).getByText("26 sur 30")).toBeTruthy();
+  expect(within(list).getByText("À quel point ce que dit l'idée est proche de ce que dit le profil du développeur.")).toBeTruthy();
+  expect(screen.queryByText(/Score partiel/)).toBeNull();
+});
+
 test("a score that is not partial has no line about it", () => {
   reasons({ scored: { ...scored(100, [40, 20, 10]), partial: false, shared_technologies: [] } });
   expect(screen.queryByText(/Partial score/)).toBeNull();

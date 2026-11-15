@@ -1080,3 +1080,81 @@ def test_worker_gives_the_analyzer_the_stored_language(sign_in) -> None:
     asyncio.run(_process())
     assert languages == ["fr"]
     cleanup_user(user_id)
+
+
+# --- one-use interview tickets: docs/decisions/2026-11-15-interview-ticket.md ----------------
+
+
+def interview_ticket(data: dict, session_id: UUID):
+    return client.post(f"/v1/me/verifications/{session_id}/interview-ticket", headers=bearer(data))
+
+
+def socket_refused(url: str) -> bool:
+    from starlette.websockets import WebSocketDisconnect
+
+    try:
+        with client.websocket_connect(url) as websocket:
+            websocket.receive_json()
+    except WebSocketDisconnect as closed:
+        return closed.code == 1008
+    return False
+
+
+def test_a_ticket_opens_the_interview_once(sign_in, monkeypatch) -> None:
+    configure_test_interview(monkeypatch)
+    data = sign_in("github-code-moussa")
+    session_id = prepare_interview_session(data)
+
+    issued = interview_ticket(data, session_id)
+    assert issued.status_code == 201, issued.text
+    ticket = issued.json()["data"]["ticket"]
+    assert issued.json()["data"]["expires_at"]
+    url = f"/v1/me/verifications/{session_id}/interview?ticket={ticket}"
+    with client.websocket_connect(url) as websocket:
+        assert websocket.receive_json()["kind"] == "welcome"
+        assert websocket.receive_json()["type"] == "question"
+
+    assert socket_refused(url)  # used once already
+    cleanup_user(UUID(data["user"]["id"]))
+
+
+def test_an_expired_unknown_or_other_session_ticket_is_refused(sign_in, monkeypatch) -> None:
+    configure_test_interview(monkeypatch)
+    data = sign_in("github-code-moussa")
+    session_id = prepare_interview_session(data)
+    base = f"/v1/me/verifications/{session_id}/interview"
+
+    assert socket_refused(f"{base}?ticket=not-a-ticket")
+    other = interview_ticket(data, session_id).json()["data"]["ticket"]
+    assert socket_refused(f"/v1/me/verifications/{UUID(int=0)}/interview?ticket={other}")
+
+    expired = interview_ticket(data, session_id).json()["data"]["ticket"]
+    user_id, ticket_session, _ = interviews_api._TICKETS[expired]
+    interviews_api._TICKETS[expired] = (user_id, ticket_session, datetime.now(UTC))
+    assert socket_refused(f"{base}?ticket={expired}")
+    cleanup_user(UUID(data["user"]["id"]))
+
+
+def test_a_ticket_is_only_for_an_attempt_at_its_interview(sign_in) -> None:
+    data = sign_in("github-code-moussa")
+    cleanup_user(UUID(data["user"]["id"]))
+    claim_role(data)
+    started = start_attempt(data)
+    pending = UUID(started.json()["data"]["id"])
+
+    refused = interview_ticket(data, pending)
+    assert refused.status_code == 409
+    assert refused.json()["detail"]["code"] == "INTERVIEW_NOT_AVAILABLE"
+    missing = interview_ticket(data, UUID(int=0))
+    assert missing.status_code == 404
+    assert client.post(f"/v1/me/verifications/{pending}/interview-ticket").status_code == 401
+    cleanup_user(UUID(data["user"]["id"]))
+
+
+def test_another_applicants_attempt_gets_no_ticket(sign_in) -> None:
+    owner = sign_in("github-code-moussa")
+    session_id = prepare_interview_session(owner)
+    stranger = sign_in("github-code-ada")
+
+    assert interview_ticket(stranger, session_id).status_code == 404
+    cleanup_user(UUID(owner["user"]["id"]))

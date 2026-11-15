@@ -12,6 +12,12 @@ its number:
 
 - fix(api): keep a strong, a possible and a weak match in the demo
 - feat(api): add the meaning part to the match score and similar ideas (#225)
+- fix(api): make the demo world's review case and chats consistent (#224)
+- feat(web): show the meaning part of the score and similar ideas (#222)
+- chore: deploy the web app, api and worker as one vercel project (#226)
+- feat(api): open the interview socket with a one-use ticket (#216)
+- fix(web): mark the village steps a developer has already done (#215)
+- feat(api): show the owner the match score on join requests (#214)
 - feat(api): store what ideas and profiles mean as embeddings (#211)
 - fix(api): make the demo world's review case and chats consistent (#224)
 - feat(web): turn the theme in a wave of tiles from the centre (#180)
