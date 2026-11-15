@@ -20,8 +20,10 @@ import {
   declineInvitation,
   declineRequest,
   inviteMember,
+  leaveHub,
   loadHub,
   loadMembers,
+  removeMember,
   withdrawInvitation,
   type Hub,
   type Member,
@@ -182,6 +184,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
   const [arrived, setArrived] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState<Member | null>(null);
   const [declining, setDeclining] = useState<Member | null>(null);
+  const [removing, setRemoving] = useState<Member | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   // what the owner's last answer did, for a screen reader
@@ -261,6 +264,32 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
     }
   }
 
+  async function remove() {
+    if (!removing || busy) return;
+    const gone = removing;
+    setBusy(true);
+    setProblem(null);
+    setNotice(null);
+    try {
+      await removeMember(hub.id, gone.user.id);
+      setMembers((list) => list && list.filter((other) => other.user.id !== gone.user.id));
+      setNotice(fill(t.team.removed, { name: gone.user.display_name }));
+    } catch (error) {
+      if (error instanceof SignedOutError) return;
+      const code = error instanceof IdeaError ? error.code : "";
+      if (code === "MEMBER_NOT_FOUND") {
+        // they left, or were removed in another tab: show the list as it is now
+        setAttempt((n) => n + 1);
+        setNotice(fill(t.team.removeGone, { name: gone.user.display_name }));
+      } else setProblem(code === "HUB_ARCHIVED" ? t.team.errors.archived : t.team.actionFailed);
+    } finally {
+      setBusy(false);
+      setRemoving(null);
+    }
+  }
+
+  // an archived hub's team cannot change, and the owner is never removed
+  const removable = (member: Member) => isOwner && hub.status === "active" && member.status === "active" && member.member_role !== "owner";
   const active = members?.filter((member) => member.status === "active").length ?? hub.member_count;
   // requests wait on the owner, so they come first
   const shown = [...(members ?? [])].sort((a, b) => Number(b.status === "requested") - Number(a.status === "requested"));
@@ -292,6 +321,18 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
                 // someone invited or who declined has no part in the hub yet
                 role={member.status !== "active" ? undefined : member.member_role === "owner" ? t.owner : t.member}
               />
+              {removable(member) && (
+                <div className={styles.side}>
+                  <button
+                    type="button"
+                    className={landing.ghost}
+                    aria-label={fill(t.team.named, { action: t.team.remove, name: member.user.display_name })}
+                    onClick={() => setRemoving(member)}
+                  >
+                    {t.team.remove}
+                  </button>
+                </div>
+              )}
               {member.status !== "active" && (
                 <div className={styles.side}>
                   <Pill status={member.status} label={t.team[member.status]} />
@@ -390,6 +431,61 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
         onCancel={() => setWithdrawing(null)}
       >
         <p>{t.team.withdrawDialog.text}</p>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={!!removing}
+        title={t.team.removeDialog.title}
+        confirm={t.team.removeDialog.confirm}
+        cancel={t.team.removeDialog.cancel}
+        danger
+        busy={busy}
+        onConfirm={remove}
+        onCancel={() => setRemoving(null)}
+      >
+        <p>{t.team.removeDialog.text}</p>
+      </ConfirmDialog>
+    </div>
+  );
+}
+
+// For an active member who is not the owner: leave the hub, behind a confirmation. The API
+// answers with the hub card, so the page shows the hub as someone who left it.
+export function LeaveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: (hub: Hub) => void }) {
+  const t = copy[lang].leave;
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState(false);
+
+  async function leave() {
+    if (busy) return;
+    setBusy(true);
+    setProblem(false);
+    try {
+      onChange(await leaveHub(hub.id));
+    } catch (error) {
+      if (error instanceof SignedOutError) return;
+      // no longer an active member (removed or left in another tab): show the hub as it is now
+      if (error instanceof IdeaError && error.code === "MEMBERSHIP_NOT_FOUND") loadHub(hub.id).then(onChange, () => setProblem(true));
+      else setProblem(true);
+    } finally {
+      setBusy(false);
+      setAsking(false);
+    }
+  }
+
+  return (
+    <div className={styles.line}>
+      {problem && (
+        <p className={`${onboarding.error} ${styles.problem}`} role="alert">
+          <AlertCircle />
+          {t.failed}
+        </p>
+      )}
+      <button type="button" className={landing.ghost} onClick={() => setAsking(true)}>
+        {t.button}
+      </button>
+      <ConfirmDialog open={asking} title={t.title} confirm={t.confirm} cancel={t.cancel} danger busy={busy} onConfirm={leave} onCancel={() => setAsking(false)}>
+        <p>{t.text}</p>
       </ConfirmDialog>
     </div>
   );
