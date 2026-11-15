@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(api): let a developer pause matching (#213)
 - docs: name the live address for sign-in settings and add a check (#228)
 - feat(api): record when a developer finishes onboarding (#212)
 - docs: link the live site in both readmes (#227)
