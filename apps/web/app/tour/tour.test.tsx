@@ -94,7 +94,7 @@ test("a demo visitor who never started the tour is offered it beside the way out
   fireEvent.click(button("Take the tour"));
   expect(nav.push).toHaveBeenCalledExactlyOnceWith("/en/village");
   // the tour is on at the start, and the offer goes
-  expect((await panel()).textContent).toContain("The demo village");
+  expect((await panel()).textContent).toContain("Your village");
   expect(screen.queryByRole("button", { name: "Take the tour" })).toBeNull();
   expect(button("Leave the demo")).toBeTruthy();
 });
@@ -111,7 +111,7 @@ test("the start asks for the demo's idea and hub, and Start the route waits for 
   startTour();
   render(frame("village"));
   const region = await panel();
-  expect(region.querySelector("h2")?.textContent).toBe("The demo village");
+  expect(region.querySelector("h2")?.textContent).toBe("Your village");
   // the start has no count
   expect(region.textContent).not.toMatch(/Stop \d/);
   const start = button("Start the route");
@@ -212,12 +212,12 @@ test("a stop on another screen is left to that screen to scroll", async () => {
 });
 
 test.each([
-  ["en", 0, "The demo village", null],
+  ["en", 0, "Your village", null],
   ["en", 1, "Share an idea", "Stop 1 of 4"],
   ["en", 2, "See who the matcher suggests", "Stop 2 of 4"],
   ["en", 3, "Invite your team", "Stop 3 of 4"],
   ["en", 4, "Follow the hub's four phases", "Stop 4 of 4"],
-  ["fr", 0, "Le village de démo", null],
+  ["fr", 0, "Votre village", null],
   ["fr", 2, "Voir qui le matcher propose", "Étape 2 sur 4"],
   ["fr", 3, "Inviter votre équipe", "Étape 3 sur 4"],
   ["fr", 4, "Suivre les quatre phases de l'espace", "Étape 4 sur 4"],
@@ -296,7 +296,7 @@ test("End the tour removes the panel, and the demo line then offers to take it a
 
   fireEvent.click(button("Take the tour"));
   expect(nav.push).toHaveBeenCalledWith("/en/village");
-  expect((await panel()).textContent).toContain("The demo village");
+  expect((await panel()).textContent).toContain("Your village");
 });
 
 // ---------- when the route cannot be loaded ----------
@@ -360,7 +360,7 @@ test("a stop reached with Next or Back puts focus on the stop's heading on the n
 
   fireEvent.click(button("Back"));
   view.rerender(frame("village"));
-  await waitFor(() => expect(document.activeElement?.textContent).toBe("The demo village"));
+  await waitFor(() => expect(document.activeElement?.textContent).toBe("Your village"));
 });
 
 test("Back to the route also takes focus to the stop", async () => {

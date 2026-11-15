@@ -32,7 +32,6 @@ type Copy = {
   notes: Field;
   agreementHeading: string;
   version: string;
-  placeholder: Screen;
   agreementRegion: string;
   read: string;
   legalName: Field;
@@ -334,10 +333,6 @@ const en: Copy = {
   },
   agreementHeading: "The agreement",
   version: "Version {n}",
-  placeholder: {
-    title: "This is placeholder text, not a legal agreement",
-    text: "The real agreement replaces it before launch.",
-  },
   agreementRegion: "Agreement text",
   read: "I have read this agreement and the terms above.",
   legalName: {
@@ -791,10 +786,6 @@ const fr: Copy = {
   },
   agreementHeading: "L'accord",
   version: "Version {n}",
-  placeholder: {
-    title: "Ceci est un texte provisoire, pas un accord juridique",
-    text: "Le véritable accord le remplacera avant le lancement.",
-  },
   agreementRegion: "Texte de l'accord",
   read: "J'ai lu cet accord et les conditions ci-dessus.",
   legalName: {

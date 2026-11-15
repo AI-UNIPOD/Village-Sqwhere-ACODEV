@@ -59,7 +59,7 @@ test("the agreement opens on request and says when it is the exact text signed",
   await open(asMember);
   fireEvent.click(await within(section()).findByRole("button", { name: "Read the agreement you signed" }));
   expect((await within(section()).findByText("This is the exact text you signed.")).closest("[role=status]")).toBeTruthy();
-  expect(within(section()).getByRole("region", { name: "TEST AGREEMENT (NOT LEGAL TEXT)" }).textContent).toMatch(/Members keep the idea private\./);
+  expect(within(section()).getByRole("region", { name: "Village Sqwhere hub agreement" }).textContent).toMatch(/Members keep the idea private\./);
 });
 
 test("a text whose hash differs from the signed one is called out", async () => {

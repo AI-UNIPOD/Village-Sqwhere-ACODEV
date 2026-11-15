@@ -19,7 +19,8 @@ The web frontend's owner chose, on 13 November 2026:
   lists and paragraphs into elements and shows everything else as plain characters. No
   Markdown library, and nothing from the text can run as markup.
 - **Placeholder text is called out.** While the published agreement's title contains "TEST", a
-  warning above it says it is not a legal agreement.
+  warning above it says it is not a legal agreement. Changed on 2026-11-15: the warning is
+  removed (`2026-11-15-one-demo-line-no-other-labels.md`).
 - **Three things are needed to sign:** a ticked "I have read" box, a typed legal name, and a
   confirm dialog that says back the hub's name, the ownership choice and the name signed.
 - **The request carries the text that was shown:** the template id and hash loaded with the
