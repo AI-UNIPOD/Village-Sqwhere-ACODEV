@@ -137,6 +137,13 @@ test("the interview shows each question and answer, keeps line breaks and flags 
   expect(within(screen.getByText("And scaling?").closest("li")!).getByText("No answer")).toBeTruthy();
 });
 
+test("for the demo account a GitHub address is plain text, since it is on GitHub for nobody", async () => {
+  keepMe({ username: "aminata-n", display_name: "Aminata Ndiaye", bio: null, country_code: null, roles: [], technologies: [], feed_topics: [], sectors: [], is_demo: true });
+  await opened();
+  expect(screen.getByText("https://github.com/ama/ledger")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: /github.com/ })).toBeNull();
+});
+
 test("the repositories check names each criterion with its score, reason and files", async () => {
   await opened();
   expect(screen.getByText("Two small services.")).toBeTruthy();
