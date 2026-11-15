@@ -5,7 +5,7 @@
 -- gets finished_at, empty until its owner finishes it.
 -- Why: docs/decisions/2026-11-15-hub-review-checklist.md
 --
--- Runs after 019-hub-build.sql (020 belongs to another change). Running it twice is safe, so a
+-- Runs after 019-hub-build.sql. Running it twice is safe, so a
 -- database made before it can run it once by hand (see infra/README.md).
 
 ALTER TABLE hubs ADD COLUMN IF NOT EXISTS finished_at timestamptz;
