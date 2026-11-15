@@ -114,6 +114,11 @@ makes a waiting invitation its next step, and the places bar marks Hubs with a d
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
 page of the developer's hubs (`loadHubsByIdea`), because the API cannot look one up by idea.
 
+Under the hub's terms, "Your signature" (`hubs/my-signature.tsx`, `GET /v1/hubs/{id}/membership`)
+tells a member, or someone who left or was removed, which version they signed, the name they typed
+and the day. "Read the agreement you signed" loads the hub's agreement and compares its hash with
+the one in the signature, so the page says whether it is the exact text signed.
+
 The hub card carries `phase`, `team_confirmed_at` and `phases` (each phase with its state). The
 page lists the four phases with their real state for everyone who sees the hub and marks the one
 in progress (`hubs/phases.tsx`). The owner of an active hub confirms the team
