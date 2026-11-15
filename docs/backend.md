@@ -2210,6 +2210,24 @@ curl -X POST http://localhost:8000/v1/uploads \
 
 ---
 
+### `DELETE /v1/uploads/{attachment_id}`
+
+Remove one image from a post, so editing a post can take a picture out without deleting the post.
+The other images keep their positions, and the next upload takes the first free one.
+
+* **Authentication:** Required (Bearer token). Demo accounts are read-only.
+* **Ownership:** Only the post author. A hub's milestone post cannot be edited.
+* **Success:** HTTP 204, no body. The image's address answers 404 from then on, though a cache
+  may still serve it for up to an hour.
+* **Errors:** 401 unauthenticated, 403 `NOT_POST_AUTHOR`, 404 `IMAGE_NOT_FOUND` or
+  `POST_NOT_FOUND`, and 409 `MILESTONE_NOT_EDITABLE`.
+
+```bash
+curl -X DELETE http://localhost:8000/v1/uploads/$ATTACHMENT_ID   -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+---
+
 ### `GET /v1/post-images/{attachment_id}`
 
 The bytes of one post image, with its own `Content-Type`. This is the `url` in each attachment.
