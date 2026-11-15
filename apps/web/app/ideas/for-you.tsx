@@ -7,37 +7,35 @@ import { AppFrame } from "../app-frame";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { Check, Lightbulb, ShieldCheck, Users } from "../onboarding/icons";
+import { Lightbulb, ShieldCheck, Users } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
-import { OpenIdeaCard, authorName, roleName, technologyName } from "./browse";
+import { OpenIdeaCard, authorName, roleName } from "./browse";
 import { copy } from "./copy";
 import { loadIdeasForMe, type IdeaMatch } from "./ideas-api";
 import styles from "./ideas.module.css";
 import { IdeasTabs } from "./ideas-tabs";
+import { MatchScore, ScoreReasons } from "./match-score";
 import { IdeasSkeleton } from "./my-ideas";
 
-// Why the idea is here: the developer's verified roles that it needs, by name, and the
-// technologies they share with its author.
+// Why the idea is here: its score and the parts of it, among them the developer's verified roles
+// that the idea needs and what they share with its author.
 function WhyLine({ lang, match }: { lang: Lang; match: IdeaMatch }) {
   const t = copy[lang].forYou;
-  const { matched_roles: roles, shared_technologies: shared, idea } = match;
+  const { matched_roles: roles, idea } = match;
+  const name = authorName(idea.author);
   return (
     <>
-      <p className={styles.fit}>
-        <Users />
-        <span>{fill(roles.length === 1 ? t.whyOne : t.whyMany, { roles: roles.map((role) => roleName(lang, role)).join(", ") })}</span>
-      </p>
-      {shared.length > 0 && (
-        <p className={styles.fit}>
-          <Check />
-          <span>
-            {fill(t.inCommon, { name: authorName(idea.author), technologies: shared.map((tech) => technologyName(lang, tech)).join(", ") })}
-          </span>
-        </p>
-      )}
+      {match.score !== undefined && <MatchScore lang={lang} score={match.score} partial={!!match.partial} />}
+      <ScoreReasons
+        lang={lang}
+        scored={match}
+        roles={fill(roles.length === 1 ? t.whyOne : t.whyMany, { roles: roles.map((role) => roleName(lang, role)).join(", ") })}
+        technologies={(names) => fill(t.inCommon, { name, technologies: names })}
+        sectors={(names) => fill(t.sectors, { name, sectors: names })}
+      />
     </>
   );
 }

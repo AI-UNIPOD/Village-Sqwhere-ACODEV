@@ -65,9 +65,9 @@ const en: Copy = {
   stages: {
     repositories: {
       title: "Repositories check",
-      now: "Our AI checker is reading your public repositories. This usually takes a few minutes.",
+      now: "Our AI checker is looking at your public repositories: file names, languages, tests and recent commit messages. This usually takes a few minutes.",
       retrying: "The first check did not finish. We are trying again.",
-      done: "Your repositories have been read.",
+      done: "Your repositories have been checked.",
     },
     interview: {
       title: "Interview",
@@ -113,7 +113,7 @@ const en: Copy = {
   what: {
     title: "What happens",
     stages: [
-      { title: "Repositories check", text: "Our AI checker reads the public code you share." },
+      { title: "Repositories check", text: "Our AI checker looks at the public repositories you share: file names, languages, tests and recent commit messages." },
       { title: "Interview", text: "Five questions from an AI interviewer. You type your answers." },
       { title: "Peer review", text: "A developer verified in your role reads the report and decides." },
     ],
@@ -123,7 +123,7 @@ const en: Copy = {
     label: "Repositories",
     help: "One GitHub address per line, up to 10. Public repositories only, for example https://github.com/your-name/your-project",
     consent:
-      "I agree that the public code in these repositories is read by an AI checker, and that my interview answers are kept with this attempt. Private repositories are never read.",
+      "I agree that an AI checker looks at these public repositories (file names, languages, tests and recent commit messages), and that my interview answers are kept with this attempt. Only public repositories can be checked.",
     language:
       "The interview and the AI's report will be in English, the language of this page. To use French, switch language before you start.",
     submit: "Start verification",
@@ -179,9 +179,9 @@ const fr: Copy = {
   stages: {
     repositories: {
       title: "Analyse des dépôts",
-      now: "Notre vérificateur IA lit vos dépôts publics. Cela prend en général quelques minutes.",
+      now: "Notre vérificateur IA examine vos dépôts publics\u202f: noms de fichiers, langages, tests et derniers messages de commit. Cela prend en général quelques minutes.",
       retrying: "La première analyse n'a pas abouti. Nous réessayons.",
-      done: "Vos dépôts ont été lus.",
+      done: "Vos dépôts ont été examinés.",
     },
     interview: {
       title: "Entretien",
@@ -229,7 +229,7 @@ const fr: Copy = {
   what: {
     title: "Ce qui se passe",
     stages: [
-      { title: "Analyse des dépôts", text: "Notre vérificateur IA lit le code public que vous partagez." },
+      { title: "Analyse des dépôts", text: "Notre vérificateur IA examine les dépôts publics que vous partagez\u202f: noms de fichiers, langages, tests et derniers messages de commit." },
       { title: "Entretien", text: "Cinq questions posées par un intervieweur IA. Vous répondez par écrit." },
       { title: "Relecture par un pair", text: "Un développeur vérifié dans votre rôle lit le rapport et décide." },
     ],
@@ -239,7 +239,7 @@ const fr: Copy = {
     label: "Dépôts",
     help: "Une adresse GitHub par ligne, 10 au maximum. Dépôts publics uniquement, par exemple https://github.com/votre-nom/votre-projet",
     consent:
-      "J'accepte que le code public de ces dépôts soit lu par un vérificateur IA, et que mes réponses à l'entretien soient conservées avec cette tentative. Les dépôts privés ne sont jamais lus.",
+      "J'accepte qu'un vérificateur IA examine ces dépôts publics (noms de fichiers, langages, tests et derniers messages de commit), et que mes réponses à l'entretien soient conservées avec cette tentative. Seuls les dépôts publics peuvent être analysés.",
     language:
       "L'entretien et le rapport de l'IA seront en français, la langue de cette page. Pour utiliser l'anglais, changez de langue avant de commencer.",
     submit: "Lancer la vérification",

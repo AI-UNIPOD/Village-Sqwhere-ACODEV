@@ -341,7 +341,17 @@
 
 .noteRemove:active { transform: scale(0.97); }
 
-.noteForm { margin-block-start: var(--space-6); }
+.noteForm,
+.designForm { margin-block-start: var(--space-6); }
+
+/* A piece's name can be 60 characters, and a select is as wide as its longest option unless told
+   otherwise: it must shrink to the form instead of pushing the page sideways. */
+.pick {
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  text-overflow: ellipsis;
+}
 
 @media (hover: hover) and (pointer: fine) {
   .noteRemove:hover {
@@ -353,6 +363,117 @@
 @media (prefers-reduced-motion: reduce) {
   .noteRemove:active { transform: none; }
 }
+
+/* ---------- design sketch: the pieces as cards and, on a wide screen, a drawing of them ---------- */
+/* The picture is wider than the text column, so its writing stays readable: it is centred on the
+   column and takes the room the page has, up to its own size. It keeps its proportions and never
+   goes past the page margins, so it does not scroll sideways. The text in it is cut to fit by the
+   layout, so nothing leaves its box. */
+.figure {
+  position: relative;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  display: flex;
+  justify-content: center;
+  inline-size: min(64rem, calc(100vw - 2 * var(--gutter)));
+  margin-block-start: var(--space-4);
+}
+
+.drawing {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+.box {
+  fill: var(--surface-raised);
+  stroke: var(--line-strong);
+  rx: var(--radius-m);
+}
+
+.arrow {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.boxName {
+  fill: var(--text);
+  font: var(--type-label);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* the patch hides the line of the arrow behind a label that had to sit on it */
+.labelPatch {
+  fill: var(--bg);
+  rx: var(--radius-s);
+}
+
+.arrowLabel {
+  fill: var(--text-muted);
+  font: var(--type-caption);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.pieces {
+  display: grid;
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .pieces { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.piece {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-s);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+}
+
+/* plain text: a long name or word wraps */
+.pieceName {
+  font: var(--type-title);
+  overflow-wrap: anywhere;
+}
+
+.pieceSummary {
+  font: var(--type-body-s);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pieceLinks {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  list-style: none;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  overflow-wrap: anywhere;
+}
+
+/* a link's line holds its words and, to the right, its delete button */
+.linkLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.linkLine .noteRemove { margin: 0; }
+
+.formTitle { font: var(--type-title); }
 
 /* ---------- on an idea's card ---------- */
 /* this link sits above the card's own link, which covers the whole card */

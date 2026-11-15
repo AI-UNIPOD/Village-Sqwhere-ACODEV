@@ -22,6 +22,7 @@ import { roleName, technologyName } from "./browse";
 import { copy } from "./copy";
 import { IdeaError, loadDevelopersForIdea, loadMyIdea, type Developer, type OwnedIdea } from "./ideas-api";
 import styles from "./ideas.module.css";
+import { MatchScore, ScoreReasons, sentenceList } from "./match-score";
 import { IdeasSkeleton } from "./my-ideas";
 
 // One developer who matches: who they are, why they matched, and, when the idea has a hub with
@@ -60,7 +61,7 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
   return (
     <li ref={card} className={styles.card}>
       <div className={styles.personRow}>
-        <Person lang={lang} user={person} />
+        <Person lang={lang} user={person} role={country} />
         {hub && state === "sent" && (
           <span className={`${village.pill} ${hubsStyles.sent}`} data-state="open">
             <Clock />
@@ -79,7 +80,6 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
           </button>
         )}
       </div>
-      {country && <p className={styles.meta}>{country}</p>}
       <p className={landing.srOnly} role="status">
         {state === "sent" ? fill(team.form.sent, { name: person.display_name }) : ""}
       </p>
@@ -89,10 +89,14 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
           {problem}
         </p>
       )}
-      <div className={styles.why}>
-        <p>{fill(t.verifiedIn, { roles: person.matched_roles.map((role) => roleName(lang, role)).join(", ") })}</p>
-        {shared.length > 0 && <p>{fill(t.inCommon, { technologies: shared.map((tech) => technologyName(lang, tech)).join(", ") })}</p>}
-      </div>
+      {person.score !== undefined && <MatchScore lang={lang} score={person.score} partial={!!person.partial} />}
+      <ScoreReasons
+        lang={lang}
+        scored={person}
+        roles={fill(t.verifiedIn, { roles: sentenceList(lang, person.matched_roles.map((role) => roleName(lang, role))) })}
+        technologies={(names) => fill(t.inCommon, { technologies: names })}
+        sectors={(names) => fill(t.sectors, { sectors: names })}
+      />
       {tags.length > 0 && (
         <ul className={village.tags} aria-label={t.technologies}>
           {tags.map(({ tech, inCommon }) => (

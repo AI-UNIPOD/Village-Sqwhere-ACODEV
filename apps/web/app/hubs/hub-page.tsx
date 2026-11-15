@@ -17,6 +17,7 @@ import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
 import { BriefSection } from "./brief";
 import { copy } from "./copy";
+import { DesignSketch } from "./design";
 import { loadHub, type Hub } from "./hubs-api";
 import { WithdrawRequest, WithdrawnLine, type WithdrawOutcome } from "./withdraw-request";
 import styles from "./hubs.module.css";
@@ -158,11 +159,12 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
 
       <Phases key={loads} lang={lang} hub={hub} onChange={setHub} />
       {isMember && hub.phase && <Notes key={`notes-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
+      {isMember && hub.phase && hub.phase !== "brainstorm" && <DesignSketch key={`design-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
     </main>
   );
 }
 
-// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes.
+// One hub's card: what it builds, who is in it, the terms everyone signed, the four phases and, once the team is confirmed, its brainstorm notes and, from design on, its design sketch.
 export function HubPage({ lang }: { lang: Lang }) {
   const search = useSearchParams();
   const id = search.get("id");
