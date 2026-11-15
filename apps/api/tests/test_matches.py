@@ -746,3 +746,58 @@ def test_ideas_are_scored_named_and_ordered_by_score_across_pages(
     assert all(card["score_version"] == 1 and card["partial"] is True for card in cards)
     assert [sector["name"][:5] for sector in cards[0]["shared_sectors"]] == ["apple", "Zebra"]
     assert cards[1]["shared_sectors"] == [] and cards[2]["shared_sectors"] == []
+
+
+# --- pausing matching: docs/decisions/2026-11-15-pause-matching.md ---------------------------
+
+
+def pause(client: TestClient, user: User, paused: Any) -> Any:
+    return client.patch("/v1/me", headers=auth(user), json={"matching_paused": paused})
+
+
+def test_a_paused_developer_leaves_owners_matches_and_comes_back(
+    client: TestClient, new_role: Callable[[], Role]
+) -> None:
+    needed = new_role()
+    owner, developer = make_user(), make_user()
+    verify(developer, needed)
+    idea_id = new_idea(client, owner, needed)
+    assert usernames(developer_matches(client, owner, idea_id)) == [developer.username]
+
+    paused = pause(client, developer, True)
+    assert paused.status_code == 200, paused.text
+    assert paused.json()["data"]["matching_paused"] is True
+    first_paused_at = paused.json()["data"]["matching_paused_at"]
+    assert first_paused_at is not None
+    assert usernames(developer_matches(client, owner, idea_id)) == []
+    # pausing again keeps the first moment
+    assert pause(client, developer, True).json()["data"]["matching_paused_at"] == first_paused_at
+
+    resumed = pause(client, developer, False).json()["data"]
+    assert resumed["matching_paused"] is False and resumed["matching_paused_at"] is None
+    assert usernames(developer_matches(client, owner, idea_id)) == [developer.username]
+
+
+def test_a_paused_developer_still_sees_their_own_matches_and_profile(
+    client: TestClient, new_role: Callable[[], Role]
+) -> None:
+    needed = new_role()
+    owner, developer, viewer = make_user(), make_user(), make_user()
+    verify(developer, needed)
+    idea_id = new_idea(client, owner, needed)
+    pause(client, developer, True)
+
+    mine = client.get(MY_MATCHES, headers=auth(developer)).json()["data"]
+    assert [match["idea"]["id"] for match in mine] == [idea_id]
+    profile = client.get(f"/v1/users/{developer.username}", headers=auth(viewer))
+    assert profile.status_code == 200
+
+
+def test_pause_must_be_true_or_false(client: TestClient) -> None:
+    user = make_user()
+    for value in (None, "yes", 1):
+        assert pause(client, user, value).status_code == 422, value
+    both = client.patch(
+        "/v1/me", headers=auth(user), json={"matching_paused": True, "bio": "Back in a month."}
+    ).json()["data"]
+    assert both["matching_paused"] is True and both["bio"] == "Back in a month."

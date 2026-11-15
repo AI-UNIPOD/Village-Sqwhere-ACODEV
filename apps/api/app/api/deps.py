@@ -85,6 +85,8 @@ def user_to_profile(user: User) -> UserProfile:
         avatar_url=user.avatar_url,
         bio=user.bio,
         country_code=user.country_code,
+        matching_paused=user.matching_paused_at is not None,
+        matching_paused_at=user.matching_paused_at,
         is_verified=user.is_verified,
         verified_at=user.verified_at,
         platform_role=(

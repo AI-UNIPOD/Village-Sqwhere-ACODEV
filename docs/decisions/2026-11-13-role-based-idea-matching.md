@@ -27,7 +27,8 @@ Tanny delegated these calls to the product owner on 13 November 2026.
   asking, invited or in the hub are left out (`2026-11-14-suggest-again-after-a-no.md`).
 - Matching never loads an idea's `details`. The code defers the column and makes it raise if
   read, and no model sees any idea text.
-- There is no opt-out setting yet. A developer enters matching by verifying a role. A candidate
+- There is no opt-out setting yet (changed on 2026-11-15: a developer can pause matching,
+  `2026-11-15-pause-matching.md`). A developer enters matching by verifying a role. A candidate
   card shows only username, display name, avatar, the verified badge, matched roles and
   technologies: no email, names or bio. Changed on 2026-11-14: the card also carries the
   developer's country when they named one, and names the shared technologies; see

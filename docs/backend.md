@@ -344,6 +344,8 @@ Fetches the full profile of the currently signed-in user.
       "avatar_url": "https://avatars.githubusercontent.com/u/1001",
       "bio": "Backend engineer in Lagos",
       "country_code": "NG",
+      "matching_paused": false,
+      "matching_paused_at": null,
       "is_verified": true,
       "verified_at": "2026-11-06T18:00:00Z",
       "platform_role": "member",
@@ -391,9 +393,11 @@ Updates editable fields on the user's profile.
     "first_name": "Ada",
     "last_name": "Obi",
     "email": "new-email@example.com",
-    "country_code": "NG"
+    "country_code": "NG",
+    "matching_paused": true
   }
   ```
+* **Pausing matching:** `"matching_paused": true` takes the developer out of every owner's developer matches (`GET /v1/me/ideas/{idea_id}/matches`) until they send `false`. Profiles show `matching_paused` and `matching_paused_at` (when it started; pausing again keeps the first moment). Their own `GET /v1/me/matches`, their public profile, invitations by username and asking to join all work as before: pausing only stops suggestions. `null` or anything but `true` and `false` gets a `422`. Why: `docs/decisions/2026-11-15-pause-matching.md`.
 * **Country:** `country_code` is optional and has no city beside it. It is a two-letter ISO code (capital letters) of one of the 54 African countries, such as `NG`, `SN` or `KE`; the list is `AFRICAN_COUNTRY_CODES` in `apps/api/app/countries.py`. It is `null` until a developer sets it. Send a code to set or change it, send `"country_code": null` to clear it, and leave the key out to keep it as it is. Any other value (a code from outside Africa, lowercase, three letters) gets a `422` that names `country_code`. It shows to other signed-in developers on the match cards of `GET /v1/me/ideas/{idea_id}/matches`.
 * **Limits:** `display_name` 1 to 80 characters, `first_name` and `last_name` 1 to 100, after spaces at the start and end are removed. `bio` up to 1000 characters. `email` must look like `name@example.com`. A new email is saved as not verified.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
@@ -859,7 +863,7 @@ or a removal, both can be suggested again. Why:
 
 #### `GET /v1/me/ideas/{idea_id}/matches`
 
-Developers who fit one of the caller's open ideas, ordered by score (see above), then
+Developers who fit one of the caller's open ideas, leaving out anyone who paused matching, ordered by score (see above), then
 earliest verification, then user id. The author and deleted accounts never appear, nor does
 anyone who is asking to join the idea's hub, invited to it or in it. After a decline, a
 withdrawn request, leaving or a removal, the person can be suggested again. An idea with no

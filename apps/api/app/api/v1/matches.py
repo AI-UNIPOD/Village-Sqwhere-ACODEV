@@ -144,6 +144,8 @@ async def match_developers_to_my_idea(
         )
         .where(
             User.deleted_at.is_(None),
+            # a developer who paused matching is not suggested to anyone
+            User.matching_paused_at.is_(None),
             User.id != idea.author_id,
             User.id.not_in(connected),
             same_world(User.id, current_user),
