@@ -344,6 +344,7 @@ Fetches the full profile of the currently signed-in user.
       "avatar_url": "https://avatars.githubusercontent.com/u/1001",
       "bio": "Backend engineer in Lagos",
       "country_code": "NG",
+      "onboarding_completed_at": "2026-11-15T09:30:00Z",
       "is_verified": true,
       "verified_at": "2026-11-06T18:00:00Z",
       "platform_role": "member",
@@ -391,9 +392,11 @@ Updates editable fields on the user's profile.
     "first_name": "Ada",
     "last_name": "Obi",
     "email": "new-email@example.com",
-    "country_code": "NG"
+    "country_code": "NG",
+    "onboarding_completed": true
   }
   ```
+* **Onboarding:** send `"onboarding_completed": true` when the developer finishes onboarding. `onboarding_completed_at` (on every profile answer, `null` until then) is set to that moment once and kept: sending it again changes nothing, so the web can send it on every finish. Only `true` is accepted; `false`, `null` or any other value gets a `422`, because finishing is never undone. Why: `docs/decisions/2026-11-15-onboarding-done.md`.
 * **Country:** `country_code` is optional and has no city beside it. It is a two-letter ISO code (capital letters) of one of the 54 African countries, such as `NG`, `SN` or `KE`; the list is `AFRICAN_COUNTRY_CODES` in `apps/api/app/countries.py`. It is `null` until a developer sets it. Send a code to set or change it, send `"country_code": null` to clear it, and leave the key out to keep it as it is. Any other value (a code from outside Africa, lowercase, three letters) gets a `422` that names `country_code`. It shows to other signed-in developers on the match cards of `GET /v1/me/ideas/{idea_id}/matches`.
 * **Limits:** `display_name` 1 to 80 characters, `first_name` and `last_name` 1 to 100, after spaces at the start and end are removed. `bio` up to 1000 characters. `email` must look like `name@example.com`. A new email is saved as not verified.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
