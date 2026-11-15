@@ -616,18 +616,14 @@ async def _write_own_hub_build(db: AsyncSession, people: dict[str, User]) -> Non
             select(HubPiece).where(HubPiece.hub_id == hub.id, HubPiece.deleted_at.is_(None))
         )
     }
-    commits = [
-        (position, who, ago(hours=hours), message)
-        for position, (who, hours, message) in enumerate(OWN_HUB_COMMITS)
-    ]
     # the list runs newest first, so the last commit of each person is their first
-    first_commit = {who: committed_at for _, who, committed_at, _ in commits}
+    first_commit = {people[who].id: ago(hours=hours) for who, hours, _ in OWN_HUB_COMMITS}
     for who, hours, name in OWN_HUB_CLAIMS:
-        piece, holder = pieces.get(name), people[who].id
-        if piece is not None and (
-            piece.claimed_by is None
-            or (piece.claimed_by == holder and piece.claimed_at >= first_commit[who])
-        ):
+        piece = pieces.get(name)
+        if piece is None:
+            continue
+        holder = piece.claimed_by or people[who].id
+        if piece.claimed_by is None or piece.claimed_at >= first_commit.get(holder, ago()):
             piece.claimed_by, piece.claimed_at = holder, ago(hours=hours)
     if hub.repository_url in (None, OLD_OWN_HUB_REPOSITORY):
         hub.repository_url = OWN_HUB_REPOSITORY
@@ -639,10 +635,10 @@ async def _write_own_hub_build(db: AsyncSession, people: dict[str, User]) -> Non
             sha=hashlib.sha1(message.encode(), usedforsecurity=False).hexdigest(),
             message=message,
             author_name=people[who].display_name,
-            committed_at=committed_at,
+            committed_at=ago(hours=hours),
             position=position,
         )
-        for position, who, committed_at, message in commits
+        for position, (who, hours, message) in enumerate(OWN_HUB_COMMITS)
     )
     hub.commits_refreshed_at = ago(hours=1)
 

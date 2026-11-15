@@ -455,19 +455,20 @@ def test_a_rerun_adds_claims_the_repository_and_commits_only_when_they_are_missi
     # a piece that is held is left as it is, even when the seed would give it to someone else
     kwabena = next(p for p in seen["pieces"] if p["name"] == "Mobile app")["claimed_by"]["id"]
 
-    async def hand_over() -> None:
+    async def hand_over(to: str) -> None:
         async with db_session() as session:
             await session.execute(
                 update(HubPiece)
                 .where(HubPiece.hub_id == _own_hub(client, visitor)["id"])
                 .where(HubPiece.name == OWN_HUB_CLAIMS[0][2])
-                .values(claimed_by=kwabena)
+                .values(claimed_by=to)
             )
             await session.commit()
 
-    asyncio.run(hand_over())
+    asyncio.run(hand_over(kwabena))
     _seed()
     assert _hub_build(client, visitor)["pieces"][1]["claimed_by"]["id"] == kwabena
+    asyncio.run(hand_over(seen["pieces"][1]["claimed_by"]["id"]))  # back, for the other tests
 
 
 def _my_open_idea(client: TestClient, visitor: dict) -> str:
@@ -970,6 +971,79 @@ def test_a_rerun_writes_the_commits_and_their_check_again_with_fresh_times(
         now - timedelta(days=3) < datetime.fromisoformat(commit["committed_at"]) < now
         for commit in build["commits"]
     )
+
+
+def _what_the_hubs_hold(client: TestClient, visitor: dict) -> dict:
+    """What the visitor's hubs, review queue and build tab hold, without their times."""
+    build = _hub_build(client, visitor)
+    (case,) = _review_cases(client, visitor)
+    return {
+        "descriptions": {
+            name: card["description"] for name, card in _hubs(client, visitor).items()
+        },
+        "notes": [note["body"] for note in _hub_notes(client, visitor)],
+        "chats": _chats(client, visitor),
+        "case": (case["evidence"], case["ai_result"], case["ai_score"]),
+        "claims": [(p["name"], p["claimed_by"] and p["claimed_by"]["id"]) for p in build["pieces"]],
+        "commits": [(c["message"], c["author_name"]) for c in build["commits"]],
+        "repository": build["repository_url"],
+    }
+
+
+def _make_the_hubs_the_old_way(client: TestClient, visitor: dict) -> None:
+    """What a demo made before this change holds: the template descriptions, two notes in
+    French, empty chats, an empty review case, claims made after their holder's first commit and
+    a build tab checked three days ago. Signatures are not here: only the script changes those."""
+    hubs = _hubs(client, visitor)
+    own = hubs[OWN_HUB]["id"]
+
+    async def go() -> None:
+        async with db_session() as session:
+            await session.execute(
+                text(
+                    "UPDATE hubs h SET description = 'Building ' || lower(i.title) || ' together.' "
+                    "FROM ideas i WHERE i.id = h.idea_id AND h.id = ANY(:hubs)"
+                ),
+                {"hubs": [card["id"] for card in hubs.values()]},
+            )
+            for old, new in OLD_OWN_HUB_NOTES.items():
+                await session.execute(update(HubNote).where(HubNote.body == new).values(body=old))
+            await session.execute(delete(HubMessage))
+            await session.execute(
+                update(HubPiece)
+                .where(HubPiece.hub_id == own, HubPiece.claimed_by.is_not(None))
+                .values(claimed_at=datetime.now(UTC) - timedelta(hours=20))
+            )
+            await session.execute(
+                update(HubCommit)
+                .where(HubCommit.hub_id == own, HubCommit.position == 0)
+                .values(message="Record every payout in the ledger with its time")
+            )
+            await session.execute(
+                update(Hub)
+                .where(Hub.id == own)
+                .values(commits_refreshed_at=datetime.now(UTC) - timedelta(days=3))
+            )
+            await session.commit()
+
+    asyncio.run(go())
+    _empty_the_review_case()
+
+
+def test_a_rerun_brings_the_hubs_of_a_world_made_the_old_way_to_the_same_state(
+    client: TestClient, visitor: dict
+) -> None:
+    current = _what_the_hubs_hold(client, visitor)
+
+    _make_the_hubs_the_old_way(client, visitor)
+    assert _what_the_hubs_hold(client, visitor) != current
+    with pytest.raises(AssertionError):
+        _claims_precede_the_first_commit_of_their_holder(_hub_build(client, visitor))
+
+    for _ in range(2):  # the second run adds nothing
+        assert _seed() is False
+        assert _what_the_hubs_hold(client, visitor) == current
+        _claims_precede_the_first_commit_of_their_holder(_hub_build(client, visitor))
 
 
 def _briefs(old: str | None = None) -> set[str | None]:
