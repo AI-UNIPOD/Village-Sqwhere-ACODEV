@@ -49,6 +49,13 @@ export const createHub = async (hub: NewHub) => (await call<{ data: Hub }>("/v1/
 
 export const loadHub = async (id: string) => (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}`)).data;
 
+// The owner renames or describes the hub; `description: null` clears it. Answers with the hub card.
+export const editHub = async (id: string, changes: { name: string; description: string | null }) =>
+  (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}`, "PATCH", changes)).data;
+
+// The owner archives the hub for good: it stays readable and nothing in it changes any more.
+export const archiveHub = async (id: string) => (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}/archive`, "POST")).data;
+
 export const loadMyHubs = (offset = 0) =>
   call<{ data: Hub[]; next_offset: number | null }>(`/v1/me/hubs?offset=${offset}&limit=20`);
 

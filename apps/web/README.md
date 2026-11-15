@@ -207,7 +207,11 @@ paragraphs only, never as markup.
 The hub page shows a member the team (`GET /v1/hubs/{id}/members`) and the private brief
 (`GET /v1/hubs/{id}/idea`). The owner invites by GitHub username, withdraws an invitation and
 invites again after a decline (`team.tsx`); an invited developer sees the invitation, not the
-team's brief. In an active hub the owner removes an active member behind a confirm dialog
+team's brief. The owner of an active hub edits its name and description in place under the title
+(`PATCH /v1/hubs/{id}`; an emptied description is sent as `null`) and archives it at the end of the
+page behind a confirm dialog (`POST /v1/hubs/{id}/archive`, `hubs/manage.tsx`). Archiving cannot be
+undone; the page then shows the hub as archived, read only, and the owner's tools go. In an active
+hub the owner removes an active member behind a confirm dialog
 (`POST /v1/hubs/{id}/members/{user_id}/remove`), and a member who is not the owner leaves the same
 way (`POST /v1/hubs/{id}/membership/leave`); the page then shows the hub as someone who left, or
 was removed, with a line that says so. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
