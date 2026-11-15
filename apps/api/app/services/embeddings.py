@@ -9,7 +9,7 @@ import asyncio
 import hashlib
 import json
 import math
-from urllib.error import HTTPError, URLError
+from http.client import HTTPException
 from urllib.request import Request, urlopen
 
 from app.config import GEMINI_API_KEY
@@ -70,7 +70,7 @@ class GeminiEmbedder:
         }
         try:
             response = await asyncio.to_thread(self._post_json_sync, BATCH_EMBED_URL, payload)
-        except (HTTPError, URLError, TimeoutError, ValueError) as error:
+        except (HTTPException, OSError, ValueError) as error:
             raise GeminiApiError("Gemini could not be reached.") from error
         try:
             vectors = [unit_length(item["values"]) for item in response["embeddings"]]

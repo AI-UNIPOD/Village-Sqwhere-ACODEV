@@ -689,8 +689,13 @@ route reads or writes them and the match score does not use them yet. Why:
   changes, or a developer's bio changes, or a row in their `user_roles`, `user_technologies` or
   `user_sectors` is added, removed or changed. The next run embeds it again. A text that changes
   while Gemini answers is read again before it is stored, and gets no vector until the next run.
+  The one exception is a technology, a sector or a role changed in the moment between that check
+  and the commit: the vector is then stored with a hash that no longer matches the profile, and
+  stays until the profile changes again.
 * **When it fails.** An unreachable or bad answer from Gemini is logged without the text or the
-  key, nothing is written, and the next run tries again. With no `GEMINI_API_KEY` the step does
+  key, nothing is written, and the next run tries again. If Gemini refuses a request of several
+  texts, each text is asked for alone, so one text it always refuses holds back only itself. An
+  error in the idea step does not stop the developer step. With no `GEMINI_API_KEY` the step does
   nothing and the log says so once.
 * **Account deletion** removes the developer's vector with the rest of their profile.
 

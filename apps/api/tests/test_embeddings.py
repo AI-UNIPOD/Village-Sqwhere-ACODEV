@@ -12,11 +12,13 @@ import json
 import logging
 import math
 from datetime import UTC, datetime
+from http.client import IncompleteRead
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 from uuid import UUID, uuid4
 
+import asyncpg
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
@@ -39,6 +41,8 @@ from app.services import embeddings as client_module
 from app.services.embeddings import GeminiEmbedder, idea_text, profile_text, source_sha256
 from app.services.gemini import GeminiApiError, GeminiConfigurationError
 from app.workers import embeddings as worker
+from app.workers import runner
+from tests.conftest import TEST_DB_URL
 from tests.conftest import test_async_session as db_session
 from tests.hub_support import auth, make_user, run
 
@@ -52,11 +56,17 @@ class FakeEmbedder:
     def __init__(self) -> None:
         self.sent: list[str] = []
         self.error: Exception | None = None
+        self.refuse: str | None = None
+        self.crash: str | None = None
         self.while_embedding: Any = None
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         if self.error:
             raise self.error
+        if self.refuse and any(self.refuse in text for text in texts):
+            raise GeminiApiError("Gemini answered with an error.")
+        if self.crash and any(self.crash in text for text in texts):
+            raise RuntimeError("something that is not a Gemini error")
         self.sent.extend(texts)
         if self.while_embedding:
             await self.while_embedding()
@@ -383,6 +393,49 @@ def test_a_failed_request_writes_nothing_and_the_next_run_succeeds(
     assert user_vector(user) is not None
 
 
+def test_one_text_gemini_refuses_does_not_hold_back_the_others(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    tag = uuid4().hex
+    refused = make_idea(f"{tag}-refused")
+    accepted = make_idea(tag)
+    developer = make_developer(tag)
+    embedder = FakeEmbedder()
+    embedder.refuse = f"{tag}-refused"
+
+    with caplog.at_level(logging.WARNING):
+        embed_everything(embedder)
+
+    assert idea_vector(accepted) is not None
+    assert user_vector(developer) is not None
+    assert idea_vector(refused) is None
+    assert tag not in caplog.text
+    embedder.refuse = None
+    embed_everything(embedder)
+    assert idea_vector(refused) is not None
+
+
+def test_an_error_in_the_idea_step_does_not_stop_the_developers_being_embedded(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    tag = uuid4().hex
+    idea = make_idea(tag)
+    developer = make_developer(tag)
+    embedder = FakeEmbedder()
+    embedder.crash = "Offline farm ledger"
+
+    with caplog.at_level(logging.WARNING):
+        embed_everything(embedder)
+
+    assert idea_vector(idea) is None
+    assert user_vector(developer) is not None
+    assert "Embedding Idea failed" in caplog.text
+    assert tag not in caplog.text
+    embedder.crash = None
+    embed_everything(embedder)
+    assert idea_vector(idea) is not None
+
+
 def test_without_a_key_nothing_is_sent_and_the_log_says_so_once(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -436,6 +489,70 @@ def test_deleting_an_account_removes_the_developers_vector(client: TestClient) -
     assert user_vector(user) is None
     embed_everything(FakeEmbedder())
     assert user_vector(user) is None
+
+
+# --- the worker loop ----------------------------------------------------------------------
+
+
+@pytest.fixture
+def worker_loop(monkeypatch: pytest.MonkeyPatch) -> list[UUID]:
+    """The loop with one verification session to process and no other verification work. Returns
+    the sessions it processed."""
+    processed: list[UUID] = []
+    session_id = uuid4()
+
+    async def one_session() -> list[UUID]:
+        return [session_id]
+
+    async def none() -> list[UUID]:
+        return []
+
+    async def analyse(db: Any, found: UUID, *args: Any) -> bool:
+        processed.append(found)
+        return True
+
+    monkeypatch.setattr(runner, "async_session", db_session)
+    monkeypatch.setattr(runner, "pending_session_ids", one_session)
+    monkeypatch.setattr(runner, "report_session_ids", none)
+    monkeypatch.setattr(runner, "process_codebase_analysis", analyse)
+    return processed
+
+
+def test_a_worker_run_does_the_verification_step_and_then_embeds(
+    monkeypatch: pytest.MonkeyPatch, worker_loop: list[UUID]
+) -> None:
+    tag = uuid4().hex
+    idea = make_idea(tag)
+    developer = make_developer(tag)
+
+    async def embed_all(embedder: Any) -> int:
+        return await worker.embed_missing(embedder, limit=10_000)
+
+    monkeypatch.setattr(runner, "GeminiEmbedder", FakeEmbedder)
+    monkeypatch.setattr(runner, "embed_missing", embed_all)
+
+    processed = asyncio.run(runner.run_once())
+
+    assert len(worker_loop) == 1
+    assert processed >= 3
+    assert idea_vector(idea) is not None
+    assert user_vector(developer) is not None
+
+
+def test_a_failing_embedding_step_leaves_the_verification_steps_done(
+    monkeypatch: pytest.MonkeyPatch, worker_loop: list[UUID], caplog: pytest.LogCaptureFixture
+) -> None:
+    async def explode(embedder: Any) -> int:
+        raise RuntimeError("the embedding step broke")
+
+    monkeypatch.setattr(runner, "embed_missing", explode)
+
+    with caplog.at_level(logging.ERROR):
+        processed = asyncio.run(runner.run_once())
+
+    assert processed == 1
+    assert len(worker_loop) == 1
+    assert "Embedding run failed" in caplog.text
 
 
 # --- the Gemini client ---------------------------------------------------------------------
@@ -537,6 +654,8 @@ def test_the_client_without_a_key_raises_the_configuration_error(
         HTTPError("https://example.test", 429, "Too Many Requests", {}, None),
         URLError("no route to host"),
         TimeoutError(),
+        IncompleteRead(b"{"),
+        ConnectionResetError(),
     ],
     ids=[
         "too narrow",
@@ -549,6 +668,8 @@ def test_the_client_without_a_key_raises_the_configuration_error(
         "http error",
         "unreachable",
         "timeout",
+        "a body cut short",
+        "a connection reset while reading",
     ],
 )
 def test_the_client_raises_one_error_for_an_unreachable_or_bad_answer(
@@ -569,22 +690,137 @@ def test_idea_text_is_title_then_summary() -> None:
 # --- the script and the tables -------------------------------------------------------------
 
 
-def test_the_script_runs_twice_and_leaves_the_tables_as_they_were() -> None:
+def apply_script() -> None:
     sql = SCRIPT.read_text(encoding="utf-8")
 
     async def work(session: Any) -> None:
         connection = await (await session.connection()).get_raw_connection()
         await connection.driver_connection.execute(sql)
-        await connection.driver_connection.execute(sql)
 
     run(work)
 
-    tag = uuid4().hex
-    idea = make_idea(tag)
+
+def embedding_schema() -> list[tuple[Any, ...]]:
+    """What the script defines: columns, constraints, indexes, triggers and their functions."""
+    queries = [
+        """SELECT c.relname, a.attname, format_type(a.atttypid, a.atttypmod),
+                  pg_get_expr(d.adbin, d.adrelid), a.attnotnull
+           FROM pg_attribute a
+           JOIN pg_class c ON c.oid = a.attrelid
+           LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+           WHERE c.relname IN ('idea_embeddings', 'user_embeddings')
+             AND a.attnum > 0 AND NOT a.attisdropped
+           ORDER BY 1, a.attnum""",
+        """SELECT conrelid::regclass::text, conname, pg_get_constraintdef(oid)
+           FROM pg_constraint
+           WHERE conrelid IN ('idea_embeddings'::regclass, 'user_embeddings'::regclass)
+           ORDER BY 1, 2""",
+        """SELECT tablename, indexname, indexdef FROM pg_indexes
+           WHERE tablename IN ('idea_embeddings', 'user_embeddings') ORDER BY 1, 2""",
+        """SELECT tgrelid::regclass::text, tgname, pg_get_triggerdef(oid) FROM pg_trigger
+           WHERE NOT tgisinternal AND tgname LIKE '%invalidate_embedding' ORDER BY 1, 2""",
+        """SELECT proname, pg_get_functiondef(oid) FROM pg_proc
+           WHERE proname LIKE '%invalidate_embedding' ORDER BY 1""",
+    ]
+
+    async def work(session: Any) -> list[tuple[Any, ...]]:
+        rows: list[tuple[Any, ...]] = []
+        for query in queries:
+            rows.extend(tuple(row) for row in await session.execute(text(query)))
+        return rows
+
+    return run(work)
+
+
+def test_the_script_runs_twice_and_leaves_the_tables_as_they_were() -> None:
+    before = embedding_schema()
+    assert {
+        "idea_embeddings_model",
+        "idea_embeddings_hnsw_idx",
+        "user_embeddings_model",
+        "user_embeddings_sha256_format",
+        "user_embeddings_hnsw_idx",
+        "ideas_invalidate_embedding",
+        "users_invalidate_embedding",
+        "user_roles_invalidate_embedding",
+        "user_technologies_invalidate_embedding",
+        "user_sectors_invalidate_embedding",
+    } <= {row[1] for row in before}
+
+    apply_script()
+    apply_script()
+
+    assert embedding_schema() == before
+    idea = make_idea(uuid4().hex)
     embed_everything(FakeEmbedder())
     assert idea_vector(idea) is not None
     change("UPDATE ideas SET title = 'Changed by the test' WHERE id = :id", id=idea.id)
     assert idea_vector(idea) is None
+
+
+# The tables of a database made before 025, in a schema of their own that the test rolls back.
+OLD_MODEL_TABLES = """
+CREATE SCHEMA before_025;
+SET LOCAL search_path TO before_025, public;
+CREATE TABLE users (id uuid PRIMARY KEY, bio text);
+CREATE TABLE user_roles (user_id uuid, role_id uuid, verified_at timestamptz);
+CREATE TABLE user_technologies (user_id uuid, technology_id uuid);
+CREATE TABLE user_sectors (user_id uuid, sector_id uuid);
+CREATE TABLE ideas (id uuid PRIMARY KEY);
+CREATE TABLE idea_embeddings (
+  idea_id       uuid        PRIMARY KEY REFERENCES ideas (id) ON DELETE CASCADE,
+  model         text        NOT NULL DEFAULT 'all-MiniLM-L6-v2',
+  embedding     vector(384) NOT NULL,
+  source_sha256 text        NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT idea_embeddings_model CHECK (model = 'all-MiniLM-L6-v2'),
+  CONSTRAINT idea_embeddings_sha256_format CHECK (source_sha256 ~ '^[0-9a-f]{64}$')
+);
+CREATE INDEX idea_embeddings_hnsw_idx ON idea_embeddings USING hnsw (embedding vector_cosine_ops);
+"""
+
+
+def test_the_script_removes_rows_of_the_old_model_and_changes_the_width() -> None:
+    sql = SCRIPT.read_text(encoding="utf-8")
+    old_vector = "[" + ",".join(["1"] * 384) + "]"
+    new_vector = "[" + ",".join(["1"] * 768) + "]"
+    insert_new = (
+        "INSERT INTO idea_embeddings (idea_id, embedding, source_sha256) "
+        f"SELECT id, '{new_vector}', repeat('b', 64) FROM ideas"
+    )
+
+    async def work() -> tuple[int, str, int, int]:
+        connection = await asyncpg.connect(TEST_DB_URL)
+        transaction = connection.transaction()
+        await transaction.start()
+        try:
+            await connection.execute(OLD_MODEL_TABLES)
+            await connection.execute("INSERT INTO ideas VALUES (gen_random_uuid())")
+            await connection.execute(
+                "INSERT INTO idea_embeddings (idea_id, embedding, source_sha256) "
+                f"SELECT id, '{old_vector}', repeat('a', 64) FROM ideas"
+            )
+            await connection.execute(sql)
+            left = await connection.fetchval("SELECT count(*) FROM idea_embeddings")
+            width = await connection.fetchval(
+                "SELECT format_type(atttypid, atttypmod) FROM pg_attribute "
+                "WHERE attrelid = 'before_025.idea_embeddings'::regclass AND attname = 'embedding'"
+            )
+            await connection.execute(insert_new)
+            await connection.execute(sql)
+            kept = await connection.fetchval("SELECT count(*) FROM idea_embeddings")
+            made = await connection.fetchval("SELECT count(*) FROM user_embeddings")
+            return left, width, kept, made
+        finally:
+            await transaction.rollback()
+            await connection.close()
+
+    left, width, kept, made = asyncio.run(work())
+
+    assert left == 0
+    assert width == "vector(768)"
+    assert kept == 1
+    assert made == 0
 
 
 @pytest.mark.parametrize(

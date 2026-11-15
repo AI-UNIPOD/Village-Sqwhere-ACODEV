@@ -5,6 +5,7 @@ docs/decisions/2026-11-15-embeddings-on-gemini.md
 import logging
 from collections.abc import Callable
 from typing import Protocol
+from uuid import UUID
 
 from sqlalchemy import exists, select
 
@@ -43,6 +44,23 @@ class Embedder(Protocol):
     async def embed(self, texts: list[str]) -> list[list[float]]: ...
 
 
+async def embed_texts(embedder: Embedder, sent: dict[UUID, str]) -> dict[UUID, list[float]]:
+    """One request for all the texts. If Gemini refuses it, ask for each text alone, so one text it
+    always refuses does not keep every row behind it from getting a vector."""
+    try:
+        return dict(zip(sent, await embedder.embed(list(sent.values())), strict=True))
+    except GeminiApiError:
+        if len(sent) == 1:
+            raise
+    vectors: dict[UUID, list[float]] = {}
+    for row_id, text in sent.items():
+        try:
+            (vectors[row_id],) = await embedder.embed([text])
+        except GeminiApiError as error:
+            logger.warning("Embedding failed for %s, will retry on the next run: %s", row_id, error)
+    return vectors
+
+
 async def embed_rows(
     embedder: Embedder,
     entity: type[Idea] | type[User],
@@ -62,7 +80,7 @@ async def embed_rows(
         return 0
     # the hash is of exactly what was sent, whatever happens to the row while Gemini answers
     sent = {row.id: text_of(row) for row in rows}
-    vectors = dict(zip(sent, await embedder.embed(list(sent.values())), strict=True))
+    vectors = await embed_texts(embedder, sent)
 
     async with async_session() as db:
         # read again and locked: a row whose text changed while Gemini answered gets no vector
@@ -72,6 +90,8 @@ async def embed_rows(
         )
         stored = 0
         for row in current:
+            if row.id not in vectors:
+                continue
             digest = source_sha256(sent[row.id])
             if source_sha256(text_of(row)) == digest:
                 db.add(model(**{key: row.id}, embedding=vectors[row.id], source_sha256=digest))
@@ -97,4 +117,12 @@ async def embed_missing(embedder: Embedder, limit: int = BATCH_SIZE) -> int:
                 warned_without_key = True
         except GeminiApiError as error:
             logger.warning("Embedding failed, will retry on the next run: %s", error)
+        except Exception as error:
+            # whatever else goes wrong with ideas must not stop the developers from being embedded;
+            # the type only, as the message of a database error can hold values
+            logger.warning(
+                "Embedding %s failed, will retry on the next run: %s",
+                entity.__name__,
+                type(error).__name__,
+            )
     return stored

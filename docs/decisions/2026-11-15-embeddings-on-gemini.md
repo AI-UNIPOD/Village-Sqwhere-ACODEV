@@ -74,12 +74,19 @@ How we build it (the build's own calls, inside those decisions):
   a verified role would otherwise keep one that no trigger fires for.
 - **A text that changes while Gemini answers.** The worker stores the hash of exactly what it
   sent. Before writing it reads the row again under a share lock and writes only if the text
-  still hashes the same. Otherwise the row has no vector and the next run embeds it again. A
-  change to a profile's technologies or sectors in the instant between that check and the
-  commit is not locked out, and the stored hash then no longer matches the profile; the next
-  change or run is the only repair, which we accept for a copy that can be made again.
+  still hashes the same. Otherwise the row has no vector and the next run embeds it again. The
+  lock is on the idea or the `users` row only, so it holds back a change to the title, the
+  summary or the bio, but not a change to the profile's child rows. A technology or a sector
+  added or removed, or a role added, removed or verified, in the instant between that check and
+  the commit is not locked out, and its trigger cannot see the vector that is not yet
+  committed. The vector is then stored with a hash that no longer matches the profile, and
+  nothing repairs it until the profile changes again. The window is the time of one commit, and
+  we accept it for a copy that can be made again.
 - **A failure writes nothing.** It is logged without the text or the key, and the next run
-  tries again. With no key the step does nothing and says so once in the log.
+  tries again. With no key the step does nothing and says so once in the log. When Gemini
+  refuses a request of several texts, the worker asks again for each text alone, so one text it
+  always refuses holds back only itself. Any other error in the idea step, such as a dropped
+  connection or a database error, is logged by type and does not stop the developer step.
 
 ## Options we considered
 
@@ -102,7 +109,8 @@ How we build it (the build's own calls, inside those decisions):
 - The bio leaves the server. The profile form must say so before this ships to real users.
 - A real call to Gemini is still to be checked by hand: the request is in
   `app/services/embeddings.py` and the tests only fake the network.
-- A text Gemini always rejects would keep failing at the front of its list every run. The log
-  shows it each time. If that happens, the fix is a way to set such a row aside.
+- A text Gemini always rejects is asked for alone on every run and fails each time, and the
+  log shows it. It no longer holds back the rows behind it, but 20 such rows at the front of a
+  list would. If that happens, the fix is a way to set such a row aside.
 - Version 2 of the score can read `idea_embeddings` and `user_embeddings` with a cosine
   distance and the HNSW indexes that are already there.
