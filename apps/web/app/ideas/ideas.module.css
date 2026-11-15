@@ -294,6 +294,12 @@
 
 .fit svg { margin-block-start: calc((1lh - var(--space-4)) / 2); }
 
+/* a long title with no spaces breaks inside the card instead of widening it */
+.fit > span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
 /* a link inside a card must sit above the card's own link to be pressed */
 .fit a {
   position: relative;

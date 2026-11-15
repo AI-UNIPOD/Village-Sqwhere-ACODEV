@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Component, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -512,4 +514,11 @@ test("another idea is another page: what was loaded for one never shows for the 
   expect(screen.queryByText("Wanjiru Kamau")).toBeNull();
   expect(await screen.findByText("Fatou Sow")).toBeTruthy();
   expect(screen.getByRole("heading", { level: 1, name: "Who matches Clinic queue for Kano" })).toBeTruthy();
+});
+
+test("the line under a match wraps a long unbroken title inside the card", () => {
+  const css = readFileSync(join(__dirname, "ideas.module.css"), "utf8");
+  const rule = /\.fit\s*>\s*span\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+  expect(rule).toMatch(/min-inline-size:\s*0/);
+  expect(rule).toMatch(/overflow-wrap:\s*anywhere/);
 });
