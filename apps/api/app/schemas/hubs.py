@@ -190,6 +190,15 @@ class SetRepositoryRequest(BaseModel):
             return value.strip().removesuffix("/").removesuffix(".git")
         return value
 
+    @field_validator("repository_url")
+    @classmethod
+    def no_dot_parts(cls, value: str | None) -> str | None:
+        # "." and ".." fit the pattern but are path steps, not names: the address is later put
+        # into a request to GitHub's API, so it must name one owner and one repository
+        if value is not None and {".", ".."} & set(value.rsplit("/", 2)[1:]):
+            raise ValueError("the owner and the repository cannot be . or ..")
+        return value
+
 
 class UpdateHubRequest(BaseModel):
     """Only name and description change. Terms are frozen once members signed them.
