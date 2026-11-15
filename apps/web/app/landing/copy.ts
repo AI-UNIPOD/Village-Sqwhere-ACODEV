@@ -23,7 +23,6 @@ type Copy = {
   footTag: string;
   footDemo: string;
   footCopy: string;
-  footMadeUp: string;
   footLang: string;
   footCredit: string;
 };
@@ -39,7 +38,7 @@ const en: Copy = {
   signIn: "Sign in",
   signOut: "Sign out",
   demo: {
-    idle: "No sign-up. Made-up people and ideas, and nothing can be changed. A short tour is inside.",
+    idle: "No sign-up. Look around everything in read-only mode. A short tour is inside.",
     opening: "Opening the demo",
     unavailable: "The demo is not available right now. You can still sign in with GitHub.",
     network: "We couldn't reach Village Sqwhere. Check your connection and try again.",
@@ -57,7 +56,6 @@ const en: Copy = {
   footTag: "Where African developers turn ideas into teams.",
   footDemo: "Try the demo",
   footCopy: "© 2026 Village Sqwhere.",
-  footMadeUp: "People and ideas on this page are made up.",
   footLang: "Available in English and French.",
   footCredit: "Made for ACODev 2026.",
 };
@@ -74,7 +72,7 @@ const fr: Copy = {
   signIn: "Connexion",
   signOut: "Déconnexion",
   demo: {
-    idle: "Sans inscription. Des personnes et des idées fictives, et rien ne peut être modifié. Une courte visite guidée est incluse.",
+    idle: "Sans inscription. Parcourez tout en lecture seule. Une courte visite guidée est incluse.",
     opening: "Ouverture de la démo",
     unavailable: "La démo n'est pas disponible pour le moment. Vous pouvez toujours vous connecter avec GitHub.",
     network: "Nous n'avons pas pu joindre Village Sqwhere. Vérifiez votre connexion et réessayez.",
@@ -92,7 +90,6 @@ const fr: Copy = {
   footTag: "Là où les développeurs africains transforment leurs idées en équipes.",
   footDemo: "Essayer la démo",
   footCopy: "© 2026 Village Sqwhere.",
-  footMadeUp: "Les personnes et les idées présentées sur cette page sont fictives.",
   footLang: "Disponible en anglais et en français.",
   footCredit: "Conçu pour l'ACODev 2026.",
 };

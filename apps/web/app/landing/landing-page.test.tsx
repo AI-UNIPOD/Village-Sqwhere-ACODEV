@@ -82,7 +82,7 @@ test("every demo button is a real button, and the hero's has its line", () => {
   expect(demo.length).toBeGreaterThanOrEqual(2);
   for (const button of demo) expect(button.hasAttribute("aria-disabled")).toBe(false);
   expect(container.querySelector("#demo-note")?.textContent).toBe(
-    "No sign-up. Made-up people and ideas, and nothing can be changed. A short tour is inside.",
+    "No sign-up. Look around everything in read-only mode. A short tour is inside.",
   );
 });
 
@@ -129,7 +129,7 @@ test("the French page says the same in French", () => {
   render(<LandingPage lang="fr" />);
   expect(screen.getAllByRole("button", { name: "Essayer la démo" }).length).toBeGreaterThanOrEqual(2);
   expect(
-    screen.getAllByText("Sans inscription. Des personnes et des idées fictives, et rien ne peut être modifié. Une courte visite guidée est incluse.")
+    screen.getAllByText("Sans inscription. Parcourez tout en lecture seule. Une courte visite guidée est incluse.")
       .length,
   ).toBeGreaterThanOrEqual(1);
 });

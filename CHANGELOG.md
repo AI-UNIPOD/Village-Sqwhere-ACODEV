@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- fix(web): drop the made-up and sample labels from the landing page
 - fix(web): say the design sketch is live on the landing page (#190)
 - feat(web): let the team edit the design sketch (#182)
 - fix(web): show the real score and live brainstorm notes on the landing (#181)

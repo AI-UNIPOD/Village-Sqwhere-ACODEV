@@ -122,7 +122,6 @@ export function LandingPage({ lang }: { lang: Lang }) {
           <p className={styles.legal}>
             <span>{t.footCopy}</span>
             <span>{t.footLang}</span>
-            <span>{t.footMadeUp}</span>
             <span>{t.footCredit}</span>
           </p>
         </div>
