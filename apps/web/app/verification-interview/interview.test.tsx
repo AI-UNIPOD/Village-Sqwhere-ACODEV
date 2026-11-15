@@ -93,8 +93,14 @@ afterEach(() => {
   localStorage.clear();
 });
 
+// the attempt, and a fresh one-use ticket whenever the page asks for one
+const ticketed = (url: string) =>
+  String(url).endsWith("/interview-ticket")
+    ? new Response(JSON.stringify({ data: { ticket: "ticket-xyz", expires_at: "2099-01-01T00:00:00Z" } }), { status: 201 })
+    : ready();
+
 async function intro() {
-  fetchMock.mockResolvedValue(ready());
+  fetchMock.mockImplementation(async (url: string) => ticketed(url));
   render(<Interview lang="en" />);
   return screen.findByRole("button", { name: "Begin the interview" });
 }
@@ -134,14 +140,32 @@ test("while the attempt loads, the page says so and offers no begin button", () 
   expect(screen.queryByRole("button", { name: "Begin the interview" })).toBeNull();
 });
 
-test("Begin opens a socket carrying the attempt id and the token", async () => {
+test("Begin asks for a one-use ticket and opens the socket with it, never with the token", async () => {
   fireEvent.click(await intro());
   await waitFor(() => expect(FakeSocket.all).toHaveLength(1));
+  const ticketCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/interview-ticket"));
+  expect(ticketCall?.[0]).toContain("/v1/me/verifications/00000000-0000-4000-9000-000000000007/interview-ticket");
+  expect(ticketCall?.[1]?.method).toBe("POST");
   const url = new URL(FakeSocket.all[0].url);
   expect(FakeSocket.all[0].url.startsWith("ws://")).toBe(true);
   expect(url.pathname).toBe("/v1/me/verifications/00000000-0000-4000-9000-000000000007/interview");
-  expect(url.searchParams.get("token")).toBe("token-abc");
+  expect(url.searchParams.get("ticket")).toBe("ticket-xyz");
+  expect(url.searchParams.get("token")).toBeNull();
+  expect(FakeSocket.all[0].url).not.toContain("token-abc");
   expect(screen.getByText("Connecting to the interviewer")).toBeTruthy();
+});
+
+test("when no ticket can be had, no socket opens and the page says it could not connect", async () => {
+  fetchMock.mockImplementation(async (url: string) =>
+    String(url).endsWith("/interview-ticket")
+      ? new Response(JSON.stringify({ detail: { code: "INTERVIEW_NOT_AVAILABLE" } }), { status: 409 })
+      : ready(),
+  );
+  render(<Interview lang="en" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Begin the interview" }));
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/interview-ticket"))).toBe(true));
+  expect(await screen.findByText("We couldn't start the interview")).toBeTruthy();
+  expect(FakeSocket.all).toHaveLength(0);
 });
 
 test("the welcome and the first question appear, the question with its number", async () => {
@@ -366,7 +390,7 @@ test.each([
 
 test("the screen works in French, and its header links to the verification page", async () => {
   route.lang = "fr";
-  fetchMock.mockResolvedValue(ready());
+  fetchMock.mockImplementation(async (url: string) => ticketed(url));
   render(<Interview lang="fr" />);
   const begin = await screen.findByRole("button", { name: "Commencer l'entretien" });
   expect(screen.getByRole("link", { name: "English" }).getAttribute("href")).toBe("/en/verification");
