@@ -205,17 +205,17 @@ test("without IntersectionObserver the first phase shows at once", () => {
 
 // Brainstorm notes and the design sketch ship (hubs/); the build and review tools do not.
 test.each([
-  ["en", "Brainstorm notes and the design sketch are live", "Brainstorm notes", "boxes and arrows", "are not built yet"],
-  ["fr", "Les notes de brainstorm et le schéma de conception sont disponibles", "Notes de brainstorm", "boîtes et en flèches", "ne sont pas encore construits"],
-] as const)("the %s hub section says brainstorm notes and the design sketch are live, and the other two tools are still to come", (lang, live, view, notes, notBuilt) => {
+  ["en", "Brainstorm notes, the design sketch and the build tab are live", "Brainstorm notes", "latest commits", "is not built yet"],
+  ["fr", "Les notes de brainstorm, le schéma de conception et l'onglet construction sont disponibles", "Notes de brainstorm", "derniers commits", "n'est pas encore construit"],
+] as const)("the %s hub section says brainstorm notes, the design sketch and the build tab are live, and the review tool is still to come", (lang, live, view, notes, notBuilt) => {
   render(<HubPhases lang={lang} />);
   const t = copy[lang];
   expect(t.lead).toContain(live);
   expect(t.closing).toContain(notes);
   expect(t.closing).toContain(notBuilt);
   expect(t.phases[0].view).toBe(view);
-  // the build and review tools are not built, and the section says so
-  expect(t.lead).toMatch(/still to come|restent à venir/);
+  // the review tool is not built, and the section says so
+  expect(t.lead).toMatch(/still to come|reste à venir/);
   // no label calls the views made up or a sample
   expect(`${t.lead} ${t.closing}`).not.toMatch(/made-up|sample|inventé|exemple/i);
 });
