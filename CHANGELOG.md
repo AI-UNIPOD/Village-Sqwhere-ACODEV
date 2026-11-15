@@ -11,6 +11,10 @@ its number:
 ## 2026-11-15
 
 - fix(web): draw no github link from a username in the demo (#207)
+- fix(web): show version 2 of the hub agreement on the landing page (#206)
+- docs: keep the agent rules and progress file out of the repository (#205)
+- feat(web): add the build tab to the hub page (#202)
+- fix(infra): move the demo hubs to the hub agreement version 2 (#201)
 - fix(api): give the demo account and its links names that read as real (#200)
 - fix(web): remove the placeholder warning and the tour's demo wording (#197)
 - feat(infra): publish the hub agreement as version 2 (#195)
