@@ -75,6 +75,10 @@ class User(Base):
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # infra/db/init/024-user-matching-pause.sql: set while the developer is out of matching
+    matching_paused_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     platform_role: Mapped[PlatformRole] = mapped_column(
         Enum(
             PlatformRole,
