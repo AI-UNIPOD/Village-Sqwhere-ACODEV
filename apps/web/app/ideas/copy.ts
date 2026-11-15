@@ -19,6 +19,7 @@ type Copy = {
   loadMore: string;
   donePublished: string;
   doneClosed: string;
+  doneDeleted: string;
   newTitle: string;
   editTitle: string;
   closedTitle: string;
@@ -44,6 +45,8 @@ type Copy = {
   closedNote: string;
   publishConfirm: Confirm & { noRoles: string };
   closeConfirm: Confirm;
+  // deleting an idea for good; refused once it has a hub
+  remove: Confirm & { heading: string; button: string; dialog: string; hasHub: string; failed: string };
   errors: {
     titleShort: string;
     titleLong: string;
@@ -168,6 +171,7 @@ const en: Copy = {
   loadMore: "Show more",
   donePublished: "Your idea is open. Signed-in developers can now find it.",
   doneClosed: "Your idea is closed. It no longer shows to other developers.",
+  doneDeleted: "Your idea was deleted.",
   newTitle: "Share an idea",
   editTitle: "Edit your idea",
   closedTitle: "A closed idea",
@@ -211,6 +215,17 @@ const en: Copy = {
     text: "It stops showing to other developers and to the matcher. A closed idea cannot be opened again.",
     confirm: "Close the idea",
     cancel: "Keep it open",
+  },
+  remove: {
+    heading: "Delete the idea",
+    text: "Delete an idea you no longer want, with its private brief. An idea with a hub can only be closed.",
+    button: "Delete this idea",
+    title: "Delete this idea?",
+    dialog: "It goes from your ideas and from everyone else's view, with its private brief. This cannot be undone.",
+    confirm: "Delete the idea",
+    cancel: "Keep it",
+    hasHub: "This idea has a hub, and its members signed an agreement about it, so it can't be deleted. Close it instead.",
+    failed: "We couldn't delete the idea. Nothing changed, so try again.",
   },
   errors: {
     titleShort: "Give the title at least 5 characters.",
@@ -351,6 +366,7 @@ const fr: Copy = {
   loadMore: "Afficher plus",
   donePublished: "Votre idée est ouverte. Les développeurs connectés peuvent maintenant la trouver.",
   doneClosed: "Votre idée est fermée. Elle n'est plus montrée aux autres développeurs.",
+  doneDeleted: "Votre idée a été supprimée.",
   newTitle: "Partager une idée",
   editTitle: "Modifier votre idée",
   closedTitle: "Une idée fermée",
@@ -401,6 +417,17 @@ const fr: Copy = {
     text: "Elle n'est plus montrée aux autres développeurs ni au matcher. Une idée fermée ne peut pas être rouverte.",
     confirm: "Fermer l'idée",
     cancel: "La garder ouverte",
+  },
+  remove: {
+    heading: "Supprimer l'idée",
+    text: "Supprimez une idée dont vous ne voulez plus, avec son dossier privé. Une idée qui a un espace peut seulement être fermée.",
+    button: "Supprimer cette idée",
+    title: "Supprimer cette idée ?",
+    dialog: "Elle disparaît de vos idées et de la vue de tous, avec son dossier privé. Cette action est définitive.",
+    confirm: "Supprimer l'idée",
+    cancel: "La garder",
+    hasHub: "Cette idée a un espace, et ses membres ont signé un accord à son sujet : elle ne peut pas être supprimée. Fermez-la plutôt.",
+    failed: "Nous n'avons pas pu supprimer l'idée. Rien n'a changé, réessayez.",
   },
   errors: {
     titleShort: "Donnez au titre au moins 5 caractères.",
