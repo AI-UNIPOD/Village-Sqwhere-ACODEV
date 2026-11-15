@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- fix(api): make the demo world's dates, review case and chats consistent
 - fix(web): draw no github link from a username in the demo (#207)
 - fix(web): show version 2 of the hub agreement on the landing page (#206)
 - docs: keep the agent rules and progress file out of the repository (#205)
