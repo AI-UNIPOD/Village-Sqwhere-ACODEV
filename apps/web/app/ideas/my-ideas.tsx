@@ -108,9 +108,9 @@ function IdeaCard({ lang, idea, hubs }: { lang: Lang; idea: OwnedIdea; hubs: Rec
 
 function MyIdeasList({ lang }: { lang: Lang }) {
   const t = copy[lang];
-  // set by the composer after publishing or closing
+  // set by the composer after publishing, closing or deleting
   const done = useSearchParams().get("done");
-  const message = done === "published" ? t.donePublished : done === "closed" ? t.doneClosed : null;
+  const message = done === "published" ? t.donePublished : done === "closed" ? t.doneClosed : done === "deleted" ? t.doneDeleted : null;
   const [ideas, setIdeas] = useState<OwnedIdea[] | null>(null);
   const [next, setNext] = useState<number | null>(null);
   const [failure, setFailure] = useState<Error | null>(null);
