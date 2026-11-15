@@ -48,8 +48,9 @@ One match card for an idea, as the owner sees it (`GET /v1/me/ideas/{id}/matches
 }
 ```
 
-`meaning` is `null` until the score reads the stored embeddings, so `partial` is `true` and the
-score is out of the 70 points that are counted, scaled to 100.
+`meaning` is `null` while the idea or the developer has no stored embedding, so `partial` is
+`true` and the score is out of the 70 points that are counted, scaled to 100. With both
+embeddings the meaning points are filled in, `partial` is `false` and `score_version` is `2`.
 
 ## Where things are
 
