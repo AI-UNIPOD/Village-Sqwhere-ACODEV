@@ -9,6 +9,7 @@ import { GatherHero } from "./gather-hero";
 import { HeaderPin } from "./header-pin";
 import { HeroHeadline } from "./hero-headline";
 import { headlineEdit } from "./hero-headline-copy";
+import { heroTeamCopy } from "./hero-team-copy";
 import styles from "./landing-page.module.css";
 import { SectionMotion } from "./section-motion";
 import { HeaderTools } from "./header-tools";
@@ -19,6 +20,9 @@ import { HowItWorks } from "./sections/how-it-works";
 import { HubPhases } from "./sections/hub-phases";
 import { MatcherDemo } from "./sections/matcher-demo";
 import { Principles } from "./sections/principles";
+
+// The innovation hub of the University of Lagos, where Village Sqwhere was built.
+const UNIPOD_URL = "https://aiunipod.unilag.edu.ng/";
 
 // translate="no": browser translation turned the name into "Village Square".
 function Brand({ lang, logoClass, wordmarkClass }: { lang: Lang; logoClass: string; wordmarkClass: string }) {
@@ -58,7 +62,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
       </div>
 
       <main>
-        <GatherHero labelledBy="hero-title" labels={{ pause: t.pause, play: t.play }}>
+        <GatherHero labelledBy="hero-title" labels={{ pause: t.pause, play: t.play }} team={heroTeamCopy[lang]}>
           <HeroHeadline id="hero-title" headline={t.headline} edit={headlineEdit[lang]} />
           <p className={styles.sub}>{t.sub}</p>
           <div className={styles.ctas}>
@@ -122,8 +126,13 @@ export function LandingPage({ lang }: { lang: Lang }) {
           <p className={styles.legal}>
             <span>{t.footCopy}</span>
             <span>{t.footLang}</span>
-            <span>{t.footMadeUp}</span>
-            <span>{t.footCredit}</span>
+            <span>
+              {t.footCredit.before}{" "}
+              <a className={styles.creditLink} href={UNIPOD_URL} target="_blank" rel="noopener noreferrer">
+                {t.footCredit.link} <span className={styles.srOnly}>({t.footCredit.newTab})</span>
+              </a>{" "}
+              {t.footCredit.after}
+            </span>
           </p>
         </div>
       </footer>

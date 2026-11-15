@@ -426,7 +426,8 @@ test.each([
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: confirm }));
   await waitFor(() => expect(alertText()).toBe("Only the person who added it, or the hub's owner, can delete it."));
   expect(cards()).toHaveLength(2);
-  expect(screen.queryByRole("dialog")).toBeNull();
+  // the dialog closes after the refusal comes back: wait for it, the page can be slow to settle
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 });
 
 test.each([

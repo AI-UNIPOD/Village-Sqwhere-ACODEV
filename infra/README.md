@@ -1,6 +1,58 @@
 # infra
 
-Infrastructure for local development and deployment.
+The database Village Sqwhere runs on: PostgreSQL 17 with
+[pgvector](https://github.com/pgvector/pgvector), in Docker, and the SQL scripts that build its
+schema.
+
+```text
+infra/
+  docker-compose.yml   one service: db (pgvector/pgvector:0.8.7-pg17) on localhost:5432
+  db/init/             001 to 018: run once, in order, on an empty database
+```
+
+```mermaid
+flowchart LR
+  dev["pnpm db:up"] --> compose["docker-compose.yml"]
+  compose --> db[("db: Postgres 17 + pgvector<br />localhost:5432")]
+  init["db/init/*.sql<br />(first start only)"] --> db
+  vol[("db-data volume")] --- db
+  api["apps/api<br />DATABASE_URL"] --> db
+  tests["pytest<br />TEST_DATABASE_URL"] --> db
+```
+
+## The schema at a glance
+
+The tables behind the main flow, from `db/init/002-schema.sql` and the scripts after it
+(33 tables in all):
+
+```mermaid
+erDiagram
+  users ||--o{ user_roles : "holds"
+  users ||--o{ verification_sessions : "attempts"
+  users ||--o{ ideas : "writes"
+  ideas ||--o{ idea_roles_needed : "needs"
+  ideas ||--o| idea_embeddings : "vector"
+  ideas ||--o| hubs : "becomes"
+  agreement_templates ||--o{ hubs : "signed on"
+  hubs ||--o{ hub_members : "has"
+  hubs ||--o{ agreement_signatures : "signed by"
+  users ||--o{ agreement_signatures : "signs"
+  hubs ||--o{ hub_messages : "chat"
+  hubs ||--o{ hub_notes : "brainstorm"
+  hubs ||--o{ hub_pieces : "design"
+  hub_pieces ||--o{ hub_piece_links : "links"
+  hub_pieces ||--o{ hub_checks : "review"
+  users ||--o{ posts : "writes"
+  posts ||--o{ comments : "has"
+```
+
+The database guards the rules the API depends on, so a bug in the API cannot break them:
+
+```sql
+-- a hub's terms can never change once it exists (003-hub-terms.sql)
+UPDATE hubs SET terms = '{"ownership_model": "owner_majority"}' WHERE id = '...';
+-- ERROR:  hub terms are immutable; members signed them
+```
 
 ## Local database
 
@@ -39,6 +91,10 @@ They run in file name order, once, on an empty database:
 | `016-hub-phases.sql` | The `hub_phase` type, `hubs.phase` and `hubs.team_confirmed_at` (both empty until the owner confirms the team), and `hub_phase_moves`, an append-only log of every phase change. Running it twice is safe. |
 | `017-hub-notes.sql` | `hub_notes`, the brainstorm sticky notes of a hub: 1 to 280 characters, removed softly with `deleted_at`. Running it twice is safe. |
 | `018-hub-design.sql` | `hub_pieces` and `hub_piece_links`, the design sketch of a hub: pieces with a name and a summary, and labelled links from one piece to another, removed softly with `deleted_at`. Running it twice is safe. |
+| `019-hub-build.sql` | The build tab of a hub: who holds a piece (`hub_pieces.claimed_by` and `claimed_at`), the public GitHub address the owner pastes (`hubs.repository_url`, with `commits_refreshed_at`), and `hub_commits`, a copy of the repository's latest commits that every refresh replaces, so its rows are really deleted. Running it twice is safe. |
+| `020-hub-agreement-v2.sql` | The hub agreement, version 2, published: the text every new hub is created on, in English and then in French. Version 1 stays for the hubs that signed it. Running it twice is safe. |
+| `021-hub-review.sql` | The review checklist of a hub: `hub_checks`, short checks written against a piece and ticked by a teammate, removed softly with `deleted_at` and `deleted_by`, and `hubs.finished_at`, empty until the owner finishes the hub. Running it twice is safe. |
+| `022-demo-hubs-agreement-v2.sql` | Moves the demo's hubs, and the made-up signatures in them, from version 1 of the agreement to version 2, so the demo stops showing the test text. Only hubs owned and signed by demo accounts (`users.is_demo`); nothing is deleted. It needs 020 first and stops with an error without it. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
@@ -48,10 +104,12 @@ docker compose -f infra/docker-compose.yml down -v
 pnpm db:up
 ```
 
-**The agreement in `004-test-agreement.sql` is fake and must be replaced before launch.**
-Published templates cannot be edited (the database refuses it), so the real agreement text
-goes in as version 2 in a new script, and `004` is then reviewed. Hubs created on version 1
-keep pointing at the test text.
+**New hubs use the agreement in `020-hub-agreement-v2.sql`.** Published templates cannot be
+edited (the database refuses it), so a change to the text is always a new version in a new
+script. `004-test-agreement.sql` holds version 1, a test text: it stays because hubs created
+on it keep pointing at it, and no new hub takes it. The one exception is the demo:
+`022-demo-hubs-agreement-v2.sql` moves the demo accounts' hubs to version 2, because their
+signatures are made up (`docs/decisions/2026-11-15-demo-hubs-on-agreement-v2.md`).
 
 The local credentials (`village` / `village`) are for development only. They match
 `DATABASE_URL` in the root `.env.example`.

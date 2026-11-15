@@ -618,6 +618,28 @@
   font: var(--type-body-s);
 }
 
+/* The AI UniPod credit sits in the quiet legal line: a plain underlined link that darkens on
+   hover and focus. It stays inline so a wrapped line keeps its spacing; the padding makes the
+   tap area tall without moving the text. */
+.creditLink {
+  padding-block: calc((var(--tap-min) - 1lh) / 2);
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: var(--underline-offset);
+  transition: text-decoration-color var(--dur-press) var(--ease-out);
+}
+
+.creditLink:focus-visible {
+  text-decoration-color: var(--text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .creditLink:hover {
+    text-decoration-color: var(--text);
+  }
+}
+
 /* Sign-in and the demo have nowhere to go yet: muted, and the pointer says so. Last in the
    file so it wins over the link styles above. */
 .soonLink {

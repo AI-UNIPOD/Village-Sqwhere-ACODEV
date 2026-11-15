@@ -87,7 +87,20 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   labelled links between them in design, build and review, `POST /v1/hubs/{hub_id}/pieces`,
   `PATCH /v1/hubs/{hub_id}/pieces/{piece_id}` and `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}`
   change the pieces, and `POST /v1/hubs/{hub_id}/links` and
-  `DELETE /v1/hubs/{hub_id}/links/{link_id}` change the links, all only during design.
+  `DELETE /v1/hubs/{hub_id}/links/{link_id}` change the links, all only during design. In the
+  build phase they split the work and follow the code: `GET /v1/hubs/{hub_id}/build` reads who
+  holds each piece, the repository address and the latest commits in build and review,
+  `POST /v1/hubs/{hub_id}/pieces/{piece_id}/claim` and
+  `DELETE /v1/hubs/{hub_id}/pieces/{piece_id}/claim` take and free a piece, and
+  `PUT /v1/hubs/{hub_id}/repository` (the owner) sets the public GitHub address, all only during
+  build. `POST /v1/hubs/{hub_id}/commits/refresh` copies the repository's latest 20 commits from
+  GitHub, at most once a minute per hub, in build and review.
+  In the review phase the team checks each other's work: `GET /v1/hubs/{hub_id}/review` reads
+  the checks of every piece, `POST /v1/hubs/{hub_id}/pieces/{piece_id}/checks` adds one,
+  `POST /v1/hubs/{hub_id}/checks/{check_id}/tick` and
+  `DELETE /v1/hubs/{hub_id}/checks/{check_id}/tick` tick and untick it (never the piece's
+  holder), `DELETE /v1/hubs/{hub_id}/checks/{check_id}` removes it, and
+  `POST /v1/hubs/{hub_id}/finish` lets the owner finish the hub once every check is ticked.
   Active members also chat, in any phase: `GET /v1/hubs/{hub_id}/messages` (newest first),
   `POST /v1/hubs/{hub_id}/messages` (optionally quoting one),
   `PATCH /v1/hubs/{hub_id}/messages/{message_id}` (the author) and
@@ -132,6 +145,6 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
 
 - Monorepo with one folder per app (`apps/web`, `apps/api`), shared tooling at the root.
 - pnpm workspace for JavaScript, uv for Python, Docker Compose for local services.
-- GitHub Flow with squash merges (see `AGENTS.md` and `CONTRIBUTING.md`).
+- GitHub Flow with squash merges (see `CONTRIBUTING.md`).
 
 Each decision someone might question gets a record in `docs/decisions/`.

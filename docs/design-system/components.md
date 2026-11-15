@@ -63,6 +63,62 @@ still and the button offers "Play animation". The choice is kept in `localStorag
 `vs-motion` ("on" or "off") and wins over the system setting; with no choice the system
 setting decides and is followed when it changes.
 
+## Hero crowd
+
+The hero is two boxes on one crowd of small words (`app/landing/gather-hero.tsx`): box 1 is the
+text (headline, sentence, buttons), box 2 is the 32 by 32 square where country names walk into
+the V and the real logo fades in (the only Laterite in the crowd, apart from the headline's
+underline). The crowd runs behind both and between them: side by side there is a band of crowd
+at least `--space-16` wide (`--space-20` with 20px cells) from the text's clear zone to the
+square's, and stacked there are 160px of crowd rows between the text and the square (the
+ghost idea's stage). `hero-layout.ts` computes it (`crowdBand`) and keeps the crowd out of the
+boxes only.
+
+The crowd keeps the old drift, tile and mask. Its words are skills and English and French
+words, and 18 made-up first names drawn a little stronger, each with a made-up role (Backend,
+Mobile, Security, Frontend, Design, Data, Product, Testing). The landing's cast keep theirs:
+Hamza Backend, Thandiwe Mobile, Kidist Security. There is no "score" and no "matcher" word.
+
+**Your idea gathers a team** (`hero-team.ts`, `hero-team-draw.ts`, words in
+`hero-team-copy.ts`, English and French). Everything is canvas text, `aria-hidden`: nothing
+here is needed to use the page.
+
+- **The pointer is the idea.** Only with a fine, hovering pointer
+  (`(hover: hover) and (pointer: fine)`). A chip, "Your idea" / "Votre idée" (`--text` on `--bg`,
+  1px `--text` border, label type), hangs just below and to the right of the pointer's tip, like
+  a name tag on a shared cursor, and moves with it one to one, no lag. Near the right edge it
+  swaps to the left. It is not drawn over the text box or the square.
+- **A pause gathers the team.** After the pointer rests for 250ms (within 4px), the builders
+  who hold the roles an idea like this needs, the nearest Backend, Mobile and Security within
+  160px, get a Lagoon (`--ai`) outline and role tag and the one Lagoon caption "Suggested by
+  role" / "Proposé par rôle", and spring onto a small ring around the chip on `--ease-strong`.
+  The ring takes the biggest radius (52, 44 or 36px) that fits, slid up or down off the chip by
+  at most 28px when the clearing is tight; if none fits, or fewer than two builders are near,
+  nothing gathers. It never reaches into the text box or the square.
+- **The timeline, from the pause:** 0 to 0.5s suggestion and gather together; 0.5s the labels
+  turn to ink, "Invitation sent" / "Invitation envoyée" (the Security builder "Asks to join" /
+  "Demande à rejoindre"), 60ms apart; 0.9s, 1.1s and 1.3s the three sign 200ms apart, each with a
+  `--success` check, "Signed" / "Signé" and a ring segment drawn over 300ms on `--ease-out`.
+  The ring is closed at 1.6s. Labels stay as long as the pointer stays. Moving the pointer more
+  than 18px, leaving the hero or going over a box lets them go home over `--dur-modal`.
+- **Lagoon only at the suggested moment.** Success green only for "Signed" and its ring segment.
+  No score, no percentage, no presence dots, nothing reads the idea's text.
+- **Without a pointer** (phones, touch, a pointer idle for 4s) a ghost idea, the same chip
+  dashed and fainter, wanders slowly (46px a second at most) to a clear spot away from both
+  boxes, rests 250ms and tells the same story, holds the closed ring 0.9s, lets go and goes
+  elsewhere. Stacked, it works in the band between the text and the square, and the walking
+  names do not start there.
+- **Still frame.** With reduced motion, the motion button off, no JavaScript or a failure,
+  nothing moves: one gathered ring in a clear spot, the ghost idea at rest in the middle of
+  three names that all read "Signed", the ring closed in `--success`. On a hovering pointer the
+  chip still follows it and outlines the nearby builders who hold the needed roles, without
+  movement, except over the ring itself.
+- **Performance.** The words are drawn to the tile once per layout; the chip, twin words and
+  team are drawn on their own layer, repainted only while one of them is there; the device
+  pixel ratio is capped at 2. Everything stops off screen and in a hidden tab, and follows the
+  motion button (see above). The English or French twin of a crowd word still shows under the
+  pointer, as before; resting on a word no longer holds the drift.
+
 ## Hero headline
 
 The hero's h1 is edited into shape once, when the page opens, by the landing page's made-up
@@ -259,14 +315,14 @@ Every screen has all four.
 | Items in a row or list arrive one after another | `--delay-stagger` (80ms) between items | as the item's own motion |
 | A link's underline draws in on hover or keyboard focus | 160ms (`--dur-press`) | `--ease-out` |
 | Landing hero background words scroll right to left, forever | `--space-8` every `--dur-drift` (2s), about 16px a second | `--ease-linear`, for continuous motion only |
+| Landing hero: your idea gathers a team, from the pause to the ring closed | 1.6s: gather 0.5s (`--ease-strong`), invitations at 0.5s, signatures 200ms apart (`--ease-out`), home over `--dur-modal` | see Hero crowd |
 | Landing hero headline is edited into shape, once | about 6s: sweep 650ms (`--ease-strong`), 55ms a character, underline `--dur-moment` (`--ease-out`) | see Hero headline |
 
 Reveals never hide headings or lead text, never hide anything without JavaScript, and
 leave content already on screen alone. An item counts as in view once 15% of it shows
 above the bottom 8% of the screen. Those two numbers are set in code, not tokens.
 
-The scroll is the only motion that never ends, so it stops while the pointer rests on a
-word, with the hero's motion button, off screen, in a hidden tab and with reduced motion (unless
+The scroll is the only motion that never ends, so it stops with the hero's motion button, off screen, in a hidden tab and with reduced motion (unless
 the visitor plays it). It loops without a seam, and the text, the square and the button stay
 clear while it passes.
 

@@ -7,6 +7,7 @@ import { copy as landing } from "../landing/copy";
 import { GatherHero } from "../landing/gather-hero";
 import landingStyles from "../landing/landing-page.module.css";
 import { HeaderTools } from "../landing/header-tools";
+import { heroTeamCopy } from "../landing/hero-team-copy";
 import type { Lang } from "../locales";
 import { Logo } from "../logo";
 import { API_URL, useSession } from "../session/session";
@@ -197,7 +198,11 @@ export function SignInPage({ lang }: { lang: Lang }) {
       </header>
 
       <main>
-        <GatherHero labelledBy="sign-in-title" labels={{ pause: shared.pause, play: shared.play }}>
+        <GatherHero
+          labelledBy="sign-in-title"
+          labels={{ pause: shared.pause, play: shared.play }}
+          team={heroTeamCopy[lang]}
+        >
           <h1 id="sign-in-title">{t.heading}</h1>
           <p className={landingStyles.sub}>{t.intro}</p>
 

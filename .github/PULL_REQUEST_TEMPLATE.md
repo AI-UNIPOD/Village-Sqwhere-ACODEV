@@ -1,6 +1,6 @@
 <!--
 Title: one line, conventional commit, for example "feat(api): add idea embedding endpoint".
-We squash merge, so the title becomes the commit on main. Rules: AGENTS.md.
+We squash merge, so the title becomes the commit on main. Rules: CONTRIBUTING.md.
 -->
 
 ## What was done

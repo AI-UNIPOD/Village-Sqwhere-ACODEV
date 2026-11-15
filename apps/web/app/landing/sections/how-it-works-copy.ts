@@ -34,7 +34,6 @@ export type Copy = {
     signedByAll: string;
   };
   hub: {
-    sample: string;
     active: string;
     count: string;
     phasesHeading: string;
@@ -49,7 +48,7 @@ export const SAMPLE_PHASE = 1;
 
 const en: Copy = {
   title: "From an idea to a team, in four steps.",
-  lead: "Here is what happens between sharing an idea and building it together. The people and ideas shown are made up.",
+  lead: "Here is what happens between sharing an idea and building it together.",
   steps: [
     {
       title: "Idea",
@@ -68,8 +67,8 @@ const en: Copy = {
     },
     {
       title: "Hub",
-      text: "Your team gets one hub: the agreement, the terms and the team, in one place. The owner confirms the team, Brainstorm opens, and the owner moves the hub through four phases, one at a time. Brainstorm has its notes already; the tools for the other phases are still to come.",
-      view: "A sample hub, each phase Done, In progress or Not started",
+      text: "Your team gets one hub: the agreement, the terms and the team, in one place. The owner confirms the team, Brainstorm opens, and the owner moves the hub through four phases, one at a time. Brainstorm has its notes, design its sketch and build its tab already; the review and test tool is still to come.",
+      view: "The hub, each phase Done, In progress or Not started",
     },
   ],
   idea: {
@@ -118,11 +117,10 @@ const en: Copy = {
       { name: "Thandiwe Mokoena", initials: "TM", line: "Mobile Engineer", signed: "Signed" },
       { name: "Kidist Alemayehu", initials: "KA", line: "Cybersecurity and Smart Contract Auditor", signed: "Signed" },
     ],
-    agreement: "Version 1 of the hub agreement",
+    agreement: "Version 2 of the hub agreement",
     signedByAll: "Signed by every member.",
   },
   hub: {
-    sample: "Sample hub",
     active: "Active",
     count: "4 of 5 members",
     phasesHeading: "Phases",
@@ -134,7 +132,7 @@ const en: Copy = {
 const fr: Copy = {
   title: "D'une idée à une équipe, en quatre étapes.",
   lead:
-    "Voici ce qui se passe entre le partage d'une idée et sa construction en équipe. Les personnes et les idées présentées sont fictives.",
+    "Voici ce qui se passe entre le partage d'une idée et sa construction en équipe.",
   steps: [
     {
       title: "Idée",
@@ -153,8 +151,8 @@ const fr: Copy = {
     },
     {
       title: "Espace",
-      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis il fait passer l'espace par quatre phases, une à la fois. Le brainstorm a déjà ses notes\u202f; les outils des autres phases restent à venir.",
-      view: "Un espace d'exemple, chaque phase Terminée, En cours ou Pas commencée",
+      text: "Votre équipe a un seul espace\u202f: l'accord, les conditions et l'équipe, au même endroit. Le porteur de l'idée confirme l'équipe, le brainstorm s'ouvre, puis il fait passer l'espace par quatre phases, une à la fois. Le brainstorm a déjà ses notes, la conception son schéma et la construction son onglet\u202f; l'outil de revue et tests reste à venir.",
+      view: "L'espace, chaque phase Terminée, En cours ou Pas commencée",
     },
   ],
   idea: {
@@ -204,11 +202,10 @@ const fr: Copy = {
       { name: "Thandiwe Mokoena", initials: "TM", line: "Ingénieur mobile", signed: "Signée" },
       { name: "Kidist Alemayehu", initials: "KA", line: "Auditeur cybersécurité et smart contracts", signed: "Signée" },
     ],
-    agreement: "Version 1 de l'accord de l'espace",
+    agreement: "Version 2 de l'accord de l'espace",
     signedByAll: "Signé par chaque membre.",
   },
   hub: {
-    sample: "Espace d'exemple",
     active: "Actif",
     count: "Membres\u202f: 4 sur 5",
     phasesHeading: "Phases",

@@ -72,8 +72,8 @@ test("the form names the idea, prefills the hub name and shows the agreement as 
   const name = await form();
   expect(name.value).toBe("Borehole map for Kaduna");
   expect(screen.getByText(/A hub is where your team builds Borehole map for Kaduna/)).toBeTruthy();
-  expect(screen.getByText("TEST AGREEMENT (NOT LEGAL TEXT)")).toBeTruthy();
-  expect(screen.getByText("Version 1")).toBeTruthy();
+  expect(screen.getByText("Village Sqwhere hub agreement")).toBeTruthy();
+  expect(screen.getByText("Version 2")).toBeTruthy();
 
   const text = within(screen.getByRole("region", { name: "Agreement text" }));
   expect(text.getByRole("heading", { name: "Hub agreement" })).toBeTruthy();
@@ -83,12 +83,10 @@ test("the form names the idea, prefills the hub name and shows the agreement as 
   expect(text.queryByRole("link")).toBeNull();
 });
 
-test("placeholder text is called out, and a real agreement is not", async () => {
-  await form();
-  expect(screen.getByText("This is placeholder text, not a legal agreement")).toBeTruthy();
-  cleanup();
-  await form({ "GET /v1/agreements/current": { data: agreement({ title: "Hub agreement" }) } });
-  expect(screen.queryByText("This is placeholder text, not a legal agreement")).toBeNull();
+test("the agreement is shown with no warning about its text, whatever its title", async () => {
+  await form({ "GET /v1/agreements/current": { data: agreement({ version: 1, title: "TEST AGREEMENT (NOT LEGAL TEXT)" }) } });
+  expect(screen.getByText("TEST AGREEMENT (NOT LEGAL TEXT)")).toBeTruthy();
+  expect(screen.queryByText(/placeholder/i)).toBeNull();
 });
 
 test("nothing is signed without a name, the notes a custom split needs, the read box and a legal name", async () => {

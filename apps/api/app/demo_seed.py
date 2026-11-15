@@ -10,15 +10,17 @@ the script runs, so the feed reads "2 hours ago". Running it again rewrites the 
 comments with fresh times, sets the bios and countries again, adds the roles, technologies,
 sectors, people and open ideas that are missing and leaves the rest, except that it puts the
 visitor's own hub in build if it has no phase yet and gives it its brainstorm notes and its
-design sketch if it has none.
+design sketch if it has none, then claims on four pieces, a repository address and eight commits
+for each that is missing.
 docs/decisions/2026-11-13-read-only-demo.md
 """
 
 import asyncio
+import hashlib
 import sys
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import config
@@ -29,6 +31,7 @@ from app.models import (
     CommentLike,
     DeletionReason,
     Hub,
+    HubCommit,
     HubMember,
     HubMemberRole,
     HubMemberStatus,
@@ -61,7 +64,11 @@ from app.services.hubs import current_agreement_template
 # Usernames use "_", which GitHub logins never have, so a real developer signing up later never
 # meets one of these names. The first person is the account visitors sign in as.
 PEOPLE = {
-    "you": ("olaoluwa_demo", "Ọláolúwa Adébáyọ̀", "Backend engineer in Lagos, building payments."),
+    "you": (
+        "olaoluwa_adebayo",
+        "Ọláolúwa Adébáyọ̀",
+        "Backend engineer in Lagos, building payments.",
+    ),
     "aminata": ("aminata_ndiaye", "Aminata Ndiaye", "Développeuse mobile et frontend à Dakar."),
     "kwabena": ("kwabena_owusu", "Kwabena Ɔwusu", "Frontend and design systems, Kumasi."),
     "danladi": ("danladi_kabir", "Ɗanladi Ƙabir", "Embedded and IoT for farms in Kano."),
@@ -130,6 +137,12 @@ FOR_YOU_IDEAS = [
 
 
 # the hub the visitor owns, which the seed puts in the build phase
+# The private brief of every demo idea. It reads as a real one: the demo bar's line is the only
+# place that says the demo is made up.
+BRIEF = (
+    "Milestones for the first three months, a budget in naira and CFA, "
+    "and the partners to approach first."
+)
 OWN_HUB = "Payouts Hub"
 # what its two active members wrote on the brainstorm board, as (who, days ago, text)
 OWN_HUB_NOTES = [
@@ -157,6 +170,30 @@ OWN_HUB_LINKS = [
     ("kwabena", 4.2, "Payouts worker", "SMS gateway", "asks for a receipt"),
     ("you", 3.9, "Payouts API", "Mobile app", "returns the status"),
 ]
+# Who builds which piece in the build phase, as (who, hours ago, piece). Each of the two active
+# members holds two, and "Ledger database" stays free.
+OWN_HUB_CLAIMS = [
+    ("you", 66, "Payouts API"),
+    ("kwabena", 63, "Mobile app"),
+    ("you", 60, "Payouts worker"),
+    ("kwabena", 55, "SMS gateway"),
+]
+# A GitHub owner name cannot hold an underscore, so this address can never be a real repository
+# and the demo can never show a stranger's code.
+OWN_HUB_REPOSITORY = "https://github.com/naira_payouts/payouts"
+# what worlds seeded earlier hold: a rerun gives them today's address
+OLD_OWN_HUB_REPOSITORY = "https://github.com/payouts_demo/payouts"
+# its latest commits, newest first, as (who, hours ago, first line of the message)
+OWN_HUB_COMMITS = [
+    ("kwabena", 3, "Show the payout status on the home screen"),
+    ("you", 9, "Retry a failed transfer once with the same key"),
+    ("you", 16, "Refuse a transfer that has no idempotency key"),
+    ("kwabena", 24, "Add the screen where the treasurer approves a batch"),
+    ("you", 33, "Record every payout in the ledger with its time"),
+    ("kwabena", 45, "Send the SMS receipt in English or French"),
+    ("you", 58, "Pay a batch of wallets from the worker queue"),
+    ("you", 70, "Start the payouts API with the batch endpoint"),
+]
 
 
 def ago(**delta: float) -> datetime:
@@ -181,10 +218,17 @@ async def seed(db: AsyncSession) -> bool:
     else:
         # comments, likes, saves and topics go with their posts
         await db.execute(delete(Post).where(Post.author_id.in_([u.id for u in people.values()])))
+        # a world seeded while the brief still began "Made-up plan for the demo"
+        await db.execute(
+            update(Idea)
+            .where(Idea.author_id.in_([u.id for u in people.values()]), Idea.details != BRIEF)
+            .values(details=BRIEF)
+        )
     await _write_open_ideas(db, people)
     await _start_own_hub(db, people["you"])
     await _write_own_hub_notes(db, people)
     await _write_own_hub_design(db, people)
+    await _write_own_hub_build(db, people)
     await _write_feed(db, people)
     await db.commit()
     return created
@@ -192,6 +236,11 @@ async def seed(db: AsyncSession) -> bool:
 
 async def _find_or_create_people(db: AsyncSession) -> dict[str, User]:
     """The made-up people, creating any that are missing (a world made before Uwase)."""
+    account = await db.get(User, DEMO_ACCOUNT_ID)
+    if account is not None:
+        # the visitor's account keeps its id; worlds seeded earlier gave it another username
+        account.username = PEOPLE["you"][0]
+        await db.flush()
     found = {
         user.username: user
         for user in await db.scalars(
@@ -269,7 +318,7 @@ def _add_idea(
         author_id=author.id,
         title=title,
         summary=summary,
-        details="Made-up plan for the demo: milestones, budget in naira and CFA, partners.",
+        details=BRIEF,
         stage=IdeaStage.PROTOTYPE,
         status=status,
         published_at=None if status == IdeaStatus.DRAFT else ago(days=days),
@@ -469,6 +518,40 @@ async def _write_own_hub_design(db: AsyncSession, people: dict[str, User]) -> No
     )
 
 
+async def _write_own_hub_build(db: AsyncSession, people: dict[str, User]) -> None:
+    """The visitor's hub has claims on its pieces, a repository and its latest commits. Each is
+    added only when it is missing, so a rerun does not pile up copies or undo a change."""
+    hub = await db.scalar(select(Hub).where(Hub.owner_id == people["you"].id, Hub.name == OWN_HUB))
+    if hub is None:
+        return
+    pieces = {
+        piece.name: piece
+        for piece in await db.scalars(
+            select(HubPiece).where(HubPiece.hub_id == hub.id, HubPiece.deleted_at.is_(None))
+        )
+    }
+    for who, hours, name in OWN_HUB_CLAIMS:
+        piece = pieces.get(name)
+        if piece is not None and piece.claimed_by is None:
+            piece.claimed_by, piece.claimed_at = people[who].id, ago(hours=hours)
+    if hub.repository_url in (None, OLD_OWN_HUB_REPOSITORY):
+        hub.repository_url = OWN_HUB_REPOSITORY
+    if not await db.scalar(select(HubCommit.sha).where(HubCommit.hub_id == hub.id).limit(1)):
+        db.add_all(
+            HubCommit(
+                hub_id=hub.id,
+                # made up, but shaped like a real one
+                sha=hashlib.sha1(message.encode(), usedforsecurity=False).hexdigest(),
+                message=message,
+                author_name=people[who].display_name,
+                committed_at=ago(hours=hours),
+                position=position,
+            )
+            for position, (who, hours, message) in enumerate(OWN_HUB_COMMITS)
+        )
+    hub.commits_refreshed_at = hub.commits_refreshed_at or ago(hours=1)
+
+
 async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
     """Posts, a deep comment thread, likes and saves, timed back from now."""
     techs = {tech.slug: tech for tech in await db.scalars(select(Technology))}
@@ -502,9 +585,14 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
             "Our soil sensor firmware is now open source. Runs a full season on two AA cells.",
             20,
             type=PostType.OSS_RELEASE,
-            link_url="https://example.com/soil-sensor-firmware",
         ),
-        post("tendai", "How do you keep Postgres backups honest? We restore one every Friday.", 26),
+        post(
+            "tendai",
+            "How do you keep Postgres backups honest? We restore one every Friday.",
+            26,
+            # a real page, so the demo's one link leads somewhere
+            link_url="https://www.postgresql.org/docs/current/backup.html",
+        ),
         post(
             "aminata",
             "Petit retour d'expérience : le mode hors ligne a doublé nos utilisateurs à Thiès.",

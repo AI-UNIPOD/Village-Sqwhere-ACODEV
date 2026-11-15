@@ -11,6 +11,24 @@ its number:
 ## 2026-11-15
 
 - feat(api): add post image uploads
+- fix(web): say the build tab is live on the landing page (#208)
+- feat(api): add the review checklist and finishing to a hub (#204)
+- fix(web): draw no github link from a username in the demo (#207)
+- fix(web): show version 2 of the hub agreement on the landing page (#206)
+- docs: keep the agent rules and progress file out of the repository (#205)
+- feat(web): add the build tab to the hub page (#202)
+- fix(infra): move the demo hubs to the hub agreement version 2 (#201)
+- fix(api): give the demo account and its links names that read as real (#200)
+- fix(web): remove the placeholder warning and the tour's demo wording (#197)
+- feat(infra): publish the hub agreement as version 2 (#195)
+- fix(api): remove the made-up label from the demo private brief (#198)
+- fix(web): drop the made-up and sample labels from the landing page (#196)
+- feat(web): credit the ai unipod in the landing footer (#194)
+- fix(web): say the design sketch is live on the landing page (#190)
+- docs: rewrite the readmes for the public repository (#192)
+- feat(api): add the build tab of claims and commits to a hub (#193)
+- feat(web): let the owner rename, describe and archive a hub (#185)
+- test(web): wait for the dialog to close in a design sketch test (#191)
 - feat(web): show members the agreement they signed (#189)
 - feat(web): let a developer delete their account (#188)
 - feat(web): let the author delete an idea with no hub (#187)
@@ -22,6 +40,7 @@ its number:
 
 ## 2026-11-14
 
+- feat(web): let the hero crowd gather a team around your idea (#165)
 - feat(api): let a developer delete their account (#176)
 - feat(api): show my hub membership and the agreement I signed (#170)
 - feat(api): let the owner rename, describe and archive a hub (#169)

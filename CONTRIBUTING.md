@@ -1,9 +1,8 @@
 # Contributing to Village Sqwhere
 
 This guide is for the team: setup, everyday commands, and how a change gets from your
-computer to `main`. The rules themselves (code quality, commits, review, docs, security,
-and what coding agents may and may not do) are in [AGENTS.md](AGENTS.md). Read it first;
-your coding agent reads it too. The [README](README.md) is the public face of the project.
+computer to `main`, with the commit rule and what to document. The [README](README.md) is
+the public face of the project.
 
 ## Setup
 
@@ -23,7 +22,8 @@ pnpm db:up                   # Postgres + pgvector
 ```
 
 `pnpm install` sets `core.hooksPath` to `.githooks`, so every commit is checked against the
-commit rule (AGENTS.md section 2). If a commit is rejected, the message tells you why.
+commit rule ([Commit messages](#commit-messages)). If a commit is rejected, the message
+tells you why.
 
 Settings live in `.env.example`. The defaults work for local development, with one
 exception: the API needs `JWT_SECRET_KEY`. Copy `.env.example` to `.env` at the repo root and
@@ -49,6 +49,24 @@ no setting.
 For tests that re-run as you save, use `pnpm --filter web exec vitest` (web) or
 `uv run --directory apps/api pytest -x` (API).
 
+## Commit messages
+
+Every commit message is exactly one line: `<type>(<scope>): <what was done>`.
+
+- **Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`, `style`,
+  `chore`, `revert`. **Scopes** (optional): `web`, `api`, `infra`, `docs`, `ci`, `repo`.
+- Lowercase type and scope. The description starts with a lowercase verb in the present
+  tense ("add", "fix", "remove"), has no full stop and keeps the line to 72 characters.
+- No body, no trailers of any kind, no emoji, no em dashes or en dashes.
+
+```text
+Good: feat(api): add idea embedding endpoint
+Bad:  Added new feature.
+```
+
+The `commit-msg` hook in `.githooks/` checks every commit, and the merge agent checks pull
+request titles the same way, because the title becomes the commit on `main`.
+
 ## How a change gets to `main`
 
 1. **Start from the latest `main`** and make a branch named `<type>/<short-description>`:
@@ -60,9 +78,10 @@ For tests that re-run as you save, use `pnpm --filter web exec vitest` (web) or
 
 2. **Build in small steps.** Commit as you go; every message is one line in the
    conventional format, for example `feat(web): add the idea form`.
-3. **Document it in the same branch:** a line in `CHANGELOG.md`, a decision record if you
-   made a choice someone might question, and any README or doc your change makes wrong
-   (AGENTS.md section 4).
+3. **Document it in the same branch:** one line in `CHANGELOG.md` under today's date with
+   the pull request number, a decision record in `docs/decisions/` if you made a choice
+   someone might question, and any README or doc your change makes wrong (`README.md` and
+   `README.fr.md` stay in step).
 4. **Run the checks** and fix what fails:
 
    ```bash

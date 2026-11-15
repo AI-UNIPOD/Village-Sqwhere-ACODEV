@@ -32,7 +32,6 @@ type Copy = {
   notes: Field;
   agreementHeading: string;
   version: string;
-  placeholder: Screen;
   agreementRegion: string;
   read: string;
   legalName: Field;
@@ -176,6 +175,68 @@ type Copy = {
       failed: string;
     };
   };
+  // the build tab under the design sketch
+  buildTab: {
+    heading: string;
+    loading: string;
+    loadFailed: string;
+    intro: string;
+    over: string;
+    archived: string;
+    reloaded: string;
+    opensNewTab: string;
+    pieces: {
+      heading: string;
+      empty: string;
+      nobody: string;
+      you: string;
+      other: string;
+      claim: string;
+      claimLabel: string;
+      free: string;
+      freeLabel: string;
+      claimed: string;
+      freed: string;
+    };
+    repository: {
+      heading: string;
+      none: string;
+      label: string;
+      help: string;
+      save: string;
+      saved: string;
+      remove: string;
+      removeTitle: string;
+      removeText: string;
+      removeConfirm: string;
+      removed: string;
+      cancel: string;
+    };
+    commits: {
+      heading: string;
+      checked: string;
+      refresh: string;
+      refreshed: string;
+      empty: string;
+      emptyAfter: string;
+      what: string;
+      who: string;
+      when: string;
+      commit: string;
+    };
+    errors: {
+      address: string;
+      claimed: string;
+      changed: string;
+      repositoryChanged: string;
+      notHolder: string;
+      notOwner: string;
+      tooSoon: string;
+      unavailable: string;
+      moved: string;
+      failed: string;
+    };
+  };
   // the team's chat, for active members in every phase
   hubChat: {
     heading: string;
@@ -236,6 +297,16 @@ type Copy = {
     failed: string;
   };
   declinedNote: string;
+  // the owner's own tools for an active hub: rename or describe it, and archive it for good
+  manage: {
+    edit: string;
+    save: string;
+    cancel: string;
+    saved: string;
+    changed: string;
+    failed: string;
+    archive: { heading: string; text: string; button: string; title: string; dialog: string; confirm: string; cancel: string; done: string };
+  };
   // an active member who is not the owner may leave; leaving and being removed each have their line
   leave: { button: string; title: string; text: string; confirm: string; cancel: string; failed: string };
   leftNote: string;
@@ -324,10 +395,6 @@ const en: Copy = {
   },
   agreementHeading: "The agreement",
   version: "Version {n}",
-  placeholder: {
-    title: "This is placeholder text, not a legal agreement",
-    text: "The real agreement replaces it before launch.",
-  },
   agreementRegion: "Agreement text",
   read: "I have read this agreement and the terms above.",
   legalName: {
@@ -396,8 +463,8 @@ const en: Copy = {
   phasesNote: {
     toConfirm: "Confirm the team when you are ready to start. Brainstorm opens, and you can still invite people after, up to five.",
     waiting: "The phases open when the owner confirms the team.",
-    confirmed: "The owner moves the hub from one phase to the next. Brainstorm has its notes and Design and architecture has its sketch below; the tools for the other phases are still to come.",
-    confirmedOutside: "The owner moves the hub from one phase to the next. The brainstorm notes and the design sketch are for the hub's members; the tools for the other phases are still to come.",
+    confirmed: "The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are below; the review tool is still to come.",
+    confirmedOutside: "The owner moves the hub from one phase to the next. The brainstorm notes, the design sketch and the build tab are for the hub's members; the review tool is still to come.",
     archived: "This hub is archived, so its phases will not start.",
   },
   phaseActions: {
@@ -532,6 +599,67 @@ const en: Copy = {
       failed: "We couldn't save that. Nothing changed, so try again.",
     },
   },
+  buildTab: {
+    heading: "Build",
+    loading: "Getting the build tab",
+    loadFailed: "We couldn't load the build tab. Nothing was changed, so check your connection and try again.",
+    intro: "Share out the pieces of the sketch, and follow the repository's latest commits.",
+    over: "Build is over. The pieces and the repository stay as they were; commits can still be refreshed.",
+    archived: "This hub is archived. The build tab stays here to read.",
+    reloaded: "The build tab is up to date.",
+    opensNewTab: "opens in a new tab",
+    pieces: {
+      heading: "Who builds what",
+      empty: "The design sketch has no pieces, so there is nothing to share out.",
+      nobody: "Nobody yet",
+      you: "You are building this",
+      other: "{name} is building this",
+      claim: "I'll build this",
+      claimLabel: "I'll build this piece, {name}",
+      free: "Free this piece",
+      freeLabel: "Free this piece, {name}",
+      claimed: "You are building {name} now.",
+      freed: "{name} is free again.",
+    },
+    repository: {
+      heading: "Repository",
+      none: "The hub's owner has not added a repository yet.",
+      label: "Repository address",
+      help: "A public GitHub repository, for example https://github.com/your-team/your-project. Its latest commits show below.",
+      save: "Save",
+      saved: "The repository was saved.",
+      remove: "Remove the repository",
+      removeTitle: "Remove the repository?",
+      removeText: "The hub will no longer follow a repository, and the commits shown go with it. You can add one again at any time.",
+      removeConfirm: "Remove the repository",
+      removed: "The repository was removed.",
+      cancel: "Cancel",
+    },
+    commits: {
+      heading: "Latest commits",
+      checked: "Checked {when}",
+      refresh: "Refresh commits",
+      refreshed: "The commits are up to date.",
+      empty: "No commits loaded yet. Press Refresh commits.",
+      emptyAfter: "No commits were loaded.",
+      what: "What changed",
+      who: "Who",
+      when: "When",
+      commit: "Commit",
+    },
+    errors: {
+      address: "Enter the address of a GitHub repository, like https://github.com/your-team/your-project.",
+      claimed: "Someone else took this piece first.",
+      changed: "The sketch was changed. This is how it stands now.",
+      repositoryChanged: "The repository was changed. This is how it stands now.",
+      notHolder: "Only the person building a piece, or the hub's owner, can free it.",
+      notOwner: "Only the hub's owner can set the repository.",
+      tooSoon: "The commits were checked less than a minute ago. Try again in a moment.",
+      unavailable: "We couldn't read that repository. Check that it exists and is public, then try again. The commits shown are from the last check.",
+      moved: "This hub has moved on, so the build tab can no longer be changed.",
+      failed: "We couldn't save that. Nothing changed, so try again.",
+    },
+  },
   hubChat: {
     heading: "Team chat",
     intro: "Talk things through with your team. Only the hub's members can read it. New messages do not appear on their own: refresh to see them.",
@@ -661,6 +789,24 @@ const en: Copy = {
     failed: "We couldn't decline the invitation. Nothing was changed, so try again.",
   },
   declinedNote: "You are not in this hub. You declined its invitation, the owner declined your request, or you withdrew it.",
+  manage: {
+    edit: "Edit the name and description",
+    save: "Save",
+    cancel: "Cancel",
+    saved: "The hub was saved.",
+    changed: "This hub can no longer be edited. This is how it stands now.",
+    failed: "We couldn't save that. Nothing changed, so try again.",
+    archive: {
+      heading: "Archive the hub",
+      text: "When the work is over, archive the hub. Members keep reading everything in it, but nothing can change any more.",
+      button: "Archive this hub",
+      title: "Archive this hub?",
+      dialog: "Nobody can invite, join, move the phase, write notes, chat or edit it any more. Members can still read it and leave. This cannot be undone.",
+      confirm: "Archive the hub",
+      cancel: "Keep it active",
+      done: "The hub was archived. It stays here to read.",
+    },
+  },
   leave: {
     button: "Leave this hub",
     title: "Leave this hub?",
@@ -763,10 +909,6 @@ const fr: Copy = {
   },
   agreementHeading: "L'accord",
   version: "Version {n}",
-  placeholder: {
-    title: "Ceci est un texte provisoire, pas un accord juridique",
-    text: "Le véritable accord le remplacera avant le lancement.",
-  },
   agreementRegion: "Texte de l'accord",
   read: "J'ai lu cet accord et les conditions ci-dessus.",
   legalName: {
@@ -841,8 +983,8 @@ const fr: Copy = {
   phasesNote: {
     toConfirm: "Confirmez l'équipe quand vous êtes prêt à commencer. Le brainstorm s'ouvre, et vous pourrez encore inviter des personnes ensuite, jusqu'à cinq.",
     waiting: "Les phases s'ouvrent quand le porteur confirme l'équipe.",
-    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Le brainstorm a ses notes et la conception son schéma ci-dessous\u202f; les outils des autres phases restent à venir.",
-    confirmedOutside: "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm et le schéma de conception sont réservés aux membres de l'espace\u202f; les outils des autres phases restent à venir.",
+    confirmed: "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont ci-dessous\u202f; l'outil de revue reste à venir.",
+    confirmedOutside: "Le porteur fait passer l'espace d'une phase à la suivante. Les notes du brainstorm, le schéma de conception et l'onglet de construction sont réservés aux membres de l'espace\u202f; l'outil de revue reste à venir.",
     archived: "Cet espace est archivé, ses phases ne démarreront donc pas.",
   },
   phaseActions: {
@@ -974,6 +1116,67 @@ const fr: Copy = {
       changed: "Quelqu'un d'autre a modifié le schéma. Voici où il en est maintenant.",
       moved: "Cet espace a avancé, le schéma ne peut donc plus être modifié.",
       notAuthor: "Seule la personne qui l'a ajouté, ou le porteur de l'espace, peut le supprimer.",
+      failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
+    },
+  },
+  buildTab: {
+    heading: "Construction",
+    loading: "Chargement de l'onglet de construction",
+    loadFailed: "Nous n'avons pas pu charger l'onglet de construction. Rien n'a été modifié, vérifiez votre connexion et réessayez.",
+    intro: "Répartissez les composants du schéma et suivez les derniers commits du dépôt.",
+    over: "La construction est terminée. Les composants et le dépôt restent tels quels\u202f; les commits peuvent encore être actualisés.",
+    archived: "Cet espace est archivé. L'onglet de construction reste ici à lire.",
+    reloaded: "L'onglet de construction est à jour.",
+    opensNewTab: "s'ouvre dans un nouvel onglet",
+    pieces: {
+      heading: "Qui construit quoi",
+      empty: "Le schéma de conception n'a aucun composant, il n'y a donc rien à répartir.",
+      nobody: "Personne pour le moment",
+      you: "Vous construisez ce composant",
+      other: "{name} construit ce composant",
+      claim: "Je construis ce composant",
+      claimLabel: "Je construis ce composant, {name}",
+      free: "Libérer ce composant",
+      freeLabel: "Libérer ce composant, {name}",
+      claimed: "Vous construisez maintenant {name}.",
+      freed: "{name} est de nouveau libre.",
+    },
+    repository: {
+      heading: "Dépôt",
+      none: "Le porteur de l'espace n'a pas encore ajouté de dépôt.",
+      label: "Adresse du dépôt",
+      help: "Un dépôt GitHub public, par exemple https://github.com/votre-equipe/votre-projet. Ses derniers commits s'affichent ci-dessous.",
+      save: "Enregistrer",
+      saved: "Le dépôt a été enregistré.",
+      remove: "Retirer le dépôt",
+      removeTitle: "Retirer le dépôt\u202f?",
+      removeText: "L'espace ne suivra plus de dépôt, et les commits affichés partiront avec lui. Vous pourrez en ajouter un à tout moment.",
+      removeConfirm: "Retirer le dépôt",
+      removed: "Le dépôt a été retiré.",
+      cancel: "Annuler",
+    },
+    commits: {
+      heading: "Derniers commits",
+      checked: "Vérifié {when}",
+      refresh: "Actualiser les commits",
+      refreshed: "Les commits sont à jour.",
+      empty: "Aucun commit chargé pour le moment. Appuyez sur Actualiser les commits.",
+      emptyAfter: "Aucun commit n'a été chargé.",
+      what: "Ce qui a changé",
+      who: "Qui",
+      when: "Quand",
+      commit: "Commit",
+    },
+    errors: {
+      address: "Saisissez l'adresse d'un dépôt GitHub, par exemple https://github.com/votre-equipe/votre-projet.",
+      claimed: "Quelqu'un d'autre a pris ce composant avant vous.",
+      changed: "Le schéma a été modifié. Voici où il en est maintenant.",
+      repositoryChanged: "Le dépôt a été modifié. Voici où il en est maintenant.",
+      notHolder: "Seule la personne qui construit un composant, ou le porteur de l'espace, peut le libérer.",
+      notOwner: "Seul le porteur de l'espace peut définir le dépôt.",
+      tooSoon: "Les commits ont été vérifiés il y a moins d'une minute. Réessayez dans un instant.",
+      unavailable: "Nous n'avons pas pu lire ce dépôt. Vérifiez qu'il existe et qu'il est public, puis réessayez. Les commits affichés datent de la dernière vérification.",
+      moved: "Cet espace a avancé, l'onglet de construction ne peut donc plus être modifié.",
       failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
     },
   },
@@ -1109,6 +1312,24 @@ const fr: Copy = {
     failed: "Nous n'avons pas pu refuser l'invitation. Rien n'a été modifié, réessayez.",
   },
   declinedNote: "Vous n'êtes pas dans cet espace. Vous avez refusé son invitation, le porteur a refusé votre demande, ou vous l'avez retirée.",
+  manage: {
+    edit: "Modifier le nom et la description",
+    save: "Enregistrer",
+    cancel: "Annuler",
+    saved: "L'espace a été enregistré.",
+    changed: "Cet espace ne peut plus être modifié. Voici où il en est maintenant.",
+    failed: "Nous n'avons pas pu l'enregistrer. Rien n'a changé, réessayez.",
+    archive: {
+      heading: "Archiver l'espace",
+      text: "Quand le travail est terminé, archivez l'espace. Les membres peuvent toujours tout y lire, mais plus rien ne peut changer.",
+      button: "Archiver l'espace",
+      title: "Archiver cet espace\u202f?",
+      dialog: "Plus personne ne pourra inviter, rejoindre, changer de phase, écrire des notes, discuter ou le modifier. Les membres pourront toujours le lire et le quitter. Cette action est définitive.",
+      confirm: "Archiver l'espace",
+      cancel: "Le garder actif",
+      done: "L'espace a été archivé. Il reste ici à lire.",
+    },
+  },
   leave: {
     button: "Quitter l'espace",
     title: "Quitter cet espace\u202f?",

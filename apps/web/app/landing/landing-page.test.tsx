@@ -82,7 +82,7 @@ test("every demo button is a real button, and the hero's has its line", () => {
   expect(demo.length).toBeGreaterThanOrEqual(2);
   for (const button of demo) expect(button.hasAttribute("aria-disabled")).toBe(false);
   expect(container.querySelector("#demo-note")?.textContent).toBe(
-    "No sign-up. Made-up people and ideas, and nothing can be changed. A short tour is inside.",
+    "No sign-up. Look around everything in read-only mode. A short tour is inside.",
   );
 });
 
@@ -125,11 +125,23 @@ test.each([
   for (const link of links) expect(link.getAttribute("href")).toBe(`/${lang}/sign-in`);
 });
 
+test.each([
+  ["en", "AI UniPod, University of Lagos (opens in a new tab)", "Built at AI UniPod, University of Lagos (opens in a new tab) for ACODev 2026."],
+  ["fr", "l'AI UniPod de l'Université de Lagos (s'ouvre dans un nouvel onglet)", "Conçu à l'AI UniPod de l'Université de Lagos (s'ouvre dans un nouvel onglet) pour l'ACODev 2026."],
+] as const)("the %s footer credits the AI UniPod and links to its site in a new tab", (lang, name, line) => {
+  render(<LandingPage lang={lang} />);
+  const link = within(screen.getByRole("contentinfo")).getByRole("link", { name });
+  expect(link.getAttribute("href")).toBe("https://aiunipod.unilag.edu.ng/");
+  expect(link.getAttribute("target")).toBe("_blank");
+  expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(link.parentElement!.textContent).toBe(line);
+});
+
 test("the French page says the same in French", () => {
   render(<LandingPage lang="fr" />);
   expect(screen.getAllByRole("button", { name: "Essayer la démo" }).length).toBeGreaterThanOrEqual(2);
   expect(
-    screen.getAllByText("Sans inscription. Des personnes et des idées fictives, et rien ne peut être modifié. Une courte visite guidée est incluse.")
+    screen.getAllByText("Sans inscription. Parcourez tout en lecture seule. Une courte visite guidée est incluse.")
       .length,
   ).toBeGreaterThanOrEqual(1);
 });

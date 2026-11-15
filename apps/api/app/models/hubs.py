@@ -149,6 +149,14 @@ class Hub(Base):
     team_confirmed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # infra/db/init/019-hub-build.sql; a public GitHub address the owner pastes, and when its
+    # commits were last copied into hub_commits
+    repository_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    commits_refreshed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # infra/db/init/021-hub-review.sql; empty until the owner finishes the hub
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # set once at creation; the hubs_terms_immutable trigger refuses any change
     terms: Mapped[dict[str, Any]] = mapped_column(
         JSONB, server_default=text("'{}'::jsonb"), nullable=False
@@ -249,7 +257,8 @@ class HubMessage(Base):
 
 
 class HubPiece(Base):
-    """A piece of the hub's design sketch. Deleting one sets deleted_at; the row stays."""
+    """A piece of the hub's design sketch. Deleting one sets deleted_at; the row stays. Whoever
+    holds it in the build phase is claimed_by, with the time in claimed_at (both or neither)."""
 
     __tablename__ = "hub_pieces"
 
@@ -273,6 +282,10 @@ class HubPiece(Base):
         nullable=False,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    claimed_by: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class HubPieceLink(Base):
@@ -295,6 +308,51 @@ class HubPieceLink(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HubCheck(Base):
+    """A check of a piece in the review phase. A teammate ticks it (ticked_by with the time in
+    ticked_at, both or neither). Deleting one sets deleted_at and deleted_by; the row stays."""
+
+    __tablename__ = "hub_checks"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), nullable=False
+    )
+    # the database checks that the piece belongs to hub_id
+    piece_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    ticked_by: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    ticked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_by: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+
+
+class HubCommit(Base):
+    """One of the repository's latest commits, copied from GitHub. A refresh replaces the whole
+    list, so these rows are really deleted. position 0 is the newest."""
+
+    __tablename__ = "hub_commits"
+
+    hub_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("hubs.id", ondelete="RESTRICT"), primary_key=True
+    )
+    sha: Mapped[str] = mapped_column(Text, primary_key=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    author_name: Mapped[str] = mapped_column(Text, nullable=False)
+    committed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
 
 
 class AgreementSignature(Base):

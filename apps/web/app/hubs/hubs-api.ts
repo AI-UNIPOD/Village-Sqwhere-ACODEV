@@ -49,6 +49,13 @@ export const createHub = async (hub: NewHub) => (await call<{ data: Hub }>("/v1/
 
 export const loadHub = async (id: string) => (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}`)).data;
 
+// The owner renames or describes the hub; `description: null` clears it. Answers with the hub card.
+export const editHub = async (id: string, changes: { name: string; description: string | null }) =>
+  (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}`, "PATCH", changes)).data;
+
+// The owner archives the hub for good: it stays readable and nothing in it changes any more.
+export const archiveHub = async (id: string) => (await call<{ data: Hub }>(`/v1/hubs/${encodeURIComponent(id)}/archive`, "POST")).data;
+
 export const loadMyHubs = (offset = 0) =>
   call<{ data: Hub[]; next_offset: number | null }>(`/v1/me/hubs?offset=${offset}&limit=20`);
 
@@ -205,6 +212,55 @@ export const addLink = async (id: string, link: { from_piece_id: string; to_piec
   (await call<{ data: PieceLink }>(`${hubPath(id)}/links`, "POST", link)).data;
 
 export const deleteLink = (id: string, linkId: string) => call<null>(`${hubPath(id)}/links/${encodeURIComponent(linkId)}`, "DELETE");
+
+// A piece of the sketch with who builds it. The four `can_` flags say what the viewer may do now.
+export type BuildPiece = {
+  id: string;
+  name: string;
+  summary: string;
+  claimed_by: Note["author"] | null;
+  claimed_at: string | null;
+  can_claim: boolean;
+  can_release: boolean;
+};
+
+// One commit of the team's repository. Both texts come from GitHub: show them as plain text.
+export type Commit = { sha: string; message: string; author_name: string; committed_at: string };
+
+// The build tab in one answer: pieces oldest first, commits newest first (at most 20).
+export type Build = {
+  repository_url: string | null;
+  commits_refreshed_at: string | null;
+  can_set_repository: boolean;
+  can_refresh: boolean;
+  pieces: BuildPiece[];
+  commits: Commit[];
+};
+
+// The address the API accepts, after it drops a trailing slash and ".git" (its own rule, checked
+// here first so a wrong address is a field error before anything is sent).
+export const tidyRepository = (address: string) => address.trim().replace(/\/$/, "").replace(/\.git$/, "");
+
+export const isRepository = (address: string) =>
+  address.length <= 200 &&
+  /^https:\/\/github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(address) &&
+  !address.split("/").slice(3).some((part) => part === "." || part === "..");
+
+export const loadBuild = async (id: string) => (await call<{ data: Build }>(`${hubPath(id)}/build`)).data;
+
+export const claimPiece = async (id: string, pieceId: string) =>
+  (await call<{ data: BuildPiece }>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}/claim`, "POST")).data;
+
+export const releasePiece = (id: string, pieceId: string) =>
+  call<null>(`${hubPath(id)}/pieces/${encodeURIComponent(pieceId)}/claim`, "DELETE");
+
+// The owner sets the team's repository, or clears it with null. Answers with the whole tab:
+// the stored commits go when the address changes.
+export const setRepository = async (id: string, repositoryUrl: string | null) =>
+  (await call<{ data: Build }>(`${hubPath(id)}/repository`, "PUT", { repository_url: repositoryUrl })).data;
+
+// Any active member asks GitHub for the latest commits, at most once a minute. Answers with the whole tab.
+export const refreshCommits = async (id: string) => (await call<{ data: Build }>(`${hubPath(id)}/commits/refresh`, "POST")).data;
 
 // One message of a hub's chat. `reply_to.body` is null once the quoted message is deleted.
 export type Message = {
