@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- fix(web): keep the whole width of a wide picture in a feed card
+- fix(web): keep the whole width of a wide picture in a feed card (#241)
 - feat(api): give about 160 demo posts a picture that matches the post (#239)
 - feat(web): show post images in the feed and let authors attach them (#240)
 - feat(api): let a post's author remove one of its images (#238)
