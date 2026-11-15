@@ -10,6 +10,7 @@ import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
 import { ArrowLeft, Bot, TriangleAlert } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
+import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import village from "../village/village.module.css";
@@ -95,13 +96,14 @@ function Flag({ lang, code }: { lang: Lang; code: string }) {
   );
 }
 
-function Repositories({ lang, addresses }: { lang: Lang; addresses: string[] }) {
+// `linked` is false for the demo account: its case holds addresses that are on GitHub for nobody
+function Repositories({ lang, addresses, linked }: { lang: Lang; addresses: string[]; linked: boolean }) {
   return (
     <Section title={copy[lang].repositories}>
       <ul className={styles.repos}>
         {addresses.map((address, index) => (
           <li key={index} className={styles.text}>
-            {isGithub(address) ? (
+            {linked && isGithub(address) ? (
               <a href={address} target="_blank" rel="noopener noreferrer">
                 {address}<span className={landing.srOnly}>, {copy[lang].opensInNewTab}</span>
               </a>
@@ -233,12 +235,13 @@ function Case({ lang, attempt }: { lang: Lang; attempt: Attempt }) {
   const [closed, setClosed] = useState(false);
   const read = readCase(attempt);
   const addresses = repositories(attempt);
+  const linked = !useMe()?.is_demo;
   const role = roleName(attempt, lang);
   return (
     <Frame lang={lang} id={attempt.id}>
       <BackLink lang={lang} />
       <h1 className={styles.title}>{fill(t.caseTitle, { role, n: attempt.attempt_number })}</h1>
-      {addresses.length > 0 && <Repositories lang={lang} addresses={addresses} />}
+      {addresses.length > 0 && <Repositories lang={lang} addresses={addresses} linked={linked} />}
       {(read.welcome || read.turns.length > 0) && <Interview lang={lang} read={read} />}
       {(read.analysis.summary || read.analysis.criteria.length > 0) && (
         <RepositoriesCheck lang={lang} analysis={read.analysis} />

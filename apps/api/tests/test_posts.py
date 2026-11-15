@@ -8,9 +8,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select, text, update
 
 from app.main import app
-from app.models import DeletionReason, PlatformRole, Post, PostRevision, PostType, User
+from app.models import DeletionReason, PlatformRole, Post, PostRevision, User
 from tests.conftest import test_async_session as db_session
-from tests.test_hub_models import create_committed_hub
 
 
 def _truncate_posts() -> None:
@@ -102,7 +101,7 @@ def test_create_post_fails_with_hub_milestone(client: TestClient, sign_in) -> No
     assert resp.status_code == 422
     assert resp.json()["detail"] == {
         "code": "HUB_MILESTONE_NOT_SUPPORTED",
-        "message": "Hub milestone posts are not supported yet",
+        "message": "A hub posts its own milestones when its owner moves it to a new phase.",
     }
 
 
@@ -535,30 +534,13 @@ def _bodies(resp) -> list[str]:
     return [post["body"] for post in resp.json()["data"]]
 
 
-def _add_hub_milestone(author_id: UUID) -> None:
-    async def _add() -> None:
-        hub_id = await create_committed_hub()
-        async with db_session() as session:
-            session.add(
-                Post(
-                    author_id=author_id, type=PostType.HUB_MILESTONE, body="Hub only", hub_id=hub_id
-                )
-            )
-            await session.commit()
-
-    asyncio.run(_add())
-
-
-def test_list_posts_pages_newest_first_and_hides_deleted_and_hub_posts(
-    client: TestClient, sign_in
-) -> None:
+def test_list_posts_pages_newest_first_and_hides_deleted_posts(client: TestClient, sign_in) -> None:
     ada = sign_in("github-code-ada")
     auth = _bearer(ada["access_token"])
     for body in ("Lagos", "Dakar", "Nairobi"):
         _create(client, auth, body)
     gone = _create(client, auth, "Deleted")
     assert client.delete(f"/v1/posts/{gone}", headers=auth).status_code == 204
-    _add_hub_milestone(UUID(ada["user"]["id"]))
 
     first = client.get("/v1/posts", headers=auth, params={"limit": 2})
     assert _bodies(first) == ["Nairobi", "Dakar"]
@@ -566,16 +548,6 @@ def test_list_posts_pages_newest_first_and_hides_deleted_and_hub_posts(
     last = client.get("/v1/posts", headers=auth, params={"limit": 2, "offset": 2})
     assert _bodies(last) == ["Lagos"]
     assert last.json()["next_offset"] is None
-
-
-def test_list_posts_refuses_the_hub_milestone_type(client: TestClient, sign_in) -> None:
-    auth = _bearer(sign_in("github-code-ada")["access_token"])
-    resp = client.get("/v1/posts", headers=auth, params={"type": "hub_milestone"})
-    assert resp.status_code == 422
-    assert resp.json()["detail"] == {
-        "code": "HUB_MILESTONE_NOT_SUPPORTED",
-        "message": "Hub milestone posts are not supported yet",
-    }
 
 
 def test_list_posts_filters_by_type_topic_and_author(client: TestClient, sign_in) -> None:
@@ -636,7 +608,6 @@ def test_list_posts_refuses_more_than_ten_topics_or_a_malformed_one(
 def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> None:
     ada = sign_in("github-code-ada")
     ada_auth = _bearer(ada["access_token"])
-    _add_hub_milestone(UUID(ada["user"]["id"]))
     moussa_auth = _bearer(sign_in("github-code-moussa")["access_token"])
     _create(client, moussa_auth, "Moussa on Python", topics=["python"])
     _create(client, moussa_auth, "Moussa on Rust", topics=["rust"])
