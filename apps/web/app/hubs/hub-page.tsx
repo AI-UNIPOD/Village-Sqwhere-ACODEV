@@ -25,6 +25,7 @@ import styles from "./hubs.module.css";
 import { HubsSkeleton, MissingHub } from "./my-hubs";
 import { Notes } from "./notes";
 import { Phases } from "./phases";
+import { MySignature } from "./my-signature";
 import { InvitationCard, LeaveHub, Person, Team } from "./team";
 
 function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null; created: boolean; joined: boolean }) {
@@ -162,6 +163,15 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       {hub.terms.notes && <p className={styles.text}>{hub.terms.notes}</p>}
       <p className={`${ideas.meta} ${styles.line}`}>{t.termsFrozen}</p>
       <p className={`${ideas.meta} ${styles.line}`}>{fill(t.agreementVersion, { n: hub.agreement.version })}</p>
+      {/* members, and those who left or were removed, signed to get in */}
+      {(isMember || status === "left" || status === "removed") && (
+        <section aria-labelledby="my-signature" className={styles.part}>
+          <h3 id="my-signature" className={`${styles.strong} ${styles.line}`}>
+            {t.signature.heading}
+          </h3>
+          <MySignature key={`signature-${loads}`} lang={lang} hub={hub} />
+        </section>
+      )}
 
       <Phases key={loads} lang={lang} hub={hub} onChange={setHub} />
       {isMember && hub.phase && <Notes key={`notes-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
