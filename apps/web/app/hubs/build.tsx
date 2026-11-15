@@ -80,7 +80,9 @@ export function BuildTab({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
     return () => {
       live = false;
     };
-  }, [hub.id, attempt, onChange, apply, say, b]);
+  // the flags belong to the phase and the status they were read in, so a hub that moves on while the tab
+  // is shown reads it again
+  }, [hub.id, hub.phase, hub.status, attempt, onChange, apply, say, b]);
 
   const reloadBuild = () => loadBuild(hub.id).then(apply, () => {});
 
@@ -109,7 +111,10 @@ export function BuildTab({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
       reloadBuild();
       return { text: b.errors.repositoryChanged, problem: true, focus: true };
     }
-    if (code === "NOT_PIECE_HOLDER") return { text: b.errors.notHolder, problem: true };
+    if (code === "NOT_PIECE_HOLDER") {
+      reloadBuild();
+      return { text: b.errors.notHolder, problem: true, focus: true };
+    }
     if (code === "NOT_HUB_OWNER") return { text: b.errors.notOwner, problem: true };
     if (code === "REFRESH_TOO_SOON") return { text: b.errors.tooSoon, problem: true };
     if (code === "REPOSITORY_UNAVAILABLE") return { text: b.errors.unavailable, problem: true };

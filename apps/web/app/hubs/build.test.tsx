@@ -486,7 +486,6 @@ test("a repository that is not there any more: the tab is read again", async () 
 });
 
 test.each([
-  ["freeing a piece nobody may free", { ...mobile }, "DELETE /v1/hubs/hub-1/pieces/p-2/claim", refusal(403, "NOT_PIECE_HOLDER"), "Free this piece, Mobile app", "Only the person building a piece, or the hub's owner, can free it."],
   ["the commits checked a moment ago", null, "POST /v1/hubs/hub-1/commits/refresh", refusal(409, "REFRESH_TOO_SOON"), "Refresh commits", "The commits were checked less than a minute ago. Try again in a moment."],
   [
     "a repository GitHub cannot read",
@@ -503,6 +502,16 @@ test.each([
   await waitFor(() => expect(alertLine().textContent).toBe(sentence));
   expect(within(section()).getByText("Retry a failed transfer")).toBeTruthy();
   expect(reads()).toHaveLength(1);
+});
+
+test("freeing a piece that is no longer yours: the tab is read again, so the row follows", async () => {
+  await open(inBuild, [tab({ pieces: [mobile] }), tab({ pieces: [{ ...mobile, ...heldBy(kwabena) }] })], { "DELETE /v1/hubs/hub-1/pieces/p-2/claim": refusal(403, "NOT_PIECE_HOLDER") });
+  click(card("Mobile app"), "Free this piece, Mobile app");
+  await waitFor(() => expect(alertLine().textContent).toBe("Only the person building a piece, or the hub's owner, can free it."));
+  await waitFor(() => expect(card("Mobile app").textContent).toContain("Kwabena Ɔwusu is building this"));
+  expect(buttons(card("Mobile app"))).toEqual([]);
+  expect(reads()).toHaveLength(2);
+  await waitFor(() => expect(document.activeElement).toBe(alertLine()));
 });
 
 test("only the owner may set the repository: a refusal is a sentence", async () => {
@@ -579,4 +588,22 @@ test("in French the tab, its buttons, its table and its refusals are French", as
 test("in French a hub in review says the build is over, with the narrow no-break space before the semicolon", async () => {
   await open(inReview, tab(), {}, "fr");
   expect(section().textContent).toContain("La construction est terminée. Les composants et le dépôt restent tels quels\u202f; les commits peuvent encore être actualisés.");
+});
+
+// ---------- the hub moves on while the tab is shown ----------
+
+test("the owner moves the hub to review: the tab is read again, so its buttons follow the phase", async () => {
+  const owning = { ...asOwner, ...at("build") };
+  const reviewing = { ...asOwner, ...at("review") };
+  await open(owning, [tab({ pieces: [payouts, mobile], can_set_repository: true }), tab({ pieces: [{ ...payouts, can_claim: false }, { ...mobile, can_release: false }] })], {
+    "POST /v1/hubs/hub-1/phase": { data: hub(reviewing) },
+  });
+  expect(buttons(card("Payouts API"))).toEqual(["I'll build this piece, Payouts API"]);
+  fireEvent.click(within(document.querySelector<HTMLElement>("section#phases")!).getByRole("button", { name: "Move to Review and test" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Move to Review and test?" })).getByRole("button", { name: "Move to Review and test" }));
+  await waitFor(() => expect(within(section()).getByText(/^Build is over\./)).toBeTruthy());
+  await waitFor(() => expect(buttons(card("Payouts API"))).toEqual([]));
+  expect(buttons(card("Mobile app"))).toEqual([]);
+  expect(within(section()).queryByLabelText(/^Repository address$/)).toBeNull();
+  expect(reads()).toHaveLength(2);
 });
