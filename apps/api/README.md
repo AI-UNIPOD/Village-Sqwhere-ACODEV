@@ -108,6 +108,13 @@ The same worker keeps an embedding of every open idea and every verified develop
 and `GEMINI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
 idea's title and summary, and a developer's verified roles, technologies, sectors and bio.
 
+Where `DEMO_ENABLED=true` and the demo has been seeded, the same worker also dates the demo's posts
+and comments back from now again once the newest one is more than 22 hours old, so the live demo
+never reads "3 weeks ago" (`redate_if_stale` in `app/demo_seed.py`). A pass costs one query, a
+rewrite takes about fifteen seconds, and a failed one is tried again an hour later. It needs no
+schedule, no paid feature and no variable beyond the `DEMO_ENABLED` the API already has: the
+worker must see it too.
+
 ## A request, layer by layer
 
 ```mermaid

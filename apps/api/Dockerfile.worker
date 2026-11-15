@@ -1,4 +1,4 @@
-# The verification worker: reads applicants' repositories, writes reports and embeddings,
+# The verification worker: reads applicants' repositories, writes reports and embeddings, keeps the demo's feed fresh,
 # outside any request. On Vercel it runs as a daemon (see vercel.json at the repository root).
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
