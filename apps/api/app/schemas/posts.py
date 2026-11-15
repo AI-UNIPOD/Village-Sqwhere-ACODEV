@@ -17,6 +17,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.models.hubs import HubPhase
 from app.models.posts import PostType
 from app.schemas.lookups import TechnologyRef
 
@@ -106,6 +107,15 @@ class PostAttachmentItemResponse(BaseModel):
     data: PostAttachmentResponse
 
 
+class PostMilestone(BaseModel):
+    """What a hub milestone post is about, so the web can say it in English or French: the hub,
+    as named now, and the phase it moved to. Never anything from the idea."""
+
+    hub_id: UUID
+    hub_name: str
+    phase: HubPhase | None = None
+
+
 class PostResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -114,7 +124,7 @@ class PostResponse(BaseModel):
     title: str | None
     body: str
     link_url: str | None
-    attachments: list[PostAttachmentResponse]
+    attachments: list[PostAttachmentResponse] = []
     author: PostAuthorRef
     topics: list[TechnologyRef]
     like_count: int
@@ -124,6 +134,8 @@ class PostResponse(BaseModel):
     edited_at: datetime | None
     liked_by_me: bool
     saved_by_me: bool
+    # only on hub_milestone posts
+    milestone: PostMilestone | None = None
 
 
 class PostItemResponse(BaseModel):

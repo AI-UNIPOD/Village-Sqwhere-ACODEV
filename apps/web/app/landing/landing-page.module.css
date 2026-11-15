@@ -618,6 +618,102 @@
   font: var(--type-body-s);
 }
 
+/* The Nigeria flag leads the copyright, in the same group so a wrapped line keeps them
+   together. 24 by 12 px keeps the bands on whole pixels, so the hairline sits outside that
+   box (content-box); it lets the white band show on Paper. Its colours stay the same in
+   both themes. */
+.copyLine {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.flag {
+  flex: none;
+  box-sizing: content-box;
+  inline-size: var(--space-6);
+  block-size: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  shape-rendering: crispEdges;
+}
+
+.flagGreen {
+  fill: var(--flag-ng-green);
+}
+
+.flagWhite {
+  fill: var(--paper);
+}
+
+/* The wind layer: soft Ink shade and Paper light, shown only while the flag waves */
+.flagWind {
+  display: none;
+}
+
+.windClear,
+.windShade {
+  stop-color: var(--ink);
+}
+
+.windLight {
+  stop-color: var(--paper);
+}
+
+.windClear {
+  stop-opacity: 0;
+}
+
+.windShade {
+  stop-opacity: 0.14;
+}
+
+.windLight {
+  stop-opacity: 0.18;
+}
+
+/* The flag waves only when the visitor allows motion; with reduced motion, or a browser that
+   cannot say, it stays the still flag above. Both moves stay inside the flag's own clipped
+   box, so the copyright beside it never shifts: the white band leans a fraction of a pixel
+   each way, and the light and shade slide from the pole side to the free end. */
+@media (prefers-reduced-motion: no-preference) {
+  .flag {
+    shape-rendering: auto;
+  }
+
+  .flagWhite {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: flagRipple var(--dur-drift) ease-in-out infinite alternate;
+  }
+
+  .flagWind {
+    display: inline;
+    animation: flagWind calc(var(--dur-drift) * 2) var(--ease-linear) infinite;
+  }
+}
+
+@keyframes flagRipple {
+  from {
+    transform: skewX(-4deg);
+  }
+
+  to {
+    transform: skewX(4deg);
+  }
+}
+
+/* one period of the wind gradient (6 of the flag's 6 units), so the loop has no seam */
+@keyframes flagWind {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(6px);
+  }
+}
+
 /* The AI UniPod credit sits in the quiet legal line: a plain underlined link that darkens on
    hover and focus. It stays inline so a wrapped line keeps its spacing; the padding makes the
    tap area tall without moving the text. */

@@ -23,6 +23,8 @@ type Copy = {
   footTag: string;
   footDemo: string;
   footCopy: string;
+  // the accessible name of the Nigeria flag before the copyright
+  footFlag: string;
   footLang: string;
   // the place it was built, linked to its own site: words before, the link, words after
   footCredit: { before: string; link: string; after: string; newTab: string };
@@ -57,6 +59,7 @@ const en: Copy = {
   footTag: "Where African developers turn ideas into teams.",
   footDemo: "Try the demo",
   footCopy: "© 2026 Village Sqwhere.",
+  footFlag: "Nigeria flag",
   footLang: "Available in English and French.",
   footCredit: { before: "Built at", link: "AI UniPod, University of Lagos", after: "for ACODev 2026.", newTab: "opens in a new tab" },
 };
@@ -91,6 +94,7 @@ const fr: Copy = {
   footTag: "Là où les développeurs africains transforment leurs idées en équipes.",
   footDemo: "Essayer la démo",
   footCopy: "© 2026 Village Sqwhere.",
+  footFlag: "Drapeau du Nigeria",
   footLang: "Disponible en anglais et en français.",
   footCredit: { before: "Conçu à", link: "l'AI UniPod de l'Université de Lagos", after: "pour l'ACODev 2026.", newTab: "s'ouvre dans un nouvel onglet" },
 };

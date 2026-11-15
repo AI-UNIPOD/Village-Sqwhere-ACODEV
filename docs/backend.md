@@ -344,6 +344,9 @@ Fetches the full profile of the currently signed-in user.
       "avatar_url": "https://avatars.githubusercontent.com/u/1001",
       "bio": "Backend engineer in Lagos",
       "country_code": "NG",
+      "onboarding_completed_at": "2026-11-15T09:30:00Z",
+      "matching_paused": false,
+      "matching_paused_at": null,
       "is_verified": true,
       "verified_at": "2026-11-06T18:00:00Z",
       "platform_role": "member",
@@ -391,9 +394,13 @@ Updates editable fields on the user's profile.
     "first_name": "Ada",
     "last_name": "Obi",
     "email": "new-email@example.com",
-    "country_code": "NG"
+    "country_code": "NG",
+    "onboarding_completed": true,
+    "matching_paused": true
   }
   ```
+* **Onboarding:** send `"onboarding_completed": true` when the developer finishes onboarding. `onboarding_completed_at` (on every profile answer, `null` until then) is set to that moment once and kept: sending it again changes nothing, so the web can send it on every finish. Only `true` is accepted; `false`, `null` or any other value gets a `422`, because finishing is never undone. Why: `docs/decisions/2026-11-15-onboarding-done.md`.
+* **Pausing matching:** `"matching_paused": true` takes the developer out of every owner's developer matches (`GET /v1/me/ideas/{idea_id}/matches`) until they send `false`. Profiles show `matching_paused` and `matching_paused_at` (when it started; pausing again keeps the first moment). Their own `GET /v1/me/matches`, their public profile, invitations by username and asking to join all work as before: pausing only stops suggestions. `null` or anything but `true` and `false` gets a `422`. Why: `docs/decisions/2026-11-15-pause-matching.md`.
 * **Country:** `country_code` is optional and has no city beside it. It is a two-letter ISO code (capital letters) of one of the 54 African countries, such as `NG`, `SN` or `KE`; the list is `AFRICAN_COUNTRY_CODES` in `apps/api/app/countries.py`. It is `null` until a developer sets it. Send a code to set or change it, send `"country_code": null` to clear it, and leave the key out to keep it as it is. Any other value (a code from outside Africa, lowercase, three letters) gets a `422` that names `country_code`. It shows to other signed-in developers on the match cards of `GET /v1/me/ideas/{idea_id}/matches`.
 * **Limits:** `display_name` 1 to 80 characters, `first_name` and `last_name` 1 to 100, after spaces at the start and end are removed. `bio` up to 1000 characters. `email` must look like `name@example.com`. A new email is saved as not verified.
 * **Success Response (200 OK):** Returns the full updated user profile wrapped in `{"data": { ... }}`.
@@ -617,10 +624,26 @@ failed run returns to `pending` and can be claimed again until
 `VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached. The primary Groq analyzer falls back to the
 configured Gemini analyzer after a Groq configuration or API error.
 
+#### `POST /v1/me/verifications/{session_id}/interview-ticket`
+
+The applicant asks for a one-use ticket just before opening the interview socket, so the access
+token never goes in a URL, where servers and proxies log it. No body. Answers `201` with
+`{"data": {"ticket": "...", "expires_at": "..."}}`. The ticket works once, for about 60
+seconds, only for this attempt and this person, and is kept in the API's memory (one process,
+like the sign-in codes).
+
+* **Errors:** `401`, `403 DEMO_READ_ONLY` (the demo cannot take an interview), `404 NOT_FOUND`
+  (no such attempt of yours), `409 INTERVIEW_NOT_AVAILABLE` (the attempt is not at its
+  interview).
+* Why: `docs/decisions/2026-11-15-interview-ticket.md`.
+
 #### `WS /v1/me/verifications/{session_id}/interview`
 
-The applicant opens this WebSocket after the session reaches `technical_defence`. The access
-token is supplied as the `token` query parameter during the connection handshake. The server
+The applicant opens this WebSocket after the session reaches `technical_defence`, with the
+ticket from `POST .../interview-ticket` as the `ticket` query parameter. A used, expired or
+unknown ticket, or one for another attempt, is refused like a bad token (close code `1008`).
+The older `token` query parameter (the access token itself) still works but is deprecated: it
+goes once the web sends tickets. The server
 sends `assistant_message`, `question`, `answer_saved`, `audio_buffered`, `error`,
 `interview_complete`, and `interview_incomplete` events. An `assistant_message` has a `kind` of
 `welcome`, `acknowledgement`, or `closing`, plus its text. The welcome explains the interview
@@ -671,6 +694,33 @@ uv run --directory apps/api python -m app.workers.runner
 
 It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each job is claimed
 with a database row lock, and a failed job is logged while the loop continues.
+
+**Embeddings.** The same loop also embeds, each run, up to 20 ideas and 20 developers that have
+no vector, with Google's `gemini-embedding-2` and the `GEMINI_API_KEY` the API already has. No
+route writes them. The match score and similar ideas read them (see "Matching"). Why:
+`docs/decisions/2026-11-15-embeddings-on-gemini.md`.
+
+* **What is sent.** For an idea, its title and summary, never `details`. For a developer, their
+  verified role names, technology names, sector names and bio, in a fixed order, never an email,
+  a legal name, a display name or a username.
+* **Who is embedded.** An idea that is `open` and not deleted, the same rule the match lists use.
+  A developer with at least one verified role whose account is not deleted. Demo accounts too.
+* **Where it is stored.** `idea_embeddings` and `user_embeddings` (`025-embeddings.sql`): one row
+  per idea or developer with a 768-wide `vector`, the `model`, and the SHA-256 of the exact text
+  that was sent. A missing row means the text needs embedding.
+* **When a vector goes stale.** A database trigger removes it when the idea's title or summary
+  changes, or a developer's bio changes, or a row in their `user_roles`, `user_technologies` or
+  `user_sectors` is added, removed or changed. The next run embeds it again. A text that changes
+  while Gemini answers is read again before it is stored, and gets no vector until the next run.
+  The one exception is a technology, a sector or a role changed in the moment between that check
+  and the commit: the vector is then stored with a hash that no longer matches the profile, and
+  stays until the profile changes again.
+* **When it fails.** An unreachable or bad answer from Gemini is logged without the text or the
+  key, nothing is written, and the next run tries again. If Gemini refuses a request of several
+  texts, each text is asked for alone, so one text it always refuses holds back only itself. An
+  error in the idea step does not stop the developer step. With no `GEMINI_API_KEY` the step does
+  nothing and the log says so once.
+* **Account deletion** removes the developer's vector with the rest of their profile.
 
 Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
 `GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape. The
@@ -815,39 +865,71 @@ roles needed, author, `hub_id` (the idea's hub, or `null` before it has one) and
 never contains the confidential `details` field. A developer asks to join through `hub_id`.
 `GET /v1/ideas` accepts `offset` and `limit`, with `next_offset` when another page exists.
 
+#### `GET /v1/ideas/{idea_id}/similar`
+
+Up to 5 other open ideas that read close to this one, closest first, in the same card shape as
+`GET /v1/ideas`: `{"data": [<public idea card>], "next_offset": null}`. An idea is close when
+its vector and this idea's vector have a similarity of at least 0.80 (see "Matching"). Drafts,
+closed ideas, deleted ideas and the idea itself never appear. No similarity number is returned:
+being in the list is the fact. An idea with no vector yet, or with nothing close, gives an empty
+list, not an error. The caller must be able to read the idea, as for `GET /v1/ideas/{idea_id}`:
+it is open and on the caller's side of the demo wall. Nothing is written.
+
+* **Authentication:** Bearer token required.
+* **Errors:** `404 NOT_FOUND` when the idea does not exist, is a draft, closed or deleted, or is
+  on the other side of the demo wall.
+
 ### Matching
 
 Matching pairs open ideas with developers through the roles an idea needs and the roles a
 developer has passed verification in. Self-claimed and inactive roles never match. It is
-deterministic: no AI model is called and an idea's `details` are never read. Both routes take
-`offset` (0 or more) and `limit` (1 to 50, default 20) and return `next_offset` when another
-page exists. Why: `docs/decisions/2026-11-13-role-based-idea-matching.md`.
+deterministic: no AI model is called and an idea's `details` are never read. The score reads the
+embeddings the worker stores for ideas and profiles (see "Embeddings" above), and nothing is
+sent anywhere or written. Both routes take `offset` (0 or more) and `limit` (1 to 50, default 20) and return
+`next_offset` when another page exists. Why:
+`docs/decisions/2026-11-13-role-based-idea-matching.md`.
 
 **The score.** Every match has a score out of 100 and both lists are ordered by it. Why:
-`docs/decisions/2026-11-14-match-score.md`. It is counted from stored facts, in four parts:
+`docs/decisions/2026-11-14-match-score.md` and `docs/decisions/2026-11-15-match-score-meaning.md`.
+It is counted from stored facts, in four parts:
 
 | Part | Points | How it is counted |
 | --- | --- | --- |
 | Roles | 40 | 30 for one needed role the developer is verified in, 40 for two or more |
 | Technologies | 20 | 4 for each technology shared with the idea's author, at most 5 counted |
 | Sectors | 10 | 5 for each sector shared with the idea's author, at most 2 counted |
-| Meaning | 30 | Not built yet |
+| Meaning | 30 | How close the idea and the developer's profile read, from their vectors |
 
-Version 1 has no meaning part, so the 70 points that exist are scaled to 100 and rounded to a
-whole number, half up: `(raw * 100 + 35) // 70`. Raw 30 gives 43, 42 gives 60, 57 gives 81 and
-70 gives 100. Both lists add these fields to each item:
+There are two versions, and a list can hold both. Each row says which one it is.
+
+* **Version 2**, when both vectors exist for the pair (the idea's and the developer's): the plain
+  sum of the four parts, out of 100. The meaning points are
+  `round(30 * clamp((similarity - 0.70) / (0.82 - 0.70), 0, 1))`, a whole number from 0 to 30,
+  where `similarity` is 1 minus the cosine distance of the two vectors. The band is narrow on
+  purpose: an idea and a profile read 0.71 to 0.82 apart, so the raw number is not a percentage.
+  Rounding is half up.
+* **Version 1**, when either vector is missing (not made yet): the 70 points that exist are scaled
+  to 100 and rounded to a whole number, half up: `(raw * 100 + 35) // 70`. Raw 30 gives 43, 42
+  gives 60, 57 gives 81 and 70 gives 100.
+
+Both lists add these fields to each item:
 
 * `score`: a whole number from 0 to 100.
-* `score_version`: `1`.
-* `partial`: `true` while the meaning part is missing.
+* `score_version`: `2` when the meaning part is in the score, otherwise `1`.
+* `partial`: `true` while the meaning part is missing (version 1).
 * `breakdown`: `roles`, `technologies`, `sectors` and `meaning`, each `{"points", "max"}` with
   `max` 40, 20, 10 and 30. `points` are the raw points before scaling, so a card can say
   "30 of 40". `meaning.points` is `null` in version 1.
+* `similar_idea`: `{"id", "title"}` or `null`. On the developer list it is the developer's own
+  open idea that reads closest to the caller's idea. On the idea list it is the caller's own open
+  idea that reads closest to the listed idea. It is set only when their similarity is at least
+  0.80, never for a draft, a closed or a deleted idea, and never across the demo wall. No
+  similarity number is returned: 0.83 would read as "83% alike", which it does not mean.
 * `shared_sectors`: the sectors both people have, sorted by name like `shared_technologies`
   (`[]` when none). On the developer list it is the developer's sectors that the idea's author
   also has; on the idea list, the caller's sectors that the idea's author also has.
 
-The order is the raw points, highest first. Ties are broken by the earlier rules: for
+The order is the score shown, highest first. Ties are broken by the earlier rules: for
 developers the earliest verification, then the user id; for ideas the newest publication, then
 the idea id (highest first). The order is computed in SQL, so `offset` and `limit` page through
 it correctly.
@@ -859,7 +941,7 @@ or a removal, both can be suggested again. Why:
 
 #### `GET /v1/me/ideas/{idea_id}/matches`
 
-Developers who fit one of the caller's open ideas, ordered by score (see above), then
+Developers who fit one of the caller's open ideas, leaving out anyone who paused matching, ordered by score (see above), then
 earliest verification, then user id. The author and deleted accounts never appear, nor does
 anyone who is asking to join the idea's hub, invited to it or in it. After a decline, a
 withdrawn request, leaving or a removal, the person can be suggested again. An idea with no
@@ -882,6 +964,7 @@ roles needed returns an empty list, so the page should prompt the owner to add r
         "shared_technology_count": 1,
         "shared_sectors": [{ "slug": "fintech", "name": "Fintech" }],
         "country_code": "GH",
+        "similar_idea": null,
         "score": 56,
         "score_version": 1,
         "partial": true,
@@ -913,7 +996,8 @@ the page should point them to role verification.
 * **Authentication:** Bearer token required.
 * **Success Response (200 OK):** `{"data": [{"idea": <public idea card>, "matched_roles":
   [<role>], "shared_technologies": [<technology>], "shared_sectors": [<sector>], "score": 60,
-  "score_version": 1, "partial": true, "breakdown": {...}}], "next_offset": null}`. The idea card
+  "score_version": 1, "partial": true, "breakdown": {...}, "similar_idea": null}],
+  "next_offset": null}`. The idea card
   is the same as `GET /v1/ideas/{idea_id}`. `shared_technologies` and `shared_sectors` name the
   technologies and sectors the caller shares with the idea's author, sorted by name. They are
   empty when none are shared. The card has no author country.
@@ -1304,6 +1388,13 @@ The team, for active members only: the owner first, then members by joining time
 also sees `requested`, `invited` and `declined` people, to answer, follow up or withdraw. Nobody sees people who
 left or were removed. Returns `{"data": [<member card>]}` with the same card as an invitation.
 
+On each pending request (`status: "requested"`), and only for the owner, the card's `fit` is
+the same card `GET /v1/me/ideas/{idea_id}/matches` gives, scored against this hub's idea: the
+score with `score_version`, `partial` and `breakdown`, the matched roles, the technologies and
+sectors shared with the owner, and the developer's `country_code`. A requester verified in none
+of the needed roles still gets a fit, with a low score. `fit` is `null` on every other card and
+for every other caller. Why: `docs/decisions/2026-11-15-score-on-join-requests.md`.
+
 * **Errors:** `403 NOT_HUB_MEMBER`.
 
 #### `GET /v1/hubs/{hub_id}/membership`
@@ -1399,6 +1490,11 @@ The owner moves the hub to the phase just after or just before its current one.
   `409 TEAM_NOT_CONFIRMED`, `409 HUB_FINISHED`, `409 PHASE_NOT_ADJACENT`, `422`. Skipping a phase, or asking for the
   phase the hub is already in, is `PHASE_NOT_ADJACENT`, so a request sent twice moves the hub
   once. Nothing comes before `brainstorm`: the team stays confirmed.
+* **Feed post:** confirming the team and every move forward add one post to the feed, in the
+  same transaction: `type: "hub_milestone"`, written by the owner, with the body
+  "Farm Ledger Hub moved to Build." and `milestone: {"hub_id", "hub_name", "phase"}`. Only the
+  hub's name (already on its public card) and the phase, never the idea. Moving back adds
+  nothing. Why: `docs/decisions/2026-11-15-hub-milestone-posts.md`.
 
 #### Brainstorm notes
 
@@ -1821,7 +1917,7 @@ The hub's owner finishes the hub. No body.
 
 A flat chat for the team, in any phase, once someone is an active member (the team need not be
 confirmed). A message is 1 to 10,000 characters, trimmed, and may quote one earlier message in
-the same hub. There are no live updates: the page loads the chat again to see new messages.
+the same hub. Members can also listen live over `WS /v1/hubs/{hub_id}/messages/live` (below).
 Every route answers `403 NOT_HUB_MEMBER` to anyone who is not an active member, and an
 archived hub's chat is read only (`409 HUB_ARCHIVED`). Why: `docs/decisions/2026-11-14-hub-chat.md`.
 
@@ -1871,6 +1967,30 @@ The author or the hub's owner deletes a message. Answers `204`. The row stays wi
 `deleted_at`, and replies that quoted it keep showing who wrote it, without the text.
 
 * **Errors:** `403 NOT_MESSAGE_AUTHOR`, `404 MESSAGE_NOT_FOUND`, `409 HUB_ARCHIVED`.
+
+#### `WS /v1/hubs/{hub_id}/messages/live`
+
+A WebSocket that pushes the hub's chat as it changes, so the page needs no refresh.
+
+1. Open the socket, then send this first frame within 5 seconds:
+   `{"type": "auth", "token": "<access token>"}`. The token never goes in the URL, where
+   servers and proxies log it.
+2. An active member of the hub (the demo account too, in a demo hub) gets `{"type": "ready"}`.
+   Anyone else, a bad token or a late or missing frame gets the socket closed with code `1008`.
+3. After each change is saved, every listener gets one event:
+   * `{"type": "message.created", "message": <message card>}`
+   * `{"type": "message.edited", "message": <message card>}`
+   * `{"type": "message.deleted", "message": {"id": "..."}}`
+
+   The card is the same one the routes above return, built for each listener, so `can_edit`
+   and `can_delete` are theirs.
+4. Membership is checked again before every event. Someone who left or was removed gets the
+   socket closed with `1008` and hears nothing more.
+
+The client sends nothing after the first frame. Reconnect, and load
+`GET /v1/hubs/{hub_id}/messages` again, after a drop: events missed while away are not replayed.
+This works while the API runs as one process; more would need a pub-sub between them. Why:
+`docs/decisions/2026-11-15-live-hub-chat.md`.
 
 ### How the Sign-In Flow Works for End Users (100% Automated)
 In production and regular use, **the user never touches or sees a `login_code`**. The frontend coordinates the handshake automatically:
@@ -1996,7 +2116,8 @@ The Developer Exchange allows developers to share knowledge, questions, releases
 | :--- | :--- | :--- |
 | `POST_NOT_FOUND` | 404 | Post does not exist, is soft-deleted, or belongs to a hub |
 | `NOT_POST_AUTHOR` | 403 | Attempt to edit or delete another user's post |
-| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Creating a post with `type = "hub_milestone"`, or asking the post list for that type |
+| `HUB_MILESTONE_NOT_SUPPORTED` | 422 | Creating a post with `type = "hub_milestone"`: only a hub writes those |
+| `MILESTONE_NOT_EDITABLE` | 409 | Editing a hub's milestone post (it can be deleted) |
 | `UNKNOWN_TOPIC` | 422 | A topic slug does not exist in the technologies table |
 | `EMPTY_UPDATE` | 422 | PATCH body contains no fields |
 | `TOO_MANY_TOPICS` | 422 | More than 5 topics submitted |
@@ -2011,7 +2132,7 @@ Create a new feed post.
 
 * **Authentication:** Required (Bearer token)
 * **Topic rules:** Maximum 5 topics. No duplicate slugs. Each slug must match a technology in the technologies table.
-* **Hub milestone:** `type = "hub_milestone"` is currently deferred and returns HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`.
+* **Hub milestone:** people cannot create `type = "hub_milestone"` (HTTP 422 `HUB_MILESTONE_NOT_SUPPORTED`). A hub posts one itself when its owner moves it forward a phase (see the hub phase routes).
 * **Link:** `link_url` must start with `http://` or `https://` and is at most 2048 characters (HTTP 422 otherwise).
 * **Text:** the title, body, link and topics cannot contain a null character (HTTP 422).
 * **Request Body:**
@@ -2143,12 +2264,15 @@ Soft-delete a post.
 
 ### `GET /v1/posts`
 
-List visible posts, newest first. Deleted posts and hub posts never appear.
+List visible posts, newest first. Deleted posts never appear. A hub's milestone posts do
+(`type: "hub_milestone"`): they carry `milestone: {"hub_id", "hub_name", "phase"}` so the web
+can say them in English or French, and only the hub's name and phase, never the idea.
+`milestone` is `null` on every other post.
 
 * **Authentication:** Required (Bearer token)
 * **Query parameters (all optional, combine freely):**
-  * `type`: one post type, for example `question`. An unknown type returns 422, and
-    `type=hub_milestone` returns 422 `HUB_MILESTONE_NOT_SUPPORTED`, the same as creating one.
+  * `type`: one post type, for example `question` or `hub_milestone`. An unknown type
+    returns 422.
   * `topic`: a technology slug, for example `python`. Repeat it to match any of several:
     `?topic=python&topic=react`. A post appears once if it has any of them, and a request
     may give at most 10 topics.

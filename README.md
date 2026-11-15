@@ -143,9 +143,10 @@ Every person and idea in these screens is made up.
 
 ## Try it
 
-The live site is on its way. Until then, run it on your computer in a few minutes (see
-[Run it locally](#run-it-locally)) and press **Try the demo**: a read-only tour of a village
-filled with made-up developers, ideas and hubs, no account needed.
+The live site is at [www.villagesqwhere.online](https://www.villagesqwhere.online). You can
+also run it on your computer in a few minutes (see [Run it locally](#run-it-locally)) and
+press **Try the demo**: a read-only tour of a village filled with made-up developers, ideas
+and hubs, no account needed.
 
 ---
 
@@ -230,7 +231,7 @@ decision records in [`docs/decisions/`](docs/decisions/).
 | Database | PostgreSQL 17 with pgvector | Relational data and vectors for idea similarity in one store |
 | AI | Groq and Gemini, one falling back to the other | The verification interview, speech to text and the report |
 | Tooling | pnpm, uv, Docker Compose, Vitest, pytest, Ruff, ESLint | Fast installs and one command per task |
-| Hosting | Systalink | Required by ACODev 2026 |
+| Hosting | Vercel (web, API and worker as one project) | One domain for the app and its API; see [`infra/README.md`](infra/README.md#deployment-vercel) |
 
 ### Run it locally
 

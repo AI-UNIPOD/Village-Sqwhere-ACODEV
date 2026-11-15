@@ -101,7 +101,8 @@ export function ScoreReasons({
     ...(sharedSectors
       ? [{ part: "sectors" as const, text: sharedSectors.length > 0 ? sectors(sentenceList(lang, sharedSectors.map((sector) => sectorName(lang, sector)))) : t.noSectors }]
       : []),
-    ...(breakdown ? [{ part: "meaning" as const, text: t.notCompared }] : []),
+    // the meaning part has points only for a pair whose idea and developer were both compared
+    ...(breakdown ? [{ part: "meaning" as const, text: typeof breakdown.meaning?.points === "number" ? t.compared : t.notCompared }] : []),
   ];
   return (
     <>

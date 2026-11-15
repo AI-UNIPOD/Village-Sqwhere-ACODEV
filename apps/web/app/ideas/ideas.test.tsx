@@ -129,6 +129,20 @@ test("an empty idea is not sent: the form says what is missing", async () => {
   expect(screen.queryByText("Give the title at least 5 characters.")).toBeNull();
 });
 
+// what a screen reader reads for a field: the help lines its aria-describedby points to
+const described = (field: HTMLElement) =>
+  field.getAttribute("aria-describedby")!.split(" ").map((id) => document.getElementById(id)!.textContent).join(" ");
+
+test.each([
+  ["en", "Public summary", "Private brief (optional)", "To compare ideas by meaning, Village Sqwhere sends the title and the summary to Google's Gemini. The private brief is never sent."],
+  ["fr", "Résumé public", "Dossier privé (facultatif)", "Pour comparer les idées par le sens, Village Sqwhere envoie le titre et le résumé à Gemini, de Google. Le dossier privé n'est jamais envoyé."],
+] as const)("the summary field says what is sent to compare ideas by meaning, in %s, tied to the field and to no other", (lang, summary, brief, note) => {
+  render(<IdeaComposer lang={lang} />);
+  expect(screen.getByText(note).id).toBe("idea-summary-note");
+  expect(described(screen.getByLabelText(summary))).toContain(note);
+  expect(described(screen.getByLabelText(brief))).not.toContain(note);
+});
+
 test("a new idea is saved as a draft, then the page reopens on the idea's own address", async () => {
   fetchMock.mockResolvedValue(reply(201, { data: idea({ id: "new-id", details: null, roles_needed: [] }) }));
   render(<IdeaComposer lang="en" />);

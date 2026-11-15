@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import CurrentUser, DbSession, same_world
 from app.models import (
     DeletionReason,
+    Hub,
+    HubPhaseMove,
     PlatformRole,
     Post,
     PostAttachment,
@@ -34,6 +36,7 @@ from app.schemas.posts import (
     PostCreateRequest,
     PostItemResponse,
     PostListResponse,
+    PostMilestone,
     PostResponse,
     PostUpdateRequest,
 )
@@ -54,10 +57,9 @@ NEWEST_FIRST = (Post.created_at.desc(), Post.id.desc())
 
 
 def visible_posts(viewer: User) -> Select[tuple[Post]]:
-    # Hub milestone posts belong to a confidential hub, so no public read path shows them.
-    return select(Post).where(
-        Post.deleted_at.is_(None), Post.hub_id.is_(None), same_world(Post.author_id, viewer)
-    )
+    # The only posts with a hub are its milestones, which carry the hub's name and phase and
+    # never the idea (docs/decisions/2026-11-15-hub-milestone-posts.md).
+    return select(Post).where(Post.deleted_at.is_(None), same_world(Post.author_id, viewer))
 
 
 async def get_visible_post(
@@ -130,6 +132,7 @@ async def _post_responses(
             )
         )
     )
+    milestones = await _milestones([post for post in posts if post.hub_id is not None], db)
     return [
         PostResponse(
             id=post.id,
@@ -147,9 +150,37 @@ async def _post_responses(
             edited_at=post.edited_at,
             liked_by_me=post.id in liked,
             saved_by_me=post.id in saved,
+            milestone=milestones.get(post.id),
         )
         for post in posts
     ]
+
+
+async def _milestones(posts: list[Post], db: AsyncSession) -> dict[UUID, PostMilestone]:
+    """The hub and phase behind each milestone post. The post and its phase move are saved in
+    one transaction, so they share the transaction's created_at; that pairs them."""
+    if not posts:
+        return {}
+    hub_ids = {post.hub_id for post in posts}
+    names = dict((await db.execute(select(Hub.id, Hub.name).where(Hub.id.in_(hub_ids)))).all())
+    moves = {
+        (hub_id, at): phase
+        for hub_id, at, phase in await db.execute(
+            select(HubPhaseMove.hub_id, HubPhaseMove.created_at, HubPhaseMove.to_phase).where(
+                HubPhaseMove.hub_id.in_(hub_ids),
+                HubPhaseMove.created_at.in_({post.created_at for post in posts}),
+            )
+        )
+    }
+    return {
+        post.id: PostMilestone(
+            hub_id=post.hub_id,
+            hub_name=names[post.hub_id],
+            phase=moves.get((post.hub_id, post.created_at)),
+        )
+        for post in posts
+        if post.hub_id in names
+    }
 
 
 async def _post_item(post: Post, viewer_id: UUID, db: AsyncSession) -> PostItemResponse:
@@ -180,7 +211,7 @@ async def create_post(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "HUB_MILESTONE_NOT_SUPPORTED",
-                "message": "Hub milestone posts are not supported yet",
+                "message": "A hub posts its own milestones when its owner moves it to a new phase.",
             },
         )
 
@@ -247,6 +278,15 @@ async def update_post(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "NOT_POST_AUTHOR", "message": "Only the author may edit this post"},
         )
+    if post.type == PostType.HUB_MILESTONE:
+        # the hub wrote it; the owner may delete it, not put other words under the hub's name
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "MILESTONE_NOT_EDITABLE",
+                "message": "A hub's milestone post cannot be edited. Delete it instead.",
+            },
+        )
 
     dump = payload.model_dump(exclude_unset=True)
     if not dump:
@@ -311,14 +351,6 @@ async def list_posts(
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
-    if post_type == PostType.HUB_MILESTONE:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "code": "HUB_MILESTONE_NOT_SUPPORTED",
-                "message": "Hub milestone posts are not supported yet",
-            },
-        )
     query = visible_posts(current_user)
     if post_type is not None:
         query = query.where(Post.type == post_type)

@@ -8,6 +8,7 @@ import { DemoButton, DemoNote } from "./demo-button";
 import { GatherHero } from "./gather-hero";
 import { HeaderPin } from "./header-pin";
 import { HeroHeadline } from "./hero-headline";
+import { NigeriaFlag } from "./nigeria-flag";
 import { headlineEdit } from "./hero-headline-copy";
 import { heroTeamCopy } from "./hero-team-copy";
 import styles from "./landing-page.module.css";
@@ -124,7 +125,10 @@ export function LandingPage({ lang }: { lang: Lang }) {
             </nav>
           </div>
           <p className={styles.legal}>
-            <span>{t.footCopy}</span>
+            <span className={styles.copyLine}>
+              <NigeriaFlag label={t.footFlag} />
+              {t.footCopy}
+            </span>
             <span>{t.footLang}</span>
             <span>
               {t.footCredit.before}{" "}

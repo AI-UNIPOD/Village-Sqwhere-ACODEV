@@ -48,8 +48,9 @@ One match card for an idea, as the owner sees it (`GET /v1/me/ideas/{id}/matches
 }
 ```
 
-`meaning` is `null` until idea embeddings are written, so `partial` is `true` and the score is
-out of the 70 points that are counted, scaled to 100.
+`meaning` is `null` while the idea or the developer has no stored embedding, so `partial` is
+`true` and the score is out of the 70 points that are counted, scaled to 100. With both
+embeddings the meaning points are filled in, `partial` is `false` and `score_version` is `2`.
 
 ## Where things are
 
@@ -72,9 +73,11 @@ app/
   models/              SQLAlchemy tables (users, ideas, hubs, posts, lookups)
   schemas/             Pydantic request and response bodies
   services/            the logic routes share: match_score.py, account_deletion.py,
-                       interview.py, groq*.py and gemini*.py with a fallback between them
-  workers/             the verification worker (python -m app.workers.runner)
+                       interview.py, embeddings.py, groq*.py and gemini*.py with a fallback
+                       between them
+  workers/             the verification and embedding worker (python -m app.workers.runner)
   demo_seed.py         the made-up world behind "Try the demo"
+  demo_review_case.py  the evidence, interview and report of the demo's one review case
 tests/                 one file per area, against a real database
 ```
 
@@ -99,6 +102,10 @@ stateDiagram-v2
 The worker does the slow parts (reading public repositories, writing the report) outside any
 request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The interview
 and the report use Groq, with Gemini as the fallback, in the language the attempt started in.
+
+The same worker keeps an embedding of every open idea and every verified developer, from Gemini
+and `GEMINI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
+idea's title and summary, and a developer's verified roles, technologies, sectors and bio.
 
 ## A request, layer by layer
 
@@ -155,8 +162,28 @@ people, ideas and hubs stay as they are, each person gets their bio and country 
 roles, technologies, sectors, people and open ideas that are missing are added, and the
 visitor's own hub is put in the build phase if it has none yet, gets its six brainstorm notes
 if it has no notes, and gets a design sketch of five pieces and six links if it has no pieces.
-The same hub also gets, each only if it is missing, claims on four of its five pieces, a
+The same hub also gets, each only if it is missing, claims on four of its five pieces and a
 repository address that cannot belong to a real repository (`naira_payouts` has an underscore,
-which a GitHub owner name never has) and eight made-up commits from the last three days.
+which a GitHub owner name never has). Its eight commits and the time they were checked are
+written again on every run, the way a refresh replaces them, so the build tab never reads
+"Checked 3 days ago". A claim made after its holder's first commit gets a new time.
+
+The world reads like the real product in real use: the demo bar is the only place that says it
+is made up (`docs/decisions/2026-11-15-demo-world-reads-as-real.md`). Each hub has its own
+description, in its owner's language, and the Payouts and Tontine teams have talked in their
+chat for ten days. The one review case has what an attempt that reached peer review has: three
+repositories, the interview and the AI's report, in English (`app/demo_review_case.py`). A rerun
+also gives a world seeded earlier:
+
+- the description of a hub that still holds the old template ("Building ... together.");
+- the two brainstorm notes it wrote in French, in English, found by their text;
+- a chat to a hub whose chat is empty, never to one that has a message, with times counted from
+  the hub's own history (when its members joined, its phase moves, its claims), so a rerun days
+  later still reads in order;
+- the evidence, interview and report of a review case that is empty and still awaiting review.
+
+A signature cannot be rewritten, so a rerun cannot date it. The seed signs a new member's
+agreement the moment they join, and `infra/db/init/026-demo-signature-dates.sql` does the same
+for demo signatures made earlier. It never touches a real person's signature.
 The visitor's own idea shows a Strong, a Possible and a Weak match, and "For you" holds two
 open ideas with different scores.

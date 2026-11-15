@@ -195,6 +195,24 @@ test("a chip looks the same size when pressed: only its fill changes, nothing is
   expect(fintech.querySelector("svg")).toBeNull();
 });
 
+test.each([
+  [
+    "en" as const,
+    "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to Google's Gemini. Your name, your username and your email are never sent.",
+  ],
+  [
+    "fr" as const,
+    "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à Gemini, de Google. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés.",
+  ],
+])("the stack step says what is sent to match by meaning, in %s, and ties it to the chips", (lang, note) => {
+  const go = start(lang);
+  go("role");
+  click("radio", lang === "en" ? /Frontend Engineer/ : /Ingénieur frontend/);
+  go("stack");
+  expect(screen.getByText(note).id).toBe("stack-note");
+  expect(screen.getByRole("group").getAttribute("aria-describedby")).toContain("stack-note");
+});
+
 test("Continue with no technology shows an error and stays", () => {
   const go = start();
   go("role");

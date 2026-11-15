@@ -10,7 +10,29 @@ its number:
 
 ## 2026-11-15
 
-- feat(api): add post image uploads
+- feat(api): add post image uploads (#203)
+- feat(web): add a waving Nigeria flag to the landing footer
+- feat(api): let a developer pause matching (#213)
+- docs: name the live address for sign-in settings and add a check (#228)
+- feat(api): record when a developer finishes onboarding (#212)
+- docs: link the live site in both readmes (#227)
+- feat(api): add the meaning part to the match score and similar ideas (#225)
+- fix(web): say every hub phase has its tool on the landing page (#223)
+- fix(web): draw no repository link in the demo's review case (#221)
+- feat(api): push hub chat messages live over a websocket (#219)
+- feat(api): post to the feed when a hub moves to a new phase (#218)
+- feat(web): open the interview socket with a one-use ticket (#217)
+- fix(api): make the demo world's review case and chats consistent (#224)
+- feat(web): show the meaning part of the score and similar ideas (#222)
+- chore: deploy the web app, api and worker as one vercel project (#226)
+- test(web): wait for the dialog to close in three hub tests (#220)
+- feat(api): open the interview socket with a one-use ticket (#216)
+- fix(web): mark the village steps a developer has already done (#215)
+- feat(api): show the owner the match score on join requests (#214)
+- feat(api): store what ideas and profiles mean as embeddings (#211)
+- feat(web): turn the theme in a wave of tiles from the centre (#180)
+- feat(web): add the review checklist to the hub page (#210)
+- fix(infra): date the demo's signatures when each member joined (#209)
 - fix(web): say the build tab is live on the landing page (#208)
 - feat(api): add the review checklist and finishing to a hub (#204)
 - fix(web): draw no github link from a username in the demo (#207)

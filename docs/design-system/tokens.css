@@ -9,6 +9,8 @@
   --laterite-700: #B23F0C;
   --lagoon: #3DBFDB;
   --lagoon-700: #0C6680;
+  /* the green of Nigeria's flag, for the flag only and the same in both themes */
+  --flag-ng-green: #008751;
 
   /* type families */
   --display: "Unbounded", system-ui, sans-serif;
