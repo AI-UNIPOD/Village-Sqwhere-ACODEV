@@ -7,7 +7,7 @@ French. It is only a client of the API in `apps/api`: no database, no secrets.
 
 ```bash
 pnpm dev:web      # http://localhost:3000 (the API must run on :8000)
-pnpm test:web     # 1,313 Vitest + Testing Library tests, next to the code they test
+pnpm test:web     # 1,686 Vitest + Testing Library tests, next to the code they test
 pnpm lint:web
 pnpm build:web
 ```
