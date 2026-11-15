@@ -239,7 +239,7 @@ membre signe exactement le même accord. Plus de détails dans
 | Base de données | PostgreSQL 17 avec pgvector | Données relationnelles et vecteurs de similarité d'idées dans un seul stockage |
 | IA | Groq et Gemini, l'un prenant le relais de l'autre | L'entretien de vérification, la transcription vocale et le rapport |
 | Outils | pnpm, uv, Docker Compose, Vitest, pytest, Ruff, ESLint | Installations rapides et une commande par tâche |
-| Hébergement | Systalink | Exigé par ACODev 2026 |
+| Hébergement | Vercel (web, API et worker dans un seul projet) | Un seul domaine pour l'application et son API ; voir [`infra/README.md`](infra/README.md#deployment-vercel) |
 
 ### Lancer en local
 
