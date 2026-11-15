@@ -111,7 +111,11 @@ invites again after a decline (`team.tsx`); an invited developer sees the invita
 team's brief. The owner of an active hub edits its name and description in place under the title
 (`PATCH /v1/hubs/{id}`; an emptied description is sent as `null`) and archives it at the end of the
 page behind a confirm dialog (`POST /v1/hubs/{id}/archive`, `hubs/manage.tsx`). Archiving cannot be
-undone; the page then shows the hub as archived, read only, and the owner's tools go. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
+undone; the page then shows the hub as archived, read only, and the owner's tools go. In an active
+hub the owner removes an active member behind a confirm dialog
+(`POST /v1/hubs/{id}/members/{user_id}/remove`), and a member who is not the owner leaves the same
+way (`POST /v1/hubs/{id}/membership/leave`); the page then shows the hub as someone who left, or
+was removed, with a line that says so. Your hubs lists waiting invitations first (`GET /v1/me/hubs?status=invited`).
 The village and Your hubs keep that list for the visit (`app/hubs/invitations.ts`): the village
 makes a waiting invitation its next step, and the places bar marks Hubs with a dot. Signing or
 declining takes the invitation off the list. A page that needs the hub of an idea reads every
@@ -153,6 +157,16 @@ language: a taken name is a field error, a vanished piece or link reloads the sk
 on (`PHASE_CLOSED`, `PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`, `HUB_ARCHIVED`, `NOT_HUB_MEMBER`) the page
 loads the hub again and the section follows it. In build, review and an archived hub the sketch is for
 reading only. The tools for build and review are not built yet.
+
+At the end of the page, every active member sees the team chat (`hubs/chat.tsx`, `id="chat"`), in any
+phase and before the team is confirmed. The API sends the newest 50 messages first
+(`GET /v1/hubs/{id}/messages`); the page shows them oldest first, and Show earlier messages reads the
+next page. A member sends 1 to 10,000 characters (`POST`), and Reply quotes one message (`reply_to_id`).
+A quote of a deleted message says so. The author edits a message in place (`PATCH`, marked edited), and
+the author or the hub's owner deletes one behind a confirm dialog (`DELETE`); quotes of it follow both. In
+an archived hub the chat is for reading only. There are no live updates: a Refresh button reads the
+newest page again. When the API says the hub changed (`HUB_ARCHIVED`, `HUB_CHANGED`, `NOT_HUB_MEMBER`),
+the page loads the hub again and says so.
 
 An invited developer joins at `/en/hubs/join?id=`: the hub's terms, the hub's own agreement
 (`GET /v1/hubs/{id}/agreement`), the read box, a typed legal name and a confirm dialog. It shares

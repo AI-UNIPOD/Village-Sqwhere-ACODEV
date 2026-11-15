@@ -207,7 +207,7 @@ test("the owner sees the hub, its idea, the terms as signed and the four phases"
   api({ "GET /v1/hubs/hub-1": { data: hub() }, "GET /v1/hubs/hub-1/members": { data: [owner()] }, "GET /v1/hubs/hub-1/idea": { data: idea() } });
   render(<HubPage lang="en" />);
   expect(await screen.findByRole("heading", { level: 1, name: "Borehole map hub" })).toBeTruthy();
-  expect(screen.getByRole("status").textContent).toContain("Your hub is ready. You are its owner and first member.");
+  expect(screen.getByText("Your hub is ready. You are its owner and first member.").getAttribute("role")).toBe("status");
   expect(screen.getByText("Active")).toBeTruthy();
   expect(screen.getByText("1 of 5 members")).toBeTruthy();
   expect(screen.getByText("Custom")).toBeTruthy();

@@ -127,6 +127,14 @@ export const approveRequest = async (id: string, userId: string) =>
 export const declineRequest = async (id: string, userId: string) =>
   (await call<{ data: Member }>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/decline`, "POST")).data;
 
+// An active member who is not the owner leaves. Answers with the hub card, whose
+// `viewer.membership_status` is then "left".
+export const leaveHub = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/membership/leave`, "POST")).data;
+
+// The owner removes an active member. The answer's member card, status "removed", is not needed:
+// nobody sees removed people in the team list.
+export const removeMember = (id: string, userId: string) => call<unknown>(`${hubPath(id)}/members/${encodeURIComponent(userId)}/remove`, "POST");
+
 // The owner confirms the team, which opens brainstorm; both calls answer with the updated hub card.
 export const confirmTeam = async (id: string) => (await call<{ data: Hub }>(`${hubPath(id)}/team/confirm`, "POST")).data;
 
@@ -204,6 +212,33 @@ export const addLink = async (id: string, link: { from_piece_id: string; to_piec
   (await call<{ data: PieceLink }>(`${hubPath(id)}/links`, "POST", link)).data;
 
 export const deleteLink = (id: string, linkId: string) => call<null>(`${hubPath(id)}/links/${encodeURIComponent(linkId)}`, "DELETE");
+
+// One message of a hub's chat. `reply_to.body` is null once the quoted message is deleted.
+export type Message = {
+  id: string;
+  body: string;
+  author: Note["author"];
+  reply_to: { id: string; author: Note["author"]; body: string | null } | null;
+  created_at: string;
+  edited_at: string | null;
+  can_edit: boolean;
+  can_delete: boolean;
+};
+
+export const MESSAGE_MAX = 10_000;
+
+// One page of the chat, newest first, as the API sends it.
+export const loadMessages = (id: string, offset = 0) =>
+  call<{ data: Message[]; next_offset: number | null }>(`${hubPath(id)}/messages?offset=${offset}&limit=50`);
+
+export const sendMessage = async (id: string, message: { body: string; reply_to_id?: string }) =>
+  (await call<{ data: Message }>(`${hubPath(id)}/messages`, "POST", message)).data;
+
+export const editMessage = async (id: string, messageId: string, body: string) =>
+  (await call<{ data: Message }>(`${hubPath(id)}/messages/${encodeURIComponent(messageId)}`, "PATCH", { body })).data;
+
+export const deleteMessage = (id: string, messageId: string) =>
+  call<null>(`${hubPath(id)}/messages/${encodeURIComponent(messageId)}`, "DELETE");
 
 // The agreement this hub was created on, which can be older than the current one.
 export const loadHubAgreement = async (id: string) => (await call<{ data: Agreement }>(`${hubPath(id)}/agreement`)).data;
