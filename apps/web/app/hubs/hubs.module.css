@@ -209,7 +209,8 @@
 
 /* the owner's own action: the new row rises into place; a note the person just added does too */
 .member[data-arrived],
-.note[data-arrived] { animation: arrive var(--dur-reveal) var(--ease-out); }
+.note[data-arrived],
+.message[data-arrived] { animation: arrive var(--dur-reveal) var(--ease-out); }
 
 /* the "Invited" pill that takes the place of an invite button arrives the same way */
 .sent { animation: arrive var(--dur-reveal) var(--ease-out); }
@@ -240,6 +241,7 @@
 @media (prefers-reduced-motion: reduce) {
   .member[data-arrived],
   .note[data-arrived],
+  .message[data-arrived],
   .sent,
   .momentBrief { animation-name: fade; }
 }
@@ -484,4 +486,55 @@
   align-items: center;
   min-block-size: var(--tap-min);
   font: var(--type-label);
+}
+
+/* the team chat: one column, oldest message first */
+.chat {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-s);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+}
+
+.messageAuthor { color: var(--text); }
+
+.messageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* the message a reply quotes, set off by a rule on its start side */
+.quote {
+  margin: 0;
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--line-strong);
+}
+
+.quoteText {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.replying {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-end: var(--space-3);
 }
