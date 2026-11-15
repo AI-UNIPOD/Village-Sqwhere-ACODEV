@@ -22,6 +22,8 @@ Tanny decided on 15 November 2026:
   warning above the agreement is removed, with its English and French words. The demo ideas'
   private brief no longer starts with "Made-up plan for the demo" (its own pull request, in
   the API's demo seed).
+- **The guided tour does not repeat it.** Its first stop was "The demo village", "the village
+  of a demo developer". It is now "Your village", and says what a village holds.
 
 The landing page is the landing session's, and its labels are decided there.
 
