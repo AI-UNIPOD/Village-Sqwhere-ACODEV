@@ -157,7 +157,7 @@ reaches the API at `https://<domain>/v1/...`.
 
    | Variable | Value |
    |---|---|
-   | `DATABASE_URL` | The **direct** (not pooled) URL, starting `postgresql://` and ending `?ssl=require`. asyncpg rejects `sslmode=require` and breaks on transaction pooling. |
+   | `DATABASE_URL` | With Neon connected through Vercel, nothing to add: the API uses Neon's `DATABASE_URL_UNPOOLED` (the direct address) first and turns `sslmode` into `ssl`, because asyncpg rejects `sslmode` and breaks on transaction pooling. With another host, give the direct URL. |
    | `JWT_SECRET_KEY` | A new random value of 32 characters or more, never the local one |
    | `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ORIGINS` | `https://<domain>` |
    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | A GitHub OAuth app for the real domain, with the callback `https://<domain>/v1/auth/oauth/github/callback` |
