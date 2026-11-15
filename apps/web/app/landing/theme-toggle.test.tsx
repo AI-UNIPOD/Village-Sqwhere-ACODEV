@@ -1,5 +1,5 @@
 import { runInNewContext } from "node:vm";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { THEME_INIT_SCRIPT, THEME_KEY } from "./theme";
@@ -71,60 +71,355 @@ test("still switches when the browser refuses to save the choice", () => {
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
 });
 
-test("spreads the new theme from the button through a view transition; with reduced motion it fades", () => {
+// ---------- the wave of tiles ----------
+
+type Pending = { ready: () => void; finish: () => void; done: boolean };
+
+// A stand-in for document.startViewTransition: the update runs at once, and the test decides when
+// each transition becomes ready and when it finishes.
+function stubTransitions() {
+  const pending: Pending[] = [];
   const start = vi.fn((update: () => void) => {
     update();
-    return { ready: new Promise<void>(() => {}), finished: Promise.resolve() };
+    let ready = () => {};
+    let finish = () => {};
+    const readyPromise = new Promise<void>((resolve) => (ready = resolve));
+    const finished = new Promise<void>((resolve) => (finish = resolve));
+    pending.push({ ready, finish, done: false });
+    return { ready: readyPromise, finished };
   });
   Object.assign(document, { startViewTransition: start });
-  stubSystemTheme(false);
-  render(<ThemeButton {...labels} className="theme" />);
-  fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
-  expect(start).toHaveBeenCalledOnce();
-  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-  expect(document.documentElement.hasAttribute("data-theme-spread")).toBe(true);
-  expect(document.documentElement.style.getPropertyValue("--theme-x")).toMatch(/px$/);
-  cleanup();
+  return { start, pending };
+}
 
+async function finishAll(pending: Pending[]) {
+  for (let round = 0; round < 10; round++) {
+    const open = pending.filter((t) => !t.done);
+    if (!open.length) return;
+    for (const t of open) {
+      t.done = true;
+      t.ready();
+      t.finish();
+    }
+    await act(async () => {});
+  }
+}
+
+function stubMedia({ dark = false, reduce = false }: { dark?: boolean; reduce?: boolean } = {}) {
   vi.stubGlobal(
     "matchMedia",
     vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes("reduce"),
+      matches: (dark && query.includes("dark")) || (reduce && query.includes("reduce")),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     })),
   );
-  document.documentElement.setAttribute("data-theme", "light");
-  render(<ThemeButton {...labels} className="theme" />);
-  fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
-  // a short crossfade, never an instant flip: the transition still runs, with nothing travelling
-  expect(start).toHaveBeenCalledTimes(2);
-  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-  expect(document.documentElement.hasAttribute("data-theme-fade")).toBe(true);
-  delete (document as { startViewTransition?: unknown }).startViewTransition;
-  document.documentElement.removeAttribute("data-theme-fade");
-  document.documentElement.removeAttribute("data-theme-spread");
+}
+
+// a running wave animation, as the page would hand back
+function stubAnimate(progress = 0.4) {
+  const animation = {
+    effect: { getComputedTiming: () => ({ progress }) },
+    currentTime: 100,
+    playbackRate: 1,
+    updatePlaybackRate: vi.fn(),
+  };
+  const animate = vi.fn<(keyframes: object, options: object) => typeof animation>(() => animation);
+  Object.assign(document.documentElement, { animate });
+  return { animate, animation };
+}
+
+const fakeContext = {
+  fillStyle: "",
+  setTransform: vi.fn(),
+  clearRect: vi.fn(),
+  save: vi.fn(),
+  restore: vi.fn(),
+  beginPath: vi.fn(),
+  rect: vi.fn(),
+  moveTo: vi.fn(),
+  lineTo: vi.fn(),
+  closePath: vi.fn(),
+  clip: vi.fn(),
+  fill: vi.fn(),
+};
+
+const waveCanvas = () => document.querySelector("canvas[data-theme-tiles-canvas]");
+const pressButton = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+
+beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(fakeContext as never);
+  vi.stubGlobal("CSS", { supports: () => true });
 });
 
-test("the circle grows over --dur-moment, read with its unit as the built CSS writes it", async () => {
+afterEach(() => {
   const root = document.documentElement;
-  root.style.setProperty("--dur-moment", ".52s");
-  const animate = vi.fn();
-  Object.assign(root, { animate });
-  const start = vi.fn((update: () => void) => {
-    update();
-    return { ready: Promise.resolve(), finished: new Promise<void>(() => {}) };
-  });
-  Object.assign(document, { startViewTransition: start });
-  stubSystemTheme(false);
-  render(<ThemeButton {...labels} className="theme" />);
-  fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
-  await waitFor(() => expect(animate).toHaveBeenCalledOnce());
-  expect(animate.mock.calls[0][1]).toMatchObject({ duration: 520, pseudoElement: "::view-transition-new(root)" });
   delete (document as { startViewTransition?: unknown }).startViewTransition;
   delete (root as { animate?: unknown }).animate;
   root.style.removeProperty("--dur-moment");
-  root.removeAttribute("data-theme-spread");
+  for (const name of ["data-theme-tiles", "data-theme-fade"]) root.removeAttribute(name);
+  document.querySelectorAll("canvas").forEach((c) => c.remove());
+});
+
+test("the new theme arrives in a wave of tiles over a canvas, which goes when the transition ends", async () => {
+  const { start, pending } = stubTransitions();
+  const { animate } = stubAnimate();
+  stubMedia();
+  vi.stubGlobal("devicePixelRatio", 3);
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+
+  expect(start).toHaveBeenCalledOnce();
+  const root = document.documentElement;
+  expect(root.getAttribute("data-theme")).toBe("dark");
+  expect(root.hasAttribute("data-theme-tiles")).toBe(true);
+  // the wave starts at the centre of the visible screen, not at the button
+  expect(root.style.getPropertyValue("--tiles-x")).toBe(`${window.innerWidth / 2}px`);
+  expect(root.style.getPropertyValue("--tiles-y")).toBe(`${window.innerHeight / 2}px`);
+  const canvas = waveCanvas() as HTMLCanvasElement;
+  expect(canvas.getAttribute("aria-hidden")).toBe("true");
+  // a pixel ratio of 3 is drawn at 2
+  expect(canvas.width).toBe(window.innerWidth * 2);
+  expect(canvas.style.width).toBe(`${window.innerWidth}px`);
+
+  pending[0].ready();
+  await act(async () => {});
+  expect(animate).toHaveBeenCalledOnce();
+  expect(animate.mock.calls[0][0]).toMatchObject({ "--tiles-s": ["0px", expect.stringMatching(/px$/)] });
+  expect(animate.mock.calls[0][1]).toMatchObject({
+    easing: expect.stringMatching(/^linear\(/),
+    pseudoElement: "::view-transition-new(root)",
+  });
+
+  await finishAll(pending);
+  expect(waveCanvas()).toBeNull();
+  expect(root.hasAttribute("data-theme-tiles")).toBe(false);
+  expect(root.style.getPropertyValue("--tiles-x")).toBe("");
+});
+
+test.each([
+  [".52s", 780],
+  ["520ms", 780],
+  [".4s", 600],
+])("the wave lasts one and a half --dur-moment, read with its unit: %s is %i ms", async (written, expected) => {
+  document.documentElement.style.setProperty("--dur-moment", written);
+  const { pending } = stubTransitions();
+  const { animate } = stubAnimate();
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  pending[0].ready();
+  await act(async () => {});
+  expect(animate.mock.calls[0][1]).toMatchObject({ duration: expected });
+  await finishAll(pending);
+});
+
+test("tiles over an area marked data-tile-bg are drawn in that area's colour, the rest in --bg", async () => {
+  const root = document.documentElement;
+  root.style.setProperty("--bg", "paper");
+  root.style.setProperty("--text", "ink");
+  const band = document.createElement("section");
+  band.setAttribute("data-tile-bg", "");
+  band.style.backgroundColor = "tomato";
+  vi.spyOn(band, "getBoundingClientRect").mockReturnValue(
+    { left: 0, top: 0, right: window.innerWidth / 2, bottom: window.innerHeight, width: window.innerWidth / 2, height: window.innerHeight } as DOMRect,
+  );
+  document.body.appendChild(band);
+  const used = new Set<string>();
+  let style = "";
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    ...fakeContext,
+    fill: () => used.add(style),
+    get fillStyle() {
+      return style;
+    },
+    set fillStyle(value: string) {
+      style = value;
+    },
+  } as never);
+  const { pending } = stubTransitions();
+  stubAnimate(0);
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  pending[0].ready();
+  await waitFor(() => expect(used.size).toBeGreaterThan(0));
+  const colours = [...used];
+  // jsdom writes tomato as its rgb() value
+  expect(colours.some((colour) => colour.includes("255, 99, 71"))).toBe(true);
+  expect(colours.some((colour) => colour.includes("paper"))).toBe(true);
+  await finishAll(pending);
+  band.remove();
+  root.style.removeProperty("--bg");
+  root.style.removeProperty("--text");
+});
+
+test("an area marked data-tile-bg that paints nothing is left out", async () => {
+  const band = document.createElement("section");
+  band.setAttribute("data-tile-bg", "");
+  vi.spyOn(band, "getBoundingClientRect").mockReturnValue(
+    { left: 0, top: 0, right: 2000, bottom: 2000, width: 2000, height: 2000 } as DOMRect,
+  );
+  document.body.appendChild(band);
+  const used = new Set<string>();
+  let style = "";
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    ...fakeContext,
+    fill: () => used.add(style),
+    get fillStyle() {
+      return style;
+    },
+    set fillStyle(value: string) {
+      style = value;
+    },
+  } as never);
+  document.documentElement.style.setProperty("--bg", "paper");
+  const { pending } = stubTransitions();
+  stubAnimate(0);
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  pending[0].ready();
+  await waitFor(() => expect(used.size).toBeGreaterThan(0));
+  expect([...used].every((colour) => colour.includes("paper"))).toBe(true);
+  await finishAll(pending);
+  band.remove();
+  document.documentElement.style.removeProperty("--bg");
+});
+
+test("the wave is centred on the visible page: a classic scrollbar is left out of its width", async () => {
+  // a window of 1024px with a 15px scrollbar shows a page 1009px wide
+  vi.spyOn(document.documentElement, "clientWidth", "get").mockReturnValue(window.innerWidth - 15);
+  vi.spyOn(document.documentElement, "clientHeight", "get").mockReturnValue(700);
+  const { pending } = stubTransitions();
+  stubAnimate();
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  const root = document.documentElement;
+  expect(root.style.getPropertyValue("--tiles-x")).toBe(`${(window.innerWidth - 15) / 2}px`);
+  expect(root.style.getPropertyValue("--tiles-y")).toBe("350px");
+  const canvas = waveCanvas() as HTMLCanvasElement;
+  expect(canvas.style.width).toBe(`${window.innerWidth - 15}px`);
+  expect(canvas.style.height).toBe("700px");
+  await finishAll(pending);
+});
+
+test("with reduced motion the theme crossfades and no tiles are drawn", async () => {
+  const { start, pending } = stubTransitions();
+  const { animate } = stubAnimate();
+  stubMedia({ reduce: true });
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+
+  // a short crossfade, never an instant flip: the transition runs, with nothing travelling
+  expect(start).toHaveBeenCalledOnce();
+  const root = document.documentElement;
+  expect(root.getAttribute("data-theme")).toBe("dark");
+  expect(root.hasAttribute("data-theme-fade")).toBe(true);
+  expect(root.hasAttribute("data-theme-tiles")).toBe(false);
+  expect(waveCanvas()).toBeNull();
+  await finishAll(pending);
+  expect(animate).not.toHaveBeenCalled();
+  expect(root.hasAttribute("data-theme-fade")).toBe(false);
+});
+
+test("without view transitions the theme changes at once, with nothing drawn", () => {
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  expect(document.documentElement.hasAttribute("data-theme-tiles")).toBe(false);
+  expect(waveCanvas()).toBeNull();
+});
+
+test("without CSS linear() easings the wave cannot be timed, so the theme changes at once", () => {
+  const { start } = stubTransitions();
+  vi.stubGlobal("CSS", { supports: () => false });
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  expect(start).not.toHaveBeenCalled();
+  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+});
+
+test("three fast presses end opposite to where they began, in one transition", async () => {
+  const { start, pending } = stubTransitions();
+  const { animation } = stubAnimate();
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  pending[0].ready();
+  await act(async () => {});
+
+  // the button shows each press at once, while the first change is still running
+  expect(screen.getByRole("button").getAttribute("aria-label")).toBe("Switch to light mode");
+  pressButton("Switch to light mode");
+  expect(screen.getByRole("button").getAttribute("aria-label")).toBe("Switch to dark mode");
+  pressButton("Switch to dark mode");
+  expect(screen.getByRole("button").getAttribute("aria-label")).toBe("Switch to light mode");
+  // the running wave hurries to the end
+  expect(animation.updatePlaybackRate).toHaveBeenCalledWith(4);
+
+  await finishAll(pending);
+  expect(start).toHaveBeenCalledTimes(1);
+  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  expect(screen.getByRole("button").getAttribute("aria-label")).toBe("Switch to light mode");
+});
+
+test("two fast presses play the way back after the first wave, and no more than two", async () => {
+  const { start, pending } = stubTransitions();
+  stubAnimate();
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  pressButton("Switch to dark mode");
+  pressButton("Switch to light mode");
+  expect(start).toHaveBeenCalledTimes(1);
+  await finishAll(pending);
+  expect(start).toHaveBeenCalledTimes(2);
+  expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  expect(localStorage.getItem(THEME_KEY)).toBe("light");
+  expect(screen.getByRole("button").getAttribute("aria-label")).toBe("Switch to dark mode");
+});
+
+function box(left: number, right: number) {
+  return { left, right, top: 0, bottom: 100, width: right - left, height: 100 } as DOMRect;
+}
+
+test("a click Chrome sends to the page during a transition is queued when it lands on the button", async () => {
+  const { start, pending } = stubTransitions();
+  stubAnimate();
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  const button = screen.getByRole("button");
+  vi.spyOn(button, "getBoundingClientRect").mockReturnValue(box(900, 944));
+  pressButton("Switch to dark mode");
+
+  // beside the button: nothing happens
+  fireEvent.click(document.documentElement, { clientX: 400, clientY: 30 });
+  expect(button.getAttribute("aria-label")).toBe("Switch to light mode");
+  // on the button: queued, and the label turns back at once
+  fireEvent.click(document.documentElement, { clientX: 920, clientY: 30 });
+  expect(button.getAttribute("aria-label")).toBe("Switch to dark mode");
+  // a press that reaches the button itself, as a key press does, queues too
+  fireEvent.click(button);
+  expect(button.getAttribute("aria-label")).toBe("Switch to light mode");
+
+  await finishAll(pending);
+  expect(start).toHaveBeenCalledTimes(1);
+  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+});
+
+test("stops catching clicks on the page once the queue is empty", async () => {
+  const { start, pending } = stubTransitions();
+  stubAnimate();
+  stubMedia();
+  render(<ThemeButton {...labels} className="theme" />);
+  vi.spyOn(screen.getByRole("button"), "getBoundingClientRect").mockReturnValue(box(0, 100));
+  pressButton("Switch to dark mode");
+  await finishAll(pending);
+  fireEvent.click(document.documentElement, { clientX: 50, clientY: 50 });
+  expect(start).toHaveBeenCalledTimes(1);
 });
 
 test("keeps both icons hidden from screen readers", () => {

@@ -17,6 +17,7 @@ from app.models import (
     Idea,
     IdeaStatus,
     User,
+    UserEmbedding,
     UserFeedTopic,
     UserIdentity,
     UserSector,
@@ -94,7 +95,7 @@ async def delete_account(db: AsyncSession, user: User) -> None:
         )
         .values(status=VerificationStatus.ABANDONED)
     )
-    for table in (UserIdentity, UserTechnology, UserSector, UserFeedTopic):
+    for table in (UserIdentity, UserTechnology, UserSector, UserFeedTopic, UserEmbedding):
         await db.execute(delete(table).where(table.user_id == user.id))
     await db.execute(
         update(User)

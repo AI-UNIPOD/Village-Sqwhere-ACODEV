@@ -54,6 +54,18 @@ export async function call<T>(path: string, method = "GET", body?: unknown): Pro
 export const loadMyIdeas = (offset = 0) =>
   call<{ data: OwnedIdea[]; next_offset: number | null }>(`/v1/me/ideas?offset=${offset}&limit=20`);
 
+// Whether the developer has shared an idea: one that is open or closed, not a draft. Drafts can
+// fill the first page, so this reads on until it finds one.
+export async function hasSharedIdea(): Promise<boolean> {
+  let offset: number | null = 0;
+  while (offset !== null) {
+    const page: { data: OwnedIdea[]; next_offset: number | null } = await loadMyIdeas(offset);
+    if (page.data.some((idea) => idea.status !== "draft")) return true;
+    offset = page.next_offset;
+  }
+  return false;
+}
+
 export const loadMyIdea = async (id: string) =>
   (await call<{ data: OwnedIdea }>(`/v1/me/ideas/${encodeURIComponent(id)}`)).data;
 

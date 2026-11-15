@@ -28,13 +28,23 @@ from app.models import (
     HubMemberStatus,
     HubStatus,
     Idea,
+    IdeaEmbedding,
     IdeaStage,
     IdeaStatus,
     User,
+    UserEmbedding,
 )
 from tests.conftest import test_async_session as db_session
 
-NEW_MODELS = [Idea, AgreementTemplate, Hub, AgreementSignature, HubMember]
+NEW_MODELS = [
+    Idea,
+    AgreementTemplate,
+    Hub,
+    AgreementSignature,
+    HubMember,
+    IdeaEmbedding,
+    UserEmbedding,
+]
 
 
 def run[T](work: Callable[[AsyncSession], Awaitable[T]]) -> T:
