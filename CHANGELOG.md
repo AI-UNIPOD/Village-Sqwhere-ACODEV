@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- feat(web): say nothing was saved next to each refused write in the demo
+- feat(web): say nothing was saved next to each refused write in the demo (#234)
 - feat(api): add post image uploads
 - feat(api): add a demo community of 1,150 members and 1,500 posts (#232)
 - feat(web): continue a deep reply's thread on its own (#231)
