@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- fix(web): show version 2 of the hub agreement on the landing page
 - fix(web): remove the placeholder warning and the tour's demo wording (#197)
 - feat(infra): publish the hub agreement as version 2 (#195)
 - fix(api): remove the made-up label from the demo private brief (#198)

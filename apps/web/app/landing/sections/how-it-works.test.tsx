@@ -156,3 +156,8 @@ test.each([
   expect(text).toContain(notes);
   expect(text).toContain(later);
 });
+
+// New hubs sign version 2 of the hub agreement (#195), so the sample team shows it.
+test.each(["en", "fr"] as const)("the %s sample team shows version 2 of the hub agreement", (lang) => {
+  expect(copy[lang].team.agreement).toMatch(/^Version 2 /);
+});
