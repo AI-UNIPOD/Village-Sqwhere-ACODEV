@@ -11,6 +11,7 @@ its number:
 ## 2026-11-15
 
 - feat(api): let a developer pause matching (#213)
+- fix(infra): date the demo's signatures when each member joined (#209)
 - fix(web): say the build tab is live on the landing page (#208)
 - feat(api): add the review checklist and finishing to a hub (#204)
 - fix(web): draw no github link from a username in the demo (#207)
