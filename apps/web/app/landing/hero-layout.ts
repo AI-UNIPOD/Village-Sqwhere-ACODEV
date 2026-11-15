@@ -13,11 +13,17 @@ const PHONE = 600; // below this the square is a little smaller and the headline
 const FLOAT_CLEAR = 60; // room kept clear at the sides of the hero (the floating buttons sat there)
 const SIDE = 32; // the content's side padding from 768px
 
-// Space between the text box's outer edge (its padding is the clearing in the crowd) and the
-// square: to its left side by side, from its bottom edge when stacked.
+// The crowd keeps this far clear of the text box's outer edge (its padding is the clearing).
+export const AVOID_PAD = 14;
+// The two boxes, the text and the square, are separate, with crowd between them: this much
+// crowd between the text's clear zone and the square's (which is one cell wider than the
+// square), side by side to the left of the square, stacked above it.
 export const GAP = 64; // --space-16
 export const WIDE_GAP = 80; // --space-20: with the larger squares, from 20px cells
 const gapFor = (cell: number) => (cell >= 20 ? WIDE_GAP : GAP);
+// Stacked, the band between the text and the square is deeper: it is the stage of the ghost idea
+// on a phone, so it has room for the ring of three names, the chip and their labels.
+export const STACK_BAND = GAP * 2.5;
 export const PLAY_GAP = 12; // --space-3: the motion button sits this far under the square
 const PLAY_MARGIN = 8; // --space-2: the crowd keeps this clear of the motion button
 const PLAY_HEIGHT = 36; // --float-size
@@ -82,10 +88,25 @@ function withPlay(
   return { ...g, centered: g.stacked, playX, playY: g.y + g.square + PLAY_GAP, playWidth };
 }
 
+/**
+ * The crowd between the two boxes, in px: from the text's clear zone to the square's, side by
+ * side, or the same measured down when stacked.
+ */
+export function crowdBand(g: HeroGeometry): number {
+  return g.stacked
+    ? g.y - g.cell - (g.copyTop + g.copyHeight + AVOID_PAD)
+    : g.x - g.cell - (g.copyLeft + g.copyWidth + AVOID_PAD);
+}
+
 /** The areas the crowd and the walking names keep clear of: the text box, the square, the button. */
 export function heroAvoid(g: HeroGeometry): Array<readonly [number, number, number, number]> {
-  const areas: Array<readonly [number, number, number, number]> = [
-    [g.copyLeft - 14, g.copyTop - 14, g.copyLeft + g.copyWidth + 14, g.copyTop + g.copyHeight + 14],
+  return [
+    [
+      g.copyLeft - AVOID_PAD,
+      g.copyTop - AVOID_PAD,
+      g.copyLeft + g.copyWidth + AVOID_PAD,
+      g.copyTop + g.copyHeight + AVOID_PAD,
+    ],
     [g.x - g.cell, g.y - g.cell, g.x + g.square + g.cell, g.y + g.square + g.cell],
     [
       g.playX - PLAY_MARGIN,
@@ -94,13 +115,16 @@ export function heroAvoid(g: HeroGeometry): Array<readonly [number, number, numb
       g.playY + PLAY_HEIGHT + PLAY_MARGIN,
     ],
   ];
-  // Side by side, the gap between the box and the square stays clear too: only short words fit
-  // that strip, so the crowd would read as a ragged one-word column (or words cut by the mask)
-  // instead of a gap.
-  if (!g.stacked) {
-    areas.push([g.copyLeft + g.copyWidth, g.y - g.cell, g.x, g.y + g.square + g.cell]);
-  }
-  return areas;
+}
+
+/**
+ * Stacked, the band of crowd between the text and the square is the stage of the ghost idea on a
+ * phone, so the walking names do not start in it. Side by side there is no such band.
+ */
+export function ghostStage(g: HeroGeometry): readonly [number, number, number, number] | null {
+  if (!g.stacked) return null;
+  const [copy, square] = heroAvoid(g);
+  return [0, copy[3], g.width, square[1]];
 }
 
 type HeroInput = {
@@ -154,13 +178,14 @@ export function heroGeometry({
   const capCell = Math.max(baseCap, wideCap);
 
   // Side by side: the text itself starts where the section text starts (the box reaches out by
-  // its padding) and the square ends where the section text ends, GAP clear of the box.
+  // its padding) and the square ends where the section text ends, a band of crowd (the gap)
+  // between the two clear zones.
   const boxLeft = margin + SIDE - pad;
   const maxBox = measure * MAX_HEADLINE_PX + 2 * pad; // no wider than the largest headline needs
   const sideAt = (cell: number) => {
     const square = 32 * cell;
     const x = contentRight - (W < 1240 ? FLOAT_CLEAR : SIDE) - square;
-    const box = Math.min(maxBox, x - gapFor(cell) - boxLeft);
+    const box = Math.min(maxBox, x - gapFor(cell) - cell - AVOID_PAD - boxLeft);
     return { cell, square, x, box, headline: (box - 2 * pad) / measure };
   };
   if (!phone) {
@@ -202,7 +227,7 @@ export function heroGeometry({
   const copyTop = Math.max(8, 40 - pad); // the text itself starts 40px down
   const copyHeight = measureCopy(copyLeft, copyWidth, true);
   const x = Math.round((W - square) / 2);
-  const y = copyTop + copyHeight + gapFor(cell);
+  const y = copyTop + copyHeight + AVOID_PAD + STACK_BAND + cell;
   const height = phone ? y + square + 9 * cell + 48 : y + square + 8 * cell + 40;
   return withPlay(
     {
