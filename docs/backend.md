@@ -930,29 +930,38 @@ standard agreement (an NDA) before they join, including the owner when they crea
 | --- | --- | --- |
 | `401` | `UNAUTHENTICATED` / `TOKEN_EXPIRED` | Not signed in, or the token is invalid or expired. |
 | `403` | `NOT_IDEA_AUTHOR` | Only the idea's author can create its hub. |
-| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team, move the phase or set the repository. |
-| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list, the notes, the design sketch or the build tab. |
+| `403` | `NOT_HUB_OWNER` | Only the hub's owner can invite, withdraw an invitation, answer a join request, confirm the team, move the phase, set the repository or finish the hub. |
+| `403` | `NOT_HUB_MEMBER` | Only active members (who signed) can read the brief, the member list, the notes, the design sketch, the build tab or the review checklist. |
 | `403` | `NOT_NOTE_AUTHOR` | Only a note's author or the hub's owner can remove it. |
 | `403` | `NOT_PIECE_AUTHOR` | Only a piece's creator or the hub's owner can remove it. |
 | `403` | `NOT_LINK_AUTHOR` | Only a link's creator or the hub's owner can remove it. |
 | `403` | `NOT_PIECE_HOLDER` | Only the member who holds a piece or the hub's owner can free it. |
+| `403` | `OWN_PIECE` | The member holds the piece the check is about, so a teammate ticks it. |
+| `403` | `NOT_CHECK_TICKER` | Only the member who ticked a check or the hub's owner can untick it. |
+| `403` | `NOT_CHECK_AUTHOR` | Only a check's author or the hub's owner can remove it. |
 | `404` | `USER_NOT_FOUND` | No developer has the username in an invitation. |
 | `404` | `NOTE_NOT_FOUND` | The note does not exist, is already removed, or belongs to another hub. |
 | `404` | `PIECE_NOT_FOUND` | The piece does not exist, is already removed, or belongs to another hub. For a link, either of its two pieces. Also when claiming or freeing. |
 | `404` | `LINK_NOT_FOUND` | The link does not exist, is already removed, or belongs to another hub. |
+| `404` | `CHECK_NOT_FOUND` | The check does not exist, is already removed, belongs to another hub, or its piece is removed. |
 | `404` | `INVITATION_NOT_FOUND` | There is no pending invitation to accept, decline or withdraw. |
 | `409` | `ALREADY_MEMBER` | The person is already an active member. |
 | `409` | `ALREADY_INVITED` | The person already has a pending invitation. |
-| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes, pieces, links, claims or repository changed, nor its commits refreshed. |
+| `409` | `HUB_ARCHIVED` | An archived hub takes no invitations or acceptances, and its team cannot be confirmed nor its phase moved, nor its notes, pieces, links, claims, repository or checks changed, nor its commits refreshed, nor the hub finished. |
 | `409` | `TEAM_ALREADY_CONFIRMED` | The owner already confirmed the team. Move the phase instead. |
-| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes, the design sketch and the build tab cannot be read or written, before the owner confirms the team. |
-| `409` | `PHASE_NOT_STARTED` | The hub is still in brainstorm, so the design sketch cannot be read or written yet, or still in brainstorm or design, so the build tab cannot. |
+| `409` | `TEAM_NOT_CONFIRMED` | The phase cannot move, and the notes, the design sketch, the build tab and the review checklist cannot be read or written, before the owner confirms the team. |
+| `409` | `PHASE_NOT_STARTED` | The hub is still in brainstorm, so the design sketch cannot be read or written yet, or still in brainstorm or design, so the build tab cannot, or in any phase before review, so the review checklist cannot. |
 | `409` | `PHASE_CLOSED` | The hub is past brainstorm, so notes can no longer be added or removed, past design, so the sketch can no longer change, or past build, so pieces can no longer be claimed or freed and the repository can no longer change. They stay readable. |
 | `409` | `NOTES_FULL` | The hub already has 200 notes that are not removed. |
 | `409` | `PIECES_FULL` | The hub already has 30 pieces that are not removed. |
 | `409` | `LINKS_FULL` | The hub already has 60 links that are not removed. |
 | `409` | `PIECE_NAME_TAKEN` | Another piece of the hub that is not removed has the same name, ignoring case and outer spaces. |
 | `409` | `LINK_EXISTS` | A link that is not removed already goes from that piece to that piece. |
+| `409` | `HUB_FINISHED` | The owner finished the hub, so its checklist can no longer change, it cannot be finished again and it cannot move to another phase. |
+| `409` | `CHECK_LIMIT` | The piece already has 10 checks that are not removed. |
+| `409` | `CHECK_TICKED` | The check is already ticked. |
+| `409` | `CHECK_NOT_TICKED` | The check is not ticked, so there is nothing to untick. |
+| `409` | `CHECKS_OPEN` | The hub cannot be finished while a check that is not removed is not ticked. The message says how many. |
 | `409` | `PIECE_CLAIMED` | Another active member already holds the piece. |
 | `409` | `REPOSITORY_NOT_SET` | The hub has no repository address, so there are no commits to refresh. |
 | `409` | `REFRESH_TOO_SOON` | The commits were refreshed less than a minute ago. The message says how many seconds to wait. |
@@ -1036,6 +1045,7 @@ are saved together, or nothing is saved.
       "status": "active",
       "phase": null,
       "team_confirmed_at": null,
+      "finished_at": null,
       "phases": [
         { "phase": "brainstorm", "state": "not_started" },
         { "phase": "design", "state": "not_started" },
@@ -1070,6 +1080,7 @@ are saved together, or nothing is saved.
   `member_count` counts active members only. `viewer` is the signed-in person's own
   membership. `phase` is the hub's current phase (`brainstorm`, `design`, `build` or `review`),
   or `null` until the owner confirms the team; `team_confirmed_at` is `null` at the same time.
+  `finished_at` is `null` until the owner finishes the hub (see the review checklist below).
   `phases` always lists the four in that order, each with a `state`: `done` before the current
   phase, `in_progress` on it, `not_started` after it (all four before the team is confirmed).
   Everyone who can read the card sees all of this. The idea's confidential details are never in
@@ -1363,8 +1374,8 @@ decline, which starts the usual wait.
 A hub has no phase until its owner confirms the team. Then it is in `brainstorm`, and the owner
 moves it one phase forward or one back through `brainstorm`, `design` (design and architecture),
 `build` and `review` (review and test). Only the owner moves it, and an archived hub cannot be
-confirmed or moved. Inviting and joining stay open after the team is confirmed, up to the cap of
-five. Every change is logged (`hub_phase_moves`), and the log cannot be edited or deleted. Why
+confirmed or moved, and neither can a finished one. Inviting and joining stay open after the team
+is confirmed, up to the cap of five. Every change is logged (`hub_phase_moves`), and the log cannot be edited or deleted. Why
 these rules: `docs/decisions/2026-11-14-hub-phases.md`. Both routes answer with the hub card,
 and the web must ask for a confirmation before it moves a hub back.
 
@@ -1385,7 +1396,7 @@ The owner moves the hub to the phase just after or just before its current one.
   Any other value is refused with `422`.
 * **Success Response (200 OK):** the hub card, in `data`.
 * **Errors:** `401`, `403 NOT_HUB_OWNER`, `404 NOT_FOUND`, `409 HUB_ARCHIVED`,
-  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_ADJACENT`, `422`. Skipping a phase, or asking for the
+  `409 TEAM_NOT_CONFIRMED`, `409 HUB_FINISHED`, `409 PHASE_NOT_ADJACENT`, `422`. Skipping a phase, or asking for the
   phase the hub is already in, is `PHASE_NOT_ADJACENT`, so a request sent twice moves the hub
   once. Nothing comes before `brainstorm`: the team stays confirmed.
 
@@ -1678,6 +1689,129 @@ Any active member copies the repository's latest commits from GitHub.
   `409 PHASE_NOT_STARTED`, `409 HUB_ARCHIVED`, `409 REPOSITORY_NOT_SET`, `409 REFRESH_TOO_SOON`,
   `502 REPOSITORY_UNAVAILABLE`, `409 REPOSITORY_CHANGED` (the owner changed the address while
   GitHub was answering). The checks run in that order, and they run again after GitHub answers.
+
+#### Review checklist
+
+Checks the team writes against each piece, which a teammate ticks once they have read the
+piece's work, and the owner finishing the hub. Only active members read or write. Reading opens
+when the hub reaches `review`. Writing works only while the hub is active, in `review` and not
+finished. Why these rules: `docs/decisions/2026-11-15-hub-review-checklist.md`.
+
+* A check is plain text of 1 to 200 characters, trimmed, with no null characters. A piece keeps at
+  most 10 checks that are not removed.
+* Any active member adds a check to any piece, the piece's holder included: the builder may say
+  what to look at.
+* Nobody ticks a check of a piece they hold, the owner included, so the team reads each other's
+  work. A piece nobody holds can be ticked by any member. A holder who is no longer an active
+  member counts as nobody, as in the build tab. Claims change only in `build`, so when the owner
+  moves the hub to `review`, a tick made by the member who now holds the piece is taken back.
+* The member who ticked a check, or the hub's owner, unticks it. The member who wrote a check, or
+  the hub's owner, removes it, ticked or not. Removal is soft: the row stays.
+* The owner finishes the hub when no check that is not removed is open. A hub with no checks may
+  be finished. Checks of a removed piece are left out of the answer and the count.
+* Finishing sets `finished_at` on the hub card. There is no way to undo it: the checklist stays
+  readable, and the hub can no longer change its checks or its phase.
+
+The answer to `GET /v1/hubs/{hub_id}/review`:
+
+```json
+{
+  "data": {
+    "finished_at": null,
+    "can_add": true,
+    "can_finish": false,
+    "open_checks": 1,
+    "pieces": [
+      {
+        "id": "…",
+        "name": "Payouts API",
+        "summary": "Takes an approved batch and refuses a transfer with no key.",
+        "claimed_by": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": true },
+        "checks": [
+          {
+            "id": "…",
+            "text": "A transfer sent twice with the same key pays once",
+            "created_by": { "id": "…", "username": "…", "display_name": "…", "avatar_url": null, "is_verified": false },
+            "created_at": "2026-11-15T09:00:00Z",
+            "ticked_by": null,
+            "ticked_at": null,
+            "can_tick": false,
+            "can_untick": false,
+            "can_delete": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`claimed_by` is `null` for a piece nobody holds. The flags say what the viewer may do now, so the
+screen never works it out. `can_add` is true while the checklist can change. `can_tick` needs
+`can_add`, a check that is not ticked, and a viewer who does not hold the piece. `can_untick` needs
+`can_add`, a ticked check, and a viewer who ticked it or owns the hub. `can_delete` needs `can_add`
+and a viewer who wrote the check or owns the hub. `can_finish` is true for the owner when
+`can_add` is true and `open_checks` is 0. `open_checks` counts the checks that are not ticked.
+The routes that answer with one check return it in `data`, in this shape.
+
+#### `GET /v1/hubs/{hub_id}/review`
+
+Everything in one answer, with no paging. `pieces` are the ones not removed, oldest first, as in
+the build tab, and each piece's `checks` are oldest first.
+
+* **Success Response (200 OK):** the answer above.
+* **Errors:** `401`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED` (the hub is in brainstorm, design or build). The checks run in that
+  order.
+
+#### `POST /v1/hubs/{hub_id}/pieces/{piece_id}/checks`
+
+An active member adds a check to a piece.
+
+* **Request Body:** `{ "text": "A transfer sent twice with the same key pays once" }`. The field is
+  required and the other fields are refused.
+* **Success Response (201 Created):** the check, in `data`.
+* **Errors:** `401`, `422` (a malformed id, or a text that is empty, blank, over 200 characters or
+  holds a null character), `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 HUB_ARCHIVED`, `409 HUB_FINISHED`, `404 PIECE_NOT_FOUND`,
+  `409 CHECK_LIMIT`. A body that fails validation gets `422` before any other check. After that the
+  checks run in the order listed.
+
+#### `POST /v1/hubs/{hub_id}/checks/{check_id}/tick`
+
+An active member who does not hold the piece ticks a check.
+
+* **Success Response (200 OK):** the check, in `data`.
+* **Errors:** `401`, `422`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 HUB_ARCHIVED`, `409 HUB_FINISHED`, `404 CHECK_NOT_FOUND`,
+  `403 OWN_PIECE`, `409 CHECK_TICKED`. The checks run in that order.
+
+#### `DELETE /v1/hubs/{hub_id}/checks/{check_id}/tick`
+
+The member who ticked a check, or the hub's owner, takes the tick back.
+
+* **Success Response (200 OK):** the check, in `data`.
+* **Errors:** `401`, `422`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 HUB_ARCHIVED`, `409 HUB_FINISHED`, `404 CHECK_NOT_FOUND`,
+  `409 CHECK_NOT_TICKED`, `403 NOT_CHECK_TICKER`. The checks run in that order.
+
+#### `DELETE /v1/hubs/{hub_id}/checks/{check_id}`
+
+The member who wrote a check, or the hub's owner, removes it.
+
+* **Success Response (204 No Content).**
+* **Errors:** `401`, `422`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `409 TEAM_NOT_CONFIRMED`,
+  `409 PHASE_NOT_STARTED`, `409 HUB_ARCHIVED`, `409 HUB_FINISHED`, `404 CHECK_NOT_FOUND`,
+  `403 NOT_CHECK_AUTHOR`. The checks run in that order.
+
+#### `POST /v1/hubs/{hub_id}/finish`
+
+The hub's owner finishes the hub. No body.
+
+* **Success Response (200 OK):** the hub card, in `data`, with `finished_at` set.
+* **Errors:** `401`, `404 NOT_FOUND`, `403 NOT_HUB_MEMBER`, `403 NOT_HUB_OWNER`,
+  `409 TEAM_NOT_CONFIRMED`, `409 PHASE_NOT_STARTED`, `409 HUB_ARCHIVED`, `409 HUB_FINISHED`
+  (already finished), `409 CHECKS_OPEN`. The checks run in that order.
 
 ---
 
