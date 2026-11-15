@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-15
 
+- feat(api): record when a developer finishes onboarding (#212)
 - docs: link the live site in both readmes (#227)
 - feat(api): add the meaning part to the match score and similar ideas (#225)
 - fix(web): say every hub phase has its tool on the landing page (#223)
