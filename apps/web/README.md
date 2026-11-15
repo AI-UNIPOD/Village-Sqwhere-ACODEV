@@ -45,6 +45,7 @@ app/hubs/
   notes.tsx            brainstorm notes   notes.test.tsx
   design.tsx           design sketch      design.test.tsx
   build.tsx            build tab          build.test.tsx
+  review.tsx           review checklist   review.test.tsx
   team.tsx             members, invite, remove, leave
   test-support.ts      made-up API answers shared by the tests
 ```
@@ -266,7 +267,7 @@ behind a confirm dialog; the sketch is then read again). The API's refusals beco
 language: a taken name is a field error, a vanished piece or link reloads the sketch, and when the hub moved
 on (`PHASE_CLOSED`, `PHASE_NOT_STARTED`, `TEAM_NOT_CONFIRMED`, `HUB_ARCHIVED`, `NOT_HUB_MEMBER`) the page
 loads the hub again and the section follows it. In build, review and an archived hub the sketch is for
-reading only. The tool for review is not built yet.
+reading only.
 
 Under the sketch, an active member of a hub in build or review sees the build tab (`hubs/build.tsx`,
 `id="build"`), read from `GET /v1/hubs/{id}/build`: who builds which piece, the team's repository and its
@@ -282,6 +283,21 @@ and the answer replaces the whole tab. The address and the shas are links to git
 tab, except for the demo account, whose repository does not exist on GitHub. The API's refusals become
 sentences in the page's language: a piece taken first or gone, or a repository changed, reads the tab again,
 and when the hub moved on the page loads the hub again and the section follows it.
+
+Under the build tab, an active member of a hub in review sees the review checklist (`hubs/review.tsx`,
+`id="review"`), read from `GET /v1/hubs/{id}/review`: one block for each piece, with who built it and its
+checks. A check is plain text of 1 to 200 characters, and it says who added it and either "Ticked by ..." or
+"Not ticked yet", in words and an icon. Its buttons come from the API's flags: Tick and Untick
+(`POST` and `DELETE /v1/hubs/{id}/checks/{check_id}/tick`, no dialog; nobody ticks a check on a piece they
+built) and Delete (`DELETE /v1/hubs/{id}/checks/{check_id}`, behind a confirm dialog). When `can_add` is set,
+a field under each piece adds a check (`POST /v1/hubs/{id}/pieces/{piece_id}/checks`, at most 10 on a piece,
+checked in the page first). A line at the top counts the ticked checks. When `can_finish` is set, the owner's
+Finish the hub (`POST /v1/hubs/{id}/finish`, behind a confirm dialog) closes the checklist, and the hub page
+shows the phase as Finished and offers no way back. While a check is open the owner reads why there is no
+button. The checklist is read when the section shows and after each change, so the flags follow the other
+checks. The API's refusals become sentences in the page's language: a check ticked or gone elsewhere reads
+the checklist again, and when the hub moved on or was finished the page loads the hub again and the
+section follows it.
 
 At the end of the page, every active member sees the team chat (`hubs/chat.tsx`, `id="chat"`), in any
 phase and before the team is confirmed. The API sends the newest 50 messages first
