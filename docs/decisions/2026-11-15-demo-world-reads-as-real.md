@@ -25,7 +25,7 @@ rerun:
    `infra/db/init/026-demo-signature-dates.sql`.
 2. **The review case.** Tendai's attempt holds three repositories, the repository check, the
    interview and the AI's report, in English and without a name, because the review screen is
-   anonymous. The addresses use the owner `tendai_moyo`: GitHub never allows an underscore, so
+   anonymous. The addresses use the owner `tm_codes`: GitHub never allows an underscore, so
    they can never be a stranger's code. A rerun fills the attempt only while it is empty and
    still awaiting review.
 3. **Hub descriptions.** Each hub has its own two or three sentences in its owner's language,
