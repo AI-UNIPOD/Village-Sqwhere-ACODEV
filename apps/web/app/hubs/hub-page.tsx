@@ -9,7 +9,7 @@ import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { ArrowLeft, Check } from "../onboarding/icons";
+import { AlertCircle, ArrowLeft, Check } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { scrollToPartWhileSettling } from "../scroll";
 import { SignedOutError } from "../session/session";
@@ -20,6 +20,7 @@ import { Chat } from "./chat";
 import { copy } from "./copy";
 import { DesignSketch } from "./design";
 import { loadHub, type Hub } from "./hubs-api";
+import { ArchiveHub, EditHub, type Managed } from "./manage";
 import { WithdrawRequest, WithdrawnLine, type WithdrawOutcome } from "./withdraw-request";
 import styles from "./hubs.module.css";
 import { HubsSkeleton, MissingHub } from "./my-hubs";
@@ -37,6 +38,9 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
   const [withdrawal, setWithdrawal] = useState<WithdrawOutcome | null>(null);
   // counts the loads, so the phases drop their last status or error line when the page is shown again
   const [loads, setLoads] = useState(0);
+  // what the owner's last edit or archive did, said once under the title
+  const [managed, setManaged] = useState<Managed | null>(null);
+  const said = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -47,6 +51,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
         setHub(found);
         // the page was left and shown again: what happened on the last visit is no longer news
         setWithdrawal(null);
+        setManaged(null);
         setLoads((n) => n + 1);
       },
       (error: unknown) => {
@@ -70,6 +75,16 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
     if (shown && part && card.current) return scrollToPartWhileSettling(card.current, part);
   }, [shown]);
 
+  // the button that was pressed may be gone (archiving removes it), so the line takes the focus
+  useEffect(() => {
+    if (managed) said.current?.focus();
+  }, [managed]);
+
+  function manage(card: Hub, done: Managed) {
+    setHub(card);
+    setManaged(done);
+  }
+
   if (failure) throw failure;
   if (hub === null) return <MissingHub lang={lang} />;
   if (!hub) return <HubsSkeleton lang={lang} />;
@@ -92,6 +107,20 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
           {hub.status === "active" ? t.active : t.archived}
         </span>
       </p>
+      {managed &&
+        (managed === "changed" ? (
+          <p ref={said} tabIndex={-1} className={`${onboarding.error} ${styles.problem}`} role="alert">
+            <AlertCircle />
+            {t.manage.changed}
+          </p>
+        ) : (
+          <p ref={said} tabIndex={-1} className={ideas.done} role="status">
+            <Check />
+            {managed === "saved" ? t.manage.saved : t.manage.archive.done}
+          </p>
+        ))}
+      {isOwner && hub.status === "active" && <EditHub key={`${hub.name}
+${hub.description}`} lang={lang} hub={hub} onChange={manage} />}
       {created && isOwner && (
         <p className={ideas.done} role="status">
           <Check />
@@ -176,6 +205,7 @@ function HubCard({ lang, id, created, joined }: { lang: Lang; id: string | null;
       <Phases key={loads} lang={lang} hub={hub} onChange={setHub} />
       {isMember && hub.phase && <Notes key={`notes-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
       {isMember && hub.phase && hub.phase !== "brainstorm" && <DesignSketch key={`design-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
+      {isOwner && hub.status === "active" && <ArchiveHub lang={lang} hub={hub} onChange={manage} />}
       {isMember && <Chat key={`chat-${loads}`} lang={lang} hub={hub} onChange={setHub} />}
     </main>
   );
