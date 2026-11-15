@@ -309,7 +309,7 @@ success states, both languages and 360px phone layouts.
 | # | Issue | Impact | Plan |
 |---|---|---|---|
 | 1 | The match score's meaning part (30 of 100 points) is not built; cards say "Meaning: not compared yet" | Matching ranks on roles, technologies and sectors only | Write idea and profile embeddings to `idea_embeddings` (pgvector) |
-| 2 | Every hub signs a placeholder agreement titled "TEST AGREEMENT (NOT LEGAL TEXT)" | It has no legal effect | The real text goes in as version 2 before launch |
+| 2 | The hub agreement (version 2) was written by the team and has not been reviewed by a lawyer | Its legal effect is untested | A qualified person reviews it; changes go in as version 3 |
 | 3 | The build and review phases have no tools yet | Teams use the chat in those phases | A repository and commits view for build, a checklist for review |
 | 4 | No rate limiting | A public deployment can be flooded | Per-client limits, strictest on sign-in, the demo and AI calls |
 | 5 | Sign-in state is kept in API memory | Run one API process; a restart forgets sign-outs | A `refresh_tokens` table |
