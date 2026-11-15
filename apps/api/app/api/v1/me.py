@@ -56,6 +56,9 @@ async def update_my_profile(
         current_user.bio = payload.bio
     if "country_code" in payload.model_fields_set:
         current_user.country_code = payload.country_code
+    if payload.onboarding_completed and current_user.onboarding_completed_at is None:
+        # the first time counts; a repeat keeps it, so the web can send it on every finish
+        current_user.onboarding_completed_at = datetime.now(UTC)
     if payload.matching_paused is not None:
         # pausing again keeps the first moment
         if not payload.matching_paused:

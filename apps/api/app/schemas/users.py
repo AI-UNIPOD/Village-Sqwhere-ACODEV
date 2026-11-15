@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import (
@@ -52,6 +52,7 @@ class UserProfile(BaseModel):
     avatar_url: str | None = None
     bio: str | None = None
     country_code: str | None = None
+    onboarding_completed_at: datetime | None = None
     matching_paused: bool = False
     matching_paused_at: datetime | None = None
     is_verified: bool = False
@@ -113,6 +114,17 @@ class UserProfileUpdate(BaseModel):
     ) = None
     # null clears the country; leaving the key out keeps it (the route checks model_fields_set)
     country_code: str | None = None
+    # only true: finishing is recorded once and never undone
+    onboarding_completed: Literal[True] | None = None
+
+    @field_validator("onboarding_completed", mode="before")
+    @classmethod
+    def onboarding_completed_is_true(cls, value: object) -> object:
+        # strict: 1 or "true" would otherwise pass as true
+        if value is not True:
+            raise ValueError("send true to record that onboarding is finished, or leave it out")
+        return value
+
     # true leaves owners' developer matches, false comes back; null is refused
     matching_paused: StrictBool | None = None
 

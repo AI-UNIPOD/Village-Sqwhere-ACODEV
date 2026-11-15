@@ -34,3 +34,24 @@ def test_the_breakdown_gives_raw_points_and_maxima_with_no_meaning_part() -> Non
     }
     assert result.score_version == 1
     assert result.partial is True
+
+
+def test_the_meaning_part_makes_a_score_of_version_2_that_is_the_plain_sum() -> None:
+    result = match_score(2, 3, 1, 0.76)
+
+    # 40 + 12 + 5 + 15, out of 100, with nothing scaled
+    assert result.score == 72
+    assert result.score_version == 2
+    assert result.partial is False
+    assert {name: (part.points, part.max) for name, part in result.breakdown} == {
+        "roles": (40, 40),
+        "technologies": (12, 20),
+        "sectors": (5, 10),
+        "meaning": (15, 30),
+    }
+
+
+def test_a_pair_with_no_similarity_is_still_scored_in_version_1() -> None:
+    result = match_score(1, 0, 0, None)
+
+    assert (result.score, result.score_version, result.partial) == (43, 1, True)

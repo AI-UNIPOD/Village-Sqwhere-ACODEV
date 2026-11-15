@@ -10,8 +10,9 @@ from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Query, status
-from sqlalchemy import ColumnElement, case, func, select
-from sqlalchemy.orm import defer, raiseload, selectinload
+from sqlalchemy import ColumnElement, Integer, case, cast, func, select
+from sqlalchemy.dialects.postgresql import distinct_on
+from sqlalchemy.orm import aliased, defer, raiseload, selectinload
 
 from app.api.deps import CurrentUser, DbSession, same_world
 from app.api.v1.ideas import get_owned_idea, idea_error, idea_options, public_idea
@@ -20,11 +21,13 @@ from app.models import (
     HubMember,
     HubMemberStatus,
     Idea,
+    IdeaEmbedding,
     IdeaRoleNeed,
     IdeaStatus,
     Sector,
     Technology,
     User,
+    UserEmbedding,
     UserRole,
     UserSector,
     UserTechnology,
@@ -35,15 +38,22 @@ from app.schemas.matches import (
     IdeaMatch,
     IdeaMatchesResponse,
     MatchedDeveloper,
+    SimilarIdea,
 )
 from app.services.match_score import (
+    AVAILABLE_MAX,
     MANY_ROLES_POINTS,
+    MEANING_BAND,
+    MEANING_FLOOR,
+    MEANING_MAX,
     ONE_ROLE_POINTS,
     SECTOR_CAP,
     SECTOR_POINTS,
+    SIMILAR_FROM,
     TECHNOLOGY_CAP,
     TECHNOLOGY_POINTS,
     match_score,
+    similarity,
 )
 
 router = APIRouter()
@@ -55,19 +65,33 @@ Limit = Annotated[int, Query(ge=1, le=50)]
 LIVE_STATUSES = (HubMemberStatus.REQUESTED, HubMemberStatus.INVITED, HubMemberStatus.ACTIVE)
 
 
-def raw_points(role_count: ColumnElement[int], technologies: Any, sectors: Any) -> Any:
-    """The score's points before scaling, in SQL, so the order can page with offset and limit.
+def meaning_points_sql(read_alike: Any) -> Any:
+    """`meaning_points` in SQL, step for step on double precision numbers. `floor(x + 0.5)`
+    rounds half up exactly as Python does, so the two give the same whole number."""
+    position = func.least(func.greatest((read_alike - MEANING_FLOOR) / MEANING_BAND, 0.0), 1.0)
+    return cast(func.floor(MEANING_MAX * position + 0.5), Integer)
+
+
+def shown_score(
+    role_count: ColumnElement[int], technologies: Any, sectors: Any, read_alike: Any
+) -> Any:
+    """The score a match shows, in SQL, so the order can page with offset and limit.
 
     `technologies` and `sectors` are `shared_counts` subqueries, outer joined by the caller.
-    It must give what `match_score` counts in Python; the tests compare the two.
+    `read_alike` is `similarity(...)` of the two vectors, or null when one is missing. It must
+    give what `match_score` counts in Python; the tests compare the two.
     """
     technology_count = func.coalesce(technologies.c.shared_count, 0)
     sector_count = func.coalesce(sectors.c.shared_count, 0)
     roles = case((role_count >= 2, MANY_ROLES_POINTS), (role_count == 1, ONE_ROLE_POINTS), else_=0)
-    return (
+    raw = (
         roles
         + func.least(technology_count, TECHNOLOGY_CAP) * TECHNOLOGY_POINTS
         + func.least(sector_count, SECTOR_CAP) * SECTOR_POINTS
+    )
+    return case(
+        (read_alike.is_(None), (raw * 100 + AVAILABLE_MAX // 2) // AVAILABLE_MAX),
+        else_=raw + meaning_points_sql(read_alike),
     )
 
 
@@ -122,7 +146,12 @@ async def match_developers_to_my_idea(
     )
     shared_technologies = shared_counts(UserTechnology.technology_id, author_technologies)
     shared_sectors = shared_counts(UserSector.sector_id, author_sectors)
-    points = raw_points(verified.c.role_count, shared_technologies, shared_sectors)
+    # null while the idea or the developer has no vector, which gives them the version 1 score
+    idea_vector = (
+        select(IdeaEmbedding.embedding).where(IdeaEmbedding.idea_id == idea.id).scalar_subquery()
+    )
+    read_alike = similarity(UserEmbedding.embedding, idea_vector)
+    score = shown_score(verified.c.role_count, shared_technologies, shared_sectors, read_alike)
     # anyone asking, invited or in this idea's hub is already known; after a no, a leave or a
     # removal they may be suggested again (asking again still waits out any cool-down)
     connected = (
@@ -131,10 +160,11 @@ async def match_developers_to_my_idea(
         .where(Hub.idea_id == idea.id, HubMember.status.in_(LIVE_STATUSES))
     )
     result = await db.execute(
-        select(User)
+        select(User, read_alike.label("read_alike"))
         .join(verified, verified.c.user_id == User.id)
         .outerjoin(shared_technologies, shared_technologies.c.user_id == User.id)
         .outerjoin(shared_sectors, shared_sectors.c.user_id == User.id)
+        .outerjoin(UserEmbedding, UserEmbedding.user_id == User.id)
         .options(
             selectinload(User.roles),
             selectinload(User.technologies),
@@ -150,16 +180,20 @@ async def match_developers_to_my_idea(
             User.id.not_in(connected),
             same_world(User.id, current_user),
         )
-        .order_by(points.desc(), verified.c.first_verified_at, User.id)
+        .order_by(score.desc(), verified.c.first_verified_at, User.id)
         .offset(offset)
         .limit(limit + 1)
     )
-    users = list(result.scalars().all())
-    has_more = len(users) > limit
+    rows = result.all()
+    has_more = len(rows) > limit
+    page = rows[:limit]
+    similar = await closest_ideas_to(db, idea_vector, {user.id for user, _ in page})
     return DeveloperMatchesResponse(
         data=[
-            matched_developer(user, needed, author_technologies, author_sectors)
-            for user in users[:limit]
+            matched_developer(
+                user, needed, author_technologies, author_sectors, read_alike, similar.get(user.id)
+            )
+            for user, read_alike in page
         ],
         next_offset=offset + limit if has_more else None,
     )
@@ -180,7 +214,12 @@ def sorted_sectors(sectors: Iterable[Sector]) -> list[SectorRef]:
 
 
 def matched_developer(
-    user: User, needed: set[int], author_technologies: set[int], author_sectors: set[int]
+    user: User,
+    needed: set[int],
+    author_technologies: set[int],
+    author_sectors: set[int],
+    read_alike: float | None,
+    similar_idea: SimilarIdea | None,
 ) -> MatchedDeveloper:
     matched = sorted(
         (held for held in user.roles if held.role_id in needed and held.verified_at is not None),
@@ -193,7 +232,7 @@ def matched_developer(
         held.sector for held in user.sectors if held.sector_id in author_sectors
     )
     return MatchedDeveloper(
-        **match_score(len(matched), len(shared), len(shared_sectors)).model_dump(),
+        **match_score(len(matched), len(shared), len(shared_sectors), read_alike).model_dump(),
         id=user.id,
         username=user.username,
         display_name=user.display_name,
@@ -205,7 +244,54 @@ def matched_developer(
         shared_technology_count=len(shared),
         shared_sectors=shared_sectors,
         country_code=user.country_code,
+        similar_idea=similar_idea,
     )
+
+
+async def closest_ideas_to(
+    db: DbSession, idea_vector: Any, author_ids: set[UUID]
+) -> dict[UUID, SimilarIdea]:
+    """For each author, their open idea that reads closest to the vector, if it reads close
+    enough. One query for a whole page. The authors come from a list that is already on the
+    caller's side of the demo wall."""
+    read_alike = similarity(IdeaEmbedding.embedding, idea_vector)
+    result = await db.execute(
+        select(Idea.author_id, Idea.id, Idea.title)
+        .join(IdeaEmbedding, IdeaEmbedding.idea_id == Idea.id)
+        .where(
+            Idea.author_id.in_(author_ids),
+            Idea.status == IdeaStatus.OPEN,
+            Idea.deleted_at.is_(None),
+            read_alike >= SIMILAR_FROM,
+        )
+        .order_by(Idea.author_id, read_alike.desc(), Idea.id)
+        .ext(distinct_on(Idea.author_id))
+    )
+    return {author_id: SimilarIdea(id=idea_id, title=title) for author_id, idea_id, title in result}
+
+
+async def my_ideas_closest_to(
+    db: DbSession, idea_ids: set[UUID], viewer: User
+) -> dict[UUID, SimilarIdea]:
+    """For each idea, the viewer's own open idea that reads closest to it, if it reads close
+    enough. One query for a whole page."""
+    listed = aliased(IdeaEmbedding)
+    read_alike = similarity(IdeaEmbedding.embedding, listed.embedding)
+    result = await db.execute(
+        select(listed.idea_id, Idea.id, Idea.title)
+        .select_from(Idea)
+        .join(IdeaEmbedding, IdeaEmbedding.idea_id == Idea.id)
+        .join(listed, listed.idea_id.in_(idea_ids))
+        .where(
+            Idea.author_id == viewer.id,
+            Idea.status == IdeaStatus.OPEN,
+            Idea.deleted_at.is_(None),
+            read_alike >= SIMILAR_FROM,
+        )
+        .order_by(listed.idea_id, read_alike.desc(), Idea.id)
+        .ext(distinct_on(listed.idea_id))
+    )
+    return {listed_id: SimilarIdea(id=own_id, title=title) for listed_id, own_id, title in result}
 
 
 async def shared_with_authors(
@@ -258,11 +344,19 @@ async def match_ideas_to_me(
         .join(HubMember, HubMember.hub_id == Hub.id)
         .where(HubMember.user_id == current_user.id, HubMember.status.in_(LIVE_STATUSES))
     )
+    # null while the idea or I have no vector, which gives the idea the version 1 score
+    my_vector = (
+        select(UserEmbedding.embedding)
+        .where(UserEmbedding.user_id == current_user.id)
+        .scalar_subquery()
+    )
+    read_alike = similarity(IdeaEmbedding.embedding, my_vector)
     result = await db.execute(
-        select(Idea)
+        select(Idea, read_alike.label("read_alike"))
         .join(needing_me, needing_me.c.idea_id == Idea.id)
         .outerjoin(shared_technologies, shared_technologies.c.user_id == Idea.author_id)
         .outerjoin(shared_sectors, shared_sectors.c.user_id == Idea.author_id)
+        .outerjoin(IdeaEmbedding, IdeaEmbedding.idea_id == Idea.id)
         .options(*idea_options(), defer(Idea.details, raiseload=True))
         .where(
             Idea.status == IdeaStatus.OPEN,
@@ -272,17 +366,20 @@ async def match_ideas_to_me(
             same_world(Idea.author_id, current_user),
         )
         .order_by(
-            raw_points(needing_me.c.role_count, shared_technologies, shared_sectors).desc(),
+            shown_score(
+                needing_me.c.role_count, shared_technologies, shared_sectors, read_alike
+            ).desc(),
             Idea.published_at.desc(),
             Idea.id.desc(),
         )
         .offset(offset)
         .limit(limit + 1)
     )
-    ideas = list(result.scalars().unique().all())
-    has_more = len(ideas) > limit
-    page = ideas[:limit]
-    author_ids = {idea.author_id for idea in page}
+    rows = result.all()
+    has_more = len(rows) > limit
+    page = rows[:limit]
+    author_ids = {idea.author_id for idea, _ in page}
+    similar = await my_ideas_closest_to(db, {idea.id for idea, _ in page}, current_user)
     technologies = await shared_with_authors(
         db, current_user.id, author_ids, UserTechnology.technology_id, Technology
     )
@@ -290,7 +387,7 @@ async def match_ideas_to_me(
         db, current_user.id, author_ids, UserSector.sector_id, Sector
     )
     data = []
-    for idea in page:
+    for idea, read_alike in page:
         matched = [
             RoleRef.model_validate(need.role) for need in idea.roles_needed if need.role_id in mine
         ]
@@ -299,12 +396,13 @@ async def match_ideas_to_me(
         data.append(
             IdeaMatch(
                 **match_score(
-                    len(matched), len(shared_technologies), len(shared_sectors)
+                    len(matched), len(shared_technologies), len(shared_sectors), read_alike
                 ).model_dump(),
                 idea=public_idea(idea),
                 matched_roles=matched,
                 shared_technologies=shared_technologies,
                 shared_sectors=shared_sectors,
+                similar_idea=similar.get(idea.id),
             )
         )
     return IdeaMatchesResponse(
