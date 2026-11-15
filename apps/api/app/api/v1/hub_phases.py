@@ -14,13 +14,22 @@ from app.api.deps import CurrentUser, DbSession
 from app.api.v1.hub_members import find_hub, require_active_hub, require_owner
 from app.api.v1.hub_review import clear_ticks_on_own_pieces, require_not_finished
 from app.api.v1.hubs import hub_error
-from app.models import Hub, HubPhase, HubPhaseMove
+from app.models import Hub, HubPhase, HubPhaseMove, Post, PostType
 from app.schemas.hubs import HubResponse, MovePhaseRequest
 from app.services.hubs import hub_card, load_hub
 
 router = APIRouter()
 
 PHASES = list(HubPhase)
+
+# The English words for a milestone post's body. The card also carries the phase itself, so the
+# web can say it in French (docs/decisions/2026-11-15-hub-milestone-posts.md).
+PHASE_NAMES = {
+    HubPhase.BRAINSTORM: "Brainstorm",
+    HubPhase.DESIGN: "Design and architecture",
+    HubPhase.BUILD: "Build",
+    HubPhase.REVIEW: "Review and test",
+}
 
 
 async def owned_active_hub(db: DbSession, hub_id: UUID, user: CurrentUser) -> Hub:
@@ -31,7 +40,19 @@ async def owned_active_hub(db: DbSession, hub_id: UUID, user: CurrentUser) -> Hu
 
 
 async def save_move(db: DbSession, hub: Hub, user: CurrentUser, to_phase: HubPhase) -> HubResponse:
+    forward = hub.phase is None or PHASES.index(to_phase) > PHASES.index(hub.phase)
     db.add(HubPhaseMove(hub_id=hub.id, moved_by=user.id, from_phase=hub.phase, to_phase=to_phase))
+    if forward:
+        # Only the hub's name and the phase: the idea stays private to the team. In the same
+        # transaction as the move, so both rows get the same created_at.
+        db.add(
+            Post(
+                author_id=user.id,
+                type=PostType.HUB_MILESTONE,
+                hub_id=hub.id,
+                body=f"{hub.name} moved to {PHASE_NAMES[to_phase]}.",
+            )
+        )
     hub.phase = to_phase
     hub.team_confirmed_at = hub.team_confirmed_at or datetime.now(UTC)
     await db.commit()
