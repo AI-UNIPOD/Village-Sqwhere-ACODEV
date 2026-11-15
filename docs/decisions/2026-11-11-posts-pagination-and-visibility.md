@@ -33,3 +33,7 @@ The team agreed on the following architectural choices:
 - Read queries strictly filter `hub_id IS NULL` and `deleted_at IS NULL`.
 - Clients receive consistent pagination metadata across API resources.
 - The 5-topic limit is tested and enforced at the route level.
+
+Update, 2026-11-15: hubs now post their own milestones when they move forward a phase, and
+the post lists show them (`2026-11-15-hub-milestone-posts.md`). People still cannot create
+one.
