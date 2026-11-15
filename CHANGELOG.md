@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-15
 
-- fix(web): draw no github link from a username in the demo
+- fix(web): draw no github link from a username in the demo (#207)
 - fix(api): give the demo account and its links names that read as real (#200)
 - fix(web): remove the placeholder warning and the tour's demo wording (#197)
 - feat(infra): publish the hub agreement as version 2 (#195)
