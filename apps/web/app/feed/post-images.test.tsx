@@ -81,6 +81,17 @@ test("a very tall single image is cropped to a box that cannot fill the screen",
   expect(screen.getByRole("img").closest("li")!.style.aspectRatio).toBe("0.8 / 1");
 });
 
+test("a wide single image, like a diagram, keeps its whole width up to 6 to 1", () => {
+  const wide = post(1);
+  wide.attachments = [image(1, { width: 1200, height: 216 })];
+  render(
+    <ul>
+      <PostCard lang="en" post={wide} now={Date.now()} onChange={() => {}} />
+    </ul>,
+  );
+  expect(Number.parseFloat(screen.getByRole("img").closest("li")!.style.aspectRatio)).toBeCloseTo(5.56, 1);
+});
+
 test.each([2, 3, 4])("%i images are a grid with every one in order and none hidden", (count) => {
   const { container } = card(count);
   const list = container.querySelector("ul ul")!;

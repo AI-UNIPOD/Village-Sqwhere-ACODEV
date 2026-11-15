@@ -302,6 +302,10 @@
   object-fit: cover;
 }
 
+/* in a grid every box is a square: the whole picture shows inside it rather than being cropped,
+   because a screenshot or a diagram loses its sides to a crop */
+.images[data-count] .image img { object-fit: contain; }
+
 .imageBroken {
   display: grid;
   place-items: center;

@@ -13,9 +13,10 @@ import styles from "./feed.module.css";
 // The most a card shows. The rest of a post's images are on its page.
 const CARD_MAX = 4;
 
-// A card's single image keeps its own shape, but a very tall or very wide one is cropped so it
-// cannot fill the screen.
-const ratioIn = (image: PostImage) => Math.min(Math.max(image.width / image.height, 0.8), 2);
+// A card's single image keeps its own shape, but a very tall one is cropped so it cannot fill the
+// screen. A wide one is kept whole up to 6 to 1: a screenshot of code or a diagram is wide, and
+// cropping its sides would cut away what it shows.
+const ratioIn = (image: PostImage) => Math.min(Math.max(image.width / image.height, 0.8), 6);
 
 // One image in a box that is its final size before the picture arrives, so the page does not
 // jump. A picture that cannot load gives its box a line of text instead of a broken icon.
