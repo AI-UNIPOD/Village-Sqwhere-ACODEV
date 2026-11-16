@@ -25,7 +25,13 @@ from app.schemas.hubs import (
     HubResponse,
     MyHubsStatus,
 )
-from app.services.hubs import current_agreement_template, hub_card, in_viewers_world, load_hub
+from app.services.hubs import (
+    current_agreement_template,
+    hub_card,
+    hub_cards,
+    in_viewers_world,
+    load_hub,
+)
 
 router = APIRouter()
 
@@ -175,7 +181,7 @@ async def list_my_hubs(
     has_more = len(hubs) > limit
     hubs = hubs[:limit]
     return HubListResponse(
-        data=[await hub_card(db, hub, current_user.id) for hub in hubs],
+        data=await hub_cards(db, hubs, current_user.id),
         next_offset=offset + limit if has_more else None,
     )
 
