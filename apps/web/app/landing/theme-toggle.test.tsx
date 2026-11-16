@@ -1,5 +1,6 @@
 import { runInNewContext } from "node:vm";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { THEME_INIT_SCRIPT, THEME_KEY } from "./theme";
@@ -18,8 +19,10 @@ function stubSystemTheme(dark: boolean) {
 
 const labels = { toDark: "Switch to dark mode", toLight: "Switch to light mode" };
 
+// Most tests start from a light page, as for a visitor who chose light. The site's default is
+// dark: the tests that remove the theme check that.
 beforeEach(() => {
-  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme", "light");
   localStorage.clear();
 });
 
@@ -29,15 +32,28 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("offers dark mode on a light system and light mode on a dark one", () => {
+test("with no theme set the page is dark, so it offers light mode whatever the system says", () => {
+  document.documentElement.removeAttribute("data-theme");
   stubSystemTheme(false);
   render(<ThemeButton {...labels} className="theme" />);
-  expect(screen.getByRole("button", { name: "Switch to dark mode" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Switch to light mode" })).toBeTruthy();
   cleanup();
 
   stubSystemTheme(true);
   render(<ThemeButton {...labels} className="theme" />);
   expect(screen.getByRole("button", { name: "Switch to light mode" })).toBeTruthy();
+});
+
+test("a saved light choice still wins over the dark default", () => {
+  stubSystemTheme(true);
+  document.documentElement.setAttribute("data-theme", "light");
+  render(<ThemeButton {...labels} className="theme" />);
+  expect(screen.getByRole("button", { name: "Switch to dark mode" })).toBeTruthy();
+});
+
+test("drawn on the server, before the early script has run, it shows the dark default", () => {
+  const html = renderToString(<ThemeButton {...labels} className="theme" />);
+  expect(html).toContain('aria-label="Switch to light mode"');
 });
 
 test("switches theme, saves the choice and changes its label", () => {
@@ -440,35 +456,92 @@ function runInitScript(read: () => string | null) {
   return attributes;
 }
 
-test("the early script applies a saved theme and ignores anything else", () => {
+test("the early script applies a saved theme, and opens in dark on a first visit", () => {
   expect(runInitScript(() => "dark")).toEqual({ "data-theme": "dark" });
   expect(runInitScript(() => "light")).toEqual({ "data-theme": "light" });
-  expect(runInitScript(() => "purple")).toEqual({});
-  expect(runInitScript(() => null)).toEqual({});
+  // nothing saved, or something unknown: dark, whatever the system says
+  expect(runInitScript(() => null)).toEqual({ "data-theme": "dark" });
+  expect(runInitScript(() => "purple")).toEqual({ "data-theme": "dark" });
 });
 
-test("the early script does nothing when storage is blocked", () => {
+// Before the page has loaded, the browser's own bars take the theme's background as well,
+// instead of following the system until the theme button has drawn.
+test("the early script gives the browser's bars the page's background at once", () => {
+  const bars = [{ content: "system" }, { content: "system" }];
+  runInNewContext(THEME_INIT_SCRIPT, {
+    localStorage: { getItem: () => null },
+    document: {
+      documentElement: { setAttribute: () => {} },
+      querySelectorAll: (selector: string) => (selector === 'meta[name="theme-color"]' ? bars : []),
+    },
+    getComputedStyle: () => ({ getPropertyValue: (name: string) => (name === "--bg" ? " #0B0C10" : "") }),
+  });
+  expect(bars.map((b) => b.content)).toEqual(["#0B0C10", "#0B0C10"]);
+});
+
+test("the early script opens in dark when storage is blocked", () => {
   const blocked = () => {
     throw new Error("denied");
   };
-  expect(runInitScript(blocked)).toEqual({});
+  expect(runInitScript(blocked)).toEqual({ "data-theme": "dark" });
 });
 
-// ---------- the tooltip ----------
+// ---------- no hover box ----------
 
-const tooltipOf = (host: HTMLElement) => host.querySelector("[data-tooltip]")?.textContent;
-
-test("names what a tap does in a tooltip that follows the label", () => {
+// The icon says it all, so no box pops up on hover; the name still tells a screen reader what a
+// tap does, in the page's language.
+test("shows no hover box, and its name says what a tap does", () => {
   stubSystemTheme(false);
   render(<ThemeButton {...labels} className="theme" />);
-  const button = screen.getByRole("button");
-  expect(tooltipOf(button)).toBe("Switch to dark mode");
+  const button = screen.getByRole("button", { name: "Switch to dark mode" });
+  expect(button.querySelector("[data-tooltip]")).toBeNull();
   fireEvent.click(button);
-  expect(tooltipOf(button)).toBe("Switch to light mode");
+  expect(screen.getByRole("button", { name: "Switch to light mode" }).querySelector("[data-tooltip]")).toBeNull();
 });
 
 test("says it in French on the French page", () => {
   stubSystemTheme(false);
   render(<ThemeButton toDark="Passer en mode sombre" toLight="Passer en mode clair" className="theme" />);
-  expect(tooltipOf(screen.getByRole("button"))).toBe("Passer en mode sombre");
+  expect(screen.getByRole("button", { name: "Passer en mode sombre" }).querySelector("[data-tooltip]")).toBeNull();
+});
+
+// The browser's own bars (theme-color) follow the system until the visitor chooses a theme;
+// then they take the chosen theme's background. jsdom has no stylesheets, so --bg is set inline.
+function browserBars() {
+  for (const media of ["(prefers-color-scheme: light)", "(prefers-color-scheme: dark)"]) {
+    const meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.media = media;
+    meta.content = media.includes("dark") ? "system-dark" : "system-light";
+    document.head.append(meta);
+  }
+  return () => Array.from(document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')).map((m) => m.content);
+}
+
+test("a chosen theme gives the browser's bars its background, and no theme on the page leaves them be", () => {
+  document.documentElement.removeAttribute("data-theme");
+  stubSystemTheme(false);
+  const bars = browserBars();
+  render(<ThemeButton {...labels} className="theme" />);
+  expect(bars()).toEqual(["system-light", "system-dark"]);
+
+  // the default is dark, so the press goes to light
+  document.documentElement.style.setProperty("--bg", "paper");
+  fireEvent.click(screen.getByRole("button", { name: "Switch to light mode" }));
+  expect(bars()).toEqual(["paper", "paper"]);
+
+  document.documentElement.style.removeProperty("--bg");
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+});
+
+test("a theme saved on an earlier visit gives the browser's bars its background on load", () => {
+  stubSystemTheme(true);
+  const bars = browserBars();
+  document.documentElement.setAttribute("data-theme", "light");
+  document.documentElement.style.setProperty("--bg", "paper");
+  render(<ThemeButton {...labels} className="theme" />);
+  expect(bars()).toEqual(["paper", "paper"]);
+
+  document.documentElement.style.removeProperty("--bg");
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
 });

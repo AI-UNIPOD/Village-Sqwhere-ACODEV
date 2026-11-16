@@ -6,8 +6,11 @@ import { useEffect } from "react";
 // (docs/design-system/components.md, Motion).
 const REVEAL_THRESHOLD = 0.15;
 const REVEAL_MARGIN = "0px 0px -8% 0px";
-// A section is "the one you are reading" while it crosses a thin band just above the middle.
-const READING_BAND = "-45% 0px -50% 0px";
+// A section is "the one you are reading" while it fills more of the screen than any other linked
+// section, and at least this share of it: the same whichever way the visitor scrolls in.
+const READING_SHARE = 0.3;
+// how often the share is measured as a section scrolls: every 5% of it
+const SHARE_STEPS = Array.from({ length: 21 }, (_, i) => i / 20);
 // When most of the footer shows, the page cannot scroll further: the last section is the one.
 const END_IN_VIEW = 0.9;
 
@@ -49,14 +52,25 @@ export function SectionMotion() {
         .map((link) => document.getElementById(link.hash.slice(1)))
         .filter((el): el is HTMLElement => el != null);
       if (sections.length > 0) {
-        const reading = new Set<string>();
+        // how much of the screen each linked section fills, from 0 to 1
+        const share = new Map<string, number>();
         let atEnd = false;
+        const filling = () => {
+          let best: string | undefined;
+          let most = READING_SHARE;
+          for (const s of sections) {
+            const seen = share.get(s.id) ?? 0;
+            if (seen >= most) {
+              most = seen;
+              best = s.id;
+            }
+          }
+          return best;
+        };
         const mark = () => {
-          // on a tall screen the band never reaches the last section, so the end of the page
-          // decides; otherwise the last section crossing the band
-          const current = atEnd
-            ? sections[sections.length - 1].id
-            : [...sections].reverse().find((s) => reading.has(s.id))?.id;
+          // on a tall screen the last section may never fill much of it, so the end of the page
+          // decides; otherwise the linked section filling the most of the screen
+          const current = atEnd ? sections[sections.length - 1].id : filling();
           for (const link of links) {
             if (link.hash.slice(1) === current) link.setAttribute("aria-current", "location");
             else link.removeAttribute("aria-current");
@@ -65,12 +79,12 @@ export function SectionMotion() {
         const spy = new IntersectionObserver(
           (entries) => {
             for (const entry of entries) {
-              if (entry.isIntersecting) reading.add(entry.target.id);
-              else reading.delete(entry.target.id);
+              const screen = entry.rootBounds?.height || window.innerHeight;
+              share.set(entry.target.id, entry.isIntersecting ? entry.intersectionRect.height / screen : 0);
             }
             mark();
           },
-          { rootMargin: READING_BAND },
+          { threshold: SHARE_STEPS },
         );
         for (const section of sections) spy.observe(section);
         cleanups.push(() => spy.disconnect());

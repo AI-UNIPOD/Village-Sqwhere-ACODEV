@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
@@ -49,4 +52,14 @@ test.each([
   const answer = item.querySelector("p")!.textContent!;
   for (const word of words) expect(answer).toContain(word);
   expect(answer).not.toMatch(/not tied|ne suivent pas/);
+});
+
+// jsdom has no layout, so this reads the stylesheet: on phones each question is a numbered card,
+// and the number is hidden from screen readers, which read the question itself.
+test("on phones each question is a numbered card, the open one raised", () => {
+  const css = readFileSync(join(__dirname, "faq.module.css"), "utf8").replace(/\s+/g, " ");
+  const phone = css.slice(css.indexOf("@media (max-width: 767px) {"));
+  expect(phone).toMatch(/\.item \{[^}]*border-radius: var\(--radius-l\);[^}]*counter-increment: faq;/);
+  expect(phone).toContain('content: counter(faq, decimal-leading-zero) / "";');
+  expect(phone).toMatch(/\.item\[open\] \{ border-color: var\(--line-strong\); background: var\(--surface-raised\);/);
 });

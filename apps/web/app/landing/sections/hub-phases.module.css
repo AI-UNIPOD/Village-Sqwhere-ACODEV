@@ -15,6 +15,26 @@
   display: none;
 }
 
+/* While more tabs wait past an edge, that edge fades out, so a word cut by the screen reads as
+   "there is more this way" (hub-phases.tsx sets data-more as the row scrolls). */
+.scroller[data-more="end"] {
+  mask-image: linear-gradient(to left, transparent, var(--text) var(--space-8));
+}
+
+.scroller[data-more="start"] {
+  mask-image: linear-gradient(to right, transparent, var(--text) var(--space-8));
+}
+
+.scroller[data-more="both"] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--text) var(--space-8),
+    var(--text) calc(100% - var(--space-8)),
+    transparent
+  );
+}
+
 .track {
   inline-size: max(100%, 600px);
 }

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -848,4 +851,11 @@ test("a change of theme redraws the hero at once, so the theme switch's picture 
   });
   expect(drawn).toBeGreaterThan(before);
   document.documentElement.removeAttribute("data-theme");
+});
+
+// jsdom has no layout, so this reads the stylesheet: the motion button's 44px tap ring grows
+// upward, because the hero clips anything past its bottom edge, which can sit just under it.
+test("the motion button's tap ring is 44px tall and grows upward, not past the hero's bottom", () => {
+  const css = readFileSync(join(__dirname, "gather-hero.module.css"), "utf8").replace(/\s+/g, " ");
+  expect(css).toMatch(/\.play::before \{[^}]*inset-inline: calc\(\(var\(--float-size\) - var\(--tap-min\)\) \/ 2\);[^}]*inset-block: calc\(var\(--float-size\) - var\(--tap-min\)\) 0;/);
 });

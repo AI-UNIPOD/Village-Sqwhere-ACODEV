@@ -451,6 +451,58 @@
   font-weight: 600;
 }
 
+/* ---------- phones: the steps as a stack of cards ---------- */
+/* Below 768px each step is a card of its own: its number on a tab, its words, then its view.
+   With motion allowed the cards stack as the page scrolls (how-it-works.tsx sets data-stack):
+   each settles under the pill a little lower than the one before, so their tops cascade like
+   tabs, and the next slides up over it while it sinks back a little. A card taller than the
+   screen settles only once its bottom is in view, so all of it is read before it is covered.
+   With reduced motion they stay a plain list of cards. */
+@media (max-width: 767px) {
+  .steps {
+    --stack-top: calc(var(--pill-top) + env(safe-area-inset-top, 0px) + var(--pill-height) + var(--space-2));
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .step,
+  .step:last-child {
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    background: var(--surface);
+    box-shadow: var(--shadow-2);
+  }
+
+  .stepNum {
+    justify-self: start;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+    color: var(--text);
+  }
+
+  .steps[data-stack] .step {
+    position: sticky;
+    top: min(
+      calc(var(--stack-top) + var(--i, 0) * var(--space-3)),
+      calc(100svh - var(--h, 0px) - var(--space-4))
+    );
+    transform: scale(calc(1 - var(--cover, 0) * 0.06));
+    transform-origin: 50% 0;
+  }
+
+  .steps[data-stack] .step::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: var(--bg);
+    opacity: calc(var(--cover, 0) * 0.5);
+    pointer-events: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .step::after {
     transition: opacity var(--dur-modal) var(--ease-out);

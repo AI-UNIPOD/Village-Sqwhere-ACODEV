@@ -206,11 +206,29 @@
   }
 }
 
+/* On a phone the links row is centred under the logo and the switches, in line with the
+   centred hero below it. Wide screens keep the links in the one row, as above. */
+@media (max-width: 767px) {
+  .navLinks {
+    justify-content: center;
+  }
+}
+
 /* Links underline themselves by drawing a line in from the start, on hover and on keyboard
    focus alike. The header link of the section being read keeps its line, darker. */
 .navLink,
 .footLink {
   position: relative;
+}
+
+/* Short names ("Hub", "FAQ") are narrower than a finger: an invisible area makes each link at
+   least 44px wide without moving the text or its underline. */
+.navLink::before,
+.footLink::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: min(0px, calc((100% - var(--tap-min)) / 2));
 }
 
 .navLink::after,
@@ -262,7 +280,8 @@
 @media (min-width: 360px) {
   .nav[data-pinned] {
     position: fixed;
-    top: var(--pill-top);
+    /* below the notch or the status bar when the page reaches under them */
+    top: calc(var(--pill-top) + env(safe-area-inset-top, 0px));
     inline-size: fit-content;
     block-size: var(--pill-height);
     min-block-size: 0;
@@ -296,9 +315,23 @@
     }
   }
 
+  /* Near the end of the page the pill leaves with the footer, tied to the scroll: HeaderPin sets
+     --leave from 0 to 1 as the footer comes into view, and the pill moves up by that share of
+     the way off the screen (the gap above it, its own height and its shadow). Scrolling back
+     brings it back the same way, and keyboard focus inside it brings it back at once.
+     `translate` keeps clear of the pin animations, which move `transform`. */
+  .nav[data-pinned] {
+    translate: 0
+      calc(var(--leave, 0) * -1 * (var(--pill-top) + env(safe-area-inset-top, 0px) + 100% + var(--space-4)));
+  }
+
+  .nav[data-pinned]:focus-within {
+    translate: none;
+  }
+
   /* while pinned, jumps and keyboard focus keep clear of the pill (see .block) */
   html:has(.nav[data-pinned]) {
-    scroll-padding-top: calc(var(--pill-top) + var(--pill-height) + var(--space-2));
+    scroll-padding-top: calc(var(--pill-top) + env(safe-area-inset-top, 0px) + var(--pill-height) + var(--space-2));
   }
 }
 
@@ -336,7 +369,7 @@
 @media (min-width: 360px) and (max-width: 767px) {
   .nav[data-pinned] {
     flex-wrap: nowrap;
-    padding-inline: var(--space-3);
+    padding-inline: calc(var(--space-1) / 2);
   }
 
   .nav[data-pinned] .brand,
@@ -346,13 +379,37 @@
 
   .nav[data-pinned] .navLinks {
     flex: 0 1 auto;
-    gap: var(--space-2);
+    gap: 0;
     border-top: 0;
   }
 
+  /* On a phone the pill is a segmented control: each link a full-height segment, at least a
+     finger wide. The section being read is a filled segment rather than a hairline, which is
+     easy to miss at this size; a press darkens the segment straight away. */
   .nav[data-pinned] .navLink {
+    justify-content: center;
+    min-inline-size: var(--tap-min);
+    padding-inline: var(--space-3);
+    border-radius: var(--radius-full);
     font: var(--type-body-s);
     font-weight: 600;
+    transition:
+      color var(--dur-press) var(--ease-out),
+      background-color var(--dur-press) var(--ease-out);
+  }
+
+  .nav[data-pinned] .navLink::after {
+    display: none;
+  }
+
+  .nav[data-pinned] .navLink[aria-current="location"] {
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+    color: var(--text);
+  }
+
+  .nav[data-pinned] .navLink:active {
+    background: color-mix(in srgb, var(--text) 14%, transparent);
+    transition: none;
   }
 }
 
@@ -412,6 +469,22 @@
   font: var(--type-body-s);
   text-wrap: balance;
   text-align: start;
+}
+
+/* On a phone the whole line wraps under the buttons, so it is cut to "(no sign up)" there;
+   wider screens read it in full (DemoNote in demo-button.tsx). */
+.noteShort {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .noteFull {
+    display: none;
+  }
+
+  .noteShort {
+    display: inline;
+  }
 }
 
 /* ---------- buttons ---------- */
@@ -607,15 +680,36 @@
   text-decoration: none;
 }
 
+/* On a phone the logo, the line under it and the links are centred, like the hero above. */
+@media (max-width: 767px) {
+  .footGrid {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .tag {
+    margin-inline: auto;
+  }
+
+  .footList {
+    justify-content: center;
+  }
+}
+
+/* The legal line: its three parts centred at every width, with the same generous gap between
+   them, one under the other on a phone. */
 .legal {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-6);
-  margin: var(--space-6) 0 0;
-  padding-block-start: var(--space-4);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3) var(--space-8);
+  margin: var(--space-8) 0 0;
+  padding-block-start: var(--space-6);
   border-top: 1px solid var(--line);
   color: var(--text-muted);
   font: var(--type-body-s);
+  text-align: center;
 }
 
 /* The Nigeria flag leads the copyright, in the same group so a wrapped line keeps them
@@ -714,16 +808,48 @@
   }
 }
 
-/* The AI UniPod credit sits in the quiet legal line: a plain underlined link that darkens on
-   hover and focus. It stays inline so a wrapped line keeps its spacing; the padding makes the
-   tap area tall without moving the text. */
+/* The AI UniPod credit: a small card of its own in the legal line, so the place stands out.
+   The place is the link, semibold in the text colour, with an arrow that says it opens
+   elsewhere; the underline darkens on hover and focus. The link stays inline, so a wrapped
+   card keeps its spacing, and its padding makes the tap area tall without moving the text. On
+   a phone the card may wrap, so its corners are softer there. */
+.credit {
+  display: inline-block;
+  max-inline-size: 100%;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  text-wrap: balance;
+}
+
+@media (min-width: 768px) {
+  .credit {
+    border-radius: var(--radius-full);
+  }
+}
+
 .creditLink {
   padding-block: calc((var(--tap-min) - 1lh) / 2);
   color: var(--text);
+  font-weight: 600;
   text-decoration: underline;
   text-decoration-color: var(--line-strong);
   text-underline-offset: var(--underline-offset);
   transition: text-decoration-color var(--dur-press) var(--ease-out);
+}
+
+.creditArrow {
+  display: inline-block;
+  inline-size: 0.95em;
+  block-size: 0.95em;
+  vertical-align: -0.1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--dur-press) var(--ease-out);
 }
 
 .creditLink:focus-visible {
@@ -733,6 +859,94 @@
 @media (hover: hover) and (pointer: fine) {
   .creditLink:hover {
     text-decoration-color: var(--text);
+  }
+}
+
+/* the arrow leans the way it points, a pixel, where a pointer can hover and motion is welcome */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .creditLink:hover .creditArrow {
+    transform: translate(1px, -1px);
+  }
+}
+
+/* ---------- back to top ---------- */
+/* The dock is the last thing in <main> and takes no room: sticky to the bottom of the screen,
+   it carries the button over the sections, then stops at the end of <main>, at the footer. The
+   button keeps the same 16px from both. Only the button takes taps. */
+.toTopDock {
+  position: sticky;
+  z-index: 15;
+  bottom: env(safe-area-inset-bottom, 0px);
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  block-size: 0;
+  padding-inline: var(--gutter);
+  pointer-events: none;
+}
+
+/* Hidden until the visitor is a screen down: it fades and rises in, and fades out. While hidden
+   it cannot be tabbed to. */
+.toTop {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--tap-min);
+  block-size: var(--tap-min);
+  margin-block-end: var(--space-4);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-float);
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(var(--space-2));
+  transition:
+    opacity var(--dur-modal-out) var(--ease-out),
+    transform var(--dur-modal-out) var(--ease-out),
+    visibility 0s linear var(--dur-modal-out);
+}
+
+.toTop[data-shown] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity var(--dur-modal) var(--ease-out),
+    transform var(--dur-modal) var(--ease-out),
+    visibility 0s;
+}
+
+.toTop[data-shown]:active {
+  transform: scale(0.97);
+}
+
+.toTop svg {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toTop:hover {
+    background: var(--surface-raised);
+  }
+}
+
+/* reduced motion: it only fades, and a press shows in no scale */
+@media (prefers-reduced-motion: reduce) {
+  .toTop,
+  .toTop[data-shown],
+  .toTop[data-shown]:active {
+    transform: none;
   }
 }
 
@@ -770,6 +984,15 @@
 
   .nav[data-pinned=""] {
     animation-name: pinFade;
+  }
+
+  /* the pill does not slide away with the footer: once the footer is half in, it is gone */
+  .nav[data-pinned] {
+    translate: none;
+  }
+
+  .nav[data-pinned][data-away] {
+    visibility: hidden;
   }
 
   .navLink::after,
