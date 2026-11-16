@@ -72,11 +72,13 @@
   .step { padding-block: var(--space-10) var(--space-16); }
 }
 
-/* Focus lands here after a step change. A heading is not a control, so it gets no ring. */
+/* Focus lands here after a step change. A heading is not a control, so it gets no ring. The
+   welcome and finish titles carry the developer's first name, which can be one long word. */
 .title {
   font: var(--type-display-m);
   letter-spacing: -0.02em;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 .title:focus { outline: none; }
@@ -342,6 +344,13 @@
 .username {
   color: var(--text-muted);
   font: var(--type-code);
+}
+
+/* names and usernames can be one long word (GitHub allows 39 characters) */
+.name,
+.username,
+.signedIn {
+  overflow-wrap: anywhere;
 }
 
 .factLabel {
