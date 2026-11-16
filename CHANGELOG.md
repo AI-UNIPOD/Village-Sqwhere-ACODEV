@@ -11,6 +11,9 @@ its number:
 ## 2026-11-16
 
 - perf(api): build the hub list's cards in two queries (#246)
+- fix(web): let a long name break inside its word after sign-in
+- perf: run the functions next to the database and stop echoing sql (#244)
+- feat(web): cover the icon and the name with the places bar's highlight
 
 ## 2026-11-15
 
