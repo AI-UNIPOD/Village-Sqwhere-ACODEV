@@ -147,7 +147,10 @@ reaches the API at `https://<domain>/v1/...`.
    root directory at the repository root and the framework on what Vercel detects from
    `vercel.json` (Services).
 2. **Add a Postgres database with pgvector**, for example Neon from the Vercel Marketplace,
-   in a European region close to `cdg1`, where the worker runs.
+   in Frankfurt (`eu-central-1`). `vercel.json` runs the functions in `fra1`, next to it:
+   each query crosses from the function to the database, so a page that makes 20 queries
+   waits for 20 round trips. From `iad1` (Washington), the default, each one took about
+   0.1 to 0.25 seconds. If the database moves, move `regions` with it.
 3. **Build the schema once**, from your computer, with the direct connection string:
 
    ```bash

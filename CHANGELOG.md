@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-16
 
+- perf: run the functions next to the database and stop echoing sql (#244)
 - feat(web): cover the icon and the name with the places bar's highlight
 
 ## 2026-11-15
