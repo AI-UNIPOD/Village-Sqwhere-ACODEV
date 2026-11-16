@@ -11,6 +11,8 @@
   font: var(--type-display-l);
   letter-spacing: -0.02em;
   text-wrap: balance;
+  /* the first name in it can be one long word */
+  overflow-wrap: anywhere;
 }
 
 /* ---------- who you are ---------- */
