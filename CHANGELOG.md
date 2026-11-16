@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-16
+
+- perf(api): build the hub list's cards in two queries (#246)
+
 ## 2026-11-15
 
 - fix(web): keep the whole width of a wide picture in a feed card (#241)
