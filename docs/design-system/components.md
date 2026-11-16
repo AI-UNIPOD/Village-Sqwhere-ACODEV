@@ -174,8 +174,10 @@ On a phone the signed-in places float above the bottom of the screen: inset `--g
 `--space-2` above the bottom edge, 60px high, `--radius-full`, 1px `--line`, `--shadow-float`,
 and `--surface` at 85% over a `--blur-bar` blur (solid with reduced transparency). Each place is
 a 24px icon over a one-line name in `--type-caption`, at least `--tap-min` wide. The current place
-has a filled icon, `--text`, weight 600, and a 56 by 32 pill behind the icon in `--text` at 8%
-that slides to the place just opened (no slide with reduced motion). From 768px the places are
+has a filled icon, `--text`, weight 600, and a highlight in `--text` at 8% that fills its place
+behind the icon and the name, `--space-1` inside the bar above and below (like the chosen part
+of a segmented control, `--radius-full`), and slides to the place just opened (no slide with
+reduced motion). From 768px the places are
 links in the header with a line under the current one.
 
 On every signed-in screen except a live interview the header turns into the pinned pill, as the

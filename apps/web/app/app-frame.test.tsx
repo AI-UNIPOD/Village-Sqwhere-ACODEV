@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -186,6 +188,24 @@ test("a visitor who is not signed in sees no places, and the logo leads to the l
   render(<AppFrame lang="en" path="village">screen</AppFrame>);
   expect(screen.queryByRole("navigation")).toBeNull();
   expect(screen.getByRole("link", { name: "Village Sqwhere" }).getAttribute("href")).toBe("/en");
+});
+
+test("on a phone the indicator fills its place, behind the icon and the name, a little inside the bar", () => {
+  const css = readFileSync(join(__dirname, "app-frame.module.css"), "utf8");
+  const phone = css.slice(css.indexOf("@media (max-width: 767px)"));
+  // the body of a rule of the phone block, by its selector
+  const rule = (selector: string) => phone.split(`\n  ${selector} {`)[1]?.split("}")[0] ?? "";
+  // each place is as tall as the bar, and the indicator is measured from the place, not the icon
+  expect(rule(".places")).toMatch(/align-items:\s*stretch/);
+  expect(rule(".zone")).toMatch(/block-size:/);
+  expect(rule(".zone")).not.toMatch(/position:/);
+  const mark = rule(".mark");
+  expect(mark).toMatch(/inset-block:\s*var\(--space-1\)/);
+  expect(mark).toMatch(/inset-inline:\s*0/);
+  expect(mark).not.toMatch(/inline-size|block-size/);
+  // behind the icon and the name, inside the place's own layer
+  expect(mark).toMatch(/z-index:\s*-1/);
+  expect(rule(".place")).toMatch(/isolation:\s*isolate/);
 });
 
 // ---------- the header, pinned as a pill ----------

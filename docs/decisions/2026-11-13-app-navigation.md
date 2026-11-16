@@ -74,7 +74,10 @@ The flat bar, the short line on its top edge and the five-place limit above were
   soft tint of `--text` (8%), which works in light and dark. The indicator is the one
   `<ViewTransition name="place-mark">`, so it slides to the place just opened across screens.
   With reduced motion it does not slide. A press scales 0.97 over `--dur-press`; with reduced
-  motion only the colour changes.
+  motion only the colour changes. Changed on 2026-11-16: Tanny chose "full height, small
+  inset". The indicator now fills its place behind the icon and the name, `--space-1` inside
+  the bar above and below, like the chosen part of a segmented control; the 56 by 32 pill left
+  the name outside the highlight. The slide, the tint and reduced motion are as before.
 - **The header becomes a pill on scroll,** on every screen except a live interview, like the
   landing page. `useFramePin` (`app/frame-pin.tsx`) watches a slot that keeps the header's
   height with one IntersectionObserver and sets `data-pinned`. The pill rises `--space-2` and
