@@ -206,6 +206,11 @@ test("on a phone the indicator fills its place, behind the icon and the name, a 
   // behind the icon and the name, inside the place's own layer
   expect(mark).toMatch(/z-index:\s*-1/);
   expect(rule(".place")).toMatch(/isolation:\s*isolate/);
+  // a rounded square inside a rounded rectangle: the corners of the first and last place run
+  // alongside the bar's, which a square inside a fully rounded bar could not do
+  expect(mark).toMatch(/border-radius:\s*var\(--radius-m\)/);
+  expect(rule(".place")).toMatch(/border-radius:\s*var\(--radius-m\)/);
+  expect(rule(".places")).toMatch(/border-radius:\s*var\(--radius-l\)/);
 });
 
 // ---------- the header, pinned as a pill ----------

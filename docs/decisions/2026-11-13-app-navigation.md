@@ -65,7 +65,8 @@ The flat bar, the short line on its top edge and the five-place limit above were
 ### Decision
 
 - **The places bar floats.** On a phone it is inset `--gutter` on both sides and `--space-2`
-  above the bottom edge (plus the safe area), 60px high, `--radius-full`, 1px `--line`,
+  above the bottom edge (plus the safe area), 60px high, `--radius-l` (see the indicator
+  below; it was `--radius-full` until 2026-11-16), 1px `--line`,
   `--shadow-float`, and `--surface` at 85% over a `--blur-bar` blur (solid `--surface` where the
   blur is missing or with reduced transparency). Each place is a 24px icon over a one-line name
   in `--type-caption`, always visible.
@@ -78,6 +79,11 @@ The flat bar, the short line on its top edge and the five-place limit above were
   inset". The indicator now fills its place behind the icon and the name, `--space-1` inside
   the bar above and below, like the chosen part of a segmented control; the 56 by 32 pill left
   the name outside the highlight. The slide, the tint and reduced motion are as before.
+  The same day Tanny chose a rounded square over the fully rounded shape, and of the ways to fit
+  one into the bar, the bar as a rounded rectangle: the bar is `--radius-l` and the indicator
+  `--radius-m`, so the corners of the first and last place run alongside the bar's. Square
+  corners inside a fully rounded bar touched its edge, and moving the end places inward left
+  the French "Espaces" almost no room at 360px. The header's pill keeps `--radius-full`.
 - **The header becomes a pill on scroll,** on every screen except a live interview, like the
   landing page. `useFramePin` (`app/frame-pin.tsx`) watches a slot that keeps the header's
   height with one IntersectionObserver and sets `data-pinned`. The pill rises `--space-2` and

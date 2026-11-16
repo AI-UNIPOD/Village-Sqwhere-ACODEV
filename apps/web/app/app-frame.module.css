@@ -289,7 +289,8 @@
     block-size: var(--places-height);
     padding-inline: var(--space-1);
     border: 1px solid var(--line);
-    border-radius: var(--radius-full);
+    /* a rounded rectangle, so the rounded square of the current place fits its ends */
+    border-radius: var(--radius-l);
     background: color-mix(in srgb, var(--surface) 85%, transparent);
     -webkit-backdrop-filter: blur(var(--blur-bar));
     backdrop-filter: blur(var(--blur-bar));
@@ -314,7 +315,7 @@
     align-content: center;
     gap: 0;
     min-block-size: 0;
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-m);
     font: var(--type-caption);
     -webkit-tap-highlight-color: transparent;
     /* its own layer, so the indicator can sit behind the icon and the name and nothing else */
@@ -342,14 +343,14 @@
   }
 
   /* The indicator fills the place, behind the icon and the name, with a little of the bar
-     showing above and below it, like the chosen part of a segmented control. It slides to the
-     place just opened (app-frame.tsx). */
+     showing above and below it, like the chosen part of a segmented control: a rounded square,
+     its corners running alongside the bar's. It slides to the place just opened (app-frame.tsx). */
   .mark {
     z-index: -1;
     inset-block: var(--space-1);
     inset-inline: 0;
     border: 0;
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-m);
     background: var(--place-tint);
   }
 
