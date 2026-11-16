@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-16
 
-- fix(web): let a long name break inside its word after sign-in (#245)
+- fix(web): let a long name break inside its word after sign-in
 
 ## 2026-11-15
 
