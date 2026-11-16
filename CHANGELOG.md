@@ -14,6 +14,19 @@ its number:
 
 ## 2026-11-15
 
+- fix(web): keep the whole width of a wide picture in a feed card (#241)
+- feat(api): give about 160 demo posts a picture that matches the post (#239)
+- feat(web): show post images in the feed and let authors attach them (#240)
+- feat(api): let a post's author remove one of its images (#238)
+- docs: say the worker needs DEMO_ENABLED and the live demo is seeded once (#237)
+- feat(web): float the places bar and turn the app header into a pill on scroll (#236)
+- feat(web): say nothing was saved next to each refused write in the demo (#234)
+- feat(web): grow the guided tour to six steps with feed and conversation (#235)
+- feat(api): date the demo's posts back from now again every day (#233)
+- feat(api): add post image uploads
+- feat(api): add a demo community of 1,150 members and 1,500 posts (#232)
+- feat(web): continue a deep reply's thread on its own (#231)
+- fix(api): accept the neon database url from vercel (#229)
 - feat(web): add a waving Nigeria flag to the landing footer
 - feat(api): let a developer pause matching (#213)
 - docs: name the live address for sign-in settings and add a check (#228)

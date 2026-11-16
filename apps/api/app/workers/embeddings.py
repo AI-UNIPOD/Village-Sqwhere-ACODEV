@@ -25,14 +25,18 @@ logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 20
 
-# The same rule the match queries use to pick ideas, and a developer with a verified role.
+# The same rule the match queries use to pick ideas, and a developer with a verified role. The
+# demo's people and ideas are never sent to Gemini: a thousand made-up profiles would cost
+# something and the demo's scores do not need them. docs/decisions/2026-11-15-lived-in-demo.md
 IDEAS_TO_EMBED = (
     Idea.status == IdeaStatus.OPEN,
     Idea.deleted_at.is_(None),
+    ~exists().where(User.id == Idea.author_id, User.is_demo),
     ~exists().where(IdeaEmbedding.idea_id == Idea.id),
 )
 USERS_TO_EMBED = (
     User.deleted_at.is_(None),
+    User.is_demo.is_(False),
     exists().where(UserRole.user_id == User.id, UserRole.verified_at.is_not(None)),
     ~exists().where(UserEmbedding.user_id == User.id),
 )

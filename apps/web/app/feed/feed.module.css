@@ -154,9 +154,9 @@
   .kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* the sticky row sits over the bottom of the screen: a field that takes focus is kept clear of it,
+/* the sticky row sits over the bottom of the screen: a field or a remove button that takes focus is kept clear of it,
    by the same distance as a chip or a card (onboarding.module.css) */
-.form :is(input, textarea) {
+.form :is(input, textarea, .thumb button) {
   scroll-margin-block-end: calc(var(--tap-min) + var(--space-6) + var(--space-3));
 }
 
@@ -250,3 +250,127 @@
     .topicsPanel { transform: none; }
   }
 }
+
+/* said beside a control the demo account pressed: what happened to the press, in the text colour */
+.notSaved {
+  color: var(--text);
+  font: var(--type-body-s);
+}
+
+/* ---------- images ---------- */
+/* One column: a card's single image (its own shape, set inline) and every image on the post's page.
+   Two to four in a card make a grid of squares, the first of three across the full width. */
+.images {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.images[data-count="2"],
+.images[data-count="3"],
+.images[data-count="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.images[data-count] .image { aspect-ratio: 1; }
+
+.images[data-count="3"] .image:first-child {
+  grid-column: 1 / -1;
+  aspect-ratio: 2;
+}
+
+/* the box is the picture's own shape (inline) or a square, so it holds its size while loading */
+.image {
+  position: relative;
+  min-inline-size: 0;
+  overflow: hidden;
+  border-radius: var(--radius-s);
+  background: var(--surface-sunken);
+}
+
+.image a {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  color: inherit;
+}
+
+.image img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* in a grid every box is a square: the whole picture shows inside it rather than being cropped,
+   because a screenshot or a diagram loses its sides to a crop */
+.images[data-count] .image img { object-fit: contain; }
+
+.imageBroken {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: var(--space-3);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+  text-align: center;
+}
+
+/* "+2" over the fourth image of a card that has more */
+.imageMore {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--scrim);
+  color: var(--paper);
+  font: var(--type-display-m);
+}
+
+/* ---------- choosing images in the composer ---------- */
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* the real input is hidden but still takes focus; its button-shaped label shows the focus */
+.picker input:focus-visible + label {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.thumbs {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thumb {
+  display: grid;
+  grid-template-columns: var(--space-16) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.thumb img {
+  display: block;
+  inline-size: var(--space-16);
+  block-size: var(--space-16);
+  border-radius: var(--radius-s);
+  background: var(--surface-sunken);
+  object-fit: cover;
+}
+
+.thumbName {
+  min-inline-size: 0;
+  font: var(--type-body-s);
+  overflow-wrap: anywhere;
+}
+
+/* the live region is empty most of the time: an empty line would add a gap, so take it back */
+.status:empty { margin-block-start: calc(var(--space-2) * -1); }

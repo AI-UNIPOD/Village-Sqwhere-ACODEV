@@ -1,0 +1,3424 @@
+[
+ {
+  "key": "p0033",
+  "by": "yusuf_abdullahi",
+  "type": "research_note",
+  "title": "Cold start on a 1 GB Android 8 phone, where 2.1 seconds went",
+  "body": "I profiled cold start of our Java app on a 1 GB RAM Android 8.1 handset with Perfetto, five runs each, app killed and caches dropped between them. Median time to first frame was 2.1 s. Gson building type adapters for about 30 model classes on the main thread took 640 ms, and Room opening the database plus its schema check took 380 ms. Moving both to a background executor and drawing the shell first brought the median to 1.3 s. One device only, so read it as direction, not a benchmark.",
+  "topics": [],
+  "age_hours": 878.91,
+  "likes": 4,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "fatma_shehata",
+    "body": "Is the 640 ms Gson reflection cost? We saw the same shape on the web with a big JSON.parse at startup, and parsing lazily per screen fixed it more than moving it somewhere else.",
+    "after_minutes": 468,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "sekou_ouedraogo",
+    "body": "Gson reflection was our top item as well. Moving to Moshi with codegen removed it entirely, no thread juggling. With 30 classes it might be one afternoon of work.",
+    "after_minutes": 67,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "marina_zaher",
+    "body": "One handset is thin. Have you tried a 2 GB one? On a four core little CPU the background work can compete with the first frame, so the win may shrink.",
+    "after_minutes": 30,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p0039",
+  "by": "francois_joubert",
+  "type": "oss_release",
+  "title": "swatchcheck 0.4.0 compiles design tokens and fails the build on low contrast",
+  "body": "swatchcheck 0.4.0 is out. It turns a JSON token file into CSS custom properties and exits non-zero if any text and background pair drops under 4.5 to 1. New in this release: dark theme overrides in the same file, and a plain JSON report of every pair it checked. Removed: Sass output, which nobody on our side used. Still rough: colours with alpha are treated as opaque, so overlays on photos can pass when they should not.",
+  "topics": [],
+  "age_hours": 4.07,
+  "likes": 52,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "augustine_busari",
+    "body": "Does it run any postinstall scripts? Our policy rejects packages that have one, so I need to know before it even reaches review.",
+    "after_minutes": 90,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "godwin_eze",
+    "body": "pnpm lets you allow-list install scripts per package, which saves that argument for the packages you do trust.",
+    "after_minutes": 131,
+    "likes": 2
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "nyongesa_nyukuri",
+    "body": "Tried 0.4.0 in a Vue 3 and Vite project and the dark overrides land before the base block in the output, so base wins. Is that ordering intended or is it a specificity thing on my side?",
+    "after_minutes": 182,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": "c1",
+    "by": "khaled_badawi",
+    "body": "Install scripts matter less to me than the dependency tree. Three transitive packages is fine, thirty is a different conversation. Worth listing both in the release note.",
+    "after_minutes": 100,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": "c1",
+    "by": "ousmane_diallo",
+    "body": "Same rule in our university IT office. One line in the changelog saying no install scripts would save every reviewer the same question.",
+    "after_minutes": 12,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "tete_lamboni",
+    "body": "Alpha is our whole problem, we put rgba overlays on photos. Could you compute against a backdrop token that the author declares for that pair?",
+    "after_minutes": 160,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "mina_naguib",
+    "body": "Is the JSON report stable enough to parse in CI? I would like to annotate the pull request with the failing pairs.",
+    "after_minutes": 92,
+    "likes": 1
+   },
+   {
+    "key": "c8",
+    "parent": "c1",
+    "by": "francois_joubert",
+    "body": "No install scripts, no runtime dependencies, one dev dependency for the colour maths. I should have put that in the release note and will in 0.4.1.",
+    "after_minutes": 10,
+    "likes": 3
+   },
+   {
+    "key": "c9",
+    "parent": null,
+    "by": "amine_lounis",
+    "body": "Why drop Sass output? A couple of public sector clients we work with still ship Sass only builds.",
+    "after_minutes": 57,
+    "likes": 0
+   },
+   {
+    "key": "c10",
+    "parent": null,
+    "by": "jonathan_raji",
+    "body": "Can the published tarball be rebuilt from the tag with an identical hash? If yes, that answers most of what I would ask about supply chain.",
+    "after_minutes": 56,
+    "likes": 0
+   },
+   {
+    "key": "c11",
+    "parent": null,
+    "by": "aurelio_mandlate",
+    "body": "Ran it on a small dashboard. The failure message lists token names but not the computed ratio, so I had to open the file to see how far off I was.",
+    "after_minutes": 102,
+    "likes": 1
+   },
+   {
+    "key": "c12",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "Does the check use 3 to 1 for large text? Our headings are 28px bold and I would not want them flagged at 4.5.",
+    "after_minutes": 48,
+    "likes": 3
+   },
+   {
+    "key": "c13",
+    "parent": "c3",
+    "by": "adobea_opoku",
+    "body": "Check whether Vite hoists that file into a separate chunk. We saw dark overrides move after a manual chunk split, same symptom.",
+    "after_minutes": 44,
+    "likes": 0
+   },
+   {
+    "key": "c14",
+    "parent": null,
+    "by": "aimable_uwimana",
+    "body": "Any plan for a Flutter ThemeData output? That is the missing piece for those of us sharing tokens with a web team.",
+    "after_minutes": 160,
+    "likes": 1
+   },
+   {
+    "key": "c15",
+    "parent": null,
+    "by": "amr_elgendy",
+    "body": "Does it exit with a distinct code for contrast failures and for a bad token file? I want the first to be a hard gate and the second a plain error.",
+    "after_minutes": 155,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0048",
+  "by": "amadou_gning",
+  "type": "code_review_request",
+  "body": "J'ai écrit un petit middleware Express qui envoie vers l'ancien back-office PHP toutes les routes que je n'ai pas encore migrées vers React. Il utilise http-proxy-middleware avec un délai maximum de 8 secondes. Deux choses me gênent : les cookies de session de l'ancien système passent tels quels et je ne sais pas si je dois réécrire leur domaine, et je gère mal le cas où l'ancien serveur ne répond pas. Regardez surtout la gestion des erreurs.",
+  "topics": [
+   "docker",
+   "nodejs"
+  ],
+  "age_hours": 309.72,
+  "likes": 8,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "Pour le cookie, regarde si l'ancien système pose un attribut Domain. S'il est fixé sur l'ancien hôte, le navigateur le refuse derrière ton proxy et il faut cookieDomainRewrite. Et 8 secondes c'est long : renvoie un 504 avec un message lisible au bout de 4 ou 5 secondes, et logue les routes qui tombent pour savoir lesquelles migrer en premier.",
+    "after_minutes": 110,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0054",
+  "by": "nabou_diagne",
+  "type": "architecture_challenge",
+  "title": "Six comptes cloud, les mêmes modules Terraform, comment éviter la dérive",
+  "body": "Je gère six comptes cloud avec Terraform, un par client, et les mêmes modules de base (réseau, bastion, sauvegardes). Aujourd'hui les modules sont copiés dans chaque dépôt, donc les corrections divergent peu à peu. Trois options. Un dépôt de modules avec des tags semver, chaque compte épingle sa version. Un monorepo avec tous les comptes. Ou garder les copies et écrire un script qui les synchronise. Contraintes : nous sommes deux, il n'y a pas de pipeline commun pour l'instant, et un client refuse que son code sorte de son compte. Je penche pour les tags, mais je crains de passer mon temps à monter des versions à six endroits.",
+  "topics": [],
+  "images": [
+   {
+    "file": "p0054_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
+  "age_hours": 765.07,
+  "likes": 2,
+  "comments": []
+ },
+ {
+  "key": "p0089",
+  "by": "allan_niwagaba",
+  "type": "code_review_request",
+  "body": "This Dart class batches barcode scans into a local sqflite table and uploads them in groups of 50 every 30 seconds with Timer.periodic. Rows are marked as sent only after the server returns 200. I am unsure about two things: what happens if the app is killed in the middle of an upload, and whether a Timer is the right tool once the app goes to the background. Please look at the retry logic first.",
+  "topics": [
+   "nodejs",
+   "react-native"
+  ],
+  "age_hours": 343.79,
+  "likes": 3,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "hirut_kedir",
+    "body": "Timer.periodic stops when the OS suspends the app. Use WorkManager through the workmanager package for background uploads and keep the Timer only for the foreground case.",
+    "after_minutes": 87,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "zineb_chraibi",
+    "body": "Not a mobile person, but if the server receives the same batch twice after a kill, does it notice? Marking rows only after a 200 means duplicates are possible by design. Give every scan a client generated id.",
+    "after_minutes": 8,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c1",
+    "by": "getachew_belay",
+    "body": "On iOS you get no guarantee at all about periodic background work, so I would stop promising 30 seconds anywhere, even in code comments. Treat it as best effort and always upload on the next foreground.",
+    "after_minutes": 38,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "souleymane_doumbia",
+    "body": "Batch of 50 per request: what do you do on a partial failure, 49 saved and one rejected? Return a status per item instead of one 200 for the whole batch.",
+    "after_minutes": 64,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": "c4",
+    "by": "allan_niwagaba",
+    "body": "Per item status is a good point. Right now the API answers 200 or 500 for the entire batch. I will change the server to return the accepted ids and mark only those.",
+    "after_minutes": 50,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "george_zaher",
+    "body": "Is there an index on the sent flag? With a few thousand pending rows a full scan every 30 seconds on a cheap handset adds up. A partial index where sent is 0 is cheap in SQLite.",
+    "after_minutes": 94,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "hajara_hassan",
+    "body": "Where does the auth token live while the queue sits on the device for hours? If it expires you will retry with a dead token forever. Refresh before the upload and stop after three failures.",
+    "after_minutes": 204,
+    "likes": 0
+   },
+   {
+    "key": "c8",
+    "parent": "c2",
+    "by": "allan_niwagaba",
+    "body": "Client ids are already generated (uuid v4), I just do not send them yet. I will add them tomorrow and make the server ignore ids it has seen.",
+    "after_minutes": 48,
+    "likes": 0
+   },
+   {
+    "key": "c9",
+    "parent": null,
+    "by": "godfred_amponsah",
+    "body": "I would cap the table too. If a scanner is offline for a week you could have 40k rows and the first upload turns into one very long minute. Drain in loops of 50 until empty, with a short pause between.",
+    "after_minutes": 55,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0102",
+  "by": "preshen_khan",
+  "type": "rfc",
+  "title": "RFC: split health checks into liveness and readiness for all Node services",
+  "body": "Proposal: every Node API we run exposes two routes. /livez answers 200 as long as the event loop responds and touches no dependency. /readyz checks Postgres with a 300 ms budget and returns 503 with a short JSON naming the failing dependency. Docker HEALTHCHECK and the restart logic use /livez only. Today a single /health route queries the database, so during a short failover every container is marked unhealthy at once. Cost: two routes per service and a 40 line shared module. Undecided: should /readyz also check Redis, and should nginx stop sending traffic when it fails or only report it.",
+  "topics": [
+   "docker"
+  ],
+  "age_hours": 861.46,
+  "likes": 9,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "akwero_odongo",
+    "body": "Set start_period on the HEALTHCHECK, otherwise a slow Node boot gets marked unhealthy and something may restart it in a loop. Also plain Docker does nothing about an unhealthy container unless swarm or an autoheal sidecar is there.",
+    "after_minutes": 8,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "preshen_khan",
+    "body": "Good point on autoheal. We run plain compose with restart always, which never acts on unhealthy, so right now the healthcheck only feeds a dashboard. The split still matters for the nginx upstream checks, I think, but it lowers the urgency.",
+    "after_minutes": 90,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "brenda_keter",
+    "body": "Keep /readyz shallow too. A database check per probe across many replicas every 5 seconds is a load of its own. Cache the result inside the process for a few seconds.",
+    "after_minutes": 4,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "akanni_oyelaran",
+    "body": "From the front end side, a readiness response with a short JSON naming the dependency that is down would let us show a proper maintenance banner instead of a blank page.",
+    "after_minutes": 43,
+    "likes": 1
+   },
+   {
+    "key": "c5",
+    "parent": "c3",
+    "by": "allan_niwagaba",
+    "body": "Counterpoint on caching. We did it and the probe said healthy for a full 10 seconds while the connection pool was exhausted. I would cache only a success, for 2 seconds, and never a failure.",
+    "after_minutes": 148,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p0119",
+  "by": "waleed_mahmoud",
+  "type": "research_note",
+  "title": "Bus error in DataLoader workers inside Docker, and what shm size changed",
+  "body": "Our batch inference task died with a Bus error as soon as num_workers was above 0 inside the container. Cause: /dev/shm is 64 MB by default and workers hand tensors over through it. Method: 8000 images at 512 by 512, ResNet-50 features, 4 vCPU, three runs each. With num_workers 0: 61 img/s. With 4 workers and shm-size 1g: 142 img/s. With ipc host the number was the same as 1g, so I kept the plain shm-size option. At 64 MB it crashed on every run.",
+  "topics": [
+   "docker"
+  ],
+  "age_hours": 1647.2,
+  "likes": 14,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "aurelio_mandlate",
+    "body": "Did you try the file_system sharing strategy in torch.multiprocessing? It sometimes dodges the shm limit, though it can leave files behind.",
+    "after_minutes": 1223,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "souleymane_doumbia",
+    "body": "The file_system strategy left stale files in /dev/shm for us after a worker crash and filled it over a few days. Raising shm-size is the boring fix and it held.",
+    "after_minutes": 138,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0128",
+  "by": "amr_elgendy",
+  "type": "architecture_challenge",
+  "title": "Nobody reads a 4000 line Terraform plan, what do we show instead",
+  "body": "Pull requests that change our Terraform produce a plan of 3000 to 4000 lines and nobody reads it, so reviews approve on trust. Options I am weighing. One: post a summary by resource type and action, with every destroy and replace listed in full. Two: block on policy checks for a fixed list of dangerous changes (a security group opened to the world, a database replaced) and let the rest pass. Three: keep full plans but make a named reviewer confirm they opened the destroy section. The pipeline has to stay under ten minutes and only two of us review.",
+  "topics": [
+   "terraform"
+  ],
+  "age_hours": 940.81,
+  "likes": 27,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "christelle_nsabimana",
+    "body": "I review these as a non-infra person and I skip anything longer than a screen. Option one with a single line on top, like 2 to add, 0 to change, 1 to destroy, would make me actually look. Anything marked destroy in a different colour would help too.",
+    "after_minutes": 390,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p0142",
+  "by": "kevin_fokou",
+  "type": "rfc",
+  "title": "RFC : sortir les paliers de remise du code Java vers une table avec date d'effet",
+  "body": "Proposition : sortir les paliers de remise du code Java et les mettre dans une table avec une date d'effet. Aujourd'hui chaque changement de tarif grossiste demande un build, un déploiement et un redémarrage du service, soit 15 minutes que les commerciaux n'aiment pas attendre. La table serait remise_palier (produit, quantité minimale, pourcentage, valide_du, valide_au), lue par le service avec un cache de 60 secondes. Coût : une migration, une validation des chevauchements de dates, et l'historique des règles qui ne vit plus dans le dépôt. Pas encore décidé : qui a le droit de modifier la table, et si une commande déjà créée garde son prix figé ou se recalcule.",
+  "topics": [
+   "java"
+  ],
+  "age_hours": 1890.48,
+  "likes": 1,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "uwase_mutoni",
+    "body": "Fige le prix sur la ligne de commande. Sinon un grossiste qui rouvre un devis voit un autre total et on perd des heures au téléphone.",
+    "after_minutes": 39,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "aminata_diarrassouba",
+    "body": "Pour les chevauchements, si c'est du Postgres, une contrainte d'exclusion sur un daterange règle ça au niveau de la base. Pas besoin d'une validation dans le code.",
+    "after_minutes": 20,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "aminata_diarrassouba",
+    "body": "Sur le cache de 60 secondes : un tarif qui change à 8 h pile sera appliqué avec une minute de retard. Si c'est un problème pour le métier, invalide le cache à l'écriture au lieu d'attendre l'expiration.",
+    "after_minutes": 209,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0208",
+  "by": "rahma_mansour",
+  "type": "code_review_request",
+  "title": "Ring buffer shared between an ADC interrupt and the main loop on a Cortex-M0",
+  "body": "Porting a sensor sampling loop from C to Rust on an STM32F0 with 32 KB of flash. The part I am unsure about is a fixed ring buffer shared between the ADC interrupt and the main loop. I wrap it in the cortex-m critical section mutex and pop from main. It works on the bench, but I do not like holding the critical section while copying 16 samples. Please look at whether a single producer single consumer queue without locks would be safer here, and at the unsafe block around the static.",
+  "topics": [
+   "rust"
+  ],
+  "images": [
+   {
+    "file": "p0208_1.webp",
+    "width": 1200,
+    "height": 740
+   }
+  ],
+  "age_hours": 731.36,
+  "likes": 3,
+  "comments": []
+ },
+ {
+  "key": "p0235",
+  "by": "preshen_khan",
+  "type": "rfc",
+  "title": "RFC: cursor pagination as the default for every new list endpoint",
+  "body": "Proposal: new list endpoints in our public services use cursor pagination only, keyed on (created_at, id), and offset pagination is no longer added to new routes. Why: page 400 at 50 rows on an 8 million row table took 1.9 s with offset and 12 ms with a cursor, and rows inserted between requests no longer shift pages. Cost: no jump to page N, and every client changes how it loops. Undecided: whether the cursor is opaque base64 or a signed token, and whether the admin exports keep offset.",
+  "topics": [],
+  "age_hours": 1261.61,
+  "likes": 2,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "gareth_abrahams",
+    "body": "We need jump to page N in the admin tables, officials literally ask for page 40. Could offset stay where the row count is small, say under 10k, and cursor be the default only for the big lists?",
+    "after_minutes": 22,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0248",
+  "by": "christelle_nsabimana",
+  "type": "research_note",
+  "title": "National ID field: type number against inputmode numeric on 600 submissions each",
+  "body": "We compared two versions of a registration form on mid-range and older Android phones, about 600 submissions each. The national ID field was type number in version A and type text with inputmode numeric in version B. In A, 9 percent of submissions had an ID rejected by validation, mostly from dropped leading zeros and from people pasting spaces. In B it was 2 percent. We did not change the server rules between the two, only the field.",
+  "topics": [
+   "docker",
+   "nodejs"
+  ],
+  "age_hours": 1826.27,
+  "likes": 4,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "Does the server strip spaces and dashes before validating, in both versions? If yes, the keyboard did the work. If not, I would check what else changed.",
+    "after_minutes": 97,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "aminata_diarrassouba",
+    "body": "Also people here type IDs in groups with spaces, and a lenient parser fixes more than the keyboard does. Worth running the same split on the parser alone.",
+    "after_minutes": 24,
+    "likes": 1
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "elizabeth_nnadi",
+    "body": "Careful with lenient parsing. We normalised input and ended up with a mismatch between the stored value and what the user sees on the printed receipt. Store the raw and the normalised form.",
+    "after_minutes": 20,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": "c1",
+    "by": "souleymane_doumbia",
+    "body": "Why not change one thing at a time? Keep type text and the pattern attribute, add the server normalisation later, and count errors for each layer. With one change it is hard to say which gave the gain.",
+    "after_minutes": 99,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "fatma_shehata",
+    "body": "inputmode numeric shows a keypad without space or minus on most Samsung keyboards, which is fine for IDs. For phone numbers we got better results with type tel.",
+    "after_minutes": 15,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "patience_opiyo",
+    "body": "How did you count errors, validation failures on the server or people who gave up? Those are two different numbers and the second one usually matters more.",
+    "after_minutes": 86,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p0256",
+  "by": "christelle_habimana",
+  "type": "research_note",
+  "body": "Adding days since last pay day as a feature to a weekly demand model for 40 small shops cut MAPE from 18.4 to 15.9. Holiday flags alone only got it to 17.9. Method: rolling origin evaluation over the last 26 weeks, same TensorFlow architecture, three seeds each. The pay day feature mostly helps the shops that sell staples and does nothing for the two that sell school supplies.",
+  "topics": [
+   "python"
+  ],
+  "age_hours": 7.13,
+  "likes": 1,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "augustine_ogunleye",
+    "body": "As someone who designs the screens, what does MAPE mean in plain terms for a shopkeeper? If it is 16 percent, is that 16 sacks wrong out of 100?",
+    "after_minutes": 35,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "aminata_diarrassouba",
+    "body": "Roughly yes, the average percentage gap between forecast and what sold. But for shops with tiny sales it explodes, so a weighted version is easier to explain.",
+    "after_minutes": 44,
+    "likes": 2
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "augustine_ogunleye",
+    "body": "So which would you put on a screen? I am thinking of a range, between 40 and 55 sacks, rather than one number that looks exact.",
+    "after_minutes": 16,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": "c2",
+    "by": "augustine_ogunleye",
+    "body": "Another thing. If a shop sells 2 items a week, a percentage is meaningless. Should the screen hide forecasts for those shops and say there is too little history?",
+    "after_minutes": 14,
+    "likes": 6
+   },
+   {
+    "key": "c5",
+    "parent": "c2",
+    "by": "asabe_garba",
+    "body": "Weighted MAPE, or WAPE, yes. I would report WAPE and also the plain count of units off per week. Shopkeepers think in units, not percentages.",
+    "after_minutes": 7,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p0271",
+  "by": "akwero_odongo",
+  "type": "question",
+  "body": "Around 200 field loggers write a CSV once a week with a timestamp from their own clock, which drifts a few minutes per month. Each upload also carries the server receive time. I plan to correct each file linearly between the last two syncs. Has anyone done this at scale, and how do you handle clocks that reset after a battery change?",
+  "topics": [],
+  "age_hours": 433.3,
+  "likes": 10,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "mina_naguib",
+    "body": "Linear drift between two sync points is what we did for a small fleet. Store the raw timestamp and the corrected one in separate columns so you can redo it when you find a bad sync later.",
+    "after_minutes": 3,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "fatma_shehata",
+    "body": "If a logger resets to the year 2000 after a battery swap, linear interpolation gives nonsense. Flag any jump bigger than a day and quarantine those files instead of correcting them.",
+    "after_minutes": 130,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0293",
+  "by": "ousmane_diallo",
+  "type": "general",
+  "body": "Le tri des noms dans le tableau des étudiants mettait « Étienne » après « Zoé ». Array.sort par défaut compare les codes UTF-16, donc les lettres accentuées passent en dernier. localeCompare avec la locale fr règle le problème, et Intl.Collator le règle plus vite quand la liste est longue.",
+  "topics": [],
+  "age_hours": 148.98,
+  "likes": 11,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "gildas_hounsou",
+    "body": "Crée l'Intl.Collator une seule fois et réutilise-le, c'est ça qui change vraiment pour 5000 lignes. Appeler localeCompare dans le comparateur recrée les options à chaque comparaison sur certains navigateurs.",
+    "after_minutes": 595,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "penda_badiane",
+    "body": "Et les noms avec apostrophe ou tiret, tu en fais quoi dans le tri ? Chez nous N'diaye finissait avant Ndiaye et les utilisateurs ne comprenaient pas pourquoi.",
+    "after_minutes": 155,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "ousmane_diallo",
+    "body": "Bonne remarque. Collator avec ignorePunctuation règle ça, mais je crois qu'il ignore aussi les espaces et mélange les noms composés. Je garde la ponctuation et je normalise seulement l'apostrophe typographique.",
+    "after_minutes": 148,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0300",
+  "by": "subira_byabato",
+  "type": "code_review_request",
+  "body": "This loads the weekly household survey export (about 2 million rows, 70 columns) into a raw table before a second step cleans it. Everything is read as text on purpose and cast later in SQL.\n\nfor chunk in pd.read_csv(path, dtype=str, chunksize=50000):\n    chunk = chunk.dropna(subset=[\"household_id\"])\n    chunk.to_sql(\"raw_survey\", engine, if_exists=\"append\", index=False)\n\nUnsure about two things: dropping rows without a household id silently, and whether append is safe when the run is retried. Please look at retry behaviour and what a half loaded file does.",
+  "topics": [
+   "python"
+  ],
+  "age_hours": 633.66,
+  "likes": 50,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "adobea_opoku",
+    "body": "Wrap the load of each file in one transaction and record the file hash in a loads table. On retry you skip files already loaded. Append alone will double the rows.",
+    "after_minutes": 187,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "akanni_ogunbanjo",
+    "body": "Dropping rows silently worries me. Write them to a rejects table with the reason, then the count shows up in your monitoring and someone notices when it jumps.",
+    "after_minutes": 412,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "mussa_mazengo",
+    "body": "to_sql is slow at this size because it sends many inserts. Use COPY through psycopg with a buffer per chunk. We went from 22 minutes to 4 on a similar file.",
+    "after_minutes": 181,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": "c3",
+    "by": "gareth_abrahams",
+    "body": "Naive question: does COPY cope with quotes and embedded newlines in free text survey answers? That is where our CSV imports broke.",
+    "after_minutes": 159,
+    "likes": 1
+   },
+   {
+    "key": "c5",
+    "parent": "c3",
+    "by": "abdalla_mohamed",
+    "body": "It does if you pass the csv format with proper quote settings. Write the buffer with the csv module, not a manual join, or commas inside answers will shift the columns.",
+    "after_minutes": 160,
+    "likes": 1
+   },
+   {
+    "key": "c6",
+    "parent": "c3",
+    "by": "nneka_obiano",
+    "body": "A cheap check on top of COPY: compare rows loaded with lines in the file minus the header, and fail the run if they differ. It caught a truncated upload for us twice.",
+    "after_minutes": 55,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": "c5",
+    "by": "deon_coetzee",
+    "body": "Set client_encoding explicitly too. Survey exports from Windows tools come as cp1252 half the time and the database will reject or mangle accented names.",
+    "after_minutes": 360,
+    "likes": 0
+   },
+   {
+    "key": "c8",
+    "parent": "c1",
+    "by": "subira_byabato",
+    "body": "A hash table is a good idea. I was checking by filename, which breaks when the same name is exported again with fixes. I will switch to sha256 plus row count.",
+    "after_minutes": 215,
+    "likes": 2
+   },
+   {
+    "key": "c9",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "How do you pick up files that arrive while the pipeline runs? Half written uploads can look complete. Ask the uploader to rename after finishing, or check the size is stable for a minute.",
+    "after_minutes": 13,
+    "likes": 0
+   },
+   {
+    "key": "c10",
+    "parent": null,
+    "by": "akanni_ogunbanjo",
+    "body": "One more thing: dtype str means blank cells read as NaN and are written as NULL, which is fine, but strings like NA from the form tool stay as text. Normalise those values on purpose.",
+    "after_minutes": 118,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0304",
+  "by": "waleed_mahmoud",
+  "type": "architecture_challenge",
+  "title": "Promoting a PyTorch model to production without rebuilding the image",
+  "body": "We package 14 PyTorch models, each as its own Docker image built in CI. A new model version means a full image build and a deploy, around 11 minutes, even when only the weights changed. Options. One: keep weights out of the image, store them in object storage by version, and let the pod fetch them at start. Two: keep an image per version but promote by moving a tag per environment, building once on main. Three: a manifest file in git listing the model version per environment, applied by CI. Constraints: public service audits want to know exactly what ran on a given date, and cold start must stay under a minute. I lean towards three with one underneath.",
+  "topics": [
+   "ci-cd",
+   "python"
+  ],
+  "images": [
+   {
+    "file": "p0304_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
+  "age_hours": 624.21,
+  "likes": 11,
+  "comments": []
+ },
+ {
+  "key": "p0333",
+  "by": "mojisola_afolabi",
+  "type": "general",
+  "body": "Lost an afternoon to a React list that flickered after sorting. The rows used the array index as key, so typed input stayed with the position and not with the row. Switching to the database id as key fixed it in one line.",
+  "topics": [
+   "postgresql",
+   "react"
+  ],
+  "age_hours": 15.57,
+  "likes": 22,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "biniam_haftom",
+    "body": "Fun one. Same bug with uncontrolled inputs inside table rows. Use the id as key and it disappears.",
+    "after_minutes": 643,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "sitraka_ramanantsoa",
+    "body": "Is it really only the key? If rows reorder and you also memoise the row component with a custom comparison function, you can see the same flicker.",
+    "after_minutes": 28,
+    "likes": 1
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "hirut_kedir",
+    "body": "React Native FlatList has the same trap, keyExtractor returning the index. People copy it from tutorials.",
+    "after_minutes": 40,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": "c2",
+    "by": "ghislain_mayala",
+    "body": "Not a frontend person, but this is the same as using a row number instead of the primary key in a join. Position is not identity.",
+    "after_minutes": 80,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": "c4",
+    "by": "lamine_ndoye",
+    "body": "Nice comparison, though rows from an API without ids are a real problem. In that case I generate a client id when the data lands, not at render time.",
+    "after_minutes": 555,
+    "likes": 2
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "deon_coetzee",
+    "body": "There is a lint rule for this, react/no-array-index-key. Turn it on, it flagged ten places for us.",
+    "after_minutes": 32,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "deon_coetzee",
+    "body": "Exception: static lists that never reorder or filter. Index keys are harmless there and an id would just be noise.",
+    "after_minutes": 11,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0364",
+  "by": "ousmane_diallo",
+  "type": "question",
+  "title": "Pluriels en français avec vue-i18n, 0 est au singulier",
+  "body": "Dans vue-i18n j'ai la clé « {n} étudiant | {n} étudiants ». En français 0 et 1 sont au singulier, mais le comportement par défaut affiche « 0 étudiants » comme en anglais. Je vois deux pistes : écrire une règle de pluriel personnalisée pour la locale fr, ou passer par trois formes (zéro, un, plusieurs) et rédiger les textes à la main. Qu'est-ce qui vous a paru le plus simple à maintenir dans la durée ?",
+  "topics": [],
+  "age_hours": 12.98,
+  "likes": 22,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "honorine_ahouansou",
+    "body": "Règle personnalisée via pluralizationRules, avec n inférieur à 2 donne la forme 0, sinon la forme 1. Garde trois formes seulement si tu veux afficher « aucun étudiant » pour zéro.",
+    "after_minutes": 103,
+    "likes": 2
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "issa_compaore",
+    "body": "Ça marche et ça couvre aussi les décimaux, car 1,5 kilomètre est au singulier en français. Intl.PluralRules avec la locale fr te donne la catégorie, tu peux t'en servir dans ta règle.",
+    "after_minutes": 10,
+    "likes": 1
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "kouassi_ahoussou",
+    "body": "Chez nous on a abandonné les pluriels automatiques pour les textes courts. On écrit « Étudiants : 12 ». Plus aucune règle à maintenir et le problème disparaît.",
+    "after_minutes": 54,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "ismaila_daff",
+    "body": "Pense aussi aux autres langues si tu en ajoutes une plus tard. L'arabe a plusieurs formes de pluriel, donc les règles par locale sont le bon endroit pour tout ranger dès maintenant.",
+    "after_minutes": 761,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0367",
+  "by": "blessing_mbi",
+  "type": "question",
+  "body": "Mes pipelines de déploiement pour des applications de billetterie font tout en 9 minutes, dont 4 pour installer les dépendances Python. Je garde le dossier de cache de pip entre les exécutions, mais le runner partagé est nettoyé chaque nuit. Vaut-il mieux une image de base avec les dépendances déjà installées, reconstruite chaque semaine, ou un cache sur un volume dédié ?",
+  "topics": [
+   "ci-cd"
+  ],
+  "age_hours": 1210.02,
+  "likes": 2,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "aminata_diarrassouba",
+    "body": "Image de base reconstruite chaque semaine, oui, mais épingle les versions avec un fichier de verrouillage (pip-tools ou uv). Sans ça, l'image du lundi et le build du vendredi n'ont plus les mêmes versions et tu cherches un bug fantôme.",
+    "after_minutes": 49,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0393",
+  "by": "penda_badiane",
+  "type": "general",
+  "body": "Observé ce matin avec trois utilisatrices d'un premier smartphone : un bouton « Continuer » désactivé en gris clair est lu comme « cassé ». Elles attendaient sans rien toucher. On l'a laissé actif, avec un message sous le champ qui dit ce qui manque. En Flutter il suffit que onPressed affiche l'erreur au lieu de valoir null.",
+  "topics": [
+   "flutter"
+  ],
+  "age_hours": 925.82,
+  "likes": 9,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "aminata_diarrassouba",
+    "body": "Même constat côté API : un champ obligatoire sans message clair, ça finit en appel au support. Renvoyer l'erreur par champ aide, tu l'affiches sous le bon champ sans rien deviner.",
+    "after_minutes": 6,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "drissa_sangare",
+    "body": "Chez nous le bouton grisé de l'outil interne générait des tickets « l'appli est bloquée ». On affiche maintenant la liste des champs manquants. Les gens lisent mal le gris, surtout en plein soleil.",
+    "after_minutes": 5,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0407",
+  "by": "aminata_diarrassouba",
+  "type": "question",
+  "body": "Mon API Node tourne dans Docker avec CMD [\"npm\", \"start\"]. À chaque déploiement, des commerçants reçoivent des erreurs 502 pendant quelques secondes. J'ai lu que npm ne transmet pas SIGTERM au processus node. Je pensais passer à CMD [\"node\", \"server.js\"] et fermer le serveur HTTP proprement à la réception du signal, avec un délai maximum de 10 secondes. Est-ce suffisant, ou faut-il aussi attendre un peu avant de couper pour laisser le proxy retirer le conteneur ?",
+  "topics": [
+   "docker"
+  ],
+  "age_hours": 1036.42,
+  "likes": 1,
+  "comments": []
+ },
+ {
+  "key": "p0460",
+  "by": "elizabeth_nnadi",
+  "type": "architecture_challenge",
+  "title": "Three product teams, one cluster: quotas, node pools or separate clusters",
+  "body": "Three product teams share one Kubernetes cluster of 5 nodes. Last week a report builder with no memory limit took a node down and services from two other teams restarted. Options I am considering. One: a namespace per team with a ResourceQuota and a LimitRange that sets default requests and limits. Two: dedicated node pools with taints so each team lands on its own machines. Three: one small cluster per team. Constraints: two engineers run all of it, and the monthly cloud budget is flat, so more nodes is a hard sell.",
+  "topics": [
+   "kubernetes",
+   "terraform"
+  ],
+  "age_hours": 381.1,
+  "likes": 1,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "kwabena_duah",
+    "body": "Start with namespace quotas and a LimitRange with sane default requests. Most noisy neighbour trouble comes from pods with no requests set. Move to node pools only when a team needs different hardware or a strict boundary.",
+    "after_minutes": 6,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0488",
+  "by": "mariem_messaoudi",
+  "type": "question",
+  "body": "J'interroge des onduleurs en Modbus RTU sur RS485 avec pymodbus, depuis un Raspberry Pi, toutes les 10 secondes. Environ une trame sur 300 échoue au CRC. Les câbles font 40 m. Faut-il ajouter une résistance de terminaison, baisser le débit de 19200 à 9600, ou simplement réessayer ? Je préfère comprendre avant de masquer le problème avec des retries.",
+  "topics": [
+   "python"
+  ],
+  "age_hours": 1823.63,
+  "likes": 5,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "aminata_diabate",
+    "body": "Pas mon domaine, mais côté interface on affiche « dernière mesure il y a X secondes » plutôt que de cacher les échecs. Si tu comptes les erreurs CRC, ça peut devenir un indicateur de santé du câble.",
+    "after_minutes": 31,
+    "likes": 3
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "heritier_kasongo",
+    "body": "Résistance de terminaison de 120 ohms aux deux extrémités du bus, c'est la première chose à faire pour 40 m. Ensuite vérifie la masse commune et la paire torsadée. Réessayer une fois est correct, mais compte les échecs.",
+    "after_minutes": 65,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "9600 améliore souvent les choses sur des câbles longs ou bruyants. Et sous Linux le timing entre trames n'est pas garanti, un adaptateur USB bon marché peut être en cause, pas seulement le câble.",
+    "after_minutes": 19,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0531",
+  "by": "amr_elgendy",
+  "type": "general",
+  "body": "A node drain hung for 40 minutes during a cluster upgrade because of a PodDisruptionBudget with minAvailable 1 on a Deployment that had one replica. The budget can never be satisfied, so the pod can never be evicted. Either run two replicas or remove the budget. Check yours with kubectl get pdb before the next upgrade window.",
+  "topics": [
+   "kubernetes"
+  ],
+  "age_hours": 791.64,
+  "likes": 5,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "tesfay_kidane",
+    "body": "What is a disruption budget in plain words? Our admin said something similar during an update and I just nodded.",
+    "after_minutes": 334,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "nirvana_singh",
+    "body": "My understanding: it tells Kubernetes the minimum number of copies of an app that must stay up while nodes are drained. With one copy and a minimum of one, nothing can ever move, so the drain waits forever.",
+    "after_minutes": 48,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0538",
+  "by": "amr_elgendy",
+  "type": "architecture_challenge",
+  "title": "Upgrading the telemetry cluster with a two minute loss budget",
+  "body": "The Kubernetes cluster that ingests telemetry from 300 mini-grid sites needs a minor version upgrade. Ingest can lose at most 2 minutes of data, and sites buffer locally for about 10. Options: an in-place node group upgrade with surge nodes, a second cluster built from the same Terraform with a DNS cutover, or upgrading only the control plane and replacing nodes gradually over a week. Constraints: the broker keeps its state on volumes, and the change window is Sunday morning with one person on call. Which of these has bitten you least?",
+  "topics": [
+   "kubernetes",
+   "terraform"
+  ],
+  "images": [
+   {
+    "file": "p0538_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
+  "age_hours": 1948.95,
+  "likes": 21,
+  "comments": []
+ },
+ {
+  "key": "p0553",
+  "by": "souleymane_doumbia",
+  "type": "oss_release",
+  "title": "hookcheck 1.2.0: signature verification for payment webhooks in Node",
+  "body": "hookcheck 1.2.0 verifies webhook signatures from payment and mobile money providers in a Node API. New: a replay window (default 5 minutes) that rejects old timestamps, and sha256 support in both hex and base64. Comparison is timing safe. Still rough: you have to capture the raw body yourself before any JSON parsing, the library cannot do that for you, and it does not deduplicate events, that stays your job.",
+  "topics": [
+   "nodejs"
+  ],
+  "age_hours": 62.33,
+  "likes": 3,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "Can it accept two valid secrets at once? A provider rotated theirs on a Friday and we lost twenty minutes of events while we switched over.",
+    "after_minutes": 130,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0572",
+  "by": "brenda_keter",
+  "type": "oss_release",
+  "title": "pgqueue 0.6.0: a Postgres backed task queue for Rust workers",
+  "body": "pgqueue 0.6.0 is a small crate that turns a Postgres table into a task queue for Rust workers, using row locks that skip rows already taken. New: a visibility timeout, so a task whose worker died becomes available again, and a dead letter table for tasks that fail five times. Still rough: polling only, no LISTEN and NOTIFY yet, and no task priorities.",
+  "topics": [
+   "postgresql"
+  ],
+  "age_hours": 322.64,
+  "likes": 13,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "linda_nyirenda",
+    "body": "How does it behave behind pgbouncer in transaction mode? Advisory locks and LISTEN break there, so I am curious whether you rely on either.",
+    "after_minutes": 144,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "deon_coetzee",
+    "body": "Skipping locked rows is fine through transaction pooling since it all happens inside one transaction. Advisory locks are the problem, and the post says polling only, so it should be fine.",
+    "after_minutes": 554,
+    "likes": 2
+   },
+   {
+    "key": "c3",
+    "parent": "c1",
+    "by": "wale_adeniran",
+    "body": "Question from outside backend work. What happens to a task when the worker is killed halfway? Does it come back by itself?",
+    "after_minutes": 13,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": "c3",
+    "by": "mutale_simwanza",
+    "body": "That is the visibility timeout in the release notes, as I read it. The row stays hidden for N seconds and if the worker does not finish it becomes visible again. Which also means every task must be safe to run twice.",
+    "after_minutes": 18,
+    "likes": 3
+   },
+   {
+    "key": "c5",
+    "parent": "c1",
+    "by": "henriette_uwimana",
+    "body": "Following the pooling point: does polling mean ten workers hit the database every second even when idle? A backoff when the queue is empty would help.",
+    "after_minutes": 48,
+    "likes": 1
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "neema_ngoma",
+    "body": "Do you encrypt or hash payloads at rest? Queue tables end up holding whatever callers put in them, often phone numbers and loan amounts. Worth a line in the docs.",
+    "after_minutes": 174,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p0574",
+  "by": "ghislain_mayala",
+  "type": "oss_release",
+  "title": "slowq 0.3.0: group slow query logs by shape, now with p95 and JSON output",
+  "body": "slowq 0.3.0 reads a Postgres log and groups statements by their normalised shape, with count, total time and now p95. New: JSON output, and a flag to skip statements under a given duration. Still rough: terminal tables wrap at 80 columns whatever your window is, multi line statements with comments are sometimes split in two, and log_line_prefix support covers only the default and a few common ones.",
+  "topics": [
+   "rust"
+  ],
+  "age_hours": 1812.63,
+  "likes": 1,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "mildred_mbithi",
+    "body": "Could the output be a plain HTML table I can open in a browser? The terminal table wraps badly on a narrow screen.",
+    "after_minutes": 58,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "ghislain_mayala",
+    "body": "HTML output is on the list. The 80 column wrapping is a known bug, I will read the real width in the next patch.",
+    "after_minutes": 152,
+    "likes": 4
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "mojisola_afolabi",
+    "body": "Installed through cargo and the build took four minutes on my laptop. Do you publish prebuilt binaries?",
+    "after_minutes": 766,
+    "likes": 2
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "nyongesa_nyukuri",
+    "body": "Does it understand a prefix with timestamp, pid, user and db, like the one in my config? The post says common ones, so I wonder where the line is.",
+    "after_minutes": 147,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "tshepo_mogale",
+    "body": "How do you normalise statements, replacing literals with $1 style markers? Lists like IN (1,2,3) and IN (1,2) being treated as one shape is the part most tools get wrong.",
+    "after_minutes": 290,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "waleed_mahmoud",
+    "body": "Ran it on a 2 GB log from our metadata database and memory stayed flat, good. It choked on one multi line statement that had a comment inside, as you warned.",
+    "after_minutes": 420,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "deon_coetzee",
+    "body": "The p95 comes only from statements above log_min_duration_statement, so it is not the real distribution. Worth saying in the readme or people will read it as one.",
+    "after_minutes": 169,
+    "likes": 1
+   },
+   {
+    "key": "c8",
+    "parent": "c1",
+    "by": "waleed_mahmoud",
+    "body": "Until the native output lands, the JSON piped through a small script gives you an HTML table in about ten lines, if that helps.",
+    "after_minutes": 380,
+    "likes": 0
+   },
+   {
+    "key": "c9",
+    "parent": "c3",
+    "by": "nyongesa_nyukuri",
+    "body": "Prebuilt binaries would help me too. I gave up on cargo install after it wanted a newer Rust than my distribution ships.",
+    "after_minutes": 75,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0635",
+  "by": "subira_byabato",
+  "type": "rfc",
+  "title": "RFC: every pipeline run writes a manifest of inputs, outputs and code version",
+  "body": "Proposal: each ETL run writes a small JSON manifest next to its output with input file hashes, row counts in and out, rejected row count, the git commit and the start and end time. Why: three times this quarter someone asked which version of the cleaning code produced a given table and we could only guess from file dates. Cost: a 30 line shared helper, one extra object per run, negligible storage. Undecided: where manifests live (object storage next to the data or a table in Postgres), how long we keep them, and whether a run with rejected rows above a threshold should fail.",
+  "topics": [
+   "python"
+  ],
+  "age_hours": 290.13,
+  "likes": 5,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "albert_mushi",
+    "body": "Put it in a database table too. A JSON file next to the data is easy to lose when someone moves the folder, and asking which runs touched a survey is a query, not a grep.",
+    "after_minutes": 49,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "josiane_kamga",
+    "body": "I like it. Add the git commit and the image digest, not just a version label, because a tag can be pushed again and then the manifest lies.",
+    "after_minutes": 32,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "yusuf_abdullahi",
+    "body": "Does the container know its own digest at runtime? Genuinely asking. We pass the commit as a build argument in the app and it works, not sure it works for services.",
+    "after_minutes": 4,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": "c3",
+    "by": "nalwoga_bwayo",
+    "body": "We bake the commit sha in as an env variable at build time. The digest itself you cannot know from inside, it comes from the registry, so the sha is the practical one.",
+    "after_minutes": 56,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "kwabena_duah",
+    "body": "Keep manifests forever, they are tiny. Delete the data if you must, keep the record of what it was. That is the whole value when someone asks in a year.",
+    "after_minutes": 1321,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0664",
+  "by": "daniel_aluoch",
+  "type": "general",
+  "body": "Porting a Java screen to Flutter, I found the old app rounded invoice totals with BigDecimal HALF_EVEN while my Dart port used double and round(). Totals differed by KSh 1 on about 3 percent of invoices, and a wholesaler noticed before I did. Money is now integer cents in Dart and rounding happens in one place.",
+  "topics": [
+   "java",
+   "nodejs"
+  ],
+  "age_hours": 1309.56,
+  "likes": 30,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "subira_byabato",
+    "body": "Dart has no BigDecimal in core. We keep money as integer cents and round only at the very end. Works fine for us.",
+    "after_minutes": 8,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "mawuena_ahiabor",
+    "body": "Careful with HALF_EVEN. If the Node backend rounds half up you now have three implementations that disagree. Pick one place, the server, and make the app display what it is sent.",
+    "after_minutes": 727,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0669",
+  "by": "amr_elgendy",
+  "type": "architecture_challenge",
+  "title": "Where should drift detection for 30 Terraform stacks run",
+  "body": "I wrote a small Go tool that runs terraform plan and reports any stack that has drifted from its code. Now to decide where it runs. Option one: a nightly scheduled pipeline in CI, which means read-only cloud credentials stored in CI. Option two: a CronJob inside the cluster that already holds those credentials through its service account. Option three: on demand from a chat command. Results go to the team channel. I prefer two for credential reasons but CI gives better logs.",
+  "topics": [
+   "go",
+   "terraform"
+  ],
+  "age_hours": 434.47,
+  "likes": 22,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "sade_olaniyi",
+    "body": "Not infra, but when a drift alert posts every morning with nothing to do, people mute the channel by week two. Will you only post when something changed since yesterday?",
+    "after_minutes": 10,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "amr_elgendy",
+    "body": "Fair. We will store a hash of the last result and only post when the set of drifted resources changes. The daily summary stays quiet otherwise.",
+    "after_minutes": 6,
+    "likes": 1
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "augustine_ogunleye",
+    "body": "Would each drifted resource have an owner? An alert with no name next to it gets ignored. A team tag printed in the message would route it to someone.",
+    "after_minutes": 353,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0679",
+  "by": "getachew_belay",
+  "type": "question",
+  "title": "Go binary in a scratch image fails on LoadLocation for Africa/Addis_Ababa",
+  "body": "My Go reconciliation task in a scratch image fails with unknown time zone Africa/Addis_Ababa. I know I can import time/tzdata (about 450 KB added to the binary) or copy zoneinfo from the builder stage. Bank files give times with no zone, all local, so I do need the zone to be right. Which do you prefer, and does either matter for repeatable runs across different base images?",
+  "topics": [
+   "docker"
+  ],
+  "age_hours": 521.09,
+  "likes": 8,
+  "comments": []
+ },
+ {
+  "key": "p0687",
+  "by": "david_lusweti",
+  "type": "general",
+  "body": "Our Flutter CI cached the pub cache but not the Gradle wrapper distribution, so every build downloaded Gradle again, about 130 MB. Added it to the cache and the Android build went from 11 minutes to 6. Obvious in hindsight, I had never looked at the step timings before.",
+  "topics": [
+   "ci-cd"
+  ],
+  "age_hours": 229.85,
+  "likes": 1,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "kwabena_owusu",
+    "body": "Mind the cache key. Ours was keyed on pubspec.lock only, so Gradle updates never refreshed it. Include gradle-wrapper.properties in the hash.",
+    "after_minutes": 302,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0721",
+  "by": "amr_elgendy",
+  "type": "oss_release",
+  "body": "pipewatch 0.5.0 is out. It is a small Go command that reads timings exported from your CI runs and prints which steps are now slower than their median over the last 20 runs. New: a percentage threshold flag that exits non-zero, and a per step breakdown. Still rough: it reads one JSON format only and prints plain text, no charts.",
+  "topics": [
+   "ci-cd"
+  ],
+  "age_hours": 438.16,
+  "likes": 23,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "Which CI systems can it read? Ours runs on a self-hosted GitLab, would a JSON export work?",
+    "after_minutes": 10,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "precious_fomun",
+    "body": "Does the median include failed runs? They end early and would pull it down.",
+    "after_minutes": 25,
+    "likes": 2
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "amr_elgendy",
+    "body": "Good catch, failed and cancelled runs are included right now, which skews it. I will add a flag to count only successful runs and make that the default in 0.5.1.",
+    "after_minutes": 40,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "albert_mushi",
+    "body": "A threshold in percent that exits non-zero is what I wanted. Then a slowdown fails the build by itself and nobody has to read charts.",
+    "after_minutes": 23,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0789",
+  "by": "drissa_cisse",
+  "type": "general",
+  "body": "Nginx devant un tableau de bord React : on a ajouté la compression brotli au build de l'image. Les fichiers .br sont générés une fois et servis avec brotli_static, plus de compression à la volée. Le bundle principal passe de 190 Ko en gzip à 160 Ko. L'image nginx officielle n'inclut pas le module, il faut en prendre une qui l'a ou le compiler soi-même.",
+  "topics": [
+   "docker"
+  ],
+  "age_hours": 235.53,
+  "likes": 17,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "ilyas_benkirane",
+    "body": "Si tu as Cloudflare devant, il fait déjà le brotli à la volée vers les navigateurs, ton .br ne sert plus que pour l'origine. Vérifie que ça vaut la maintenance d'un module nginx de plus.",
+    "after_minutes": 7,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0815",
+  "by": "mina_naguib",
+  "type": "general",
+  "body": "Spent an hour wondering why logs vanished inside the container. logging.basicConfig does nothing if the root logger already has handlers, and a library imported earlier had configured one. Passing force=True fixed it.",
+  "topics": [
+   "python"
+  ],
+  "age_hours": 786.14,
+  "likes": 5,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "ikechukwu_ibekwe",
+    "body": "Been there. I stopped calling basicConfig at module level and call it once in main after the imports. force=True is a patch, not a cure.",
+    "after_minutes": 150,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "nyongesa_nyukuri",
+    "body": "Does the same thing explain why my own logger output disappears under uvicorn? I only ever see the access lines.",
+    "after_minutes": 15,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0821",
+  "by": "zied_baccouche",
+  "type": "question",
+  "body": "Je dois afficher le catalogue complet (environ 6 000 médicaments) sur les tablettes des pharmacies, avec une recherche instantanée. Le rendu de toute la liste fige la tablette une à deux secondes. Je compare un scroller virtuel et une pagination à 50 lignes. Les pharmaciens tapent surtout quelques lettres puis choisissent le premier résultat. Qu'est-ce qui vous semble le mieux avec Vue ?",
+  "topics": [
+   "vue"
+  ],
+  "age_hours": 523.77,
+  "likes": 6,
+  "comments": []
+ },
+ {
+  "key": "p0827",
+  "by": "blessing_mbi",
+  "type": "question",
+  "body": "Je déploie une application de gestion de billets pour des compagnies de bus. Les migrations Alembic tournent aujourd'hui au démarrage du conteneur. Avec deux instances, elles démarrent en même temps et l'une d'elles a échoué à moitié la semaine dernière. Je pensais à une étape dédiée dans le pipeline, avant le déploiement des instances. Vous faites ça, ou plutôt un verrou en base ?",
+  "topics": [
+   "ci-cd",
+   "python"
+  ],
+  "images": [
+   {
+    "file": "p0827_1.webp",
+    "width": 1200,
+    "height": 327
+   }
+  ],
+  "age_hours": 329.7,
+  "likes": 8,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "heritier_kasongo",
+    "body": "Étape dédiée dans le pipeline, une seule exécution, avant le déploiement. Et écris les migrations pour qu'elles restent compatibles avec l'ancienne version du code, sinon l'ordre de déploiement te piège.",
+    "after_minutes": 7,
+    "likes": 2
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "drissa_cisse",
+    "body": "Chez moi l'étape dédiée marche, mais on a perdu la possibilité de lancer une migration depuis un poste pour un correctif urgent. On a gardé une commande manuelle documentée.",
+    "after_minutes": 67,
+    "likes": 1
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "henriette_uwimana",
+    "body": "La commande manuelle, oui, mais qu'elle soit journalisée aussi. Sinon on ne sait plus qui a lancé quoi quand l'état de la base ne correspond plus à l'historique.",
+    "after_minutes": 77,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p0829",
+  "by": "neema_ngoma",
+  "type": "question",
+  "title": "Go service before launch: what else after non-root, read-only filesystem and no capabilities",
+  "body": "Auditing a Go service before launch. It runs as UID 10001, with a read-only root filesystem, all capabilities dropped, in a distroless image. The team asks whether anything else is worth the effort. I was thinking of a seccomp profile and a network policy that limits egress. What would you add, and what is theatre at this size?",
+  "topics": [
+   "docker",
+   "go"
+  ],
+  "age_hours": 2115.6,
+  "likes": 4,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "albert_mushi",
+    "body": "Egress limits. If the service is compromised, the first thing it does is call out. Allow only the payment API and the database.",
+    "after_minutes": 134,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "ngugi_kariuki",
+    "body": "Look at secrets handling before more kernel level work. Env variables show up in crash dumps and in docker inspect. Files mounted with tight permissions are better.",
+    "after_minutes": 31,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "Honestly the default seccomp profile of the runtime is fine. Writing a custom one for a Go binary costs weeks and breaks on dependency updates. I would skip it.",
+    "after_minutes": 71,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": "c3",
+    "by": "neema_ngoma",
+    "body": "That matches my gut. I will recommend the default runtime profile plus the egress policy, and write down why a custom seccomp profile is out of scope so the decision is visible.",
+    "after_minutes": 14,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "albert_mushi",
+    "body": "One more thing: set a memory limit slightly above the normal peak, and cap request body size in the handler. A Go service with neither can be pushed over by one large body.",
+    "after_minutes": 3,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0848",
+  "by": "deon_coetzee",
+  "type": "architecture_challenge",
+  "title": "Extracting inventory from the monolith while both still write to the same table",
+  "body": "Our Java monolith owns an inventory table that fourteen places in the code write to, including the order flow. I want to move stock into its own service. Option one: the new service becomes the only writer, the monolith calls it, and old readers use a view for now. Option two: both write for a few weeks with a nightly comparison. Option three: change data capture from the monolith's table into the new service's own store. Constraints: three engineers, no message broker today, and order placement decrements stock in the same transaction as the order.",
+  "topics": [],
+  "images": [
+   {
+    "file": "p0848_1.webp",
+    "width": 1200,
+    "height": 520
+   }
+  ],
+  "age_hours": 1079.72,
+  "likes": 21,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "brenda_keter",
+    "body": "Do not dual write, you will get drift and spend weeks reconciling it. Make the new service the only writer, have the monolith call it, and keep reads on a view while you migrate the readers.",
+    "after_minutes": 624,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "deon_coetzee",
+    "body": "The monolith writes stock in 14 places, most inside bigger transactions with orders. Calling a service from inside those is where I get stuck, since order plus stock decrement used to be atomic.",
+    "after_minutes": 36,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "christelle_habimana",
+    "body": "Out of my area, but with feature tables we ended up with one writer and a read-only view for everyone else. Do all fourteen places really need to be atomic with the order, or only the stock reservation?",
+    "after_minutes": 80,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": "c2",
+    "by": "mimi_cisse",
+    "body": "Turn it into a reservation. Order creation writes a reservation with an expiry in the new service and confirmation finalises it. You lose strict atomicity but gain a clear failure story.",
+    "after_minutes": 245,
+    "likes": 1
+   },
+   {
+    "key": "c5",
+    "parent": "c3",
+    "by": "deon_coetzee",
+    "body": "Good question. Looking at them, 9 of the 14 are reads or warehouse adjustments, and only 5 touch order placement. That shrinks the hard part.",
+    "after_minutes": 22,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "Change data capture is an option for the read side, but with a team of three the operations cost is real. A trigger writing to an outbox table in the same transaction is simpler.",
+    "after_minutes": 145,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "nokuthula_ngcobo",
+    "body": "Whatever you choose, run a nightly comparison for a month, row counts and the sum of quantities per SKU. Drift shows up there first.",
+    "after_minutes": 155,
+    "likes": 0
+   },
+   {
+    "key": "c8",
+    "parent": "c7",
+    "by": "deon_coetzee",
+    "body": "Yes, I will start with the sum of quantity per SKU. Cheap to compute on both sides and it gets caught before sellers notice.",
+    "after_minutes": 22,
+    "likes": 2
+   },
+   {
+    "key": "c9",
+    "parent": null,
+    "by": "gareth_abrahams",
+    "body": "Does the seller dashboard read stock directly through the monolith or through an API? If it is an API you can swap the source behind it first.",
+    "after_minutes": 1314,
+    "likes": 0
+   },
+   {
+    "key": "c10",
+    "parent": null,
+    "by": "hirut_kedir",
+    "body": "Mobile apps that cached stock counts will show stale numbers during the switch. Add an updated_at or a version to the response so clients know when to refetch.",
+    "after_minutes": 256,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0865",
+  "by": "yao_klutse",
+  "type": "general",
+  "body": "Un ListView.builder avec des cartes de trajets saccadait sur un Android 8. Le coupable était Image.network sans cacheWidth : des photos de 2000 px décodées pour des vignettes de 80 px. Avec cacheWidth à 160 la liste est redevenue fluide.",
+  "topics": [
+   "flutter"
+  ],
+  "age_hours": 456.33,
+  "likes": 44,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "blessing_mbi",
+    "body": "Même problème côté web avec des images de 3000 px affichées en 100. On génère maintenant les vignettes côté serveur au téléversement, ça évite de dépendre du client.",
+    "after_minutes": 76,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "waleed_mahmoud",
+    "body": "Tu as mesuré en mode profile ? Le mode debug de Flutter fait paraître tout saccadé et on accuse le mauvais coupable.",
+    "after_minutes": 97,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "adja_gueye",
+    "body": "Oui, le debug est trompeur. Il faut mesurer en profile sur un vrai téléphone, jamais sur l'émulateur.",
+    "after_minutes": 152,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "ramatoulaye_sylla",
+    "body": "cacheWidth est en pixels physiques, pas en pixels logiques. Multiplie par le devicePixelRatio sinon l'image paraît floue sur les écrans denses.",
+    "after_minutes": 114,
+    "likes": 1
+   },
+   {
+    "key": "c5",
+    "parent": "c1",
+    "by": "ilyas_benkirane",
+    "body": "Les vignettes côté serveur, oui, mais attention au stockage : trois tailles par image, ça s'additionne vite. Un redimensionnement à la demande avec un cache devant est plus économe.",
+    "after_minutes": 3,
+    "likes": 1
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "sameh_zaher",
+    "body": "Sur le web c'est loading lazy et srcset. Il existe un équivalent dans Flutter, ou tu gères les tailles à la main ?",
+    "after_minutes": 21,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "aya_rashad",
+    "body": "Pense à la mémoire aussi. Le cache d'images de Flutter est limité à 100 Mo par défaut, mais sur un téléphone avec 1 Go de RAM le système tue l'appli avant. Baisse imageCache.maximumSizeBytes.",
+    "after_minutes": 80,
+    "likes": 0
+   },
+   {
+    "key": "c8",
+    "parent": null,
+    "by": "ghislain_mayala",
+    "body": "Et les images viennent de fichiers statiques ou elles passent par ton API ? Si chaque image passe par l'API avec une authentification, tu as un autre goulot.",
+    "after_minutes": 1271,
+    "likes": 0
+   },
+   {
+    "key": "c9",
+    "parent": "c8",
+    "by": "kadiatou_sanou",
+    "body": "Si les images sont publiques, évite d'y mettre des données personnelles, comme des photos de conducteurs. Des URL devinables sont lisibles par n'importe qui.",
+    "after_minutes": 171,
+    "likes": 0
+   },
+   {
+    "key": "c10",
+    "parent": "c9",
+    "by": "ghislain_mayala",
+    "body": "D'accord. Pour des photos de conducteurs je signerais les URL avec une expiration. Pour des vignettes de trajets, public suffit.",
+    "after_minutes": 49,
+    "likes": 0
+   },
+   {
+    "key": "c11",
+    "parent": null,
+    "by": "aimable_uwimana",
+    "body": "J'ai eu le même cas avec cached_network_image : il gère le cache disque mais pas la taille de décodage, il faut aussi passer memCacheWidth.",
+    "after_minutes": 70,
+    "likes": 1
+   },
+   {
+    "key": "c12",
+    "parent": null,
+    "by": "aminata_ndiaye",
+    "body": "Pour ma part je préfère décoder les très grandes images dans un isolate plutôt que de les réduire. Mais pour des vignettes ton option est la bonne.",
+    "after_minutes": 135,
+    "likes": 3
+   },
+   {
+    "key": "c13",
+    "parent": "c12",
+    "by": "mariem_messaoudi",
+    "body": "Décoder dans un isolate n'aide pas la mémoire, le bitmap décodé reste énorme. Réduire à la source est plus sûr.",
+    "after_minutes": 54,
+    "likes": 2
+   },
+   {
+    "key": "c14",
+    "parent": "c13",
+    "by": "aminata_ndiaye",
+    "body": "C'est vrai pour la mémoire, mon cas c'était la fluidité de l'interface. Mais je te donne raison pour les vignettes.",
+    "after_minutes": 43,
+    "likes": 0
+   },
+   {
+    "key": "c15",
+    "parent": "c12",
+    "by": "yao_klutse",
+    "body": "Ce sont uniquement des vignettes de trajets et d'arrêts, jamais de grandes images. Je reste sur cacheWidth, un isolate serait trop pour ce cas.",
+    "after_minutes": 121,
+    "likes": 3
+   },
+   {
+    "key": "c16",
+    "parent": "c4",
+    "by": "btissam_elfassi",
+    "body": "Pour les pixels physiques, MediaQuery.of(context).devicePixelRatio, puis tu arrondis. Je l'ai mis dans un petit widget pour ne pas le répéter partout.",
+    "after_minutes": 250,
+    "likes": 1
+   },
+   {
+    "key": "c17",
+    "parent": "c8",
+    "by": "aimable_uwimana",
+    "body": "Dans mon cas les images passaient par l'API, avec un token vérifié en base à chaque fois. Les mettre derrière un CDN avec une URL signée a tout allégé.",
+    "after_minutes": 197,
+    "likes": 0
+   },
+   {
+    "key": "c18",
+    "parent": "c17",
+    "by": "kadiatou_sanou",
+    "body": "URL signée oui, mais regarde la durée : trop longue et un lien qui fuit se partage, trop courte et le cache du téléphone ne sert plus à rien. Entre quinze minutes et une heure selon l'usage.",
+    "after_minutes": 3,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0879",
+  "by": "yao_klutse",
+  "type": "question",
+  "body": "Dans l'app Java, un champ de prix arrive parfois en chaîne (« 1500 » au lieu de 1500) et Gson fait planter l'écran. Je peux corriger l'API ou écrire un TypeAdapter tolérant côté Android. Lequel est le bon réflexe d'après vous ? L'API est écrite par un collègue, pas par un tiers.",
+  "topics": [
+   "java"
+  ],
+  "age_hours": 445.24,
+  "likes": 2,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "gildas_hounsou",
+    "body": "L'API d'abord. Un adaptateur tolérant cache le problème et tu l'oublieras. Si l'API était chez un tiers, alors adaptateur avec un log pour savoir combien de fois ça arrive.",
+    "after_minutes": 36,
+    "likes": 4
+   }
+  ]
+ },
+ {
+  "key": "p0898",
+  "by": "ruben_kavari",
+  "type": "code_review_request",
+  "body": "Checkout button handler in a Vue 3 shop. It validates the address, applies a voucher, calls the order endpoint and navigates to the confirmation page. I disable the button while the request is pending, but a customer on a slow phone managed to place the same order twice last week. Please look at the submit handler and at where the pending flag is set.",
+  "topics": [],
+  "age_hours": 433.66,
+  "likes": 5,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "brenda_keter",
+    "body": "Disabling the button is only the UI. Put a unique constraint on open carts so one cart can produce one order. A front end guard alone will always leak.",
+    "after_minutes": 580,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "danladi_kabir",
+    "body": "Set the flag synchronously before the first await. If you set it after the async address validation, two clicks within a few milliseconds both pass the guard.",
+    "after_minutes": 3,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c1",
+    "by": "ruben_kavari",
+    "body": "We do have a cart id, so a unique index on orders for open carts is easy. Does that mean the second request gets an error that the front end has to treat as success?",
+    "after_minutes": 33,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "fatma_shehata",
+    "body": "Make the second request return the existing order with a 200 rather than an error. Then the front end navigates the same way in both cases.",
+    "after_minutes": 254,
+    "likes": 2
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "akwero_odongo",
+    "body": "Check the back button too. A customer on the confirmation page presses back, the form is still filled and the button is enabled. Clear the cart state on success.",
+    "after_minutes": 262,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": "c5",
+    "by": "ruben_kavari",
+    "body": "Good catch. I only clear the cart on the next page load, which is not the same thing. I will clear it before navigating.",
+    "after_minutes": 28,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "nneka_obiano",
+    "body": "Is the voucher applied in the same request as the order or separately before? If separately, someone can apply it twice from two tabs. Make the server recompute the total.",
+    "after_minutes": 29,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0933",
+  "by": "mose_moturi",
+  "type": "question",
+  "body": "Should our React component library ship ESM only, or ESM and CJS? Consumers are Vite and Next apps and bundle size is my main worry. Dual publishing doubles what lands in node_modules and complicates the exports map, but I do not want to break anyone on an older toolchain.",
+  "topics": [
+   "nodejs",
+   "vue"
+  ],
+  "age_hours": 1240.31,
+  "likes": 8,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "amr_elgendy",
+    "body": "ESM only with an exports map. Anyone on CJS only is on a toolchain that will break on other things first. Put types inside the same exports entry or TypeScript resolution will surprise you.",
+    "after_minutes": 36,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "mose_moturi",
+    "body": "Two of the consumer apps use the older Next pages setup and import through require in a few config files. I would rather not force their migration this quarter. Is dual publishing worth the doubled size in node_modules?",
+    "after_minutes": 532,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0948",
+  "by": "godfred_amponsah",
+  "type": "rfc",
+  "title": "RFC: over the air JS updates for React Native, offered only to the same native build",
+  "body": "Proposal: ship JavaScript bug fixes over the air, with one rule: an update is only offered to installs on the same native build number. Why: a Play Store release plus a 38 MB APK download means fixes reach our readers in about two weeks, while an OTA bundle is 1.2 MB and arrives in minutes even on weak signal. Cost: a second release path in CI, signature verification of the bundle, and a rollback switch. Undecided: staged rollout percentages, and whether changes touching payment or login screens are forbidden from OTA.",
+  "topics": [
+   "ci-cd"
+  ],
+  "age_hours": 277.5,
+  "likes": 5,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "arnaud_bikoe",
+    "body": "Design rollback on crash first. Count launches that crash within 10 seconds of applying an update and revert automatically to the bundle embedded in the app.",
+    "after_minutes": 277,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "godfred_amponsah",
+    "body": "Yes, planned: the app keeps the previous bundle and a launch counter. I am unsure about the threshold, three crashes in a row or a ratio over the last ten launches.",
+    "after_minutes": 32,
+    "likes": 2
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "amr_elgendy",
+    "body": "Sign the bundle with a key that is not on the CI runners at all. If a runner is compromised, someone can push code to every phone you have. Put signing in a separate release step that needs approval.",
+    "after_minutes": 176,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0969",
+  "by": "sherifa_dramani",
+  "type": "general",
+  "body": "Watched five people fill our loan application form. Three of them tapped the date of birth field and typed 1990-04-12, while the form wanted day, month and year in separate dropdowns. We switched to three small number boxes with labels above. Typing is more forgiving than scrolling a year list of 80 entries.",
+  "topics": [
+   "nodejs"
+  ],
+  "age_hours": 985.52,
+  "likes": 21,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "khaled_badawi",
+    "body": "Backend note: accept every format you reasonably can and parse it, but store ISO. For ambiguous ones like 04/05/1990 you have to decide and tell the user. Do not guess.",
+    "after_minutes": 850,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "linet_ondiek",
+    "body": "In Flutter the date picker is torture for birth year, scrolling back 40 years. Three boxes is better on mobile. I did a year first picker as a compromise.",
+    "after_minutes": 5,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c1",
+    "by": "sherifa_dramani",
+    "body": "Agreed on ambiguity. We show the parsed date back in words, 12 April 1990, under the boxes, so a swapped day and month is visible straight away.",
+    "after_minutes": 184,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "deon_coetzee",
+    "body": "Another trap: people who do not know their exact date of birth. Do you allow approximate, so the field does not force them to invent one?",
+    "after_minutes": 171,
+    "likes": 1
+   },
+   {
+    "key": "c5",
+    "parent": "c4",
+    "by": "thierry_zang",
+    "body": "In our case many older customers only know the year. We store the year and an approximate flag, and never default to 1 January, which pollutes age statistics.",
+    "after_minutes": 318,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "islam_fahmy",
+    "body": "Flip side from security: do not echo the date of birth back in error messages or logs. It is often used as a secret for account recovery.",
+    "after_minutes": 226,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p0983",
+  "by": "christina_kassim",
+  "type": "research_note",
+  "body": "Over nine months of weekly snapshots, PSI on our top feature crossed 0.2 about a week before MAE left its 20 percent band in 3 of 4 incidents. In the fourth, a pipeline change caused it and PSI moved the same day. Method: backfilled PSI for every feature and compared the first threshold crossing with the date MAE broke the band. Four incidents is a small number, so I would not tune alerts on it yet.",
+  "topics": [
+   "python"
+  ],
+  "age_hours": 157.97,
+  "likes": 15,
+  "comments": []
+ },
+ {
+  "key": "p0992",
+  "by": "josiane_kamga",
+  "type": "oss_release",
+  "title": "ussdkit 0.3.0: menu and session handling for USSD in Go",
+  "body": "Release 0.3.0 of ussdkit, a small Go package for USSD menus. Sessions live in memory or Redis, menus are plain structs. New: back and home keys on every screen, and a session timeout hook. Still rough: no language switch in the middle of a session, and the Redis store does not expire keys by itself yet. E don work with two aggregators on my side already. Abeg, if you try it on a real gateway, tell me what breaks.",
+  "topics": [],
+  "age_hours": 872.46,
+  "likes": 6,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "What does the session store do when the gateway sends the same request twice with the same session id? Some aggregators retry after a timeout.",
+    "after_minutes": 122,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p0997",
+  "by": "adaeze_nnaji",
+  "type": "general",
+  "body": "Our Android CI build kept failing at the signing step with a keystore error. The keystore secret had a trailing newline from copy and paste. Encoding it with base64 -w0 fixed it. Hours well spent, apparently.",
+  "topics": [
+   "ci-cd"
+  ],
+  "age_hours": 1535.88,
+  "likes": 1,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "brenda_keter",
+    "body": "Classic. I also strip whitespace in the CI step itself with tr, so a future paste cannot break it again.",
+    "after_minutes": 217,
+    "likes": 3
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "godwin_eze",
+    "body": "Do you store the keystore password in a separate secret from the file? If both sit in one, anyone who can read one reads both.",
+    "after_minutes": 108,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p1029",
+  "by": "waleed_mahmoud",
+  "type": "general",
+  "body": "A model server pod sat in Pending for an hour even though the cluster had GPU nodes. The nodes carried a taint for GPU workloads and our Deployment had no toleration. Added it and the pod scheduled at once.",
+  "topics": [
+   "kubernetes",
+   "pytorch"
+  ],
+  "age_hours": 867.77,
+  "likes": 1,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "souleymane_doumbia",
+    "body": "kubectl describe pod says it in the Events: 0 of 3 nodes are available, 3 had an untolerated taint. Look there first, always.",
+    "after_minutes": 84,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "christina_kassim",
+    "body": "Also check the device plugin DaemonSet is running. A node can have a GPU and still show allocatable gpu 0 if the plugin pod crashed after a driver update.",
+    "after_minutes": 189,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "martin_anyanzwa",
+    "body": "That bit us after a kernel update, driver and plugin out of step. Pinning the node image version helped.",
+    "after_minutes": 153,
+    "likes": 3
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "marina_zaher",
+    "body": "Naive question from someone who only deploys front ends: is a taint like a keep out sign that pods need a matching pass for?",
+    "after_minutes": 105,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p1101",
+  "by": "patience_opiyo",
+  "type": "question",
+  "body": "WeasyPrint renders our invoice PDFs fine locally, but in the python slim Docker image customer names with accents come out as empty boxes. It looks like a font problem. Do I install a font package in the image, or ship a font file with the app? And does it matter for keeping the invoice looking identical every month?",
+  "topics": [
+   "docker"
+  ],
+  "age_hours": 1700.33,
+  "likes": 21,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "souleymane_doumbia",
+    "body": "Slim has no fonts, so Pango falls back to nothing. Install fonts-dejavu-core or fonts-noto-core in the image and name the font in your CSS font-family.",
+    "after_minutes": 558,
+    "likes": 3
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "francois_joubert",
+    "body": "Do not rely on system fallback for invoices. Ship the font file in your repo and load it with font-face from a local path. Same output on every machine and you control the licence.",
+    "after_minutes": 43,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "redouane_khelifi",
+    "body": "Check what WeasyPrint is allowed to fetch. If customer names or notes reach the HTML and contain an image tag or a link, it may request internal URLs. Use a custom url_fetcher that refuses everything except your fonts.",
+    "after_minutes": 51,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": "c3",
+    "by": "augustine_ogunleye",
+    "body": "So the PDF tool opens links by itself? That seems surprising for a printing library.",
+    "after_minutes": 55,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "wale_bamidele",
+    "body": "Yes, and escape the user text before it goes into the template. Same rule as for a web page, it is HTML after all.",
+    "after_minutes": 69,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1102",
+  "by": "thierry_zang",
+  "type": "rfc",
+  "title": "RFC: reconciliation results as an append-only table, one row per run and transaction",
+  "body": "Proposal: each reconciliation run inserts its outcome for every transaction into an append-only table with a run id and a status (agreed, provider_only, ledger_only, amount_differs). We stop updating a single status column. Why: when a late provider file arrives we overwrite what we believed yesterday, and auditors ask what the system said on a given day. Cost: about 3 million extra rows a year and a view that returns the latest status per transaction. Undecided: whether to keep full provider payload copies or only hashes, and how long to keep rows for runs that found nothing different.",
+  "topics": [],
+  "age_hours": 31.0,
+  "likes": 0,
+  "comments": []
+ },
+ {
+  "key": "p1106",
+  "by": "islam_fahmy",
+  "type": "general",
+  "body": "Ran a threat modelling session on a mobile wallet transfer flow. The biggest finding was not cryptography. Support agents could open any customer's full transaction history and nothing recorded who looked. We added an audit log before touching certificate pinning.",
+  "topics": [
+   "docker"
+  ],
+  "age_hours": 1478.93,
+  "likes": 12,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "nokuthula_ngcobo",
+    "body": "This is the finding everyone hits. Who watches the people with access. Do you also log reads of phone numbers or only transactions?",
+    "after_minutes": 1102,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "aminata_diarrassouba",
+    "body": "Log reads of anything personal, but write to a separate store the agents cannot edit. Otherwise the log is only as honest as the agent with database access.",
+    "after_minutes": 43,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "brenda_keter",
+    "body": "Careful with volume. Logging every read on a busy list screen floods the log. Record the record that was opened, not every row rendered in a list.",
+    "after_minutes": 170,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p1128",
+  "by": "yao_klutse",
+  "type": "general",
+  "body": "Après un mois de Flutter, première semaine en React Native sur un écran de recherche d'arrêts. Ce qui m'a surpris : chaque frappe dans TextInput refait le rendu d'une liste de 800 arrêts. Un debounce de 250 ms ou useDeferredValue suffit. Flutter m'avait habitué à des listes paresseuses sans que j'y pense.",
+  "topics": [
+   "react-native"
+  ],
+  "age_hours": 135.45,
+  "likes": 7,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "tarek_kaci",
+    "body": "Pas mobile, mais 250 ms est un bon compromis. En dessous les gens ne voient pas la différence, au dessus la recherche paraît lente.",
+    "after_minutes": 60,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "kadiatou_sanou",
+    "body": "Ne journalise pas les recherches en clair si les gens tapent des lieux privés comme leur domicile. Les logs de recherche sont des données personnelles aussi.",
+    "after_minutes": 4,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1130",
+  "by": "christina_kassim",
+  "type": "general",
+  "body": "My retraining runs gave different metrics with the same seed. The cause was cudnn.benchmark picking different convolution algorithms between runs. Setting torch.backends.cudnn.deterministic to True made the runs identical, at about 8 percent slower.",
+  "topics": [],
+  "age_hours": 299.5,
+  "likes": 17,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "tshepo_mogale",
+    "body": "Do you also set use_deterministic_algorithms? Some scatter ops stay nondeterministic and will raise an error, which is actually useful, it tells you which ops differ.",
+    "after_minutes": 243,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1139",
+  "by": "michelle_naidoo",
+  "type": "general",
+  "body": "Learned the hard way that a PIN screen built from TextInput on Android jumps around with adjustResize when the keyboard opens. We dropped the system keyboard and built a custom keypad with fixed position. No input element at all now, and the layout stopped moving.",
+  "topics": [],
+  "age_hours": 679.55,
+  "likes": 11,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "preshen_khan",
+    "body": "A custom keypad also stops third party keyboards from seeing the PIN. Predictive keyboards may log what is typed. Worth it for that alone.",
+    "after_minutes": 102,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "deon_coetzee",
+    "body": "Make sure the keypad works with screen readers. Custom buttons without labels announce nothing, and for a wallet that is a real exclusion.",
+    "after_minutes": 20,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "brenda_keter",
+    "body": "Do you randomise the digit layout? Some wallets do to resist shoulder surfing. Annoying for users though, I would leave it off.",
+    "after_minutes": 434,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": "c1",
+    "by": "lamine_ndoye",
+    "body": "Good point, but the keypad also has to handle fast taps well or people press twice. We added a 50 ms debounce per key.",
+    "after_minutes": 53,
+    "likes": 2
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "aya_rashad",
+    "body": "Set FLAG_SECURE on the PIN screen on Android so it does not show in the recents thumbnail or in screen recordings.",
+    "after_minutes": 70,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "mawuena_ahiabor",
+    "body": "Naive question: why not use the system biometric prompt and skip the PIN? Is the PIN a fallback because some phones lack a fingerprint sensor?",
+    "after_minutes": 68,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "ikechukwu_ibekwe",
+    "body": "Fallback is needed. Also biometrics can change when someone enrols a new finger on the phone, so you have to ask for the PIN again to bind it.",
+    "after_minutes": 452,
+    "likes": 0
+   },
+   {
+    "key": "c8",
+    "parent": "c3",
+    "by": "michelle_naidoo",
+    "body": "I do not randomise. We tried it in a user session and people mis-tapped more and complained. Fixed layout stays, with slightly larger keys.",
+    "after_minutes": 32,
+    "likes": 0
+   },
+   {
+    "key": "c9",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "On the server, rate limit PIN attempts per account, not per device, otherwise someone with ten devices gets ten times the guesses.",
+    "after_minutes": 39,
+    "likes": 0
+   },
+   {
+    "key": "c10",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "And never compare PINs directly, store a slow hash with a per user salt. Four digits is only 10000 combinations, so lockout is your real protection and the hash helps only a little.",
+    "after_minutes": 376,
+    "likes": 1
+   },
+   {
+    "key": "c11",
+    "parent": null,
+    "by": "kwadwo_badu",
+    "body": "Do you wrap the PIN verifier token with the keystore on the device? Anything stored in AsyncStorage is plain.",
+    "after_minutes": 35,
+    "likes": 1
+   },
+   {
+    "key": "c12",
+    "parent": null,
+    "by": "kobina_yeboah",
+    "body": "Android 15 forces edge to edge for apps targeting 35, and adjustResize behaviour changes with it. Your fixed keypad choice will age well.",
+    "after_minutes": 61,
+    "likes": 0
+   },
+   {
+    "key": "c13",
+    "parent": null,
+    "by": "uwase_mutoni",
+    "body": "Left handed users: keep the keypad at the bottom within thumb reach, which you did, but check small screens where the keypad can grow past the safe area.",
+    "after_minutes": 77,
+    "likes": 1
+   },
+   {
+    "key": "c14",
+    "parent": "c6",
+    "by": "michelle_naidoo",
+    "body": "Yes, mostly the fallback. Some of our users have older handsets with no sensor, and others have gloves or dry fingers at work. PIN is the baseline, biometrics is a shortcut.",
+    "after_minutes": 36,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p1172",
+  "by": "adaeze_nnaji",
+  "type": "question",
+  "title": "NFC card logic in a React Native wallet, reuse it in a Flutter app?",
+  "body": "Our React Native wallet has a Java native module that reads NFC cards. We now need the same card logic in a new Flutter agent app. Options: expose the Java code as an AAR that both call, rewrite it in Kotlin behind a Flutter platform channel, or use a Flutter NFC package. Which has worked for you, and what did it cost to maintain?",
+  "topics": [
+   "flutter",
+   "java"
+  ],
+  "age_hours": 2017.36,
+  "likes": 8,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "brenda_keter",
+    "body": "Not mobile, but I would extract the card parsing into a pure library with no Android dependencies. Then the React Native module and the Flutter plugin are thin wrappers, and you can run plain JVM checks on the core.",
+    "after_minutes": 129,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "akanni_oyelaran",
+    "body": "If a Flutter package covers your cards, use it. Maintaining native code twice for a feature you can get from a dependency is a real cost.",
+    "after_minutes": 115,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "zineb_chraibi",
+    "body": "How different are the cards? If the APDU commands differ per issuer, a package may not do what you need and you end up writing the platform channel anyway.",
+    "after_minutes": 150,
+    "likes": 5
+   },
+   {
+    "key": "c4",
+    "parent": "c3",
+    "by": "adaeze_nnaji",
+    "body": "Mostly ISO 14443 type A with a few custom APDU sequences per issuer. The package reads the UID and NDEF but our sequences need raw transceive.",
+    "after_minutes": 72,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "mawuena_ahiabor",
+    "body": "Then raw transceive is the dividing line. Some packages expose it. Check options like flutter_nfc_kit before you decide to rewrite anything.",
+    "after_minutes": 616,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "kwaku_addo",
+    "body": "Platform channels are not that hard. A day for the channel, then lifecycle handling, pause and resume while a tag is in range, which is where the bugs hide.",
+    "after_minutes": 8,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": "c4",
+    "by": "zineb_chraibi",
+    "body": "Then I would go with the AAR approach. The custom APDU logic is the valuable part and it already works. A thin channel over it keeps one source of truth.",
+    "after_minutes": 157,
+    "likes": 0
+   },
+   {
+    "key": "c8",
+    "parent": null,
+    "by": "akanni_ogunbanjo",
+    "body": "Consider iOS. Core NFC has stricter rules and you cannot transceive arbitrary APDUs for every card type. If the agent app is Android only, ignore this.",
+    "after_minutes": 17,
+    "likes": 3
+   },
+   {
+    "key": "c9",
+    "parent": null,
+    "by": "brenda_keter",
+    "body": "Pin the versions of the AAR and the plugin together in CI so a change in one does not silently break the other.",
+    "after_minutes": 23,
+    "likes": 1
+   },
+   {
+    "key": "c10",
+    "parent": null,
+    "by": "fidelis_nkwenti",
+    "body": "Make sure the NFC session does not keep the radio on after the screen closes. We had battery complaints from agents who leave the app open all day.",
+    "after_minutes": 18,
+    "likes": 1
+   },
+   {
+    "key": "c11",
+    "parent": null,
+    "by": "godfred_amponsah",
+    "body": "The React Native new architecture also makes native modules easier to wrap as turbo modules if you keep RN for the main app. Might be less work than adding Flutter for one screen. What is driving the Flutter choice?",
+    "after_minutes": 60,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p1209",
+  "by": "ismaila_daff",
+  "type": "general",
+  "body": "La migration d'un vieux back-office vers React avance mieux depuis qu'on a arrêté de vouloir reproduire chaque écran à l'identique. On a listé les cinq actions que les agents font vraiment chaque jour, on a refait celles-là d'abord, et le reste attend qu'on nous le demande.",
+  "topics": [],
+  "age_hours": 1526.12,
+  "likes": 0,
+  "comments": []
+ },
+ {
+  "key": "p1229",
+  "by": "aminata_diarrassouba",
+  "type": "question",
+  "body": "Je veux écrire un petit worker en Go qui envoie des SMS de rappel aux commerçants à partir de ma base, alors que l'API principale est en Node. Dois-je le mettre dans le même dépôt ou en service séparé ? Et pour la file des messages à envoyer, Redis ou une simple table dans la base ?",
+  "topics": [
+   "go"
+  ],
+  "age_hours": 1618.86,
+  "likes": 3,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "seydou_balde",
+    "body": "Service séparé dès le début, même petit. Le jour où l'envoi de SMS plante ou boucle, ça ne doit pas emporter l'API que tes commerçants utilisent. Pour la file, ce que tu as déjà : si ta base peut la porter, garde-la, sinon Redis avec persistance activée.",
+    "after_minutes": 406,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p1267",
+  "by": "islam_fahmy",
+  "type": "question",
+  "body": "Our Dockerfile has ARG NPM_TOKEN so the build can install private packages. I know the token ends up in the image history. What is the cleanest way to stop that without redesigning the whole build? The CI runner is on an older Docker version and I cannot upgrade it this month.",
+  "topics": [
+   "docker"
+  ],
+  "age_hours": 651.19,
+  "likes": 1,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "Use BuildKit secret mounts. The token is available only during that RUN and never lands in a layer or in history.",
+    "after_minutes": 289,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "akanni_ogunbanjo",
+    "body": "Does that work on an older Docker like 19? We had to set DOCKER_BUILDKIT and update before it worked.",
+    "after_minutes": 93,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "Multi-stage also works if you cannot upgrade. Token in the builder stage only, final stage copies the artifacts. But the builder layers stay in the runner cache, so rotate the token afterwards.",
+    "after_minutes": 75,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "biniam_haftom",
+    "body": "Scope the token too. A read only registry token limited to your organisation caps the damage if it leaks.",
+    "after_minutes": 16,
+    "likes": 2
+   }
+  ]
+ },
+ {
+  "key": "p1268",
+  "by": "akanni_oyelaran",
+  "type": "code_review_request",
+  "body": "Script that exports last week's orders from Postgres into a CSV for a shop owner who opens it in Excel. I built the query with an f-string for the date range because only I run it. It also reads all rows with fetchall before writing. Please say whether that matters at this size (about 4k rows a week) and what Excel does to the file. Names with accents show as strange characters when she opens it.",
+  "topics": [
+   "postgresql",
+   "python"
+  ],
+  "age_hours": 156.9,
+  "likes": 30,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "christelle_habimana",
+    "body": "Use parameters even for yourself, cursor.execute with %s and a tuple. It is a habit, and someone will copy this script to a place where the date comes from a form.",
+    "after_minutes": 26,
+    "likes": 2
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "For the accents, write the file as utf-8 with a BOM (encoding utf-8-sig). Excel guesses an old code page without it. Also use the csv module with newline set to empty on Windows.",
+    "after_minutes": 65,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1273",
+  "by": "zied_baccouche",
+  "type": "general",
+  "body": "Notre application de pharmacie est en français mais les noms de médicaments sont parfois en arabe. Un nom arabe au milieu d'une phrase française déplace la ponctuation de fin. La balise bdi, ou dir auto sur l'élément du nom, règle le problème sans rien toucher d'autre.",
+  "topics": [],
+  "age_hours": 19.16,
+  "likes": 24,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "josiane_kenfack",
+    "body": "bdi isole le texte du reste de la phrase, donc les chiffres et les parenthèses autour ne bougent plus. Ça marche aussi pour les noms de rues ?",
+    "after_minutes": 386,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "grace_nzabonimana",
+    "body": "Oui, pour tout contenu saisi par un utilisateur : noms, adresses, commentaires. Le plus piégeux, ce sont les numéros de téléphone avec un plus devant dans une phrase arabe, le plus passe à la fin.",
+    "after_minutes": 61,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "Pareil dans les PDF générés côté serveur, la plupart des moteurs gèrent mal le bidi sans configuration. Vérifie l'ordonnance imprimée, pas seulement l'écran.",
+    "after_minutes": 21,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "ramatoulaye_sylla",
+    "body": "Et pour la recherche : un nom arabe avec ou sans voyelles courtes, les gens ne tapent pas pareil. Tu normalises ?",
+    "after_minutes": 24,
+    "likes": 2
+   },
+   {
+    "key": "c5",
+    "parent": "c4",
+    "by": "heritier_kasongo",
+    "body": "Normalisation Unicode NFKC, puis suppression des diacritiques arabes avant comparaison, comme pour les accents français. unaccent ne suffit pas pour l'arabe, il faut une fonction maison.",
+    "after_minutes": 37,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": "c5",
+    "by": "sekou_ouedraogo",
+    "body": "Dans une base Postgres tu peux stocker la forme normalisée dans une colonne dédiée avec un index, plutôt que de normaliser à chaque requête.",
+    "after_minutes": 238,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1288",
+  "by": "johan_venter",
+  "type": "general",
+  "body": "Rule I keep for queue workers: a worker that cannot parse a message moves it to a dead letter table and carries on, it never panics. The only restart we had this quarter was an unwrap on an env variable at startup, which is the one place I would allow it.",
+  "topics": [
+   "go"
+  ],
+  "age_hours": 386.2,
+  "likes": 0,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "ikechukwu_odoh",
+    "body": "Startup panics are fine, the orchestrator shows them on the first deploy. The bad ones are panics three hours in on message 40000.",
+    "after_minutes": 144,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": "c1",
+    "by": "ruben_kavari",
+    "body": "Does a panic in one worker thread kill the whole process in Rust? In JS an uncaught error in one handler we catch at the top and move on.",
+    "after_minutes": 21,
+    "likes": 2
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "getachew_belay",
+    "body": "No, a panic in a spawned thread unwinds only that thread and join returns Err, unless the release profile sets panic to abort. Tokio catches a panicking task too and reports it at the join.",
+    "after_minutes": 34,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": "c2",
+    "by": "kingsley_ilori",
+    "body": "Check your Cargo profile before relying on that. A lot of people set panic abort in release to shrink the binary, and then any panic ends the whole process.",
+    "after_minutes": 49,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "akanni_ogunbanjo",
+    "body": "Dead letter table with a reason column and a cap on retries. We also alert on the count growing, not on a single entry.",
+    "after_minutes": 481,
+    "likes": 2
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "kweku_quaye",
+    "body": "What is your message size limit? A single oversized message that deserialises into 2 GB is a worse killer than a bad parse.",
+    "after_minutes": 1691,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": "c1",
+    "by": "augustine_busari",
+    "body": "Agreed. A missing secret failing loudly at startup beats an empty default that fails authentication hours later in a way nobody connects.",
+    "after_minutes": 336,
+    "likes": 0
+   },
+   {
+    "key": "c8",
+    "parent": null,
+    "by": "arnaud_bikoe",
+    "body": "Which crate do you use for the dead letter writes? I wonder whether sqlx compile time checks are worth the slower builds for such a small worker.",
+    "after_minutes": 22,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p1305",
+  "by": "adobea_opoku",
+  "type": "general",
+  "body": "Our pipeline refuses to deploy after 2 pm on Fridays unless the change is flagged as a revert. Not a technical rule, but release incidents on Friday evenings went from several a quarter to none in the last three months.",
+  "topics": [
+   "ci-cd"
+  ],
+  "age_hours": 10.58,
+  "likes": 41,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "linet_ondiek",
+    "body": "Our culture rule is Thursday. Do reverts count even if the revert touches a database migration? That is the Friday evening one that bites.",
+    "after_minutes": 617,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1314",
+  "by": "grace_nzabonimana",
+  "type": "question",
+  "title": "Same design system in React for a partner team: rewrite, web components or tokens only",
+  "body": "Our design system is 40 Vue components. A partner team now builds in React and wants the same look. Options: rewrite the components in React and keep two codebases, ship the Vue ones as web components with defineCustomElement, or share only the design tokens and a written spec and let each side build. We are two people. Form inputs and the date picker worry me most because of accessibility and focus handling. What would you pick and what bit you?",
+  "topics": [
+   "flutter",
+   "react"
+  ],
+  "images": [
+   {
+    "file": "p1314_1.webp",
+    "width": 1200,
+    "height": 559
+   }
+  ],
+  "age_hours": 403.82,
+  "likes": 32,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "augustine_busari",
+    "body": "Web components bring Shadow DOM, and form participation, autofill and password managers behave differently across them. Make sure the login form is not one of them.",
+    "after_minutes": 116,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "mina_naguib",
+    "body": "Two people, forty components: tokens plus a spec. You cannot keep two codebases in sync with the time you have, and web components in a framework you do not control add their own bugs.",
+    "after_minutes": 98,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "hajara_hassan",
+    "body": "Tokens only means the partner team's date picker will not be accessible unless they build it right. At least write the keyboard behaviour into the spec, arrow keys and escape, as a checklist.",
+    "after_minutes": 45,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "kabanda_arinaitwe",
+    "body": "Maybe ask the partner team whether they really need identical components. In my experience they need identical looks on 8 or 10 core ones, button, input, card. The rest can differ.",
+    "after_minutes": 198,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": "c3",
+    "by": "adaeze_nnaji",
+    "body": "A checklist works until the deadline. Does the partner team have anyone who owns accessibility? Without a named person it silently gets dropped.",
+    "after_minutes": 40,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": "c4",
+    "by": "marina_zaher",
+    "body": "Agree with narrowing. We did this for a React and Vue split, only 12 components were shared, and nobody noticed that the rest differed.",
+    "after_minutes": 47,
+    "likes": 1
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "uwase_mutoni",
+    "body": "Check how defineCustomElement handles slots and events. Slots are fine, but custom events need composed true to cross the shadow boundary, and in React 18 custom element props are passed as strings. React 19 fixes that.",
+    "after_minutes": 440,
+    "likes": 0
+   },
+   {
+    "key": "c8",
+    "parent": "c4",
+    "by": "grace_nzabonimana",
+    "body": "That is a useful question, I will ask them for a list. Right now they said all of it, but I suspect they mean what is on the product screens.",
+    "after_minutes": 99,
+    "likes": 3
+   },
+   {
+    "key": "c9",
+    "parent": "c7",
+    "by": "fatma_shehata",
+    "body": "Good detail. We hit the string props problem on React 18 with an object prop and had to set it through a ref in an effect. Ugly.",
+    "after_minutes": 65,
+    "likes": 2
+   },
+   {
+    "key": "c10",
+    "parent": "c7",
+    "by": "ikechukwu_ibekwe",
+    "body": "Is that only a React 18 problem? Our partner team has pinned 17. Any support there?",
+    "after_minutes": 10,
+    "likes": 4
+   },
+   {
+    "key": "c11",
+    "parent": "c7",
+    "by": "mutale_simwanza",
+    "body": "Same worry with Preact, though it handles custom element props better by default, so it is a lighter option if the partner is flexible.",
+    "after_minutes": 5,
+    "likes": 0
+   },
+   {
+    "key": "c12",
+    "parent": "c9",
+    "by": "uwase_mutoni",
+    "body": "A ref plus an effect works, but server rendering then renders without the value and you get a flicker. Only a problem if the partner renders on the server.",
+    "after_minutes": 47,
+    "likes": 2
+   },
+   {
+    "key": "c13",
+    "parent": "c7",
+    "by": "andile_mkhize",
+    "body": "From the design side: can a design token like a spacing scale be passed as an attribute, or must it be CSS variables? CSS variables cross the shadow boundary fine, that much I know.",
+    "after_minutes": 71,
+    "likes": 1
+   },
+   {
+    "key": "c14",
+    "parent": null,
+    "by": "zola_maseko",
+    "body": "Third option I have not seen mentioned: generate React components from the same Figma spec with a code generator. Fragile though. Flutter people do this and it falls apart at the first custom interaction.",
+    "after_minutes": 103,
+    "likes": 2
+   },
+   {
+    "key": "c15",
+    "parent": "c2",
+    "by": "grace_nzabonimana",
+    "body": "The written spec is what I am afraid of. In my last place a 30 page spec was read once. Would a stories page per component showing every state be enough?",
+    "after_minutes": 45,
+    "likes": 0
+   },
+   {
+    "key": "c16",
+    "parent": null,
+    "by": "nalwoga_bwayo",
+    "body": "Rewriting in React is less work than it sounds if your Vue components are small and mostly template plus props. A morning each for simple ones, a week for the date picker. Then you own it fully.",
+    "after_minutes": 20,
+    "likes": 0
+   },
+   {
+    "key": "c17",
+    "parent": "c16",
+    "by": "binta_mijinyawa",
+    "body": "A week for a date picker sounds optimistic. Leap years, first day of the week by locale, keyboard, screen reader labels. Build on a headless library.",
+    "after_minutes": 6,
+    "likes": 0
+   },
+   {
+    "key": "c18",
+    "parent": "c17",
+    "by": "albert_mushi",
+    "body": "Is there a headless one that works in both Vue and React? I have seen Zag.js mentioned for that, no experience myself.",
+    "after_minutes": 21,
+    "likes": 5
+   },
+   {
+    "key": "c19",
+    "parent": null,
+    "by": "deon_coetzee",
+    "body": "Whatever you pick, version the tokens and publish them as a package so the partner pulls updates. Copying a CSS file by hand is how two systems drift apart in a month.",
+    "after_minutes": 32,
+    "likes": 4
+   },
+   {
+    "key": "c20",
+    "parent": null,
+    "by": "martin_anyanzwa",
+    "body": "Ask what a visual mismatch costs compared with the maintenance burden. If a screenshot comparison in CI can flag drift between the two, tokens might be enough.",
+    "after_minutes": 245,
+    "likes": 2
+   },
+   {
+    "key": "c21",
+    "parent": "c14",
+    "by": "brenda_keter",
+    "body": "Code generation from Figma gives you markup, not behaviour. Focus management and keyboard handling will not come from it, so the part you worry about most stays manual.",
+    "after_minutes": 37,
+    "likes": 0
+   },
+   {
+    "key": "c22",
+    "parent": "c14",
+    "by": "grace_nzabonimana",
+    "body": "That is what I feared, our date picker is the first custom interaction. I am leaning towards tokens plus a few components rewritten in React, with the date picker built on a headless library.",
+    "after_minutes": 133,
+    "likes": 0
+   },
+   {
+    "key": "c23",
+    "parent": "c4",
+    "by": "kweku_quaye",
+    "body": "To narrow it concretely: look at the partner's product screens and count which components appear on more than two. That count is your shared set.",
+    "after_minutes": 88,
+    "likes": 3
+   },
+   {
+    "key": "c24",
+    "parent": null,
+    "by": "felix_karanja",
+    "body": "I would not ship web components if the partner uses server rendering with Next. Hydration with custom elements is bumpy. Plain React it is.",
+    "after_minutes": 25,
+    "likes": 1
+   },
+   {
+    "key": "c25",
+    "parent": "c10",
+    "by": "deon_coetzee",
+    "body": "React 17 has the same limits as 18, I believe. The simple answer is to wrap each custom element in a tiny React component that sets properties through a ref.",
+    "after_minutes": 92,
+    "likes": 0
+   },
+   {
+    "key": "c26",
+    "parent": "c22",
+    "by": "mutale_simwanza",
+    "body": "Sounds like a sensible split. Write down which components are shared and which are not, in the repo, so nobody asks again in six months.",
+    "after_minutes": 380,
+    "likes": 0
+   },
+   {
+    "key": "c27",
+    "parent": "c16",
+    "by": "kwabena_owusu",
+    "body": "Rewrites are cheap only once. The second change to the button now costs you twice. For forty components that is fine, for two hundred it is not.",
+    "after_minutes": 6,
+    "likes": 0
+   },
+   {
+    "key": "c28",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "Does the partner team use TypeScript? Generating prop types from the Vue components for them keeps both sides honest at compile time, even if the implementations differ.",
+    "after_minutes": 34,
+    "likes": 0
+   },
+   {
+    "key": "c29",
+    "parent": null,
+    "by": "ghislain_mayala",
+    "body": "From a backend view of shared libraries: the cost is always the tail. One bug fixed in two places for years. With two people, tokens only.",
+    "after_minutes": 47,
+    "likes": 0
+   },
+   {
+    "key": "c30",
+    "parent": "c28",
+    "by": "amine_lounis",
+    "body": "Generating types from Vue props works with vue-tsc, but they can be wrong for events. Treat it as documentation more than a contract.",
+    "after_minutes": 70,
+    "likes": 1
+   },
+   {
+    "key": "c31",
+    "parent": null,
+    "by": "linet_ondiek",
+    "body": "In Flutter we copy tokens from one JSON through a small script. It works. Components we rebuilt by hand. Nobody enjoys it but nothing broke.",
+    "after_minutes": 190,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1330",
+  "by": "augustine_ogunleye",
+  "type": "question",
+  "body": "Our Node API returns raw validation messages like phone must match pattern. I want the screens to show friendly text in three languages. Should the front end map error codes to text, or should the API send translated messages based on Accept-Language? Users are first-time smartphone owners, so the wording matters a lot.",
+  "topics": [
+   "nodejs"
+  ],
+  "age_hours": 389.14,
+  "likes": 32,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "johan_venter",
+    "body": "Error codes from the API, text in the client. The client knows the screen and the language, and the API stays stable when you change the wording. Return a code and the field name.",
+    "after_minutes": 211,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "Counterpoint: with several clients, mobile, web and a partner, each one needs its own copy of the messages and they drift. A message key plus params from the API, with translations in one shared file, is the middle path.",
+    "after_minutes": 4,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "kobina_yeboah",
+    "body": "On mobile we ship translations with the app, so a wording fix needs an app release. Server side messages let you fix wording in an afternoon. The trade-off is the same either way, pick whichever you change more often.",
+    "after_minutes": 116,
+    "likes": 1
+   }
+  ]
+ },
+ {
+  "key": "p1340",
+  "by": "aminata_diarrassouba",
+  "type": "question",
+  "body": "Our Node API is used by shop apps. Many users share the same mobile carrier address, so rate limiting by IP blocks several shops at once. I moved to per API key limits, but unauthenticated routes like login still need something. What do people use there, IP plus username, or a captcha after a few failures?",
+  "topics": [],
+  "age_hours": 15.29,
+  "likes": 8,
+  "comments": []
+ },
+ {
+  "key": "p1390",
+  "by": "andile_mkhize",
+  "type": "general",
+  "body": "Our design system CI now fails when a component changes visually without approval, using screenshot comparison. First week: 46 false failures from font anti-aliasing differences between laptops and CI. Fixed by running the screenshot step in the same container locally and in CI.",
+  "topics": [
+   "ci-cd"
+  ],
+  "age_hours": 567.63,
+  "likes": 31,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "lamine_ndoye",
+    "body": "We use a threshold of 0.1 percent pixel difference plus fixed fonts in the image. Zero tolerance makes everyone hate the tool within a week.",
+    "after_minutes": 16,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "Animations. Disable them in CI or wait for transitionend. Half our flakiness came from the screenshot catching a fade at 60 percent.",
+    "after_minutes": 135,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "wangui_thuo",
+    "body": "Also freeze the date and any random avatar. We lost a day to a clock widget.",
+    "after_minutes": 22,
+    "likes": 0
+   },
+   {
+    "key": "c4",
+    "parent": "c1",
+    "by": "andile_mkhize",
+    "body": "A threshold of 0.1 sounds right. We had zero and it was miserable. I will try it with a per component override for charts.",
+    "after_minutes": 2,
+    "likes": 2
+   },
+   {
+    "key": "c5",
+    "parent": null,
+    "by": "akanni_ogunbanjo",
+    "body": "How long does the screenshot run take for 40 components? If it is long, run only the components whose files changed.",
+    "after_minutes": 268,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "aminata_ndiaye",
+    "body": "Is the baseline stored in git? Binary images bloat the repository after a year. We moved baselines to object storage keyed by commit.",
+    "after_minutes": 234,
+    "likes": 1
+   },
+   {
+    "key": "c7",
+    "parent": "c5",
+    "by": "andile_mkhize",
+    "body": "About 3 minutes for 40 components with 3 states each, in 4 parallel workers. Running only changed components is on my list.",
+    "after_minutes": 167,
+    "likes": 1
+   },
+   {
+    "key": "c8",
+    "parent": "c7",
+    "by": "daniel_aluoch",
+    "body": "Three minutes is fine. Do not over optimise, the filter logic will cost you more in bugs than the minutes save.",
+    "after_minutes": 69,
+    "likes": 1
+   },
+   {
+    "key": "c9",
+    "parent": "c4",
+    "by": "onyinye_uzoma",
+    "body": "For charts, mask the data area and compare only axes and legend. Data driven pictures change for reasons you do not care about in a design system check.",
+    "after_minutes": 214,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1405",
+  "by": "btissam_elfassi",
+  "type": "question",
+  "body": "Dans React, je reçois des maquettes à 375 et 1440 px seulement. Pour 768, je dois choisir : étirer le mobile ou comprimer le bureau. Je demande à la designer à chaque fois mais elle est débordée. Y a-t-il une règle simple que vous appliquez ?",
+  "topics": [
+   "react"
+  ],
+  "age_hours": 999.03,
+  "likes": 4,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "tete_lamboni",
+    "body": "Une règle : reste en mode mobile jusqu'à ce que le contenu ait la place de passer en deux colonnes, pas avant. Pose tes points de rupture selon le contenu, pas selon les appareils, et envoie ta proposition en capture à la designer pour validation plutôt que de poser une question ouverte.",
+    "after_minutes": 109,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1410",
+  "by": "aliou_yaya",
+  "type": "general",
+  "body": "Sur un formulaire de paiement en trois étapes, on a fusionné les deux premières. Les gens ne comprenaient pas pourquoi on redemandait le numéro de téléphone à l'étape suivante. Une étape de moins, mais surtout plus aucune répétition.",
+  "topics": [
+   "python"
+  ],
+  "age_hours": 436.24,
+  "likes": 5,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "aminata_diarrassouba",
+    "body": "Garde quand même une confirmation à la fin avec un récapitulatif. Un paiement sans récapitulatif génère des disputes.",
+    "after_minutes": 10,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "drissa_cisse",
+    "body": "Combien de champs dans l'étape fusionnée ? Au delà de 6 ou 7 on perd les gens sur petit écran. Chez nous les écrans longs sont abandonnés en cours de route.",
+    "after_minutes": 163,
+    "likes": 0
+   },
+   {
+    "key": "c3",
+    "parent": "c2",
+    "by": "aliou_yaya",
+    "body": "Cinq champs seulement : nom, téléphone, opérateur, montant, code. L'adresse de livraison est à l'étape suivante.",
+    "after_minutes": 14,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": "c3",
+    "by": "thierry_zang",
+    "body": "Déduire l'opérateur du préfixe marche en général, mais pas toujours. Laisse le choix modifiable.",
+    "after_minutes": 116,
+    "likes": 0
+   },
+   {
+    "key": "c5",
+    "parent": "c2",
+    "by": "amadou_gning",
+    "body": "Pour nous c'est pareil sur le back-office mobile, au delà de 6 champs les gens sautent. On a mis des sections repliables.",
+    "after_minutes": 456,
+    "likes": 0
+   },
+   {
+    "key": "c6",
+    "parent": null,
+    "by": "yao_klutse",
+    "body": "Tu as une mesure avant et après, ou c'est une impression ? Je demande parce qu'on veut faire pareil sur notre application de transport.",
+    "after_minutes": 417,
+    "likes": 0
+   },
+   {
+    "key": "c7",
+    "parent": null,
+    "by": "uwase_mutoni",
+    "body": "Les répétitions viennent souvent d'un champ qui change de nom entre les écrans. Numéro devient téléphone puis contact. Garde le même libellé partout.",
+    "after_minutes": 89,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1436",
+  "by": "christina_kassim",
+  "type": "research_note",
+  "title": "bf16 autocast on a tabular transformer: 1.6x per epoch, fit inside seed noise",
+  "body": "Moved a tabular transformer from fp32 to bf16 autocast. Epoch time on one A10 fell from 74 s to 46 s. Validation r-squared went from 0.871 to 0.867 averaged over five seeds, inside the seed noise of about 0.005. I kept the output layer and the loss in fp32. Method: five seeds per setting, same data split, same schedule.",
+  "topics": [
+   "pytorch"
+  ],
+  "age_hours": 1172.46,
+  "likes": 0,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "aminata_diarrassouba",
+    "body": "Not my area. When you say inside seed noise, did you run five seeds for both settings? A gap of 0.004 over five runs each is hard to tell from nothing.",
+    "after_minutes": 222,
+    "likes": 1
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "mutale_simwanza",
+    "body": "On our edge boards we went the other way, to int8, and the drop was worse on small models than on big ones. Did model size matter for you, would a tiny one behave differently?",
+    "after_minutes": 73,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1447",
+  "by": "christina_kassim",
+  "type": "question",
+  "body": "Weekly retraining starts at a fixed time, but source files sometimes arrive three hours late, so it trains on stale data and nobody knows. Options: a sensor that waits for the file, a retry loop until the modified date is recent, or a manifest the upstream writes when it finishes. What do you use?",
+  "topics": [
+   "python"
+  ],
+  "age_hours": 1409.23,
+  "likes": 15,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "albert_mushi",
+    "body": "A manifest or marker file written last by the upstream. File arrival alone is ambiguous when large files upload gradually.",
+    "after_minutes": 267,
+    "likes": 2
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "elizabeth_nnadi",
+    "body": "If you only control your side, check the row count or the max date in the data and fail loudly if it is older than yesterday. A cheap freshness assertion at the start of the run.",
+    "after_minutes": 69,
+    "likes": 2
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "ngugi_kariuki",
+    "body": "Both. The marker from upstream and the freshness check, because markers get written for empty files too when someone's export fails.",
+    "after_minutes": 22,
+    "likes": 0
+   }
+  ]
+ },
+ {
+  "key": "p1459",
+  "by": "honorine_ahouansou",
+  "type": "rfc",
+  "title": "RFC : partitionner la table des événements par mois et archiver après 24 mois",
+  "body": "Proposition : partitionner la table des événements (1,2 milliard de lignes, environ 40 Go avec les index) par mois, et détacher les partitions de plus de 24 mois vers un schéma d'archive. Pourquoi : les requêtes des analystes sur le dernier mois parcourent aujourd'hui des index entiers, et le VACUUM de la table dure plus de 5 heures. Coût : une migration par copie en plusieurs lots, la création mensuelle des partitions, et des vues pour les requêtes qui couvrent plusieurs années. Pas décidé : la clé de partition (date de l'événement ou date de chargement) et le moment de la bascule.",
+  "topics": [
+   "kubernetes",
+   "postgresql"
+  ],
+  "age_hours": 670.96,
+  "likes": 3,
+  "comments": [
+   {
+    "key": "c1",
+    "parent": null,
+    "by": "uwase_mutoni",
+    "body": "Que deviennent les requêtes des analystes qui couvrent plusieurs années ? Si les partitions détachées partent dans un autre schéma, prévois une vue qui les réunit.",
+    "after_minutes": 68,
+    "likes": 0
+   },
+   {
+    "key": "c2",
+    "parent": null,
+    "by": "heritier_kasongo",
+    "body": "Pense à créer les partitions d'avance. Une tâche planifiée qui oublie celle du mois suivant et les insertions échouent le premier du mois à minuit.",
+    "after_minutes": 260,
+    "likes": 6
+   },
+   {
+    "key": "c3",
+    "parent": null,
+    "by": "heritier_kasongo",
+    "body": "Vérifie aussi les clés étrangères qui pointent vers la table. Elles sont supportées depuis la version 12, avant il fallait les retirer.",
+    "after_minutes": 297,
+    "likes": 1
+   },
+   {
+    "key": "c4",
+    "parent": null,
+    "by": "helio_tembe",
+    "body": "Question de non spécialiste : tu gardes combien d'index par partition ? Si chaque partition a ses propres index, la création mensuelle peut prendre du temps.",
+    "after_minutes": 63,
+    "likes": 3
+   },
+   {
+    "key": "c5",
+    "parent": "c3",
+    "by": "honorine_ahouansou",
+    "body": "Nous sommes en 15, donc c'est bon pour celles qui pointent vers la table. Je vérifie quand même dans l'autre sens, de la table vers les autres.",
+    "after_minutes": 35,
+    "likes": 1
+   }
+  ]
+ }
+]

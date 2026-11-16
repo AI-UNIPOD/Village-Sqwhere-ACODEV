@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Lang } from "../locales";
 import type { Post } from "./feed-api";
 import styles from "./feed.module.css";
+import { PostImages } from "./post-images";
 import { PostActions, PostBody, PostHead, PostLink, PostTopics } from "./post-parts";
 
 // One post in a list: the whole of it except the end of a long body.
@@ -17,6 +18,7 @@ export function PostCard({ lang, post, now, onChange }: { lang: Lang; post: Post
         </h2>
       )}
       <PostBody post={post} clamp href={post.title ? undefined : href} />
+      <PostImages lang={lang} images={post.attachments} href={href} />
       {post.link_url && <PostLink lang={lang} url={post.link_url} />}
       <PostTopics lang={lang} topics={post.topics} />
       <PostActions lang={lang} post={post} onChange={onChange} commentsHref={`${href}#comments`} />

@@ -36,3 +36,16 @@ export function change(threads: Thread[], id: string, edit: (found: Thread) => T
     return [{ ...have, replies: change(have.replies, id, edit) }];
   });
 }
+
+// Puts a page of the thread route's list into the thread held so far. The first comment is the
+// top one, and every reply comes after its parent, because the list is ordered by depth.
+export function fromThread(held: Thread[], list: PostComment[]): Thread[] {
+  return list.reduce((tree, comment) => {
+    const added = thread(comment);
+    if (tree.length === 0) return [added];
+    return change(tree, comment.parent_id ?? "", (found) => {
+      const replies = place(found.replies, [added]);
+      return { ...found, replies, more: found.comment.reply_count > replies.length };
+    });
+  }, held);
+}

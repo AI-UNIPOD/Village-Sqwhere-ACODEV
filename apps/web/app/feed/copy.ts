@@ -33,11 +33,15 @@ type Copy = {
   ago: string;
   postBy: string;
   opensNewTab: string;
+  /** The images of a post, in a list and on its page. */
+  images: { alt: string; broken: string; more: string };
   like: string;
   likeCount: string;
   save: string;
   likeFailed: string;
   saveFailed: string;
+  /** Beside a control the API refused for the demo account. */
+  notSaved: string;
   commentOne: string;
   commentMany: string;
   write: string;
@@ -91,6 +95,26 @@ type Copy = {
       save: string;
     };
     notYours: { title: string; text: string; action: string };
+    images: {
+      label: string;
+      optional: string;
+      add: string;
+      help: string;
+      onPost: string;
+      removeNew: string;
+      removeOld: string;
+      remove: string;
+      removeFailed: string;
+      refused: { type: string; size: string; count: string };
+      progress: string;
+      partialOne: string;
+      partialMany: string;
+      partialSavedOne: string;
+      partialSavedMany: string;
+      reasons: { tooLarge: string; invalid: string; limit: string; notAuthor: string; gone: string; other: string };
+      retry: string;
+      leave: string;
+    };
   };
   comments: {
     loading: string;
@@ -116,6 +140,8 @@ type Copy = {
     showSome: string;
     showOne: string;
     showMore: string;
+    continueThread: string;
+    allComments: string;
     more: string;
     moreFailed: string;
     repliesFailed: string;
@@ -201,11 +227,17 @@ export const copy: Record<Lang, Copy> = {
     ago: "{time} ago",
     postBy: "Post by {name}",
     opensNewTab: "opens in a new tab",
+    images: {
+      alt: "Image {n} of {total} attached to this post",
+      broken: "This image could not be loaded.",
+      more: "and {n} more",
+    },
     like: "Like",
     likeCount: "Like ({n})",
     save: "Save",
     likeFailed: "The like did not go through. Try again.",
     saveFailed: "The save did not go through. Try again.",
+    notSaved: "Nothing was saved. The demo cannot be changed.",
     commentOne: "{n} comment",
     commentMany: "{n} comments",
     write: "Write a post",
@@ -278,6 +310,37 @@ export const copy: Record<Lang, Copy> = {
         save: "We couldn't save your changes. Nothing was lost, so try again.",
       },
       notYours: { title: "This is not your post", text: "Only its author can edit it.", action: "Back to the post" },
+      images: {
+        label: "Images",
+        optional: "optional",
+        add: "Add images",
+        help: "JPEG, PNG or WebP, up to 4 MB each. A post can have 10 images.",
+        onPost: "Images on this post",
+        removeNew: "Remove {name}",
+        removeOld: "Remove image {n}",
+        remove: "Remove",
+        removeFailed: "We couldn't remove the image. The post is unchanged, so try again.",
+        refused: {
+          type: "{name} was not added. Only JPEG, PNG and WebP images can be uploaded.",
+          size: "{name} was not added. It is over 4 MB.",
+          count: "{name} was not added. A post can have 10 images at most.",
+        },
+        progress: "Uploading image {n} of {total}",
+        partialOne: "Your post is published, but 1 image did not upload. Try again or leave it out.",
+        partialMany: "Your post is published, but {n} images did not upload. Try again or leave them out.",
+        partialSavedOne: "Your changes are saved, but 1 image did not upload. Try again or leave it out.",
+        partialSavedMany: "Your changes are saved, but {n} images did not upload. Try again or leave them out.",
+        reasons: {
+          tooLarge: "{name} is over 4 MB.",
+          invalid: "{name} is not a JPEG, PNG or WebP image the server can read.",
+          limit: "A post can have 10 images at most, so {name} did not fit.",
+          notAuthor: "Only the author of a post can add images to it.",
+          gone: "The post could not be found.",
+          other: "{name} could not be sent. Check your connection and try again.",
+        },
+        retry: "Try again",
+        leave: "Leave it out",
+      },
     },
     comments: {
       loading: "Getting the comments",
@@ -303,6 +366,8 @@ export const copy: Record<Lang, Copy> = {
       showSome: "Show {n} replies",
       showOne: "Show 1 reply",
       showMore: "Show more replies",
+      continueThread: "Continue this thread",
+      allComments: "Back to all comments",
       more: "Show more comments",
       moreFailed: "We couldn't load more comments. The ones above are still here, so try again.",
       repliesFailed: "We couldn't load the replies. Try again.",
@@ -398,11 +463,17 @@ export const copy: Record<Lang, Copy> = {
     ago: "il y a {time}",
     postBy: "Publication de {name}",
     opensNewTab: "s'ouvre dans un nouvel onglet",
+    images: {
+      alt: "Image {n} sur {total} jointe à cette publication",
+      broken: "Cette image n'a pas pu être chargée.",
+      more: "et {n} autres",
+    },
     like: "J'aime",
     likeCount: "J'aime ({n})",
     save: "Enregistrer",
     likeFailed: "Le j'aime n'a pas abouti. Réessayez.",
     saveFailed: "L'enregistrement n'a pas abouti. Réessayez.",
+    notSaved: "Rien n'a été enregistré. La démo ne peut pas être modifiée.",
     commentOne: "{n} commentaire",
     commentMany: "{n} commentaires",
     write: "Écrire une publication",
@@ -475,6 +546,37 @@ export const copy: Record<Lang, Copy> = {
         save: "Nous n'avons pas pu enregistrer vos modifications. Rien n'est perdu, réessayez.",
       },
       notYours: { title: "Ce n'est pas votre publication", text: "Seul son auteur peut la modifier.", action: "Retour à la publication" },
+      images: {
+        label: "Images",
+        optional: "facultatif",
+        add: "Ajouter des images",
+        help: "JPEG, PNG ou WebP, 4\u202fMo au plus chacune. Une publication peut avoir 10 images.",
+        onPost: "Images de cette publication",
+        removeNew: "Retirer {name}",
+        removeOld: "Retirer l'image {n}",
+        remove: "Retirer",
+        removeFailed: "Nous n'avons pas pu retirer l'image. La publication n'a pas changé, réessayez.",
+        refused: {
+          type: "Le fichier {name} n'a pas été ajouté. Seules les images JPEG, PNG et WebP sont acceptées.",
+          size: "Le fichier {name} n'a pas été ajouté. Il dépasse 4\u202fMo.",
+          count: "Le fichier {name} n'a pas été ajouté. Une publication a 10 images au plus.",
+        },
+        progress: "Envoi de l'image {n} sur {total}",
+        partialOne: "Votre publication est en ligne, mais 1 image n'a pas été envoyée. Réessayez ou laissez-la de côté.",
+        partialMany: "Votre publication est en ligne, mais {n} images n'ont pas été envoyées. Réessayez ou laissez-les de côté.",
+        partialSavedOne: "Vos modifications sont enregistrées, mais 1 image n'a pas été envoyée. Réessayez ou laissez-la de côté.",
+        partialSavedMany: "Vos modifications sont enregistrées, mais {n} images n'ont pas été envoyées. Réessayez ou laissez-les de côté.",
+        reasons: {
+          tooLarge: "Le fichier {name} dépasse 4\u202fMo.",
+          invalid: "Le fichier {name} n'est pas une image JPEG, PNG ou WebP que le serveur peut lire.",
+          limit: "Une publication a 10 images au plus, le fichier {name} n'a donc pas pu s'ajouter.",
+          notAuthor: "Seul l'auteur d'une publication peut y ajouter des images.",
+          gone: "La publication est introuvable.",
+          other: "Le fichier {name} n'a pas pu être envoyé. Vérifiez votre connexion et réessayez.",
+        },
+        retry: "Réessayer",
+        leave: "Laisser de côté",
+      },
     },
     comments: {
       loading: "Chargement des commentaires",
@@ -500,6 +602,8 @@ export const copy: Record<Lang, Copy> = {
       showSome: "Afficher {n} réponses",
       showOne: "Afficher 1 réponse",
       showMore: "Afficher plus de réponses",
+      continueThread: "Continuer ce fil",
+      allComments: "Retour à tous les commentaires",
       more: "Afficher plus de commentaires",
       moreFailed: "Nous n'avons pas pu charger d'autres commentaires. Ceux du dessus sont toujours là, réessayez.",
       repliesFailed: "Nous n'avons pas pu charger les réponses. Réessayez.",

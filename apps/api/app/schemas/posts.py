@@ -92,6 +92,21 @@ class PostAuthorRef(BaseModel):
     is_verified: bool
 
 
+class PostAttachmentResponse(BaseModel):
+    id: UUID
+    url: str
+    mime_type: str
+    byte_size: int
+    width: int
+    height: int
+    position: int
+    created_at: datetime
+
+
+class PostAttachmentItemResponse(BaseModel):
+    data: PostAttachmentResponse
+
+
 class PostMilestone(BaseModel):
     """What a hub milestone post is about, so the web can say it in English or French: the hub,
     as named now, and the phase it moved to. Never anything from the idea."""
@@ -109,6 +124,7 @@ class PostResponse(BaseModel):
     title: str | None
     body: str
     link_url: str | None
+    attachments: list[PostAttachmentResponse] = []
     author: PostAuthorRef
     topics: list[TechnologyRef]
     like_count: int

@@ -1,4 +1,5 @@
 import { call } from "../ideas/ideas-api";
+import { API_URL } from "../session/session";
 
 export type PostType =
   | "general"
@@ -10,6 +11,19 @@ export type PostType =
   | "research_note"
   | "hub_milestone";
 
+// One image of a post. `url` is relative to the API, and the API sends a post's images in
+// `position` order.
+export type PostImage = {
+  id: string;
+  url: string;
+  mime_type: string;
+  byte_size: number;
+  width: number;
+  height: number;
+  position: number;
+  created_at: string;
+};
+
 // A post as the API answers it. `liked_by_me` and `saved_by_me` are the signed-in developer's.
 export type Post = {
   id: string;
@@ -17,6 +31,7 @@ export type Post = {
   title: string | null;
   body: string;
   link_url: string | null;
+  attachments: PostImage[];
   author: { username: string; display_name: string; is_verified: boolean };
   topics: { slug: string; name: string }[];
   like_count: number;
@@ -38,6 +53,9 @@ export const loadSavedPosts = (offset = 0) => call<PostPage>(`/v1/me/saved-posts
 export const loadPostsBy = (username: string, offset = 0) =>
   call<PostPage>(`/v1/posts?author=${encodeURIComponent(username)}&${paging(offset)}`);
 
+// The newest questions, for the guided tour to pick one with a conversation under it.
+export const loadQuestions = () => call<PostPage>("/v1/posts?type=question&limit=20");
+
 export const loadPost = async (id: string) => (await call<{ data: Post }>(`/v1/posts/${encodeURIComponent(id)}`)).data;
 
 // Only the author can delete a post, and the API takes no reason from the author.
@@ -46,6 +64,24 @@ export const deletePost = (id: string) => call<null>(`/v1/posts/${encodeURICompo
 // Likes and saves answer 204 with no body: turning one on or off is the same request each time.
 export const setMark = (id: string, mark: "like" | "save", on: boolean) =>
   call<null>(`/v1/posts/${encodeURIComponent(id)}/${mark}`, on ? "PUT" : "DELETE");
+
+// What the browser loads for an image. The address needs no sign-in, so a plain <img> can use it.
+export const imageSrc = (image: PostImage) => `${API_URL}${image.url}`;
+
+// The limits the API checks, said in the page before anything is sent. 4 MB leaves room for the
+// form around the file inside Vercel's 4.5 MB request limit.
+export const IMAGE_LIMITS = { types: ["image/jpeg", "image/png", "image/webp"], maxBytes: 4 * 1024 * 1024, perPost: 10 };
+
+// Images go up one request each, after the post exists: the API takes the post's id in the form.
+export async function uploadImage(postId: string, file: File): Promise<PostImage> {
+  const form = new FormData();
+  form.append("post_id", postId);
+  form.append("file", file);
+  return (await call<{ data: PostImage }>("/v1/uploads", "POST", form)).data;
+}
+
+// Only the post's author can remove an image; the others keep their positions.
+export const deleteImage = (id: string) => call<null>(`/v1/uploads/${encodeURIComponent(id)}`, "DELETE");
 
 // The kinds a developer can choose, in the order the form lists them. The API also has
 // `hub_milestone`, which it refuses from a person.
@@ -126,6 +162,11 @@ export const loadComments = (postId: string, offset = 0) =>
 
 export const loadReplies = (commentId: string, offset = 0) =>
   call<{ data: PostComment[]; next_offset: number | null }>(`/v1/comments/${encodeURIComponent(commentId)}/replies?${paging(offset)}`);
+
+// A comment and the replies under it, down to five levels below it, ordered by depth and then
+// oldest first. `fromThread` puts them back into a tree.
+export const loadThread = (commentId: string, offset = 0) =>
+  call<{ data: PostComment[]; next_offset: number | null }>(`/v1/comments/${encodeURIComponent(commentId)}/thread?${paging(offset)}`);
 
 // With a `parentId` it is a reply to that comment.
 export async function createComment(postId: string, body: string, parentId?: string): Promise<PostComment> {

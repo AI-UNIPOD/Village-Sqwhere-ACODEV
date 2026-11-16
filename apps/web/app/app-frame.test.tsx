@@ -63,6 +63,25 @@ test("a signed-in developer can reach every place, and sees which one they are i
   expect(places().getByRole("link", { name: "Village" }).getAttribute("aria-current")).toBeNull();
 });
 
+test("the place you are in has the filled icon, the others the outline", () => {
+  signIn();
+  render(<AppFrame lang="en" path="hubs">screen</AppFrame>);
+  const filled = (name: string) => places().getByRole("link", { name }).querySelector("svg")?.hasAttribute("data-filled");
+  expect(filled("Hubs")).toBe(true);
+  for (const name of ["Village", "Feed", "Ideas", "Profile"]) expect(filled(name), name).toBe(false);
+});
+
+test("the bar is there for a signed-in developer, and holds Reviews only for a verified one", async () => {
+  signIn();
+  fetchMock.mockResolvedValue(answer([verified]));
+  render(<AppFrame lang="fr" path="reviews">screen</AppFrame>);
+  expect(places().getAllByRole("link").length).toBe(5);
+  const reviews = await places().findByRole("link", { name: "Revues" });
+  expect(reviews.getAttribute("aria-current")).toBe("page");
+  expect(reviews.querySelector("svg")?.hasAttribute("data-filled")).toBe(true);
+  expect(names()).toEqual(["Village", "Fil", "Idées", "Espaces", "Revues", "Profil"]);
+});
+
 test("peer reviews appear once the developer holds a Green Tick, on a screen that never asks who they are", async () => {
   signIn();
   fetchMock.mockResolvedValue(answer([verified]));
@@ -172,6 +191,43 @@ test("a visitor who is not signed in sees no places, and the logo leads to the l
   expect(screen.getByRole("link", { name: "Village Sqwhere" }).getAttribute("href")).toBe("/en");
 });
 
+// ---------- the header, pinned as a pill ----------
+
+class FakeObserver {
+  static callback: IntersectionObserverCallback | undefined;
+  static watched: Element | undefined;
+  constructor(cb: IntersectionObserverCallback) {
+    FakeObserver.callback = cb;
+  }
+  observe(el: Element) {
+    FakeObserver.watched = el;
+  }
+  disconnect() {}
+}
+
+test("the header sits in a slot that is watched, and is pinned once the slot has scrolled away", () => {
+  vi.stubGlobal("IntersectionObserver", FakeObserver);
+  signIn();
+  render(<AppFrame lang="en" path="feed">screen</AppFrame>);
+  const header = screen.getByRole("banner");
+  expect(FakeObserver.watched).toBe(header.parentElement);
+  expect(header.parentElement?.hasAttribute("data-header-slot")).toBe(true);
+
+  act(() => FakeObserver.callback?.([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver));
+  expect(header.hasAttribute("data-pinned")).toBe(true);
+  // the places are the same <nav> in the header, not a copy
+  expect(screen.getAllByRole("navigation").length).toBe(1);
+  expect(header.contains(places().getByRole("link", { name: "Feed" }))).toBe(true);
+});
+
+test("a locked screen keeps its header in the page", () => {
+  FakeObserver.watched = undefined;
+  vi.stubGlobal("IntersectionObserver", FakeObserver);
+  signIn();
+  render(<AppFrame lang="en" path="verification" locked>screen</AppFrame>);
+  expect(FakeObserver.watched).toBeUndefined();
+});
+
 // ---------- the demo account ----------
 
 const demoAnswer = () =>
@@ -184,21 +240,21 @@ test("the demo account sees, on every screen, that nothing is saved and the way 
   render(<AppFrame lang="en" path="hubs">screen</AppFrame>);
   expect(screen.queryByText(/You are in the demo/)).toBeNull();
   // Your hubs never asks for the profile: the frame does
-  await screen.findByText(/You are in the demo/);
-  expect(screen.getByRole("status").textContent).toBe("You are in the demo. The people and ideas here are made up, and nothing can be changed.");
+  expect((await screen.findByText(/You are in the demo/)).textContent).toBe("You are in the demo. The people, ideas and posts here are made up, and nothing can be changed.");
   expect(screen.getByRole("button", { name: "Leave the demo" })).toBeTruthy();
 });
 
-test("when the API refuses a change, the demo line says it was not saved, each time", async () => {
+test("when the API refuses a change, a second line says it was not saved, each time, and the demo line stays", async () => {
   signIn();
   fetchMock.mockResolvedValue(demoAnswer());
   render(<AppFrame lang="fr" path="feed">screen</AppFrame>);
-  const first = await screen.findByRole("status");
-  expect(first.textContent).toMatch(/^Vous êtes dans la démo/);
+  await screen.findByText(/^Vous êtes dans la démo/);
+  expect(screen.queryByRole("status")).toBeNull();
 
   await act(() => noticeDemoRefusal(refused()));
   const said = screen.getByRole("status");
   expect(said.textContent).toMatch(/^Cela n'a pas été enregistré/);
+  expect(screen.getByText(/^Vous êtes dans la démo/)).toBeTruthy();
   // a second refusal is a new line, so it is announced again
   await act(() => noticeDemoRefusal(refused()));
   expect(screen.getByRole("status")).not.toBe(said);
@@ -254,8 +310,10 @@ test("on phones the bottom bar steps aside while a text field has focus, and the
   const phone = css.slice(css.indexOf("@media (max-width: 767px) {"));
   const typing = ":has(:is(input:not([type=\"checkbox\"]";
   expect(phone).toMatch(/\.page\[data-places\]:has\(:is\(input:not\(\[type="checkbox"\][^{]*textarea[^{]*\):focus\) \{ --app-bottom: 0px; \}/);
-  expect(phone).toMatch(/:focus\) \.places \{ visibility: hidden; transform: translateY\(calc\(100% \+ 1px\)\);/);
-  expect(phone).toContain("padding-block-end: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));");
-  expect(phone).not.toContain("padding-block-end: var(--app-bottom)");
+  // the floating bar goes down by its height and the gap under it, off the screen
+  expect(phone).toMatch(/:focus\) \.places \{ visibility: hidden; transform: translateY\(calc\(100% \+ var\(--space-4\) \+ env\(safe-area-inset-bottom, 0px\)\)\);/);
+  // the page's room is written with --places-clear, which typing does not change
+  expect(phone).toContain("padding-block-end: calc(var(--places-clear) + var(--space-2));");
+  expect(phone).not.toMatch(/padding-block-end: calc\(var\(--app-bottom\)/);
   expect(css.indexOf(typing)).toBeGreaterThan(css.indexOf("@media (max-width: 767px) {"));
 });

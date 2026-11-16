@@ -72,16 +72,33 @@ Added when the web side was built, on 13 November 2026:
 - **"Try the demo" is a real button on the landing page,** in the hero and the footer. The line
   under it says what the demo is ("No sign-up. Look at everything, change nothing."), then how
   opening it is going. A 404 from the route says the demo is not available here.
-- **One line under the header on every signed-in screen** tells the demo account that nothing
-  it changes is saved, with "Leave the demo" (sign out). It is not a banner that can be closed:
-  the fact stays true on every screen.
+- **One line under the header on every signed-in screen** tells the demo account that the
+  people, ideas and posts are made up and nothing can be changed, with "Leave the demo" (sign
+  out). It is not a banner that can be closed: the fact stays true on every screen.
 - **A refused change is noticed in one place,** `apiFetch`, which every screen calls through.
   The line then says "That was not saved", and a screen reader hears it each time. No screen
   has to know about the demo.
-- **The screen that asked still shows its own failure sentence** ("We couldn't save your
+- **Most screens that asked still show their own failure sentence** ("We couldn't save your
   changes..."), next to the demo line. Teaching each of about fifty handlers the demo's code
-  was not worth it for the first version. Likes are the exception, because they are pressed
-  often: a refused like goes back with no "try again".
+  was not worth it for the first version. The feed is the exception (see 15 November below).
 - **Nothing is disabled up front.** Buttons and forms look as they do for a real developer, so
   the demo shows the real product; the refusal comes when a change is sent.
 - **The tour is built on top of the demo** (`2026-11-13-guided-tour.md`).
+
+Changed on 15 November 2026 (Tanny's decision, "honest writes"):
+
+- **The demo line says what the demo is made of:** "You are in the demo. The people, ideas and
+  posts here are made up, and nothing can be changed." It is still the only place that says
+  anything is made up, and it shows on every screen the demo account can open, a single post's
+  page included. A test lists the routes under a language and checks each draws its screen, its
+  loading state and its error screen inside `AppFrame`, or is left out on purpose.
+- **In the feed, a refused write says so next to the control that was pressed.** The new post,
+  the comment box (comment, reply and edit), like and save on a card and on a post's page, and
+  likes on comments now show "Nothing was saved. The demo cannot be changed." as a polite status
+  line beside the control, in both languages. Before, the composer and the comment box showed
+  "We couldn't save...", which is wrong for a change that can never succeed, and likes and saves
+  went back with no word. The line goes when the text is edited, when the control is pressed
+  again or when the person leaves, and it never says "made up". Nothing is disabled up front,
+  and for any refused change, in the feed or elsewhere, the frame adds a second line under the
+  demo line, "That was not saved...". It no longer replaces the demo line, which therefore stays
+  on every screen. Any other failure keeps its usual sentence.

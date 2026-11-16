@@ -319,7 +319,9 @@ Signs in as the shared demo account, for "Try the demo". No GitHub, no body.
 * **Content:** `uv run --directory apps/api python -m app.demo_seed` fills a database with
   made-up developers, posts, comments, ideas, hubs and a review case. It also creates the demo
   account itself, so `POST /v1/auth/demo` answers `404` until it has run. Running it again
-  rewrites the posts and comments with fresh times.
+  rewrites the posts and comments with fresh times. About 1,150 more members, 1,500 posts and
+  6,000 comments come from frozen files (`2026-11-15-lived-in-demo.md`), and the embeddings
+  worker skips every demo account.
 * Why: `docs/decisions/2026-11-13-read-only-demo.md`.
 
 ---
@@ -2154,6 +2156,7 @@ Create a new feed post.
       "title": "Async Python with PostgreSQL",
       "body": "Tips and patterns for async connection pooling with asyncpg and PostgreSQL.",
       "link_url": "https://github.com/example/async-postgres-guide",
+      "attachments": [],
       "author": {
         "id": "908fdc10-d867-4279-bb7d-b6a2f7c00e12",
         "username": "ada-lagos",
@@ -2175,6 +2178,70 @@ Create a new feed post.
     }
   }
   ```
+
+---
+
+### `POST /v1/uploads`
+
+Upload one image and attach it to a post. Create the post first, then upload each image with its
+post ID. The API keeps the image bytes and their facts in Postgres, in `post_attachments`, and
+serves them back at `GET /v1/post-images/{attachment_id}`.
+
+* **Authentication:** Required (Bearer token). Demo accounts are read-only.
+* **Form fields:** `post_id` (UUID) and `file` (one image).
+* **Allowed images:** JPEG, PNG, or WebP, detected from file content. Maximum size is 4 MB, so a
+  request fits inside Vercel's 4.5 MB limit, and
+  maximum dimensions are 40 million pixels. The original filename is ignored.
+* **Ownership:** Only the post author may upload. A post accepts at most 10 images.
+* **Success:** HTTP 201 with the attachment ID, its address (`/v1/post-images/{id}`, on the
+  API's own host), detected MIME type, byte size,
+  dimensions and display position, wrapped in `data`. Post read and list responses include these
+  attachment objects in position order.
+* **Errors:** 401 unauthenticated, 403 `NOT_POST_AUTHOR`, 404 `POST_NOT_FOUND`, 409
+  `POST_IMAGE_LIMIT` or `MILESTONE_NOT_EDITABLE`, 413 `IMAGE_TOO_LARGE`, and 422 `INVALID_IMAGE`
+  or `EMPTY_IMAGE`.
+
+```bash
+curl -X POST http://localhost:8000/v1/uploads \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -F "post_id=$POST_ID" \
+  -F "file=@image.webp"
+```
+
+---
+
+### `DELETE /v1/uploads/{attachment_id}`
+
+Remove one image from a post, so editing a post can take a picture out without deleting the post.
+The other images keep their positions, and the next upload takes the first free one.
+
+* **Authentication:** Required (Bearer token). Demo accounts are read-only.
+* **Ownership:** Only the post author. A hub's milestone post cannot be edited.
+* **Success:** HTTP 204, no body. The image's address answers 404 from then on, though a cache
+  may still serve it for up to an hour.
+* **Errors:** 401 unauthenticated, 403 `NOT_POST_AUTHOR`, 404 `IMAGE_NOT_FOUND` or
+  `POST_NOT_FOUND`, and 409 `MILESTONE_NOT_EDITABLE`.
+
+```bash
+curl -X DELETE http://localhost:8000/v1/uploads/$ATTACHMENT_ID   -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+---
+
+### `GET /v1/post-images/{attachment_id}`
+
+The bytes of one post image, with its own `Content-Type`. This is the `url` in each attachment.
+
+* **Authentication:** None. An `<img>` tag cannot send a Bearer token, so the random attachment
+  ID is what keeps an image private, as a bucket address would.
+* **Caching:** `Cache-Control: public, max-age=3600, s-maxage=3600`, so Vercel's CDN answers
+  repeat views without the API or the database. A deleted post's image can still come from a
+  cache for up to an hour.
+* **Errors:** 404 `IMAGE_NOT_FOUND` when the ID is unknown or its post is deleted.
+
+```bash
+curl -o image.webp http://localhost:8000/v1/post-images/$ATTACHMENT_ID
+```
 
 ---
 

@@ -4,6 +4,9 @@ Run it where the demo should be on (DEMO_ENABLED=true), against that server's DA
 
     uv run --directory apps/api python -m app.demo_seed
 
+The wider community of about 1,150 members, 1,500 posts and 6,000 comments comes from
+app/demo_world.py and its frozen fixtures, written after the people below.
+
 Every person here is made up, and every account is a demo account (users.is_demo), so the wall
 in app/api/deps.py keeps all of it away from real developers. Times are set relative to when
 the script runs, so the feed reads "2 hours ago". Running it again rewrites the posts and
@@ -28,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import config
 from app import demo_review_case as review_case
 from app.api.v1.auth import DEMO_ACCOUNT_ID
+from app.demo_world import write_world
 from app.models import (
     AgreementSignature,
     AuthProvider,
@@ -931,6 +935,31 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
     db.add(CommentLike(comment_id=top.id, user_id=you.id))
 
 
+# The demo is written again when its newest post is older than this. A little under a day, so
+# the run happens about once a day without the worker having to remember when it last ran.
+STALE_AFTER = timedelta(hours=22)
+
+
+async def redate_if_stale(db: AsyncSession) -> bool:
+    """Writes the demo's posts and comments again, dated back from now, when the newest one has
+    grown old, so the live demo never reads "3 weeks ago". Only where the demo is on and has been
+    seeded: this never makes the demo, and never runs where DEMO_ENABLED is not true. Returns True
+    when it wrote. docs/decisions/2026-11-15-lived-in-demo.md"""
+    if not config.DEMO_ENABLED or await db.get(User, DEMO_ACCOUNT_ID) is None:
+        return False
+    newest = await db.scalar(
+        select(func.max(Post.created_at)).where(
+            Post.author_id.in_(select(User.id).where(User.is_demo))
+        )
+    )
+    if newest is not None and datetime.now(UTC) - newest < STALE_AFTER:
+        return False
+    await seed(db)
+    await write_world(db)
+    await db.commit()
+    return True
+
+
 async def main() -> int:
     # Made-up developers on a server without the demo would be content nobody can reach, and
     # usually means DATABASE_URL points at the wrong server.
@@ -945,12 +974,15 @@ async def main() -> int:
     engine.echo = False  # the API logs every statement; here that would bury the one result line
     async with async_session() as db:
         made = await seed(db)
+        posts, comments = await write_world(db)
+        await db.commit()
     print(
         "Demo content created."
         if made
         else "Demo posts, comments and commits rewritten with fresh times; any missing people, "
         "roles, technologies, sectors and ideas added; the rest left as it was."
     )
+    print(f"The wider community: {posts} posts and {comments} comments dated back from now.")
     return 0
 
 

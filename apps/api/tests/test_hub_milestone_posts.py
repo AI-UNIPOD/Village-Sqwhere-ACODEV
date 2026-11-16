@@ -3,9 +3,11 @@
 Why: docs/decisions/2026-11-15-hub-milestone-posts.md
 """
 
+from io import BytesIO
 from typing import Any
 
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import func, select, update
 
 from app.models import Hub, Idea, Post, PostType, User
@@ -105,6 +107,12 @@ def test_milestones_show_in_the_feed_and_follow_a_rename(client: TestClient) -> 
     assert milestones(client, reader, hub)[0]["milestone"]["hub_name"] == "Market Day Hub"
 
 
+def _png() -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (2, 2)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
 def test_people_cannot_post_or_edit_a_milestone(client: TestClient) -> None:
     owner = make_user()
     hub = make_hub(owner)
@@ -119,6 +127,14 @@ def test_people_cannot_post_or_edit_a_milestone(client: TestClient) -> None:
     edit = client.patch(f"/v1/posts/{post['id']}", headers=auth(owner), json={"body": "Other"})
     assert edit.status_code == 409
     assert edit.json()["detail"]["code"] == "MILESTONE_NOT_EDITABLE"
+    picture = client.post(
+        "/v1/uploads",
+        headers=auth(owner),
+        data={"post_id": post["id"]},
+        files={"file": ("a.png", _png(), "image/png")},
+    )
+    assert picture.status_code == 409
+    assert picture.json()["detail"]["code"] == "MILESTONE_NOT_EDITABLE"
     assert client.delete(f"/v1/posts/{post['id']}", headers=auth(owner)).status_code == 204
     assert milestones(client, owner, hub) == []
 

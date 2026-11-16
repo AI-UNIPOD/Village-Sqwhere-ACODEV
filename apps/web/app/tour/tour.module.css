@@ -1,6 +1,6 @@
 /* The guided tour's bar. It sticks to the top of the screen under the demo line, so the stop
-   stays in view while the page scrolls. Kept small: on a phone it takes about a quarter of the
-   screen. */
+   stays in view while the page scrolls, just below the header while that is pinned as a pill.
+   Kept small, so the screen under it keeps most of a phone. */
 .panel {
   position: sticky;
   top: 0;
@@ -10,6 +10,18 @@
   padding: var(--space-2) var(--gutter);
   background: var(--surface);
   border-bottom: 1px solid var(--line);
+}
+
+/* The pill is pinned from 360px (app-frame.module.css). The bar steps down with it, and steps
+   back up as soon as the pill starts to leave. */
+@media (min-width: 360px) {
+  [data-frame]:has([data-site-header][data-pinned=""]) .panel {
+    top: calc(var(--pill-top) + var(--pill-height));
+  }
+
+  .panel {
+    transition: top var(--dur-modal) var(--ease-out);
+  }
 }
 
 /* the words of a stop arrive with a short fade and a small rise */
@@ -50,10 +62,10 @@
   padding-block: calc((var(--tap-min) - 1lh) / 2);
 }
 
-/* four parts, the done ones and the current one filled */
+/* six parts, the done ones and the current one filled */
 .progress {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--space-1);
 }
 
@@ -133,6 +145,10 @@
 
 /* reduced motion: the words keep their fade, the movement goes, and the part fills at once */
 @media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: none;
+  }
+
   .panel > div:first-child {
     animation-name: tour-fade;
   }

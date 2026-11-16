@@ -40,7 +40,8 @@ export class IdeaError extends Error {
 export async function call<T>(path: string, method = "GET", body?: unknown): Promise<T> {
   const response = await apiFetch(path, {
     method,
-    ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+    // a form is sent as it is: the browser writes its content type, with the boundary
+    ...(body === undefined ? {} : body instanceof FormData ? { body } : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
   });
   const answer = await response.json().catch(() => null);
   if (response.ok) return answer as T;

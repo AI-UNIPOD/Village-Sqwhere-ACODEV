@@ -100,6 +100,7 @@ They run in file name order, once, on an empty database:
 | `024-user-matching-pause.sql` | `users.matching_paused_at`: set while a developer has paused matching, so owners are not shown them as a match; empty while matching is on. Running it twice is safe. |
 | `025-embeddings.sql` | `idea_embeddings` moves to `gemini-embedding-2` and 768 numbers (it removes rows of another model first, since the worker makes them again), and `user_embeddings` is new. Triggers remove a developer's vector when their bio, verified roles, technologies or sectors change. Numbers 021 to 024 belong to other work. Running it twice is safe. |
 | `026-demo-signature-dates.sql` | Dates the demo's made-up signatures at the moment each member joined, where the seed had left them at the day it ran. Only signatures of demo accounts (`users.is_demo`) in hubs a demo account owns; nothing is deleted. Running it twice is safe. |
+| `027-post-image-bytes.sql` | Post images live in Postgres: `post_attachments.data` holds the bytes, `storage_key` is no longer required, and the size cap drops from 5 MB to 4 MB to fit Vercel's request limit. The table was empty before it, since uploads had not shipped. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
@@ -157,7 +158,7 @@ reaches the API at `https://<domain>/v1/...`.
 
    | Variable | Value |
    |---|---|
-   | `DATABASE_URL` | The **direct** (not pooled) URL, starting `postgresql://` and ending `?ssl=require`. asyncpg rejects `sslmode=require` and breaks on transaction pooling. |
+   | `DATABASE_URL` | With Neon connected through Vercel, nothing to add: the API uses Neon's `DATABASE_URL_UNPOOLED` (the direct address) first and turns `sslmode` into `ssl`, because asyncpg rejects `sslmode` and breaks on transaction pooling. With another host, give the direct URL. |
    | `JWT_SECRET_KEY` | A new random value of 32 characters or more, never the local one |
    | `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ORIGINS` | `https://<domain>` |
    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | A GitHub OAuth app for the real domain, with the callback `https://<domain>/v1/auth/oauth/github/callback` |

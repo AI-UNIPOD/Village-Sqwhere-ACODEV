@@ -15,6 +15,7 @@ import styles from "./comments.module.css";
 import { copy } from "./copy";
 import type { PostComment } from "./feed-api";
 import feed from "./feed.module.css";
+import { NotSaved } from "./not-saved";
 import { when } from "./post-parts";
 
 // The one form that is open at a time, under a comment: a reply to it or an edit of it.
@@ -25,6 +26,8 @@ export type Tools = {
   lang: Lang;
   now: number;
   username: string | undefined;
+  /** The comment whose like was refused for the demo account. */
+  unsaved: string | null;
   open: Open | null;
   setOpen: (open: Open | null) => void;
   arrived: string | null;
@@ -33,6 +36,7 @@ export type Tools = {
   like: (target: PostComment) => void;
   ask: (target: PostComment) => void;
   showReplies: (from: Thread) => Promise<boolean>;
+  openThread: (from: Thread) => void;
 };
 
 export const ToolsContext = createContext<Tools | null>(null);
@@ -104,6 +108,8 @@ export function CommentThread({ item, level, to }: { item: Thread; level: number
     tools.showReplies(item).then((ok) => setReplies(ok ? "idle" : "failed"));
   }
 
+  // a reply that no longer moves right opens what is under it on its own, so that indents again
+  const continues = level > INDENTED_LEVELS && item.replies.length === 0;
   const n = comment.reply_count;
   const showLabel =
     item.offset > 0 ? t.showMore : item.replies.length > 0 ? fill(t.showAll, { n }) : n === 1 ? t.showOne : fill(t.showSome, { n });
@@ -173,6 +179,7 @@ export function CommentThread({ item, level, to }: { item: Thread; level: number
               </>
             )}
           </div>
+          {tools.unsaved === comment.id && <NotSaved lang={lang} />}
           {form === "reply" && (
             <CommentForm
               lang={lang}
@@ -198,11 +205,16 @@ export function CommentThread({ item, level, to }: { item: Thread; level: number
               ))}
             </ul>
           )}
-          {item.more && (
-            <button type="button" className={`${landing.ghost} ${styles.show}`} aria-busy={replies === "loading" || undefined} onClick={showReplies}>
-              {showLabel}
-            </button>
-          )}
+          {item.more &&
+            (continues ? (
+              <button type="button" className={`${landing.ghost} ${styles.show}`} onClick={() => tools.openThread(item)}>
+                {t.continueThread}
+              </button>
+            ) : (
+              <button type="button" className={`${landing.ghost} ${styles.show}`} aria-busy={replies === "loading" || undefined} onClick={showReplies}>
+                {showLabel}
+              </button>
+            ))}
           {replies === "failed" && (
             <p className={`${onboarding.error} ${ideas.moreFailed}`} role="alert">
               <AlertCircle />

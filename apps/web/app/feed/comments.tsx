@@ -8,16 +8,17 @@ import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
-import { AlertCircle } from "../onboarding/icons";
+import { AlertCircle, ArrowLeft } from "../onboarding/icons";
 import onboarding from "../onboarding/onboarding.module.css";
 import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { CommentForm, type Problem } from "./comment-form";
-import { change, fromList, place, thread, type Thread } from "./comment-tree";
+import { change, fromList, fromThread, place, thread, type Thread } from "./comment-tree";
 import { CommentThread, ToolsContext, type Open, type Tools } from "./comment";
 import styles from "./comments.module.css";
 import { copy } from "./copy";
-import { createComment, deleteComment, loadComments, loadReplies, setCommentLike, updateComment, type PostComment } from "./feed-api";
+import { createComment, deleteComment, loadComments, loadReplies, loadThread, setCommentLike, updateComment, type PostComment } from "./feed-api";
+import { isDemoRefusal } from "./not-saved";
 
 type What = "comment" | "reply" | "edit";
 
@@ -57,6 +58,10 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
   const [said, setSaid] = useState({ text: "", n: 0 });
   const [asking, setAsking] = useState<PostComment | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // the comment whose thread is shown on its own, in place of all the comments
+  const [focus, setFocus] = useState<string | null>(null);
+  // what is shown now, for a page that arrives after the person moved to the other
+  const viewing = useRef<string | null>(null);
   // an element to bring into view, or to give focus, once the change that makes it exists is on screen
   const reveal = useRef<{ element: string; focus?: boolean } | null>(null);
 
@@ -70,14 +75,20 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
 
   const say = (text: string) => setSaid((have) => ({ text, n: have.n + 1 }));
 
+  // A page of all the comments, or of the thread that is open on its own.
   const show = useCallback(
-    (offset: number) =>
-      loadComments(postId, offset).then((page) => {
-        const added = fromList(page.data);
-        setThreads((have) => (offset === 0 ? added : place(have ?? [], added)));
-        setNext(page.next_offset);
-      }),
-    [postId],
+    (offset: number) => {
+      const asked = focus;
+      const shown = (next: number | null, added: (have: Thread[]) => Thread[]) => {
+        if (viewing.current !== asked) return;
+        setThreads((have) => added(offset === 0 ? [] : (have ?? [])));
+        setNext(next);
+      };
+      return asked
+        ? loadThread(asked, offset).then((page) => shown(page.next_offset, (have) => fromThread(have, page.data)))
+        : loadComments(postId, offset).then((page) => shown(page.next_offset, (have) => (offset === 0 ? fromList(page.data) : place(have, fromList(page.data)))));
+    },
+    [postId, focus],
   );
 
   // also when the app shows this page again: a comment written elsewhere in the meantime is in it
@@ -86,12 +97,31 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
     show(0).catch((error: unknown) => {
       if (!live || error instanceof SignedOutError) return;
       if (error instanceof IdeaError && error.code === "POST_NOT_FOUND") onGone();
-      else setFailed(true);
+      else if (error instanceof IdeaError && error.code === "COMMENT_NOT_FOUND") {
+        // the thread's comment was deleted: all the comments load again, with a note that says why
+        viewing.current = null;
+        setFocus(null);
+        setNotice(copy[lang].comments.errors.gone);
+      } else setFailed(true);
     });
     return () => {
       live = false;
     };
-  }, [show, attempt, onGone]);
+  }, [show, attempt, onGone, lang]);
+
+  // Shows one comment's thread on its own, or all the comments again with null. Either loads fresh.
+  function view(id: string | null) {
+    viewing.current = id;
+    setFocus(id);
+    setThreads(null);
+    setNext(null);
+    setFailed(false);
+    setMore("idle");
+    setOpen(null);
+    setArrived(null);
+    setNotice(null);
+    reveal.current = { element: "comments-heading", focus: true };
+  }
 
   // A link from the feed's comment count lands here. It goes once the section exists and again
   // once the comments are in, because the page is only tall enough to reach this far by then.
@@ -102,16 +132,19 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
 
   // A comment that was deleted while the person had it open: say so and show what is there now.
   function missing() {
+    // in a thread on its own, all the comments load again
+    if (focus) view(null);
+    else show(0).catch(() => setFailed(true));
     setOpen(null);
     setArrived(null);
     setNotice(c.errors.gone);
     reveal.current = { element: "comments-notice" };
-    show(0).catch(() => setFailed(true));
   }
 
   // The sentence for a refused or failed write, and what else the page must do about it.
   function refused(error: unknown, what: What): Problem {
     if (error instanceof SignedOutError) return {};
+    if (isDemoRefusal(error)) return { notSaved: true };
     if (error instanceof IdeaError) {
       if (error.code === "POST_NOT_FOUND") {
         onGone();
@@ -165,11 +198,14 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
 
   // a second press while the first is being sent would send the same thing twice
   const liking = useRef(new Set<string>());
+  // the comment whose like the API refused for the demo account
+  const [unsaved, setUnsaved] = useState<string | null>(null);
 
   function like(target: PostComment) {
     if (liking.current.has(target.id)) return;
     liking.current.add(target.id);
     setNotice(null);
+    setUnsaved(null);
     const on = !target.liked_by_me;
     const set = (liked: boolean, count: number) =>
       setThreads((have) => change(have ?? [], target.id, (found) => ({ ...found, comment: { ...found.comment, liked_by_me: liked, like_count: count } })));
@@ -178,8 +214,8 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
       .catch((error: unknown) => {
         if (error instanceof SignedOutError) return;
         set(target.liked_by_me, target.like_count);
-        // in the demo the frame says why; "try again" would be wrong
-        if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return;
+        // in the demo "try again" would be wrong
+        if (isDemoRefusal(error)) return setUnsaved(target.id);
         setNotice(t.likeFailed);
         reveal.current = { element: "comments-notice" };
       })
@@ -200,6 +236,8 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
         ),
       );
       setOpen(null);
+      // the thread that was open on its own is gone with it
+      if (target.id === focus && target.reply_count === 0) view(null);
       onCount(-1);
       say(c.said.deleted);
       // the comment's own buttons are gone, so focus goes to the heading of the section
@@ -244,7 +282,7 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
     }
   }
 
-  const tools: Tools = { lang, now, username: me?.username, open, setOpen, arrived, reply, edit, like, ask: setAsking, showReplies };
+  const tools: Tools = { lang, now, username: me?.username, unsaved, open, setOpen, arrived, reply, edit, like, ask: setAsking, showReplies, openThread: (from) => view(from.comment.id) };
   const heading = count === 0 ? c.none : fill(new Intl.PluralRules(lang).select(count) === "one" ? t.commentOne : t.commentMany, { n: count });
 
   return (
@@ -255,6 +293,12 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
       <p className={landing.srOnly} role="status">
         {said.text && said.text + (said.n % 2 ? " " : "")}
       </p>
+      {focus && (
+        <button type="button" className={onboarding.back} onClick={() => view(null)}>
+          <ArrowLeft />
+          {c.allComments}
+        </button>
+      )}
       {failed ? (
         <div>
           <p className={onboarding.error} role="alert">
@@ -276,8 +320,12 @@ export function Comments({ lang, postId, count, onCount, onGone }: { lang: Lang;
         <Blocks label={c.loading} />
       ) : (
         <>
-          {threads.length === 0 && <p className={ideas.meta}>{c.noneText}</p>}
-          <CommentForm lang={lang} id="new-comment" label={c.write} action={c.post} main onSend={(text) => reply(null, text)} />
+          {!focus && (
+            <>
+              {threads.length === 0 && <p className={ideas.meta}>{c.noneText}</p>}
+              <CommentForm lang={lang} id="new-comment" label={c.write} action={c.post} main onSend={(text) => reply(null, text)} />
+            </>
+          )}
           {notice && (
             <p id="comments-notice" className={onboarding.error} role="alert">
               <AlertCircle />

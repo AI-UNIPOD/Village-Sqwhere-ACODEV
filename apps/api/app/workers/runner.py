@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from app.config import (
     VERIFICATION_WORKER_INTERVAL_SECONDS,
 )
 from app.database import async_session
+from app.demo_seed import redate_if_stale
 from app.models.users import VerificationPhase, VerificationSession, VerificationStatus
 from app.services.embeddings import GeminiEmbedder
 from app.services.fallback import FallbackCodebaseAnalyzer
@@ -23,6 +25,10 @@ from app.workers.embeddings import embed_missing
 from app.workers.verification import process_codebase_analysis, process_verification_report
 
 logger = logging.getLogger(__name__)
+
+# A run that fails is tried again an hour later, not on every pass of the loop.
+REDATE_RETRY_AFTER = timedelta(hours=1)
+last_redate_try: datetime | None = None
 
 
 async def pending_session_ids(limit: int = 10) -> list[UUID]:
@@ -87,7 +93,26 @@ async def run_once() -> int:
         processed += await embed_missing(GeminiEmbedder())
     except Exception:
         logger.exception("Embedding run failed")
+    await redate_demo()
     return processed
+
+
+async def redate_demo() -> None:
+    """Keeps the demo's feed fresh (app.demo_seed.redate_if_stale): a pass costs one query, and the
+    rewrite happens about once a day."""
+    global last_redate_try
+    now = datetime.now(UTC)
+    if last_redate_try is not None and now - last_redate_try < REDATE_RETRY_AFTER:
+        return
+    try:
+        async with async_session() as db:
+            wrote = await redate_if_stale(db)
+    except Exception:
+        last_redate_try = now
+        logger.exception("Re-dating the demo failed")
+        return
+    if wrote:
+        logger.info("The demo's posts and comments were dated back from now again.")
 
 
 async def run_forever(

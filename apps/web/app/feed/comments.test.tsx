@@ -50,6 +50,7 @@ const post = (over: Record<string, unknown> = {}) => ({
   title: "Pooling with asyncpg",
   body: "We moved to a pool of ten.",
   link_url: null,
+  attachments: [],
   author: { username: "wanjiru-kamau", display_name: "Wanjiru Kamau", is_verified: true },
   topics: [],
   like_count: 0,
@@ -161,33 +162,129 @@ test("a comment shows its first replies, and Show all loads the rest without rep
 
 test("replies of replies open one level at a time, and a deep one says who it answers", async () => {
   const r1 = comment("r1", { parent_id: "c1", depth: 1, reply_count: 1 });
-  const r2 = comment("r2", { parent_id: "r1", depth: 2, reply_count: 1 });
-  const r3 = comment("r3", { parent_id: "r2", depth: 3, reply_count: 1, author: AMA });
-  const r4 = comment("r4", { parent_id: "r3", depth: 4 });
+  const r2 = comment("r2", { parent_id: "r1", depth: 2, reply_count: 1, author: AMA });
+  const r3 = comment("r3", { parent_id: "r2", depth: 3 });
   open({
     "GET /v1/posts/post-1/comments": page([top("c1", { reply_count: 1 }, [r1])]),
     "GET /v1/comments/r1/replies": page([r2]),
     "GET /v1/comments/r2/replies": page([r3]),
-    "GET /v1/comments/r3/replies": page([r4]),
   });
   await screen.findByText("Body of r1");
   press("Show 1 reply");
   await screen.findByText("Body of r2");
+  expect(screen.queryByText("Body of r3")).toBeNull();
   press("Show 1 reply");
   await screen.findByText("Body of r3");
-  expect(screen.queryByText("Body of r4")).toBeNull();
-  press("Show 1 reply");
-  await screen.findByText("Body of r4");
-  expect(asked().filter((call) => call.includes("/replies")).length).toBe(3);
+  expect(asked().filter((call) => call.includes("/replies")).length).toBe(2);
 
   // the fourth level and deeper do not move right again, and say who they answer
   const indented = (id: string) => document.getElementById(`comment-${id}`)!.querySelector(":scope > [data-flat]");
   expect(indented("c1")).toBeNull();
   expect(indented("r1")).toBeNull();
   expect(indented("r2")).not.toBeNull();
-  expect(screen.getAllByText(/In reply to/).map((note) => note.textContent)).toEqual(["In reply to Kwabena Owusu", "In reply to Ama Mensah"]);
-  expect(document.getElementById("comment-r4")!.querySelector(":scope > p")?.textContent).toBe("In reply to Ama Mensah");
+  expect(screen.getAllByText(/In reply to/).map((note) => note.textContent)).toEqual(["In reply to Ama Mensah"]);
+  expect(document.getElementById("comment-r3")!.querySelector(":scope > p")?.textContent).toBe("In reply to Ama Mensah");
   expect(document.getElementById("comment-r2")!.querySelector(":scope > p")?.textContent).not.toMatch(/In reply to/);
+});
+
+// c1 > r1 > r2 > r3: r3 is at the fourth level, where replies stop moving right, and has a reply
+function deepThread(routes: Record<string, Answer> = {}) {
+  const r1 = comment("r1", { parent_id: "c1", depth: 1, reply_count: 1 });
+  const r2 = comment("r2", { parent_id: "r1", depth: 2, reply_count: 1 });
+  const r3 = comment("r3", { parent_id: "r2", depth: 3, reply_count: 1, author: AMA });
+  open({
+    "GET /v1/posts/post-1/comments": page([top("c1", { reply_count: 1 }, [r1])]),
+    "GET /v1/comments/r1/replies": page([r2]),
+    "GET /v1/comments/r2/replies": page([r3]),
+    ...routes,
+  });
+  return r3;
+}
+
+async function reachDeepReply() {
+  await screen.findByText("Body of r1");
+  press("Show 1 reply");
+  await screen.findByText("Body of r2");
+  press("Show 1 reply");
+  await screen.findByText("Body of r3");
+}
+
+test("a deep reply continues its thread on its own, from the thread route, and goes back to all comments", async () => {
+  const r3 = comment("r3", { parent_id: "r2", depth: 3, reply_count: 1, author: AMA });
+  const r4 = comment("r4", { parent_id: "r3", depth: 4, reply_count: 1 });
+  const r5 = comment("r5", { parent_id: "r4", depth: 5, reply_count: 1, author: AMA });
+  const r6 = comment("r6", { parent_id: "r5", depth: 6, reply_count: 1 });
+  const r7 = comment("r7", { parent_id: "r6", depth: 7, author: AMA });
+  deepThread({
+    "GET /v1/comments/r3/thread": page([r3, r4, r5, r6]),
+    "GET /v1/comments/r6/thread": page([r6, r7]),
+  });
+  await reachDeepReply();
+  expect(screen.queryByRole("button", { name: "Show 1 reply" })).toBeNull();
+  press("Continue this thread");
+  await screen.findByText("Body of r6");
+  expect(asked()).toContain("GET /v1/comments/r3/thread?offset=0&limit=20");
+  expect(asked().filter((call) => call.includes("/replies")).length).toBe(2);
+  await waitFor(() => expect(document.activeElement?.id).toBe("comments-heading"));
+
+  // the thread stands on its own: r3 is at the top and its replies move right again
+  expect(screen.queryByText("Body of c1")).toBeNull();
+  expect(screen.queryByRole("textbox", { name: "Write a comment" })).toBeNull();
+  const indented = (id: string) => document.getElementById(`comment-${id}`)!.querySelector(":scope > [data-flat]");
+  expect(indented("r3")).toBeNull();
+  expect(indented("r5")).not.toBeNull();
+  expect(document.getElementById("comment-r4")!.querySelector(":scope > p")?.textContent).not.toMatch(/In reply to/);
+
+  // the deepest reply it brought goes on from there
+  press("Continue this thread");
+  await screen.findByText("Body of r7");
+  expect(asked()).toContain("GET /v1/comments/r6/thread?offset=0&limit=20");
+  expect(screen.queryByText("Body of r3")).toBeNull();
+
+  press("Back to all comments");
+  await screen.findByText("Body of c1");
+  expect(screen.queryByRole("button", { name: "Back to all comments" })).toBeNull();
+  expect(screen.getByRole("textbox", { name: "Write a comment" })).toBeTruthy();
+  expect(asked().filter((call) => call.startsWith("GET /v1/posts/post-1/comments")).length).toBe(2);
+});
+
+test("a long thread loads a page at a time, each reply under the one it answers", async () => {
+  const r3 = comment("r3", { parent_id: "r2", depth: 3, reply_count: 1, author: AMA });
+  const r4 = comment("r4", { parent_id: "r3", depth: 4, reply_count: 1 });
+  const r5 = comment("r5", { parent_id: "r4", depth: 5 });
+  deepThread({
+    "GET /v1/comments/r3/thread?offset=0": page([r3, r4], 2),
+    "GET /v1/comments/r3/thread?offset=2": page([r4, r5]),
+  });
+  await reachDeepReply();
+  press("Continue this thread");
+  await screen.findByText("Body of r4");
+  press("Show more comments");
+  await screen.findByText("Body of r5");
+  expect(document.getElementById("comment-r4")!.contains(document.getElementById("comment-r5"))).toBe(true);
+  expect(screen.getAllByText("Body of r4").length).toBe(1);
+  expect(screen.queryByRole("button", { name: "Show more comments" })).toBeNull();
+});
+
+test("a thread that cannot load says so, can be tried again, and keeps the way back", async () => {
+  const r3 = comment("r3", { parent_id: "r2", depth: 3, reply_count: 1, author: AMA });
+  let tries = 0;
+  deepThread({ "GET /v1/comments/r3/thread": () => (++tries === 1 ? reply(500) : page([r3, comment("r4", { parent_id: "r3", depth: 4 })])) });
+  await reachDeepReply();
+  press("Continue this thread");
+  expect((await screen.findByText("We couldn't load the comments. The post is still here, so try again.")).closest("[role=alert]")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Back to all comments" })).toBeTruthy();
+  press("Try again");
+  await screen.findByText("Body of r4");
+});
+
+test("a thread whose comment was deleted meanwhile goes back to all the comments and says so", async () => {
+  deepThread({ "GET /v1/comments/r3/thread": refusal(404, "COMMENT_NOT_FOUND") });
+  await reachDeepReply();
+  press("Continue this thread");
+  expect((await screen.findByText("That comment was deleted. We loaded the comments again.")).closest("[role=alert]")).toBeTruthy();
+  expect(screen.getByText("Body of c1")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Back to all comments" })).toBeNull();
 });
 
 test("more than one page of replies loads page by page", async () => {
@@ -274,6 +371,91 @@ test("a like that fails goes back and says so, and a second press while sending 
   expect((await screen.findByRole("alert")).textContent).toContain("The like did not go through. Try again.");
   expect(like().getAttribute("aria-pressed")).toBe("false");
   expect(like().getAttribute("aria-label")).toBe("Like (2)");
+});
+
+// ---------- the demo: a refused write says so beside the control ----------
+
+const WORDS = {
+  en: {
+    notSaved: "Nothing was saved. The demo cannot be changed.",
+    write: "Write a comment",
+    post: "Comment",
+    replyTo: "Reply to Kwabena Owusu",
+    reply: "Reply",
+    edit: "Edit",
+    editLabel: "Edit your comment",
+    save: "Save",
+    like: "Like (0)",
+  },
+  fr: {
+    notSaved: "Rien n'a été enregistré. La démo ne peut pas être modifiée.",
+    write: "Écrire un commentaire",
+    post: "Commenter",
+    replyTo: "Répondre à Kwabena Owusu",
+    reply: "Répondre",
+    edit: "Modifier",
+    editLabel: "Modifier votre commentaire",
+    save: "Enregistrer",
+    like: "J'aime (0)",
+  },
+};
+const readOnly = () => refusal(403, "DEMO_READ_ONLY");
+const line = (lang: "en" | "fr") => screen.findByText(WORDS[lang].notSaved);
+
+test.each(["en", "fr"] as const)("a refused comment says nothing was saved, keeps the text and clears when it is edited, in %s", async (lang) => {
+  const w = WORDS[lang];
+  open({ "POST /v1/posts/post-1/comments": readOnly() }, lang);
+  await screen.findByRole("textbox", { name: w.write });
+  type(w.write, "Keep me");
+  press(w.post);
+  expect((await line(lang)).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect((box(w.write) as HTMLTextAreaElement).value).toBe("Keep me");
+  type(w.write, "Keep me please");
+  expect(screen.queryByText(w.notSaved)).toBeNull();
+});
+
+test.each(["en", "fr"] as const)("a refused reply says nothing was saved and stays open, in %s", async (lang) => {
+  const w = WORDS[lang];
+  open({ "GET /v1/posts/post-1/comments": page([top("c1")]), "POST /v1/posts/post-1/comments": readOnly() }, lang);
+  await screen.findByText("Body of c1");
+  press(w.replyTo);
+  type(w.replyTo, "Good point");
+  press(w.reply);
+  await line(lang);
+  expect((box(w.replyTo) as HTMLTextAreaElement).value).toBe("Good point");
+  // a second press starts a new answer
+  press(w.reply);
+  expect(screen.queryByText(w.notSaved)).toBeNull();
+  await line(lang);
+});
+
+test.each(["en", "fr"] as const)("a refused edit says nothing was saved and keeps the box open, in %s", async (lang) => {
+  const w = WORDS[lang];
+  open({ "GET /v1/posts/post-1/comments": page([top("c1")]), "PATCH /v1/comments/c1": readOnly() }, lang, "kwabena-owusu");
+  await screen.findByText("Body of c1");
+  press(w.edit);
+  type(w.editLabel, "Changed");
+  fireEvent.click(within(document.getElementById("comment-c1-editing-form")!).getByRole("button", { name: w.save }));
+  expect((await line(lang)).getAttribute("role")).toBe("status");
+  expect((box(w.editLabel) as HTMLTextAreaElement).value).toBe("Changed");
+});
+
+test.each(["en", "fr"] as const)("a refused like on a comment says nothing was saved beside it, in %s", async (lang) => {
+  const w = WORDS[lang];
+  open({ "GET /v1/posts/post-1/comments": page([top("c1"), top("c2")]), "PUT /v1/comments/": readOnly() }, lang);
+  await screen.findByText("Body of c1");
+  const like = (id: string) => within(document.getElementById(`comment-${id}`)!).getByRole("button", { name: w.like });
+  fireEvent.click(like("c1"));
+  const said = await line(lang);
+  expect(said.getAttribute("role")).toBe("status");
+  expect(document.getElementById("comment-c1")!.contains(said)).toBe(true);
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(like("c1").getAttribute("aria-pressed")).toBe("false");
+  // the line belongs to one comment: pressing another moves it
+  fireEvent.click(like("c2"));
+  await waitFor(() => expect(document.getElementById("comment-c2")!.textContent).toContain(w.notSaved));
+  expect(document.getElementById("comment-c1")!.textContent).not.toContain(w.notSaved);
 });
 
 // ---------- writing ----------
