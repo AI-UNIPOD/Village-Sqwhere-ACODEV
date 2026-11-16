@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-16
+
+- fix(web): let a long name break inside its word after sign-in (#245)
+
 ## 2026-11-15
 
 - fix(web): keep the whole width of a wide picture in a feed card (#241)
