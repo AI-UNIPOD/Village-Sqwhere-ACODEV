@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-19
 
-- fix(web): show an untitled post's first line as text, not a link-coloured paragraph (#247)
+- fix(web): show an untitled post's first line as text, not a link-coloured paragraph
 
 ## 2026-11-16
 
