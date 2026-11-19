@@ -872,7 +872,7 @@ never contains the confidential `details` field. A developer asks to join throug
 
 Up to 5 other open ideas that read close to this one, closest first, in the same card shape as
 `GET /v1/ideas`: `{"data": [<public idea card>], "next_offset": null}`. An idea is close when
-its vector and this idea's vector have a similarity of at least 0.80 (see "Matching"). Drafts,
+its vector and this idea's vector have a similarity of at least 0.60 (see "Matching"). Drafts,
 closed ideas, deleted ideas and the idea itself never appear. No similarity number is returned:
 being in the list is the fact. An idea with no vector yet, or with nothing close, gives an empty
 list, not an error. The caller must be able to read the idea, as for `GET /v1/ideas/{idea_id}`:
@@ -907,9 +907,9 @@ There are two versions, and a list can hold both. Each row says which one it is.
 
 * **Version 2**, when both vectors exist for the pair (the idea's and the developer's): the plain
   sum of the four parts, out of 100. The meaning points are
-  `round(30 * clamp((similarity - 0.70) / (0.82 - 0.70), 0, 1))`, a whole number from 0 to 30,
+  `round(30 * clamp((similarity - 0.15) / (0.45 - 0.15), 0, 1))`, a whole number from 0 to 30,
   where `similarity` is 1 minus the cosine distance of the two vectors. The band is narrow on
-  purpose: an idea and a profile read 0.71 to 0.82 apart, so the raw number is not a percentage.
+  purpose: an idea and a profile read 0.17 to 0.46 alike, so the raw number is not a percentage.
   Rounding is half up.
 * **Version 1**, when either vector is missing (not made yet): the 70 points that exist are scaled
   to 100 and rounded to a whole number, half up: `(raw * 100 + 35) // 70`. Raw 30 gives 43, 42
@@ -926,7 +926,7 @@ Both lists add these fields to each item:
 * `similar_idea`: `{"id", "title"}` or `null`. On the developer list it is the developer's own
   open idea that reads closest to the caller's idea. On the idea list it is the caller's own open
   idea that reads closest to the listed idea. It is set only when their similarity is at least
-  0.80, never for a draft, a closed or a deleted idea, and never across the demo wall. No
+  0.60, never for a draft, a closed or a deleted idea, and never across the demo wall. No
   similarity number is returned: 0.83 would read as "83% alike", which it does not mean.
 * `shared_sectors`: the sectors both people have, sorted by name like `shared_technologies`
   (`[]` when none). On the developer list it is the developer's sectors that the idea's author

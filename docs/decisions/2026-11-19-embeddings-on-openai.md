@@ -46,6 +46,25 @@ How we build it (the build's own calls, inside that decision):
 - **The worker writes the model's name itself**, not the column's default, so a database whose
   default is stale refuses the row instead of labelling it wrongly.
 - **The screens name OpenAI** where they say what is sent to compare by meaning.
+- **The band of the meaning points, measured again.** One request on 19 November 2026 with the
+  texts the product sends, for the demo's five ideas and seven developers, and a second one
+  with six more made-up ideas in English and French:
+
+  | Pair | Similarity |
+  |---|---|
+  | An idea and a developer whose profile fits it | 0.34 to 0.46 |
+  | An idea and a developer whose profile does not fit | 0.17 to 0.30 |
+  | The same idea written in English and in French | 0.61 to 0.77 |
+  | Two ideas with one subject (a savings circle and a gradebook, both by SMS, both in French) | 0.64 |
+  | Two unrelated ideas | 0.18 to 0.55 |
+
+  The meaning points are now `round(30 * clamp((similarity - 0.15) / (0.45 - 0.15), 0, 1))`:
+  a profile that does not fit gets 2 to 15 points and one that fits 19 to 30. Two ideas read
+  close from 0.60, above every unrelated pair we measured. Gemini's numbers (0.70 to 0.82, and
+  0.80) would have given every pair no points at all.
+- **`text-embedding-3-large` was tried on the same texts and is not used.** It gave the same
+  picture, with unrelated ideas in one language as high as 0.55, so the dearer model buys no
+  cleaner line.
 - **Nothing else changes**: what is sent, who is embedded, the worker, the triggers, and what a
   failure does are as `2026-11-15-embeddings-on-gemini.md` describes them.
 
@@ -69,5 +88,10 @@ How we build it (the build's own calls, inside that decision):
 - While OpenAI is down, new and changed texts wait for a vector. Scores from stored vectors
   keep working, because a request never calls the provider.
 - A deployment needs `OPENAI_API_KEY` on the worker before the meaning part appears at all.
-- The documentation does not say which languages the model covers. French is measured with the
-  band below, not assumed.
+- English and French share the space less tightly than with Gemini: the same idea in the two
+  languages read 0.61 to 0.77 here and 0.96 there, and two unrelated ideas in one language read
+  up to 0.55. So "reads close" now names near copies of an idea and little else, a related idea
+  in the other language can be missed, and a pair in two languages scores a little lower than
+  the same pair in one. We accept that for now; the line can move when there is real data.
+- A profile with no bio, only its lists, read 0.08 to 0.30 against an idea when the landing
+  session measured nine of them. The band gives such a profile 0 to 15 meaning points.
