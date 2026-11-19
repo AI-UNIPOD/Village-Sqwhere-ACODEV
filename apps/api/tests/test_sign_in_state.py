@@ -7,6 +7,7 @@ Why: docs/decisions/2026-11-19-sign-in-state-in-postgres.md
 """
 
 import hashlib
+import logging
 import secrets
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -14,6 +15,7 @@ from pathlib import Path
 from threading import Barrier
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
@@ -239,19 +241,26 @@ def test_a_refresh_token_raced_by_several_instances_is_rotated_once() -> None:
 
 
 def test_callback_sends_the_person_back_when_the_database_cannot_be_reached(
-    client: TestClient, github: list[str]
+    client: TestClient, github: list[str], caplog: pytest.LogCaptureFixture
 ) -> None:
+    state = secrets.token_urlsafe(32)
+
     class DatabaseDown:
         async def execute(self, *args: Any, **kwargs: Any) -> None:
-            raise ConnectionError("the database is down")
+            raise ConnectionError(f"the database is down while taking {state}")
 
     app.dependency_overrides[get_db] = DatabaseDown
 
     # a redirect to the web app, which can say so, and not a bare 500 on the API's address
-    assert callback_result(client, "github-code-ada", secrets.token_urlsafe(32)) == {
-        "error": "OAUTH_EXCHANGE_FAILED"
-    }
+    with caplog.at_level(logging.INFO):
+        assert callback_result(client, "github-code-ada", state) == {
+            "error": "OAUTH_EXCHANGE_FAILED"
+        }
     assert github == []
+    # the API logs the failure by its type, and never with the state or the code (the test
+    # client's own log of the request is not the API's)
+    logged = [r.getMessage() for r in caplog.records if r.name == "app.api.v1.auth"]
+    assert logged == ["GitHub sign-in callback failed: ConnectionError"]
 
 
 def test_an_expired_state_is_refused_then_removed(client: TestClient, github: list[str]) -> None:

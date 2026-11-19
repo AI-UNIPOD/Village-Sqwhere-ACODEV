@@ -73,6 +73,8 @@ tables.
 - `/start` and logout now need the database, and each sign-in step makes a few more short
   statements. When the callback cannot reach the database, it sends the person back to the
   web app with `OAUTH_EXCHANGE_FAILED`.
+  Changed on 19 November 2026: the API also logs such a failure, by its error type only, since
+  the message of a database or HTTP error can hold the code or a token.
 - `revoked_refresh_tokens` gets a row for each logout and each refresh, kept until the token
   would have expired. A row is one hash and one date. If the table grows large, that is the
   time for the `refresh_tokens` table above.
