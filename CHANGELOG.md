@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-19
+
+- feat(web): shorten four landing sections on phones
+
 ## 2026-11-16
 
 - feat(web): rework the landing for phones and open every page in dark

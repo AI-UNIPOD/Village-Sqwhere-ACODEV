@@ -64,3 +64,9 @@
     transition: none;
   }
 }
+
+@media (max-width: 767px) {
+  .item[data-phone="hidden"] {
+    display: none;
+  }
+}

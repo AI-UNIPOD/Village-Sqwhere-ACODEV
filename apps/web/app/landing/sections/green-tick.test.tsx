@@ -1,7 +1,11 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { GreenTick } from "./green-tick";
+import { copy as faqCopy } from "./faq-copy";
 import { copy } from "./green-tick-copy";
 
 function stubMotion(reduce: boolean) {
@@ -109,4 +113,17 @@ test("Watch it again plays the rows once more, and not while it is playing", () 
   expect(live().textContent).toBe("");
   act(() => vi.advanceTimersByTime(3300));
   expect(pills()).toEqual(["Done", "Done", "Done"]);
+});
+
+// jsdom has no layout, so this reads the stylesheet: on a phone the section leaves out the two
+// lines the FAQ also says, and the FAQ really says them
+test.each([
+  ["en", "three attempts per role", "Not to share an idea."],
+  ["fr", "trois tentatives par rôle", "Pas pour partager une idée."],
+] as const)("on a phone the %s attempts and no-tick lines go, as the FAQ says both", (lang, attempts, noTick) => {
+  const css = readFileSync(join(__dirname, "green-tick.module.css"), "utf8").replace(/\s+/g, " ");
+  expect(css).toContain("@media (max-width: 767px) { .attempts, .noTick { display: none; } }");
+  const answer = faqCopy[lang].items.find((item) => item.q.includes("Green Tick"))!.a;
+  expect(answer).toContain(attempts);
+  expect(answer).toContain(noTick);
 });

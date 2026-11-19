@@ -103,6 +103,8 @@ export function HubPhases({ lang }: { lang: Lang }) {
   const [selected, setSelected] = useState(0);
   // true while the first phase waits, unseen, to play its entrance
   const [waiting, setWaiting] = useState(false);
+  // on a phone the closing paragraph is open only once asked for (wider screens always show it)
+  const [more, setMore] = useState(false);
   const demoRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -238,7 +240,21 @@ export function HubPhases({ lang }: { lang: Lang }) {
             ))}
           </div>
 
-          <p className={s.closing}>{t.closing}</p>
+          <button
+            type="button"
+            className={s.more}
+            aria-expanded={more}
+            aria-controls={`${id}-closing`}
+            onClick={() => setMore((open) => !open)}
+          >
+            {t.more}
+            <svg className={s.chevron} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <p className={s.closing} id={`${id}-closing`} data-open={more}>
+            {t.closing}
+          </p>
         </div>
       </div>
     </section>

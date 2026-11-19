@@ -457,8 +457,14 @@
    each settles under the pill a little lower than the one before, so their tops cascade like
    tabs, and the next slides up over it while it sinks back a little. A card taller than the
    screen settles only once its bottom is in view, so all of it is read before it is covered.
-   With reduced motion they stay a plain list of cards. */
+   With reduced motion they stay a plain list of cards. A card holds only its words there: the
+   Matcher and Hub sections further down show those views for real, and the mock-ups made this
+   section four screens long on a phone. */
 @media (max-width: 767px) {
+  .inline {
+    display: none;
+  }
+
   .steps {
     --stack-top: calc(var(--pill-top) + env(safe-area-inset-top, 0px) + var(--pill-height) + var(--space-2));
     display: grid;

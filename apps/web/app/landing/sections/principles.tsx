@@ -29,6 +29,10 @@ const ICONS: Record<PrincipleKey, string[]> = {
   verified: ["M12 3 5 5.8v5.4c0 4.4 2.9 7.7 7 9.3 4.1-1.6 7-4.9 7-9.3V5.8Z", "M8.8 12l2.4 2.4 4.2-4.6"],
 };
 
+// On a phone only these two show: the matcher section already says the owner decides, and the
+// Green Tick section that only verified roles are matched. The page is shorter for it.
+const PHONE_PRINCIPLES: PrincipleKey[] = ["together", "private"];
+
 export function Principles({ lang }: { lang: Lang }) {
   const t = copy[lang];
   const listRef = useRef<HTMLDivElement>(null);
@@ -73,6 +77,7 @@ export function Principles({ lang }: { lang: Lang }) {
               key={item.key}
               data-reveal=""
               data-draw=""
+              data-phone={PHONE_PRINCIPLES.includes(item.key) ? undefined : "hidden"}
               style={{ "--i": i % 2 } as CSSProperties}
             >
               <svg className={own.icon} viewBox="0 0 24 24" aria-hidden="true" focusable="false">

@@ -440,3 +440,12 @@
     animation-name: fadeIn;
   }
 }
+
+/* On a phone the FAQ already says both ("Do I need a Green Tick?"), so these two lines go,
+   to keep the page short there. */
+@media (max-width: 767px) {
+  .attempts,
+  .noTick {
+    display: none;
+  }
+}

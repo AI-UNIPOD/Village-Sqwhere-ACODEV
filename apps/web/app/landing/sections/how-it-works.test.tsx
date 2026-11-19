@@ -212,3 +212,11 @@ test("the stack's cards stick only on phones, under the pill, cascading and neve
   );
   expect(css.split(".steps[data-stack] .step { position: sticky")).toHaveLength(2);
 });
+
+// jsdom has no layout, so this reads the stylesheet: on a phone each card is its words only
+// (wider screens keep the views, in each step or on the sticky stage from 1100px)
+test("on a phone the steps carry no mock-up views", () => {
+  const css = readFileSync(join(__dirname, "how-it-works.module.css"), "utf8").replace(/\s+/g, " ");
+  const phoneCss = css.slice(css.indexOf("@media (max-width: 767px) {"));
+  expect(phoneCss.startsWith("@media (max-width: 767px) { .inline { display: none; }")).toBe(true);
+});

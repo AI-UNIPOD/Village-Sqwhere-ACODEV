@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -243,4 +246,26 @@ test("on a phone the tab row marks the edges that have more tabs past them as it
   Object.defineProperty(scroller, "scrollWidth", { configurable: true, get: () => 358 });
   scrollTo(0);
   expect(scroller.hasAttribute("data-more")).toBe(false);
+});
+
+test.each(["en", "fr"] as const)("on a phone the %s closing paragraph opens from its button, and closes again", (lang) => {
+  render(<HubPhases lang={lang} />);
+  const t = copy[lang];
+  const button = screen.getByRole("button", { name: t.more });
+  const closing = screen.getByText(t.closing, verbatim);
+  expect(button.getAttribute("aria-expanded")).toBe("false");
+  expect(button.getAttribute("aria-controls")).toBe(closing.id);
+  expect(closing.getAttribute("data-open")).toBe("false");
+  fireEvent.click(button);
+  expect(button.getAttribute("aria-expanded")).toBe("true");
+  expect(closing.getAttribute("data-open")).toBe("true");
+  fireEvent.click(button);
+  expect(closing.getAttribute("data-open")).toBe("false");
+});
+
+// jsdom has no layout, so this reads the stylesheet: the button and the folding are phone-only
+test("the closing paragraph folds only on a phone; wider screens show it and no button", () => {
+  const css = readFileSync(join(__dirname, "hub-phases.module.css"), "utf8").replace(/\s+/g, " ");
+  expect(css).toContain(".more { display: none; } @media (max-width: 767px) { .more { display: inline-flex;");
+  expect(css).toContain('.closing[data-open="false"] { display: none; } }');
 });
