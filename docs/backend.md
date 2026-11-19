@@ -632,7 +632,7 @@ The applicant asks for a one-use ticket just before opening the interview socket
 token never goes in a URL, where servers and proxies log it. No body. Answers `201` with
 `{"data": {"ticket": "...", "expires_at": "..."}}`. The ticket works once, for about 60
 seconds, only for this attempt and this person, and is kept in the API's memory (one process,
-like the sign-in codes).
+unlike the sign-in codes, which are in the database).
 
 * **Errors:** `401`, `403 DEMO_READ_ONLY` (the demo cannot take an interview), `404 NOT_FOUND`
   (no such attempt of yours), `409 INTERVIEW_NOT_AVAILABLE` (the attempt is not at its
@@ -2079,7 +2079,7 @@ export async function generatePKCE() {
   }
   ```
 * Save the new `access_token` and the new rotated `refresh_token`, then retry the original failed request. The user experiences zero interruption.
-* Refresh tokens, login codes and OAuth states are kept in the API's memory for now. A restart cancels sign-ins in progress and forgets logouts (a logged-out refresh token works again until it expires), so run a single API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
+* OAuth states, login codes and revoked refresh tokens are kept in the database, as SHA-256 hashes only. Any API instance can finish a sign-in another started, a restart loses nothing, and a logged-out refresh token stays refused everywhere. A refresh token works once: when two requests send the same one, one gets a new pair and the other gets `401 REFRESH_TOKEN_INVALID`. See `docs/decisions/2026-11-19-sign-in-state-in-postgres.md`.
 
 ---
 

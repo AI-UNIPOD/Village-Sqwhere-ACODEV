@@ -1,5 +1,9 @@
 # Sign-in without a dev login, with a required signing key
 
+Update, 2026-11-19: OAuth states, login codes and revoked refresh tokens are no longer kept in
+memory. They live in PostgreSQL, so the "single API process" limit below is gone. See
+`2026-11-19-sign-in-state-in-postgres.md`.
+
 ## Context
 
 The first version of GitHub sign-in (pull request #3) had a "dev simulation mode".
