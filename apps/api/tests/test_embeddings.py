@@ -1,5 +1,5 @@
 """Embeddings of ideas and developers: what is sent, who is embedded, when a vector goes stale,
-and the Gemini client. No test calls Gemini: the worker gets a fake embedder, and the client
+and the OpenAI client. No test calls OpenAI: the worker gets a fake embedder, and the client
 gets a fake network call.
 
 The shared test database is never cleaned, so every test makes rows with a unique tag in their
@@ -38,15 +38,23 @@ from app.models import (
     UserTechnology,
 )
 from app.services import embeddings as client_module
-from app.services.embeddings import GeminiEmbedder, idea_text, profile_text, source_sha256
-from app.services.gemini import GeminiApiError, GeminiConfigurationError
+from app.services.embeddings import (
+    EmbeddingApiError,
+    EmbeddingConfigurationError,
+    OpenAIEmbedder,
+    idea_text,
+    profile_text,
+    source_sha256,
+)
 from app.workers import embeddings as worker
 from app.workers import runner
 from tests.conftest import TEST_DB_URL
 from tests.conftest import test_async_session as db_session
 from tests.hub_support import auth, make_user, run
 
-SCRIPT = Path(__file__).resolve().parents[3] / "infra" / "db" / "init" / "025-embeddings.sql"
+INIT = Path(__file__).resolve().parents[3] / "infra" / "db" / "init"
+# in the order every database gets them: 028 moves the tables 025 made to the model in use
+SCRIPTS = [INIT / "025-embeddings.sql", INIT / "028-embeddings-on-openai.sql"]
 KEY = "test-key-that-must-never-be-logged"
 
 
@@ -64,9 +72,9 @@ class FakeEmbedder:
         if self.error:
             raise self.error
         if self.refuse and any(self.refuse in text for text in texts):
-            raise GeminiApiError("Gemini answered with an error.")
+            raise EmbeddingApiError("OpenAI answered with an error.")
         if self.crash and any(self.crash in text for text in texts):
-            raise RuntimeError("something that is not a Gemini error")
+            raise RuntimeError("something that is not a provider error")
         self.sent.extend(texts)
         if self.while_embedding:
             await self.while_embedding()
@@ -238,17 +246,17 @@ def test_only_open_ideas_are_embedded() -> None:
     assert [idea_vector(idea) for idea in skipped] == [None, None, None]
 
 
-def test_an_open_idea_by_a_demo_account_is_never_embedded() -> None:
+def test_an_open_idea_by_a_demo_account_with_no_vector_is_embedded_like_any_other() -> None:
     tag = uuid4().hex
     real, demo = make_idea(tag), make_idea(tag, is_demo=True)
 
     embed_everything(FakeEmbedder())
 
     assert idea_vector(real) is not None
-    assert idea_vector(demo) is None
+    assert idea_vector(demo) is not None
 
 
-def test_only_developers_with_a_verified_role_on_a_live_real_account_are_embedded() -> None:
+def test_only_developers_with_a_verified_role_on_a_live_account_are_embedded() -> None:
     tag = uuid4().hex
     developer = make_developer(tag)
     demo = make_developer(tag, is_demo=True)
@@ -258,7 +266,8 @@ def test_only_developers_with_a_verified_role_on_a_live_real_account_are_embedde
     embed_everything(FakeEmbedder())
 
     assert user_vector(developer) is not None
-    assert user_vector(demo) is None
+    # a demo developer the seed gave no frozen vector is embedded too
+    assert user_vector(demo) is not None
     assert user_vector(unverified) is None
     assert user_vector(deleted) is None
 
@@ -272,7 +281,7 @@ def test_the_stored_row_names_the_model_and_the_hash_of_what_was_sent() -> None:
 
     row = idea_vector(idea)
     assert row is not None
-    assert row.model == "gemini-embedding-2"
+    assert row.model == "text-embedding-3-small"
     assert len(row.embedding) == 768
     assert row.source_sha256 == source_sha256(sent_with(embedder, tag))
 
@@ -367,7 +376,7 @@ def test_a_change_that_leaves_the_profile_text_alone_keeps_the_vector() -> None:
     assert user_vector(user) is not None
 
 
-def test_a_text_that_changes_while_gemini_answers_gets_no_stale_vector() -> None:
+def test_a_text_that_changes_while_the_provider_answers_gets_no_stale_vector() -> None:
     idea = make_idea(uuid4().hex)
     embedder = FakeEmbedder()
 
@@ -399,7 +408,7 @@ def test_a_failed_request_writes_nothing_and_the_next_run_succeeds(
     idea = make_idea(tag)
     user = make_developer(tag)
     failing = FakeEmbedder()
-    failing.error = GeminiApiError("Gemini could not be reached.")
+    failing.error = EmbeddingApiError("OpenAI could not be reached.")
 
     with caplog.at_level(logging.WARNING):
         assert embed_everything(failing) == 0
@@ -411,7 +420,7 @@ def test_a_failed_request_writes_nothing_and_the_next_run_succeeds(
     assert user_vector(user) is not None
 
 
-def test_one_text_gemini_refuses_does_not_hold_back_the_others(
+def test_one_text_the_provider_refuses_does_not_hold_back_the_others(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     tag = uuid4().hex
@@ -465,11 +474,11 @@ def test_without_a_key_nothing_is_sent_and_the_log_says_so_once(
     monkeypatch.setattr(client_module, "urlopen", refuse)
 
     with caplog.at_level(logging.WARNING):
-        embed_everything(GeminiEmbedder(api_key=None))
-        embed_everything(GeminiEmbedder(api_key=None))
+        embed_everything(OpenAIEmbedder(api_key=None))
+        embed_everything(OpenAIEmbedder(api_key=None))
 
     assert idea_vector(idea) is None
-    assert caplog.text.count("GEMINI_API_KEY is not set") == 1
+    assert caplog.text.count("OPENAI_API_KEY is not set") == 1
 
 
 def test_a_failure_logs_neither_the_key_nor_the_text(
@@ -484,7 +493,7 @@ def test_a_failure_logs_neither_the_key_nor_the_text(
     monkeypatch.setattr(client_module, "urlopen", unreachable)
 
     with caplog.at_level(logging.DEBUG):
-        embed_everything(GeminiEmbedder(api_key=KEY))
+        embed_everything(OpenAIEmbedder(api_key=KEY))
 
     assert idea_vector(idea) is None
     assert "Embedding failed" in caplog.text
@@ -546,7 +555,7 @@ def test_a_worker_run_does_the_verification_step_and_then_embeds(
     async def embed_all(embedder: Any) -> int:
         return await worker.embed_missing(embedder, limit=10_000)
 
-    monkeypatch.setattr(runner, "GeminiEmbedder", FakeEmbedder)
+    monkeypatch.setattr(runner, "OpenAIEmbedder", FakeEmbedder)
     monkeypatch.setattr(runner, "embed_missing", embed_all)
 
     processed = asyncio.run(runner.run_once())
@@ -573,7 +582,7 @@ def test_a_failing_embedding_step_leaves_the_verification_steps_done(
     assert "Embedding run failed" in caplog.text
 
 
-# --- the Gemini client ---------------------------------------------------------------------
+# --- the OpenAI client ---------------------------------------------------------------------
 
 
 class FakeNetwork:
@@ -591,12 +600,18 @@ class FakeNetwork:
 
 
 def answer_with(*vectors: list[float]) -> dict[str, Any]:
-    return {"embeddings": [{"values": vector} for vector in vectors]}
+    return {
+        "object": "list",
+        "data": [
+            {"object": "embedding", "index": index, "embedding": vector}
+            for index, vector in enumerate(vectors)
+        ],
+    }
 
 
 def embed_with(monkeypatch: pytest.MonkeyPatch, network: FakeNetwork, texts: list[str]) -> Any:
     monkeypatch.setattr(client_module, "urlopen", network)
-    return asyncio.run(GeminiEmbedder(api_key=KEY).embed(texts))
+    return asyncio.run(OpenAIEmbedder(api_key=KEY).embed(texts))
 
 
 def test_the_client_asks_for_768_numbers_per_text_in_one_request(
@@ -607,23 +622,16 @@ def test_the_client_asks_for_768_numbers_per_text_in_one_request(
     embed_with(monkeypatch, network, ["first text", "second text"])
 
     ((request, timeout),) = network.requests
-    assert request.full_url == (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        "gemini-embedding-2:batchEmbedContents"
-    )
+    assert request.full_url == "https://api.openai.com/v1/embeddings"
     assert request.get_method() == "POST"
-    assert request.get_header("X-goog-api-key") == KEY
+    assert request.get_header("Authorization") == f"Bearer {KEY}"
     assert request.full_url.count(KEY) == 0
     assert timeout > 0
     assert json.loads(request.data) == {
-        "requests": [
-            {
-                "model": "models/gemini-embedding-2",
-                "content": {"parts": [{"text": f"task: sentence similarity | query: {text}"}]},
-                "embedContentConfig": {"outputDimensionality": 768},
-            }
-            for text in ("first text", "second text")
-        ]
+        "model": "text-embedding-3-small",
+        "input": ["first text", "second text"],
+        "dimensions": 768,
+        "encoding_format": "float",
     }
 
 
@@ -640,6 +648,17 @@ def test_the_client_returns_vectors_of_length_one_in_the_order_asked(
     assert vectors[1][2] == pytest.approx(1.0)
 
 
+def test_the_client_puts_the_vectors_back_in_the_order_asked_by_their_index(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    answer = answer_with([1.0] + [0.0] * 767, [0.0, 1.0] + [0.0] * 766)
+    answer["data"].reverse()
+
+    vectors = embed_with(monkeypatch, FakeNetwork(answer), ["a", "b"])
+
+    assert (vectors[0][0], vectors[1][1]) == (1.0, 1.0)
+
+
 def test_the_client_sends_nothing_for_no_texts(monkeypatch: pytest.MonkeyPatch) -> None:
     network = FakeNetwork(answer_with())
 
@@ -653,8 +672,8 @@ def test_the_client_without_a_key_raises_the_configuration_error(
     network = FakeNetwork(answer_with([1.0] * 768))
     monkeypatch.setattr(client_module, "urlopen", network)
 
-    with pytest.raises(GeminiConfigurationError):
-        asyncio.run(GeminiEmbedder(api_key=None).embed(["text"]))
+    with pytest.raises(EmbeddingConfigurationError):
+        asyncio.run(OpenAIEmbedder(api_key=None).embed(["text"]))
 
     assert network.requests == []
 
@@ -665,8 +684,9 @@ def test_the_client_without_a_key_raises_the_configuration_error(
         answer_with([1.0] * 767),
         answer_with([1.0] * 768, [1.0] * 768),
         answer_with([0.0] * 768),
-        {"embeddings": [{"vector": [1.0] * 768}]},
-        {"embeddings": ["not an object"]},
+        {"data": [{"index": 0, "vector": [1.0] * 768}]},
+        {"data": [{"index": 1, "embedding": [1.0] * 768}]},
+        {"data": ["not an object"]},
         {"error": {"message": "quota"}},
         [],
         HTTPError("https://example.test", 429, "Too Many Requests", {}, None),
@@ -680,6 +700,7 @@ def test_the_client_without_a_key_raises_the_configuration_error(
         "too many vectors",
         "all zeros",
         "no values",
+        "an index of another text",
         "not an object",
         "an error body",
         "not an object at the top",
@@ -693,7 +714,7 @@ def test_the_client_without_a_key_raises_the_configuration_error(
 def test_the_client_raises_one_error_for_an_unreachable_or_bad_answer(
     monkeypatch: pytest.MonkeyPatch, answer: Any
 ) -> None:
-    with pytest.raises(GeminiApiError) as raised:
+    with pytest.raises(EmbeddingApiError) as raised:
         embed_with(monkeypatch, FakeNetwork(answer), ["text"])
 
     assert KEY not in str(raised.value)
@@ -709,17 +730,16 @@ def test_idea_text_is_title_then_summary() -> None:
 
 
 def apply_script() -> None:
-    sql = SCRIPT.read_text(encoding="utf-8")
-
     async def work(session: Any) -> None:
         connection = await (await session.connection()).get_raw_connection()
-        await connection.driver_connection.execute(sql)
+        for script in SCRIPTS:
+            await connection.driver_connection.execute(script.read_text(encoding="utf-8"))
 
     run(work)
 
 
 def embedding_schema() -> list[tuple[Any, ...]]:
-    """What the script defines: columns, constraints, indexes, triggers and their functions."""
+    """What the scripts define: columns, constraints, indexes, triggers and their functions."""
     queries = [
         """SELECT c.relname, a.attname, format_type(a.atttypid, a.atttypmod),
                   pg_get_expr(d.adbin, d.adrelid), a.attnotnull
@@ -750,8 +770,8 @@ def embedding_schema() -> list[tuple[Any, ...]]:
     return run(work)
 
 
-def test_the_script_runs_twice_and_leaves_the_tables_as_they_were() -> None:
-    # once first: a database may have had the script applied from a checkout with other line
+def test_the_scripts_run_twice_and_leave_the_tables_as_they_were() -> None:
+    # once first: a database may have had a script applied from a checkout with other line
     # endings, which a function's stored text keeps
     apply_script()
     before = embedding_schema()
@@ -801,8 +821,8 @@ CREATE INDEX idea_embeddings_hnsw_idx ON idea_embeddings USING hnsw (embedding v
 """
 
 
-def test_the_script_removes_rows_of_the_old_model_and_changes_the_width() -> None:
-    sql = SCRIPT.read_text(encoding="utf-8")
+def test_the_scripts_remove_rows_of_an_older_model_and_change_the_width() -> None:
+    first, second = (script.read_text(encoding="utf-8") for script in SCRIPTS)
     old_vector = "[" + ",".join(["1"] * 384) + "]"
     new_vector = "[" + ",".join(["1"] * 768) + "]"
     insert_new = (
@@ -810,7 +830,7 @@ def test_the_script_removes_rows_of_the_old_model_and_changes_the_width() -> Non
         f"SELECT id, '{new_vector}', repeat('b', 64) FROM ideas"
     )
 
-    async def work() -> tuple[int, str, int, int]:
+    async def work() -> tuple[int, str, int, int, int]:
         connection = await asyncpg.connect(TEST_DB_URL)
         transaction = connection.transaction()
         await transaction.start()
@@ -821,25 +841,32 @@ def test_the_script_removes_rows_of_the_old_model_and_changes_the_width() -> Non
                 "INSERT INTO idea_embeddings (idea_id, embedding, source_sha256) "
                 f"SELECT id, '{old_vector}', repeat('a', 64) FROM ideas"
             )
-            await connection.execute(sql)
+            await connection.execute(first)
             left = await connection.fetchval("SELECT count(*) FROM idea_embeddings")
             width = await connection.fetchval(
                 "SELECT format_type(atttypid, atttypmod) FROM pg_attribute "
                 "WHERE attrelid = 'before_025.idea_embeddings'::regclass AND attname = 'embedding'"
             )
+            # a vector that 025's model made is removed by 028, and one of the model in use
+            # outlives both scripts run again in order
             await connection.execute(insert_new)
-            await connection.execute(sql)
+            await connection.execute(second)
+            replaced = await connection.fetchval("SELECT count(*) FROM idea_embeddings")
+            await connection.execute(insert_new)
+            await connection.execute(first)
+            await connection.execute(second)
             kept = await connection.fetchval("SELECT count(*) FROM idea_embeddings")
             made = await connection.fetchval("SELECT count(*) FROM user_embeddings")
-            return left, width, kept, made
+            return left, width, replaced, kept, made
         finally:
             await transaction.rollback()
             await connection.close()
 
-    left, width, kept, made = asyncio.run(work())
+    left, width, replaced, kept, made = asyncio.run(work())
 
     assert left == 0
     assert width == "vector(768)"
+    assert replaced == 0
     assert kept == 1
     assert made == 0
 
@@ -850,9 +877,9 @@ def test_the_script_removes_rows_of_the_old_model_and_changes_the_width() -> Non
 @pytest.mark.parametrize(
     ("model", "vector", "sha"),
     [
-        ("all-MiniLM-L6-v2", "[" + ",".join(["1"] * 768) + "]", "a" * 64),
-        ("gemini-embedding-2", "[" + ",".join(["1"] * 384) + "]", "a" * 64),
-        ("gemini-embedding-2", "[" + ",".join(["1"] * 768) + "]", "not a hash"),
+        ("gemini-embedding-2", "[" + ",".join(["1"] * 768) + "]", "a" * 64),
+        ("text-embedding-3-small", "[" + ",".join(["1"] * 384) + "]", "a" * 64),
+        ("text-embedding-3-small", "[" + ",".join(["1"] * 768) + "]", "not a hash"),
     ],
     ids=["wrong model", "wrong width", "wrong hash"],
 )

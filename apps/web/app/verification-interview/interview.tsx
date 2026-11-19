@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 import { AppFrame } from "../app-frame";
+import { NotSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -15,6 +16,7 @@ import { RequireSession } from "../session/session-ui";
 import { copy } from "./copy";
 import styles from "./interview.module.css";
 import { MAX_ANSWER, useInterview, type Problem, type Status, type Turn } from "./use-interview";
+import { reducesMotion } from "../site-motion";
 
 type Attempt = { status: string; current_phase: string | null };
 type Reason = "checking" | "answered" | "review" | "ended";
@@ -171,7 +173,7 @@ function TurnView({ lang, turn }: { lang: Lang; turn: Turn }) {
 function useKeepNewestInView(turns: number, status: Status) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const calm = reducesMotion();
     end.current?.scrollIntoView({ block: "end", behavior: calm ? "instant" : "smooth" });
   }, [turns, status]);
   return end;
@@ -315,7 +317,8 @@ function Conversation({ lang, attemptId }: { lang: Lang; attemptId: string }) {
     );
   }
   const live = status === "connecting" || status === "asking" || status === "reading";
-  const ending = live ? null : ENDINGS[status];
+  // the demo account's refused start has no ending of its own: the shared line says it
+  const ending = live || status === "demo" ? null : ENDINGS[status];
   return (
     <Shell lang={lang} locked={live}>
       <div className={styles.head}>
@@ -328,14 +331,18 @@ function Conversation({ lang, attemptId }: { lang: Lang; attemptId: string }) {
       </div>
       <Transcript lang={lang} turns={turns} status={status} />
       <div className={styles.dock}>
-        {ending ? (
+        {ending || status === "demo" ? (
           <>
-            <Message
-              kind={ending.kind}
-              title={t[ending.say].title}
-              text={t[ending.say].text}
-              role={ending.kind === "error" ? "alert" : "status"}
-            />
+            {ending ? (
+              <Message
+                kind={ending.kind}
+                title={t[ending.say].title}
+                text={t[ending.say].text}
+                role={ending.kind === "error" ? "alert" : "status"}
+              />
+            ) : (
+              <NotSaved lang={lang} />
+            )}
             <div className={styles.dockActions}>
               <BackLink lang={lang} />
             </div>

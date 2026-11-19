@@ -11,6 +11,7 @@ import page from "../landing-page.module.css";
 import { copy, FACTS } from "./matcher-demo-copy";
 import { demoScore } from "./matcher-demo-score";
 import styles from "./matcher-demo.module.css";
+import { reducesMotion } from "../../site-motion";
 
 /**
  * idle: waiting for the visitor (or for the section to scroll into view the first time)
@@ -26,7 +27,7 @@ type Phase = "idle" | "running" | "results" | "inviting" | "won";
 const RUN_STEP_MS = 450;
 const SIGN_STEP_MS = 500;
 
-const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const still = reducesMotion;
 
 function initials(name: string) {
   return name

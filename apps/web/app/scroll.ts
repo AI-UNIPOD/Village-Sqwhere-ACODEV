@@ -1,6 +1,8 @@
+import { reducesMotion } from "./site-motion";
+
 // Scrolling to a named part of a screen, the way the design system moves: smooth, unless the
 // person asked for less motion.
-const behavior = () => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+const behavior = () => (reducesMotion() ? "auto" : "smooth");
 
 // How far the header's pill (frame-pin.tsx) covers the top of the screen, if a page scrolled
 // to `top` has it pinned: that is once the header has scrolled out of view, from 360px wide.

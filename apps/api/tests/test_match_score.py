@@ -37,7 +37,7 @@ def test_the_breakdown_gives_raw_points_and_maxima_with_no_meaning_part() -> Non
 
 
 def test_the_meaning_part_makes_a_score_of_version_2_that_is_the_plain_sum() -> None:
-    result = match_score(2, 3, 1, 0.76)
+    result = match_score(2, 3, 1, 0.30)
 
     # 40 + 12 + 5 + 15, out of 100, with nothing scaled
     assert result.score == 72

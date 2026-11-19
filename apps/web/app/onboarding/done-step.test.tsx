@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
+import { copy } from "./copy";
 import { DoneStep } from "./done-step";
 import { NO_ANSWERS } from "./steps";
 
@@ -114,6 +115,19 @@ test("a failed save shows an alert and Try again sends it all again", async () =
   expect(await screen.findByText(/^Your role, stack, sectors and what your feed shows are saved/)).toBeTruthy();
   expect(screen.queryByRole("alert")).toBeNull();
   expect(fetchMock).toHaveBeenCalledTimes(4);
+});
+
+test.each([
+  ["en", "Nothing was saved. The demo cannot be changed."],
+  ["fr", "Rien n'a été enregistré. La démo ne peut pas être modifiée."],
+] as const)("the demo's refused save says nothing was saved as a status, with no alert and no Try again (%s)", async (lang, sentence) => {
+  fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ detail: { code: "DEMO_READ_ONLY", message: "English text from the API" } }), { status: 403 }));
+  card(lang, { displayName: "Kofi Mensah", username: "kofi-ships" });
+  expect((await screen.findByText(sentence)).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("button", { name: copy[lang].retry })).toBeNull();
+  // the saves go out together, so each one is refused (the first answer here, the rest by the same API)
+  expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
 });
 
 test("with no role chosen nothing is saved and no save message shows", () => {

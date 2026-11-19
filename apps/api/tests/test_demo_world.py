@@ -11,8 +11,11 @@ from sqlalchemy import delete, func, select, text
 
 from app import config
 from app.demo_seed import seed
+from app.demo_vectors import frozen_vectors
 from app.demo_world import IMAGES, load_members, load_posts, write_world
-from app.models import Comment, Post, User
+from app.models import Comment, Post, User, UserEmbedding
+from app.services.embeddings import profile_text, source_sha256
+from app.workers.embeddings import EMBEDDED_USERS
 from tests.conftest import test_async_session as db_session
 
 FULL, LIGHT = load_members()
@@ -199,6 +202,29 @@ def test_the_world_is_written_whole_and_every_account_is_a_demo_account(world) -
     assert _scalar("SELECT count(*) FROM users WHERE username = ANY(:handles)") == len(MEMBERS)
 
 
+def test_every_verified_member_gets_the_vector_frozen_for_their_profile(world) -> None:
+    """When this fails, a member's roles, technologies, sectors or bio changed in the fixtures:
+    make demo_fixtures/vectors.json again (app/demo_vectors.py)."""
+    members = (*EMBEDDED_USERS, User.username.in_(list(MEMBERS)))
+
+    async def go(session) -> tuple[set[str], set[str]]:
+        texts = {
+            source_sha256(profile_text(user))
+            for user in await session.scalars(select(User).where(*members))
+        }
+        stored = set(
+            await session.scalars(select(UserEmbedding.source_sha256).join(User).where(*members))
+        )
+        return texts, stored
+
+    texts, stored = _run(go)
+
+    # the full members verified in a role; with the seed's own 13 texts, the 77 of the file
+    assert len(texts) == 64
+    assert texts <= set(frozen_vectors())
+    assert stored == texts
+
+
 def test_the_original_seven_keep_the_posts_the_seed_wrote_them(world) -> None:
     assert (
         _scalar(
@@ -290,6 +316,63 @@ def test_the_visitor_signs_in_and_scrolls_through_the_new_posts(
     assert authors & set(MEMBERS)
     comment_total = _run(lambda session: session.scalar(select(func.count()).select_from(Comment)))
     assert comment_total >= sum(len(post["comments"]) for post in POSTS)
+
+
+def _visitor(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    monkeypatch.setattr(config, "DEMO_ENABLED", True)
+    signed_in = client.post("/v1/auth/demo")
+    assert signed_in.status_code == 200
+    return {"Authorization": f"Bearer {signed_in.json()['data']['access_token']}"}
+
+
+def test_the_visitors_for_you_feed_is_a_recent_ranked_mix_and_not_just_the_newest(
+    world, client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers = _visitor(client, monkeypatch)
+    ranked = client.get("/v1/feed", headers=headers, params={"limit": 20}).json()["data"]
+    newest = client.get("/v1/feed", headers=headers, params={"limit": 20, "sort": "newest"}).json()[
+        "data"
+    ]
+    assert [post["id"] for post in ranked] != [post["id"] for post in newest]
+    assert len({post["type"] for post in ranked}) >= 4
+    assert len({post["author"]["username"] for post in ranked}) >= 12
+    now = datetime.now(UTC)
+    assert all(
+        now - datetime.fromisoformat(post["created_at"]) < timedelta(days=30) for post in ranked
+    )
+    # the visitor chose no topics, so the stack on the profile counts
+    stack = {
+        tech["slug"]
+        for tech in client.get("/v1/me", headers=headers).json()["data"]["technologies"]
+    }
+    assert sum(1 for post in ranked if stack & {topic["slug"] for topic in post["topics"]}) >= 5
+
+
+def test_the_visitor_can_search_the_made_up_feed_and_sort_the_results(
+    world, client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers = _visitor(client, monkeypatch)
+    word = re.compile(r"\bkubernetes\b", re.I)
+    expected = sum(1 for post in POSTS if word.search(f"{post.get('title', '')} {post['body']}"))
+    assert expected > 5
+    found: list[dict] = []
+    offset: int | None = 0
+    while offset is not None:
+        page = client.get(
+            "/v1/posts", headers=headers, params={"q": "kubernetes", "limit": 50, "offset": offset}
+        ).json()
+        found += page["data"]
+        offset = page["next_offset"]
+    assert len(found) >= expected
+    assert len({post["id"] for post in found}) == len(found)
+    for sort in ("newest", "active"):
+        sorted_ = client.get(
+            "/v1/posts", headers=headers, params={"q": "kubernetes", "sort": sort, "limit": 50}
+        ).json()["data"]
+        assert sorted_
+        if sort == "newest":
+            stamps = [post["created_at"] for post in sorted_]
+            assert stamps == sorted(stamps, reverse=True)
 
 
 def test_every_picture_is_stored_like_an_upload_and_served_without_a_token(world) -> None:

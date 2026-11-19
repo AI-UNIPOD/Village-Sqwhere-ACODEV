@@ -62,7 +62,8 @@ app/
     deps.py            CurrentUser, DbSession, the demo wall
     v1/
       router.py        mounts every router below under /v1
-      auth.py          GitHub OAuth with PKCE, tokens, demo sign-in
+      auth.py          GitHub OAuth with PKCE, tokens, demo sign-in; its one-time states
+                       and codes and its revoked tokens are in the database
       me.py            my profile, roles, stack, sectors, account deletion
       ideas.py         ideas, drafts, publishing          matches.py   scores
       hubs.py          hubs        hub_members.py   invitations, joining, leaving
@@ -70,11 +71,11 @@ app/
       hub_build.py     build tab   hub_review.py    checklist and finishing
       verifications.py role checks interviews.py    the interview WebSocket
       posts.py         feed        comments.py      comments and replies
-  models/              SQLAlchemy tables (users, ideas, hubs, posts, lookups)
+  models/              SQLAlchemy tables (users, sign_in, ideas, hubs, posts, lookups)
   schemas/             Pydantic request and response bodies
   services/            the logic routes share: match_score.py, account_deletion.py,
-                       interview.py, embeddings.py, groq*.py and gemini*.py with a fallback
-                       between them
+                       interview.py, embeddings.py (the vectors, from OpenAI),
+                       groq*.py, and providers.py with Claude and OpenAI behind Groq
   workers/             the verification and embedding worker (python -m app.workers.runner)
   demo_seed.py         the made-up world behind "Try the demo"
   demo_world.py        its wider community, loaded from the frozen files in demo_fixtures/
@@ -101,11 +102,16 @@ stateDiagram-v2
 ```
 
 The worker does the slow parts (reading public repositories, writing the report) outside any
-request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The interview
-and the report use Groq, with Gemini as the fallback, in the language the attempt started in.
+request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The repositories
+check, the interview and the report use Groq, then Claude, then OpenAI when one fails, in the
+language the attempt started in. Claude takes part only where `CLAUDE_ENABLED=true`; until the
+Anthropic account passes identity verification it is off, so OpenAI follows Groq. A provider
+without its key is skipped, and each answer must match
+a schema before it is kept (`docs/decisions/2026-11-19-interviews-without-gemini.md`). Speech goes
+to Groq's Whisper, then OpenAI.
 
-The same worker keeps an embedding of every open idea and every verified developer, from Gemini
-and `GEMINI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
+The same worker keeps an embedding of every open idea and every verified developer, from OpenAI's
+`text-embedding-3-small` and `OPENAI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
 idea's title and summary, and a developer's verified roles, technologies, sectors and bio.
 
 Where `DEMO_ENABLED=true` and the demo has been seeded, the same worker also dates the demo's posts
@@ -135,6 +141,13 @@ Or run it from this folder: `uv sync`, then `uv run fastapi dev app/main.py`.
 Settings come from environment variables or a root `.env` file (see the root `.env.example`).
 `JWT_SECRET_KEY` is required: the API will not start without it. GitHub sign-in also needs
 `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+
+Sign-in keeps nothing in the API's memory, so it works with any number of API instances.
+OAuth states, login codes and revoked refresh tokens are rows in PostgreSQL
+(`infra/db/init/029-sign-in-state.sql`), found by a SHA-256 hash, and a state or a code
+works once (`docs/decisions/2026-11-19-sign-in-state-in-postgres.md`). A database made
+before that script needs it run once by hand.
+
 Code lives in `app/`, tests in `tests/`.
 
 Tests need `TEST_DATABASE_URL`: the address of a separate database, `village_sqwhere_test`, so
@@ -184,7 +197,11 @@ give the same world, every like is chosen by a hash, and every count the feed sh
 database's own count of the rows. A rerun deletes those posts and writes them again with the
 same ids, dated back from now (a post cannot change its own time), and leaves the members.
 About 160 of the posts carry a picture (`demo_fixtures/images`, stored like uploads). The
-embeddings worker skips every demo account and the ideas they write. The names, bios and
+demo's vectors were measured once and are kept in `demo_fixtures/vectors.json`; the seed
+writes them, and the embeddings worker embeds a demo row the seed left without one
+(`docs/decisions/2026-11-19-demo-frozen-vectors.md`). After changing a demo bio, list or
+idea, run `python -m app.demo_vectors` against a newly seeded database with `OPENAI_API_KEY`
+set. The names, bios and
 texts are data: to change them, edit the files and keep `tests/test_demo_world.py` green.
 
 The world reads like the real product in real use: the demo bar is the only place that says it

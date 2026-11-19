@@ -9,17 +9,22 @@
 --
 -- Runs after 020-hub-agreement-v2.sql (021 to 024 belong to other work). Running it twice is
 -- safe, so a database made before it can run it once by hand (see infra/README.md).
+-- 028-embeddings-on-openai.sql moves both tables to text-embedding-3-small. This script lets
+-- that model's rows be, so running every script again in order keeps the vectors.
 
-DELETE FROM idea_embeddings WHERE model <> 'gemini-embedding-2';
+DELETE FROM idea_embeddings
+  WHERE model NOT IN ('gemini-embedding-2', 'text-embedding-3-small');
 
 ALTER TABLE idea_embeddings DROP CONSTRAINT IF EXISTS idea_embeddings_model;
 ALTER TABLE idea_embeddings ALTER COLUMN model SET DEFAULT 'gemini-embedding-2';
 DROP INDEX IF EXISTS idea_embeddings_hnsw_idx;
 ALTER TABLE idea_embeddings ALTER COLUMN embedding TYPE vector(768);
 
--- Mixing models in one index silently breaks similarity, so the model is pinned here.
+-- Mixing models in one index silently breaks similarity, so the model is pinned: here to this
+-- script's model or its successor, and to the successor alone by 028.
 ALTER TABLE idea_embeddings
-  ADD CONSTRAINT idea_embeddings_model CHECK (model = 'gemini-embedding-2');
+  ADD CONSTRAINT idea_embeddings_model
+  CHECK (model IN ('gemini-embedding-2', 'text-embedding-3-small'));
 CREATE INDEX idea_embeddings_hnsw_idx ON idea_embeddings USING hnsw (embedding vector_cosine_ops);
 
 -- One embedding per developer, made by the worker from their verified roles, technologies,

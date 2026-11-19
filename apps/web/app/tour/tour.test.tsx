@@ -258,6 +258,24 @@ test("off the route the panel shrinks to a line, and Back to the route returns t
   expect(nav.push).toHaveBeenCalledExactlyOnceWith("/en/posts/view?id=post-1");
 });
 
+test("the feed narrowed to a kind or a topic is still the feed's step, so the panel stays whole", async () => {
+  atStep(1);
+  render(frame("feed?type=question&topic=python"));
+  const region = await panel();
+  expect(region.hasAttribute("data-compact")).toBe(false);
+  expect(region.querySelector("h2")?.textContent).toBe("The feed");
+  expect(region.textContent).toContain("Press a kind above the list, or a topic on a post, to see only the posts that match.");
+  expect(screen.queryByRole("button", { name: "Back to the route" })).toBeNull();
+});
+
+test("the feed's step says how to narrow the feed in French too", async () => {
+  atStep(1);
+  render(frame("feed?topic=python", "fr"));
+  const region = await panel("fr");
+  expect(region.hasAttribute("data-compact")).toBe(false);
+  expect(region.textContent).toContain("Appuyez sur un type au-dessus de la liste, ou sur un sujet dans une publication, pour ne voir que les publications qui correspondent.");
+});
+
 test("the way back is in French too, and the shrunk panel can still end the tour", async () => {
   atStep(5);
   render(frame("village", "fr"));

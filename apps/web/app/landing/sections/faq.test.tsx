@@ -40,6 +40,16 @@ test("a question holds its answer", () => {
   expect(second.querySelector("p")!.textContent).toContain("Until you publish");
 });
 
+// The tour has six steps (app/tour), not one per screen, so the answer must not promise every screen.
+test.each([
+  ["en", "a guided tour in six steps"],
+  ["fr", "une visite guidée en six étapes"],
+] as const)("the %s demo answer says the tour has six steps", (lang, words) => {
+  const { container } = render(<Faq lang={lang} />);
+  const last = container.querySelectorAll("details")[5];
+  expect(last.querySelector("p")!.textContent).toContain(words);
+});
+
 // The language is fixed when a verification starts, so the answer says what follows it and the limit.
 test.each([
   ["en", "Which languages does it use?", ["interview", "repositories check", "report", "stays fixed"]],

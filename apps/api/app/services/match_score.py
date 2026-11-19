@@ -1,6 +1,7 @@
 """The match score, versions 1 and 2.
 
-Why: `docs/decisions/2026-11-14-match-score.md` and `2026-11-15-match-score-meaning.md`.
+Why: `docs/decisions/2026-11-14-match-score.md` and `2026-11-15-match-score-meaning.md`; the
+band was measured again in `2026-11-19-embeddings-on-openai.md`.
 
 The score is counted from numbers, never judged. Version 2 adds the meaning part (30 points),
 read from the stored vectors. A pair with a missing vector keeps version 1, which scales the 70
@@ -31,14 +32,15 @@ TECHNOLOGIES_MAX = TECHNOLOGY_POINTS * TECHNOLOGY_CAP
 SECTORS_MAX = SECTOR_POINTS * SECTOR_CAP
 AVAILABLE_MAX = ROLES_MAX + TECHNOLOGIES_MAX + SECTORS_MAX
 
-# Measured on 15 November 2026 (`2026-11-15-match-score-meaning.md`): an idea and a developer's
-# profile read 0.71 to 0.82 apart, with the best fit highest. The meaning points stretch that
-# band from 0 to 30. 0.80 is where two ideas read close: related ones sat at 0.81 to 0.83 and
-# unrelated ones at 0.75 to 0.78.
-MEANING_FLOOR = 0.70
-MEANING_CEILING = 0.82
+# Measured on 19 November 2026 with OpenAI's vectors (`2026-11-19-embeddings-on-openai.md`): an
+# idea and a developer's profile read 0.17 to 0.46 alike, with the best fits at 0.34 and above
+# and profiles that do not fit at 0.17 to 0.30. The meaning points stretch 0.15 to 0.45 from 0 to
+# 30. 0.60 is where two ideas read close: the same idea in English and in French read 0.61 to
+# 0.77 and two ideas with one subject 0.64, while unrelated ideas reached 0.55.
+MEANING_FLOOR = 0.15
+MEANING_CEILING = 0.45
 MEANING_BAND = MEANING_CEILING - MEANING_FLOOR
-SIMILAR_FROM = 0.80
+SIMILAR_FROM = 0.60
 
 
 def similarity(embedding: Any, other: Any) -> ColumnElement[float]:

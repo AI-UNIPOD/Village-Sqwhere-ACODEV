@@ -46,7 +46,41 @@ export type PostPage = { data: Post[]; next_offset: number | null };
 
 const paging = (offset: number) => `offset=${offset}&limit=20`;
 
-export const loadFeed = (offset = 0) => call<PostPage>(`/v1/feed?${paging(offset)}`);
+// The orders the API offers (docs/decisions/2026-11-19-feed-ranking-and-search.md). `relevance`
+// is the best match for search words, so it only exists with some.
+export const SORTS = ["for_you", "relevance", "newest", "active"] as const;
+export type Sort = (typeof SORTS)[number];
+export const MAX_SEARCH_LENGTH = 100;
+
+// A view of the feed chosen in the page's address: one kind, one topic, search words, an order.
+// Nothing is saved. `sort` is only set when it is not the order the view starts with.
+export type FeedFilter = { type?: Kind; topic?: string; q?: string; sort?: Sort };
+
+// "type=question&topic=python&q=pool&sort=newest", the same words in the page's address and in
+// the request.
+export function filterQuery({ type, topic, q, sort }: FeedFilter) {
+  const query = new URLSearchParams();
+  if (type) query.set("type", type);
+  if (topic) query.set("topic", topic);
+  if (q) query.set("q", q);
+  if (sort) query.set("sort", sort);
+  return query.toString();
+}
+
+// A kind, a topic or search words show everyone's posts. Only an order keeps the For you feed.
+export const narrows = ({ type, topic, q }: FeedFilter) => Boolean(type || topic || q);
+
+// Search starts with the best match, everything else with the For you ranking.
+export const startingSort = ({ q }: FeedFilter): Sort => (q ? "relevance" : "for_you");
+
+// The For you feed takes no kind, topic or search, so a narrowed view asks for everyone's posts.
+// That list is newest first unless told otherwise, so the order is always sent with it.
+export function loadFeed(offset = 0, filter: FeedFilter = {}) {
+  const sort = filter.sort ?? startingSort(filter);
+  if (!narrows(filter)) return call<PostPage>(`/v1/feed?${sort === "for_you" ? "" : `sort=${sort}&`}${paging(offset)}`);
+  const query = filterQuery({ ...filter, sort });
+  return call<PostPage>(`/v1/posts?${query}&${paging(offset)}`);
+}
 
 export const loadSavedPosts = (offset = 0) => call<PostPage>(`/v1/me/saved-posts?${paging(offset)}`);
 

@@ -7,6 +7,7 @@ import { HeadingText } from "../heading-text";
 import styles from "../landing-page.module.css";
 import { COMMITS, copy, NOTE_AUTHORS, type Copy } from "./hub-phases-copy";
 import s from "./hub-phases.module.css";
+import { reducesMotion } from "../../site-motion";
 
 // How much of the demo shows before the first phase plays its entrance.
 const ENTRANCE_THRESHOLD = 0.3;
@@ -132,7 +133,7 @@ export function HubPhases({ lang }: { lang: Lang }) {
   useEffect(() => {
     const demo = demoRef.current;
     if (!demo || typeof window.IntersectionObserver !== "function") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reducesMotion()) return;
     // content already on screen when the page opens is never held back
     if (demo.getBoundingClientRect().top <= window.innerHeight) return;
     setWaiting(true);

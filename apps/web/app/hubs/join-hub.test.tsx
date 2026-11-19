@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { JoinHub } from "./join-hub";
-import { agreement, api, asked, fetchMock, hub, posted, refusal, reply } from "./test-support";
+import { agreement, api, asked, demoRefusal, fetchMock, hub, posted, refusal, reply, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => {
   const push = vi.fn();
@@ -124,13 +124,52 @@ test("when the agreement changed, the new text is shown, the box is cleared and 
   expect(nav.push).not.toHaveBeenCalled();
 });
 
-test("any other failure says so above the button and keeps everything typed", async () => {
+test("a server that answers with a failure says it did not save the signature, not that the connection is lost", async () => {
   await join({ "POST /v1/hubs/hub-1/invitation/accept": refusal(500, "BOOM") });
   fillAndSign();
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign and join" }));
-  expect(await screen.findByText(/We couldn't complete your signature. Nothing you typed was lost/)).toBeTruthy();
+  const alert = await screen.findByRole("alert");
+  expect(alert.textContent).toBe("The server did not save your signature. Nothing you typed was lost, so try again in a moment.");
+  expect(alert.textContent).not.toMatch(/connection/);
   expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
   expect((screen.getByLabelText("Your full legal name") as HTMLInputElement).value).toBe("  Wanjiru Kamau ");
+});
+
+test("a request that never reaches the server says to check the connection, keeps everything typed, and can be sent again", async () => {
+  await join({ "POST /v1/hubs/hub-1/invitation/accept": reply(200, { data: hub() }) });
+  const answer = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+    String(url).endsWith("/invitation/accept") && fetchMock.mock.calls.filter(([u]) => String(u).endsWith("/invitation/accept")).length === 1
+      ? Promise.reject(new TypeError("Failed to fetch"))
+      : answer(url, init),
+  );
+  fillAndSign();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign and join" }));
+  expect((await screen.findByRole("alert")).textContent).toBe(
+    "We couldn't complete your signature. Nothing you typed was lost, so check your connection and try again.",
+  );
+  expect((screen.getByLabelText("Your full legal name") as HTMLInputElement).value).toBe("  Wanjiru Kamau ");
+
+  // the second try goes through
+  press("Sign and join");
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign and join" }));
+  await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/en/hubs/view?id=hub-1&joined=1"));
+});
+
+test("the server's failure is said in French too", async () => {
+  api({
+    "GET /v1/hubs/hub-1": { data: hub(invited) },
+    "GET /v1/hubs/hub-1/agreement": { data: hubAgreement() },
+    "POST /v1/hubs/hub-1/invitation/accept": refusal(502, "BAD_GATEWAY"),
+  });
+  render(<JoinHub lang="fr" />);
+  fireEvent.click(await screen.findByRole("checkbox"));
+  fireEvent.change(screen.getByLabelText("Votre nom légal complet"), { target: { value: "Wanjiru Kamau" } });
+  fireEvent.click(screen.getByRole("button", { name: "Signer et rejoindre" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Signer et rejoindre" }));
+  expect((await screen.findByRole("alert")).textContent).toBe(
+    "Le serveur n'a pas enregistré votre signature. Rien de ce que vous avez saisi n'est perdu, réessayez dans un instant.",
+  );
 });
 
 test.each([
@@ -142,6 +181,14 @@ test.each([
   expect(await screen.findByRole("heading", { level: 1, name: "There is no invitation to sign" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Open the hub" }).getAttribute("href")).toBe("/en/hubs/view?id=hub-1");
   expect(screen.queryByLabelText("Your full legal name")).toBeNull();
+});
+
+test("the demo's refused signature says nothing was saved as a status, with no alert, and keeps everything typed", async () => {
+  await join({ "POST /v1/hubs/hub-1/invitation/accept": demoRefusal() });
+  fillAndSign();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign and join" }));
+  await saidNotSaved();
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
 });
 
 test("an invitation withdrawn while the person read gives the same screen when they sign", async () => {

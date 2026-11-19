@@ -51,7 +51,9 @@ set was written.
   the rows the seed writes, and a test compares each against a COUNT. Who likes what comes from
   a hash of the post and the member, so every run builds the same world and nobody likes their
   own post.
-- **The embeddings worker skips the demo.** Without a filter it would send the new full members
+- **The embeddings worker skips the demo.** Changed on 19 November 2026: the demo's vectors are
+  measured once and frozen in the repository, and the worker embeds the demo too
+  (`2026-11-19-demo-frozen-vectors.md`). As first decided: without a filter it would send the new full members
   and the demo's ideas to Gemini. `workers/embeddings.py` now leaves out `users.is_demo` and
   ideas written by demo accounts, so the demo costs nothing and shows the score without its
   meaning part (version 1).
@@ -84,7 +86,8 @@ set was written.
   daemon is already running, so it needs no paid feature and no new variable.
 - **GitHub Actions on a schedule.** Actions are off for this repository.
 - **Embed the demo too.** About 200 one-time embeddings, and the tour's matcher would show the
-  meaning part. Tanny chose not to send made-up profiles to a provider.
+  meaning part. Tanny chose not to send made-up profiles to a provider. Chosen after all on
+  19 November 2026 (`2026-11-19-demo-frozen-vectors.md`).
 - **A follow feature for the light members.** There is none in the product, so the lighter
   members like, save and read.
 - **A city column.** Profiles hold a country only. A city belongs in the bio for now, and a

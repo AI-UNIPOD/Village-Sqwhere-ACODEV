@@ -23,7 +23,7 @@ flowchart LR
 ## The schema at a glance
 
 The tables behind the main flow, from `db/init/002-schema.sql` and the scripts after it
-(35 tables in all):
+(39 tables in all):
 
 ```mermaid
 erDiagram
@@ -101,6 +101,9 @@ They run in file name order, once, on an empty database:
 | `025-embeddings.sql` | `idea_embeddings` moves to `gemini-embedding-2` and 768 numbers (it removes rows of another model first, since the worker makes them again), and `user_embeddings` is new. Triggers remove a developer's vector when their bio, verified roles, technologies or sectors change. Numbers 021 to 024 belong to other work. Running it twice is safe. |
 | `026-demo-signature-dates.sql` | Dates the demo's made-up signatures at the moment each member joined, where the seed had left them at the day it ran. Only signatures of demo accounts (`users.is_demo`) in hubs a demo account owns; nothing is deleted. Running it twice is safe. |
 | `027-post-image-bytes.sql` | Post images live in Postgres: `post_attachments.data` holds the bytes, `storage_key` is no longer required, and the size cap drops from 5 MB to 4 MB to fit Vercel's request limit. The table was empty before it, since uploads had not shipped. Running it twice is safe. |
+| `028-embeddings-on-openai.sql` | `idea_embeddings` and `user_embeddings` move from `gemini-embedding-2` to OpenAI's `text-embedding-3-small`, still 768 numbers. It removes every vector of another model, since two models cannot be compared and the worker makes them again. Running it twice is safe; if `025` is ever run again, run this one after it. |
+| `029-sign-in-state.sql` | Sign-in state every API instance shares: `oauth_states` (the one-time states `/start` issues), `login_codes` (the one-time codes the callback issues) and `revoked_refresh_tokens` (tokens signed out or rotated). A row is found by the SHA-256 of the value, which is never stored, and is of no use after `expires_at`; the API deletes expired rows when it writes a new one. Running it twice is safe. |
+| `030-post-search.sql` | A search index on posts (`posts_search_idx`, a partial GIN index on the title and text words, ignoring case and accents). The API searches the same way without it, so applying it only keeps search fast as posts grow. Running it twice is safe. |
 
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
@@ -157,6 +160,9 @@ reaches the API at `https://<domain>/v1/...`.
    for f in infra/db/init/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f" || break; done
    ```
 
+   A script added later does not reach this database by itself. Run it by hand before the
+   code that needs it deploys: without `029-sign-in-state.sql`, sign-in answers `500`.
+
 4. **Set the environment variables** (Production, and Preview if wanted):
 
    | Variable | Value |
@@ -165,7 +171,8 @@ reaches the API at `https://<domain>/v1/...`.
    | `JWT_SECRET_KEY` | A new random value of 32 characters or more, never the local one |
    | `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ORIGINS` | `https://<domain>` |
    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | A GitHub OAuth app for the real domain, with the callback `https://<domain>/v1/auth/oauth/github/callback` |
-   | `GROQ_API_KEY`, `GEMINI_API_KEY` and the model names | As in `.env.example` |
+   | `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and the model names | As in `.env.example`. `OPENAI_API_KEY` also makes the vectors the match score reads |
+   | `CLAUDE_ENABLED` | Leave unset until the Anthropic account passes identity verification, then `true` |
    | `DEMO_ENABLED` | `true` to offer "Try the demo"; then run `python -m app.demo_seed` once against the database |
 
 5. **Deploy**, then open `https://<deployment>/health`: it answers `{"status":"ok", ...}`.
@@ -194,7 +201,9 @@ Each check is an effect you can see, and none needs a secret.
    associated with this application" means the callback address does not match the one
    registered in the OAuth app.
 4. After you approve, the browser comes back to `/en/auth/callback?login_code=...` and then
-   lands on `/en/onboarding`. `?error=INVALID_STATE` is the known limit below.
+   lands on `/en/onboarding`. `?error=INVALID_STATE` means the sign-in took more than 10
+   minutes or its link was used twice: start again. Any API instance can finish a sign-in
+   another started, because the state is in the database (`029-sign-in-state.sql`).
 5. A reload keeps you signed in, and `GET /v1/me` answers 200.
 6. "Try the demo" opens the feed. It does not use GitHub, so it works while sign-in is still
    being set up.
@@ -203,6 +212,5 @@ Each check is an effect you can see, and none needs a secret.
 
 | Limit | Effect | Plan |
 |---|---|---|
-| OAuth states and login codes are kept in API memory | Each request can reach a different instance, so GitHub sign-in can fail and come back with `INVALID_STATE`. The demo is not affected. | Keep them in the database (Endpoints tracker row 102) |
 | The interview runs over a WebSocket | A function's maximum duration caps one interview | Raise the API function's duration if interviews are cut short |
 | The API logs every SQL statement (`echo=True` in `app/database.py`) | Noisy, costly logs | Turn it off outside development |

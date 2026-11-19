@@ -4,6 +4,7 @@ import { FONT_CLASSES } from "../fonts";
 import { copy } from "../landing/copy";
 import { THEME_INIT_SCRIPT } from "../landing/theme";
 import { LOCALES, hasLocale } from "../locales";
+import { ReducedMotionNotice } from "../reduced-motion-notice";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -38,6 +39,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
             paint, which flashed light on a light-mode phone. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {children}
+        {hasLocale(lang) && <ReducedMotionNotice lang={lang} />}
       </body>
     </html>
   );
