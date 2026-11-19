@@ -7,6 +7,7 @@ import { HeadingText } from "../heading-text";
 import styles from "../landing-page.module.css";
 import { copy } from "./green-tick-copy";
 import own from "./green-tick.module.css";
+import { reducesMotion } from "../../site-motion";
 
 // One row advances every STEP_MS. Stage 0 is the start, 1 to 3 finish a row each, 4 stamps the
 // seal and 5 shows the win. The finished page is stage 5, so the server render, a browser
@@ -68,7 +69,7 @@ export function GreenTick({ lang }: { lang: Lang }) {
   useEffect(() => {
     const card = cardRef.current;
     const timerIds = timers.current;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = reducesMotion();
     if (reduced || !card || !("IntersectionObserver" in window)) return;
 
     // Back to the start only now that the script runs, so the page is complete without it.

@@ -16,6 +16,7 @@ import { RequireSession } from "../session/session-ui";
 import { copy } from "./copy";
 import styles from "./interview.module.css";
 import { MAX_ANSWER, useInterview, type Problem, type Status, type Turn } from "./use-interview";
+import { reducesMotion } from "../site-motion";
 
 type Attempt = { status: string; current_phase: string | null };
 type Reason = "checking" | "answered" | "review" | "ended";
@@ -172,7 +173,7 @@ function TurnView({ lang, turn }: { lang: Lang; turn: Turn }) {
 function useKeepNewestInView(turns: number, status: Status) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const calm = reducesMotion();
     end.current?.scrollIntoView({ block: "end", behavior: calm ? "instant" : "smooth" });
   }, [turns, status]);
   return end;
