@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
@@ -7,7 +8,8 @@ from uuid import UUID
 import httpx
 from fastapi import APIRouter, Body, HTTPException, Path, Query, Response, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -25,6 +27,7 @@ from app.core.security import (
     decode_refresh_token,
     verify_pkce,
 )
+from app.models.sign_in import LoginCode, OAuthState, RevokedRefreshToken
 from app.models.users import AuthProvider, User, UserIdentity
 from app.schemas.auth import (
     LogoutRequest,
@@ -40,27 +43,62 @@ from app.services.provider_emails import find_signup_email
 
 router = APIRouter()
 
-# These stores live in memory, so they are lost on restart and need a single API process.
-# See docs/decisions/2026-11-07-sign-in-without-dev-login.md.
-
-# One-time OAuth states from /start: state -> (provider, code_challenge, redirect_uri, expiry)
-_OAUTH_STATES: dict[str, tuple[AuthProvider, str, str, datetime]] = {}
-
-# One-time login codes from the callback: code -> (user_id, is_new_user, code_challenge, expiry)
-_LOGIN_CODES: dict[str, tuple[UUID, bool, str, datetime]] = {}
+# OAuth states, login codes and revoked refresh tokens live in the database, so any API instance
+# can finish what another started. See docs/decisions/2026-11-19-sign-in-state-in-postgres.md.
 
 # The shared demo account "Try the demo" signs in as. The demo seed script creates it with this
 # id; the made-up developers it creates are demo accounts too, but nobody signs in as them.
 DEMO_ACCOUNT_ID = UUID("00000000-0000-4000-8000-00000000de30")
 
-# In-memory revocation set for refresh tokens
-_REVOKED_REFRESH_TOKENS: set[str] = set()
+
+def _sha256(value: str) -> str:
+    # A state, a code or a token is stored and looked up only as this hash, so a copy of the
+    # tables is not enough to sign in as anyone.
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+async def _drop_expired(
+    db: AsyncSession, table: type[OAuthState | LoginCode | RevokedRefreshToken]
+) -> None:
+    # No worker clears these tables: each write takes the expired rows out first.
+    await db.execute(delete(table).where(table.expires_at <= func.now()))
+
+
+def _refresh_token_revoked() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail={
+            "code": "REFRESH_TOKEN_INVALID",
+            "message": "Refresh token has been revoked",
+        },
+    )
+
+
+async def _revoke(db: AsyncSession, refresh_token: str, claims: dict[str, object]) -> bool:
+    """Revoke a refresh token for every instance, until it would have expired anyway.
+
+    False when it was revoked already: of two requests with the same token, one gets True.
+    """
+    await _drop_expired(db, RevokedRefreshToken)
+    inserted = await db.execute(
+        pg_insert(RevokedRefreshToken)
+        .values(
+            token_sha256=_sha256(refresh_token),
+            expires_at=datetime.fromtimestamp(claims["exp"], UTC),
+        )
+        .on_conflict_do_nothing()
+        .returning(RevokedRefreshToken.token_sha256)
+    )
+    newly_revoked = inserted.first() is not None
+    await db.commit()
+    return newly_revoked
 
 
 @router.post("/auth/oauth/{provider}/start", response_model=OAuthStartResponse)
 async def start_oauth(
     provider: Annotated[AuthProvider, Path()],
     payload: OAuthStartRequest,
+    db: DbSession,
 ) -> OAuthStartResponse:
     # Only GitHub has a real code exchange. Without it there is no safe way to sign in.
     if provider != AuthProvider.GITHUB or not (GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET):
@@ -73,10 +111,18 @@ async def start_oauth(
         )
 
     state = secrets.token_urlsafe(32)
-    now = datetime.now(UTC)
-    expires_at = now + timedelta(minutes=10)
-    _drop_expired(_OAUTH_STATES, now)
-    _OAUTH_STATES[state] = (provider, payload.code_challenge, payload.redirect_uri, expires_at)
+    expires_at = datetime.now(UTC) + timedelta(minutes=10)
+    await _drop_expired(db, OAuthState)
+    db.add(
+        OAuthState(
+            state_sha256=_sha256(state),
+            provider=provider,
+            code_challenge=payload.code_challenge,
+            redirect_uri=payload.redirect_uri,
+            expires_at=expires_at,
+        )
+    )
+    await db.commit()
 
     query = urlencode(
         {
@@ -168,11 +214,6 @@ async def _create_user(
     return user
 
 
-def _drop_expired(store: dict, now: datetime) -> None:
-    for key in [key for key, value in store.items() if value[-1] < now]:
-        del store[key]
-
-
 def _redirect_with_error(code: str) -> RedirectResponse:
     return RedirectResponse(
         url=f"{FRONTEND_URL}/auth/callback?error={code}",
@@ -187,19 +228,29 @@ async def oauth_callback(
     code: Annotated[str | None, Query()] = None,
     state: Annotated[str | None, Query()] = None,
 ) -> RedirectResponse:
-    # The state must be one this server issued in /start, for this provider, and unused.
-    pending = _OAUTH_STATES.pop(state, None) if state else None
-    now = datetime.now(UTC)
-    if pending is None or pending[0] != provider or now > pending[3]:
-        return _redirect_with_error("INVALID_STATE")
-    # When the person clicks Cancel, GitHub sends error=access_denied and no code.
-    if not code:
-        return _redirect_with_error("ACCESS_DENIED")
-    _, code_challenge, redirect_uri, _ = pending
-
     is_new = False
     try:
-        github_account = await fetch_github_user(code, redirect_uri)
+        # The state must be one this API issued in /start, for this provider, unused and not
+        # expired. One DELETE takes it, so two instances cannot both accept the same state.
+        pending = None
+        if state:
+            taken = await db.execute(
+                delete(OAuthState)
+                .where(
+                    OAuthState.state_sha256 == _sha256(state),
+                    OAuthState.expires_at > func.now(),
+                )
+                .returning(OAuthState.provider, OAuthState.code_challenge, OAuthState.redirect_uri)
+            )
+            pending = taken.first()
+            await db.commit()
+        if pending is None or pending.provider != provider:
+            return _redirect_with_error("INVALID_STATE")
+        # When the person clicks Cancel, GitHub sends error=access_denied and no code.
+        if not code:
+            return _redirect_with_error("ACCESS_DENIED")
+
+        github_account = await fetch_github_user(code, pending.redirect_uri)
         if github_account is None:
             return _redirect_with_error("ACCESS_DENIED")
         gh_user, gh_access_token = github_account
@@ -254,12 +305,21 @@ async def oauth_callback(
                 user.display_name = display_name
             await db.commit()
 
+        login_code = f"lc_{secrets.token_urlsafe(32)}"
+        await _drop_expired(db, LoginCode)
+        db.add(
+            LoginCode(
+                code_sha256=_sha256(login_code),
+                user_id=user.id,
+                is_new_user=is_new,
+                code_challenge=pending.code_challenge,
+                expires_at=datetime.now(UTC) + timedelta(minutes=5),
+            )
+        )
+        await db.commit()
+
     except Exception:
         return _redirect_with_error("OAUTH_EXCHANGE_FAILED")
-
-    login_code = f"lc_{secrets.token_urlsafe(32)}"
-    _drop_expired(_LOGIN_CODES, now)
-    _LOGIN_CODES[login_code] = (user.id, is_new, code_challenge, now + timedelta(minutes=5))
 
     redirect_url = f"{FRONTEND_URL}/auth/callback?login_code={login_code}"
     return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
@@ -275,13 +335,19 @@ async def exchange_token(
 ) -> TokenResponse:
     if payload.grant_type == "login_code":
         # Only a code issued by the OAuth callback works, once, before it expires, and only
-        # with the PKCE verifier that matches the challenge sent to /start.
-        pending = _LOGIN_CODES.pop(payload.login_code, None)
-        if (
-            pending is None
-            or datetime.now(UTC) > pending[3]
-            or not verify_pkce(payload.code_verifier, pending[2])
-        ):
+        # with the PKCE verifier that matches the challenge sent to /start. One DELETE takes
+        # it, so two instances cannot both exchange the same code.
+        taken = await db.execute(
+            delete(LoginCode)
+            .where(
+                LoginCode.code_sha256 == _sha256(payload.login_code),
+                LoginCode.expires_at > func.now(),
+            )
+            .returning(LoginCode.user_id, LoginCode.is_new_user, LoginCode.code_challenge)
+        )
+        pending = taken.first()
+        await db.commit()
+        if pending is None or not verify_pkce(payload.code_verifier, pending.code_challenge):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={
@@ -290,11 +356,9 @@ async def exchange_token(
                     "Sign in again.",
                 },
             )
-        user_id, is_new_user, _, _ = pending
-
         query = (
             select(User)
-            .where(User.id == user_id, User.deleted_at.is_(None))
+            .where(User.id == pending.user_id, User.deleted_at.is_(None))
             .options(
                 selectinload(User.identities),
                 selectinload(User.roles),
@@ -320,20 +384,19 @@ async def exchange_token(
                 expires_in=900,
                 refresh_token=refresh_token,
                 refresh_expires_at=refresh_expires_at,
-                is_new_user=is_new_user,
+                is_new_user=pending.is_new_user,
                 user=user_to_profile(user),
             )
         )
 
     # grant_type == "refresh_token"
-    if payload.refresh_token in _REVOKED_REFRESH_TOKENS:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "code": "REFRESH_TOKEN_INVALID",
-                "message": "Refresh token has been revoked",
-            },
+    revoked = await db.scalar(
+        select(RevokedRefreshToken.token_sha256).where(
+            RevokedRefreshToken.token_sha256 == _sha256(payload.refresh_token)
         )
+    )
+    if revoked:
+        raise _refresh_token_revoked()
 
     decoded_payload = decode_refresh_token(payload.refresh_token)
     if not decoded_payload or "sub" not in decoded_payload:
@@ -380,8 +443,10 @@ async def exchange_token(
     if existing_user.is_demo and not config.DEMO_ENABLED:
         raise demo_switched_off()
 
-    # Invalidate previous refresh token (token rotation)
-    _REVOKED_REFRESH_TOKENS.add(payload.refresh_token)
+    # Invalidate previous refresh token (token rotation). When two requests bring the same
+    # token, only the one that revokes it gets a new pair.
+    if not await _revoke(db, payload.refresh_token, decoded_payload):
+        raise _refresh_token_revoked()
 
     # Issue rotated token pair
     new_access_token = create_access_token(existing_user.id)
@@ -431,6 +496,10 @@ async def demo_sign_in(db: DbSession) -> TokenResponse:
 
 
 @router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(payload: LogoutRequest) -> Response:
-    _REVOKED_REFRESH_TOKENS.add(payload.refresh_token)
+async def logout(payload: LogoutRequest, db: DbSession) -> Response:
+    # Anyone can call this, so only a token this API signed and that has not expired is kept:
+    # nothing else could ever be used, and made-up values must not fill the table.
+    claims = decode_refresh_token(payload.refresh_token)
+    if claims:
+        await _revoke(db, payload.refresh_token, claims)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
