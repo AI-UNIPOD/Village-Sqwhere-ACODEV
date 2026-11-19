@@ -10,7 +10,9 @@ its number:
 
 ## 2026-11-19
 
-- feat(web): let a visitor with reduced motion turn animations on from a one-time notice
+- feat(web): let a visitor with reduced motion turn animations on
+- fix(web): say the demo's tour has six steps, not every screen
+- fix(web): show an untitled post's first line as text, not a link-coloured paragraph
 
 ## 2026-11-16
 
