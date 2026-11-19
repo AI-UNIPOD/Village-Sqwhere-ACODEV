@@ -5,8 +5,9 @@
 }
 
 /* Until the hero has been placed, hide it, so nobody sees it jump. Without JavaScript the
-   rule does not apply and the page shows the layout below. */
-@media (scripting: enabled) {
+   rule does not apply and the page shows the layout below. A phone has nothing to place (see
+   the end of this file), so its text shows at once. */
+@media (scripting: enabled) and (min-width: 768px) {
   .hero:not([data-ready]) > * {
     visibility: hidden;
   }
@@ -156,4 +157,31 @@
   display: block;
   inline-size: 100%;
   block-size: 100%;
+}
+
+/* On a phone the hero is the text box alone, centred in the page's flow: no crowd, no square,
+   no walking names and so no motion button (the script draws nothing there). It keeps the
+   buttons in the first screen and saves about half a screen of scrolling. */
+@media (max-width: 767px) {
+  .hero {
+    min-block-size: 0;
+    padding-block: var(--space-5) var(--space-10);
+  }
+
+  .copy {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin-inline: auto;
+    --copy-inline: auto;
+    --copy-justify: center;
+    text-align: center;
+  }
+
+  .square,
+  .canvas,
+  .tree,
+  .play {
+    display: none;
+  }
 }

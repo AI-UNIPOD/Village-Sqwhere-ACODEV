@@ -113,7 +113,16 @@ test("every demo button is a real button, and the hero's has its line", () => {
 test("on phones the hero's demo line is cut to \"(no sign up)\"; wider screens read it in full", () => {
   const css = readFileSync(join(__dirname, "landing-page.module.css"), "utf8").replace(/\s+/g, " ");
   expect(css).toContain(".noteShort { display: none; }");
-  expect(css).toContain("@media (max-width: 767px) { .noteFull { display: none; } .noteShort { display: inline; } }");
+  expect(css).toContain("@media (max-width: 767px) { .noteFull { display: none; } .noteShort { display: inline; }");
+});
+
+// on a phone the hero is the text box alone, so its buttons stack at one width with the line
+// centred under them
+test("on phones the hero's two buttons stack at one width, and the demo line is centred", () => {
+  const css = readFileSync(join(__dirname, "landing-page.module.css"), "utf8").replace(/\s+/g, " ");
+  const phone = css.slice(css.indexOf("@media (max-width: 767px) { .noteFull"));
+  expect(phone).toContain(".ctas { flex-direction: column; align-items: stretch;");
+  expect(phone).toContain(".note { margin-inline-end: 0; text-align: center; }");
 });
 
 // the hero's actions, in order: everything you can press under the headline

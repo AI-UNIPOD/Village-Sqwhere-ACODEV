@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-19
+
+- feat(web): show only the hero's text on phones, with no drawing loop
+
 ## 2026-11-16
 
 - feat(web): rework the landing for phones and open every page in dark

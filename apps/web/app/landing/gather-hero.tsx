@@ -59,6 +59,7 @@ import {
   type Team,
 } from "./hero-team";
 import { motionOn, setMotion, subscribeMotion } from "./motion";
+import { isPhone, subscribePhone } from "./phone";
 
 type GatherHeroProps = {
   /** The text block: headline, sentence and buttons. */
@@ -112,6 +113,9 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
   // the button's label; before the script has run the button is hidden, so the server value
   // only has to be something
   const playing = useSyncExternalStore(subscribeMotion, motionOn, () => true);
+  // only to run the effect again when the page crosses the phone breakpoint: the effect reads
+  // the width itself, so the first one after hydration already knows
+  const phone = useSyncExternalStore(subscribePhone, isPhone, () => false);
 
   useLayoutEffect(() => {
     const heroEl = hero.current;
@@ -121,6 +125,19 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
     const treeEl = tree.current;
     const playEl = play.current;
     if (!heroEl || !copyEl || !squareEl || !canvasEl || !treeEl || !playEl) return;
+
+    // On a phone the hero is the text box alone, in the page's flow (the CSS hides the rest):
+    // nothing is drawn and nothing moves. Clear what a wider layout placed before a turn.
+    if (isPhone()) {
+      for (const el of [copyEl, squareEl, treeEl, playEl]) el.style.cssText = "";
+      heroEl.style.height = "";
+      heroEl.removeAttribute("data-drift");
+      copyEl.classList.remove(styles.center);
+      const note = copyEl.querySelector<HTMLElement>("[data-hero-note]");
+      if (note) note.style.marginLeft = "";
+      heroEl.setAttribute("data-ready", "");
+      return;
+    }
 
     const g = canvasEl.getContext("2d");
     const crowdCanvas = document.createElement("canvas");
@@ -815,7 +832,7 @@ export function GatherHero({ children, labelledBy, labels, team: teamCopy }: Gat
       resize.disconnect();
       onscreen?.disconnect();
     };
-  }, []);
+  }, [phone]);
 
   return (
     <section ref={hero} className={styles.hero} aria-labelledby={labelledBy}>

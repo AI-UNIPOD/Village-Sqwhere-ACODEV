@@ -159,6 +159,23 @@ test("with the motion button off it also stands still", async () => {
   expect(container.querySelector('[data-part="caret"]')).toBeNull();
 });
 
+test("on a phone it stands still too: there is no motion button there, and the edit runs past five seconds", async () => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("max-width: 767px"),
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })),
+  );
+  const { container } = renderHeadline();
+  await advance(8000);
+  expect(state(container)).toBeNull();
+  expect(container.querySelector('[data-part="caret"]')).toBeNull();
+  expect(heading(container).textContent).toBe("Builders across Africa, one square.");
+  expect(Element.prototype.animate).not.toHaveBeenCalled();
+});
+
 test("the beats come in order and end on the real headline", async () => {
   const { container } = renderHeadline();
   const { lines, names } = await watch(container, 8000);

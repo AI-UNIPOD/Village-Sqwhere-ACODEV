@@ -170,6 +170,67 @@ test("when the browser cannot draw, it keeps the still frame: the logo and no bu
   expect(playButton(container).style.display).toBe("none");
 });
 
+// a page below the phone breakpoint; `turn` crosses it, as a tablet does, and tells the hero
+function stubPhone(initial: boolean) {
+  let phone = initial;
+  const listeners = new Set<() => void>();
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      get matches() {
+        return query.includes("max-width: 767px") && phone;
+      },
+      addEventListener: (_: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
+    })),
+  );
+  return {
+    turn(next: boolean) {
+      phone = next;
+      act(() => listeners.forEach((listener) => listener()));
+    },
+  };
+}
+
+test("on a phone the hero is the text alone: nothing is drawn, nothing moves, no motion button", () => {
+  stubPhone(true);
+  const { container } = renderHero();
+  const section = container.querySelector("section")!;
+  expect(section.hasAttribute("data-ready")).toBe(true);
+  // nothing placed by the script: the CSS keeps the text in the flow and hides the rest
+  expect(section.style.height).toBe("");
+  expect(container.querySelector<HTMLElement>("section > div")!.style.cssText).toBe("");
+  expect(container.querySelector<HTMLElement>("section > div[aria-hidden]")!.style.cssText).toBe("");
+  expect(playButton(container).style.display).toBe("");
+  expect(HTMLCanvasElement.prototype.getContext).not.toHaveBeenCalled();
+  expect(requestAnimationFrame).not.toHaveBeenCalled();
+});
+
+test("turning past the phone breakpoint lays the hero out, and back again clears it", () => {
+  const page = stubPhone(true);
+  const { container } = renderHero();
+  const section = container.querySelector("section")!;
+  const square = container.querySelector<HTMLElement>("section > div[aria-hidden]")!;
+  page.turn(false);
+  expect(section.style.height).not.toBe("");
+  expect(square.style.width).not.toBe("");
+  expect(playButton(container).style.display).toBe("inline-flex");
+  page.turn(true);
+  expect(section.style.height).toBe("");
+  expect(square.style.cssText).toBe("");
+  expect(playButton(container).style.display).toBe("");
+});
+
+// jsdom has no layout, so this reads the stylesheet: below the breakpoint only the text shows
+test("the phone stylesheet keeps the text in the flow and hides the crowd, the square and the button", () => {
+  const css = readFileSync(join(__dirname, "gather-hero.module.css"), "utf8").replace(/\s+/g, " ");
+  const phone = css.slice(css.indexOf("@media (max-width: 767px) {"));
+  expect(phone).toContain(".copy { position: relative;");
+  expect(phone).toContain(".square, .canvas, .tree, .play { display: none; }");
+  // the wait-until-placed rule is for wider screens only: a phone shows its text at once
+  expect(css).toContain("@media (scripting: enabled) and (min-width: 768px) { .hero:not([data-ready]) > * { visibility: hidden; } }");
+});
+
 test("centres the text on a phone-width hero and not on a wide one", () => {
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(360);
   const phone = renderHero();

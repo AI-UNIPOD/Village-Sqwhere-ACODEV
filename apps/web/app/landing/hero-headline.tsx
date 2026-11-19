@@ -6,6 +6,7 @@ import { createEdit, type Edit } from "./headline-edit";
 import styles from "./hero-headline.module.css";
 import type { HeadlineEdit } from "./hero-headline-copy";
 import { motionOn, subscribeMotion } from "./motion";
+import { isPhone } from "./phone";
 
 type HeroHeadlineProps = {
   id: string;
@@ -32,6 +33,9 @@ export function HeroHeadline({ id, headline, edit }: HeroHeadlineProps) {
     const realEl = real.current;
     const stageEl = stage.current;
     if (!h1El || !realEl || !stageEl) return;
+    // A phone has no motion button to stop it, and the edit runs past five seconds (WCAG 2.2.2),
+    // so a phone shows the finished headline only.
+    if (isPhone()) return;
 
     // idle: nothing placed yet. ready: the layer shows the draft, waiting for the hero to be
     // seen. running: the beats are playing. done: played once (or not possible): leave it be.

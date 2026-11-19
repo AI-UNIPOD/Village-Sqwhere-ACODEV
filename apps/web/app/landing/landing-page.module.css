@@ -485,6 +485,20 @@
   .noteShort {
     display: inline;
   }
+
+  /* The hero on a phone is the text box alone (gather-hero.module.css): its two buttons stack
+     at one width, in reach of a thumb, and the line sits centred under "Try the demo". */
+  .ctas {
+    flex-direction: column;
+    align-items: stretch;
+    max-inline-size: 20rem;
+    margin-inline: auto;
+  }
+
+  .note {
+    margin-inline-end: 0;
+    text-align: center;
+  }
 }
 
 /* ---------- buttons ---------- */
