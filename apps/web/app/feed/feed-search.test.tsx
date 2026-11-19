@@ -247,6 +247,19 @@ test("Saved and Yours have no search and no order", async () => {
   expect(screen.queryByRole("navigation", { name: "Order" })).toBeNull();
 });
 
+test("a filtered, searched and re-ordered view only reads: no write and no saved preference, so the demo account can use it", async () => {
+  nav.search = "type=question&topic=python&q=pool&sort=active";
+  api();
+  render(<Feed lang="en" tab="for-you" />);
+  await loaded();
+  fireEvent.click(sorts().getByRole("link", { name: "Newest" }));
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search posts" }), { target: { value: "queue" } });
+  fireEvent.submit(screen.getByRole("search", { name: "Search posts" }));
+  expect(asked().length).toBeGreaterThan(0);
+  expect(asked().every((call) => call.startsWith("GET "))).toBe(true);
+  expect(asked().some((call) => call.includes("feed-topics"))).toBe(false);
+});
+
 test("the search and the order are in French, with their words", async () => {
   nav.search = "q=pool";
   api();
