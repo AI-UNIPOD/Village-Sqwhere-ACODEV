@@ -150,8 +150,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   (with the first two replies of each), `GET /v1/comments/{comment_id}/replies` and
   `GET /v1/comments/{comment_id}/thread` (five levels below). Likes, safe to repeat:
   `PUT /v1/comments/{comment_id}/like` and `DELETE /v1/comments/{comment_id}/like`.
-- OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
-  API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
+- OAuth states, login codes and revoked refresh tokens are kept in PostgreSQL, as SHA-256
+  hashes only, so any API instance can finish a sign-in another started and a logout holds
+  on all of them. See `docs/decisions/2026-11-19-sign-in-state-in-postgres.md`.
 
 ## Core flow
 

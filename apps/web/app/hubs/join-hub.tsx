@@ -55,7 +55,7 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
   const [errors, setErrors] = useState<Errors>({});
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<"changed" | "send" | "demo" | null>(null);
+  const [problem, setProblem] = useState<"changed" | "send" | "server" | "demo" | null>(null);
   const hubAddress = `/${lang}/hubs/view?id=${encodeURIComponent(id ?? "")}`;
 
   useEffect(() => {
@@ -129,7 +129,9 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
       else if (code === "HUB_ARCHIVED") setBlocked("archived");
       // the last place went to someone else while this person was reading
       else if (code === "TEAM_FULL") setBlocked("full");
-      else setProblem(code === DEMO_READ_ONLY ? "demo" : "send");
+      // the server answered, but did not save the signature: said as that, not as a lost connection
+      else if (code === DEMO_READ_ONLY) setProblem("demo");
+      else setProblem(error instanceof IdeaError ? "server" : "send");
     } finally {
       setBusy(false);
       setAsking(false);
@@ -185,10 +187,10 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
         />
         <div className={`${onboarding.actions} ${ideas.bar}`}>
           {problem === "demo" && <NotSaved lang={lang} className={ideas.failed} />}
-          {problem === "send" && (
+          {(problem === "send" || problem === "server") && (
             <p className={`${onboarding.error} ${ideas.failed}`} role="alert">
               <AlertCircle />
-              {t.join.send}
+              {t.join[problem]}
             </p>
           )}
           <button type="submit" className={landing.btn}>

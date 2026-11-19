@@ -62,7 +62,8 @@ app/
     deps.py            CurrentUser, DbSession, the demo wall
     v1/
       router.py        mounts every router below under /v1
-      auth.py          GitHub OAuth with PKCE, tokens, demo sign-in
+      auth.py          GitHub OAuth with PKCE, tokens, demo sign-in; its one-time states
+                       and codes and its revoked tokens are in the database
       me.py            my profile, roles, stack, sectors, account deletion
       ideas.py         ideas, drafts, publishing          matches.py   scores
       hubs.py          hubs        hub_members.py   invitations, joining, leaving
@@ -70,7 +71,7 @@ app/
       hub_build.py     build tab   hub_review.py    checklist and finishing
       verifications.py role checks interviews.py    the interview WebSocket
       posts.py         feed        comments.py      comments and replies
-  models/              SQLAlchemy tables (users, ideas, hubs, posts, lookups)
+  models/              SQLAlchemy tables (users, sign_in, ideas, hubs, posts, lookups)
   schemas/             Pydantic request and response bodies
   services/            the logic routes share: match_score.py, account_deletion.py,
                        interview.py, embeddings.py (the vectors, from OpenAI),
@@ -138,6 +139,13 @@ Or run it from this folder: `uv sync`, then `uv run fastapi dev app/main.py`.
 Settings come from environment variables or a root `.env` file (see the root `.env.example`).
 `JWT_SECRET_KEY` is required: the API will not start without it. GitHub sign-in also needs
 `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+
+Sign-in keeps nothing in the API's memory, so it works with any number of API instances.
+OAuth states, login codes and revoked refresh tokens are rows in PostgreSQL
+(`infra/db/init/029-sign-in-state.sql`), found by a SHA-256 hash, and a state or a code
+works once (`docs/decisions/2026-11-19-sign-in-state-in-postgres.md`). A database made
+before that script needs it run once by hand.
+
 Code lives in `app/`, tests in `tests/`.
 
 Tests need `TEST_DATABASE_URL`: the address of a separate database, `village_sqwhere_test`, so

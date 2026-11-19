@@ -287,6 +287,10 @@ tile, no coloured edge. Errors use `role="alert"`, everything else `role="status
 trigger over `--dur-menu` and leave in 120ms. Menu items are 40px high. Arrow keys move,
 Esc closes, and focus returns to the trigger.
 
+The profile menu is the one in the header (`apps/web/app/profile-menu.tsx`): a 36px round avatar
+with the person's initials inside a 44px tap area, a menu that opens under it on its trailing edge,
+a name block (long names break inside their word) above two 40px items, Profile and the way out.
+
 A tooltip takes the small corner from Corner radius (`--radius-xs`), not `--radius-m`. It says
 what the button does in the same words as its `aria-label`, so screen readers skip it. A mouse
 gets it after `--delay-spinner`, the keyboard at once, a finger never, and the next one opens
@@ -298,6 +302,15 @@ without waiting while another has just closed. Esc closes it. In code: `Tooltip`
 Native `<dialog>`, max 480px wide, `--surface-raised`, `--radius-l`, `--shadow-3`, over
 `--scrim`. In over `--dur-modal` from 96% scale and 8px low, out over
 `--dur-modal-out`. Esc closes. Destructive actions always confirm here.
+
+The reduced-motion notice is a dialog that does not move at all, not even the fade other
+dialogs keep (`ReducedMotionNotice`). A device that asks for reduced motion sees it once per
+visitor: "Turn animations on" or "Keep them toned down", Esc counting as the second. Both are
+remembered in `localStorage` (`vs-motion-notice`). Turning animations on is remembered under
+`vs-motion-site`: every `prefers-reduced-motion` rule in the style sheets and every script that
+asks for the setting then treats the device as asking for no reduction (`app/site-motion.ts`),
+and the page reloads so each screen starts with its motion. The notice goes away by itself if
+the device setting is turned off while it is open.
 
 ## Drawers and sheets
 
