@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-19
 
+- feat(web): show the signed-in developer's initials in the header with a menu to the profile and sign out
 - feat(web): filter the feed by kind and by topic from the address
 - fix(web): say the demo's tour has six steps, not every screen
 - fix(web): show an untitled post's first line as text, not a link-coloured paragraph

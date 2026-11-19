@@ -12,6 +12,7 @@ import landing from "./landing/landing-page.module.css";
 import { ThemeButton } from "./landing/theme-toggle";
 import { useFramePin } from "./frame-pin";
 import { LanguageSwitch } from "./language-switch";
+import { ProfileMenu } from "./profile-menu";
 import { type Lang } from "./locales";
 import { Logo } from "./logo";
 import { Home, Lightbulb, Newspaper, ShieldCheck, User, Users } from "./onboarding/icons";
@@ -155,8 +156,17 @@ export function AppFrame({ lang, path, locked, bare, children }: AppFrameProps) 
             <div className={styles.tools}>
               <LanguageSwitch lang={lang} path={path} />
               <ThemeButton toDark={shared[lang].toDark} toLight={shared[lang].toLight} className={styles.theme} />
-              {/* once there is a profile page to reach, signing out lives there */}
+              {/* before there is a profile (onboarding) the header only offers the way out */}
               {signedIn && bare && <SignOutButton lang={lang} label={shared[lang].signOut} className={landing.navLink} />}
+              {/* the signed-in developer, on every screen: initials, the profile and the way out */}
+              {signedIn && !bare && me && (
+                <ProfileMenu
+                  lang={lang}
+                  name={me.display_name}
+                  username={me.username}
+                  leave={me.is_demo ? t.demo.leave : shared[lang].signOut}
+                />
+              )}
             </div>
           )}
         </header>
