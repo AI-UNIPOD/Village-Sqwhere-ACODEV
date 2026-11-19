@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
 import { MyHubs } from "./my-hubs";
-import { api, asked, fetchMock, hub, idea, member, owner, posted, refusal, reply } from "./test-support";
+import { api, asked, demoRefusal, fetchMock, hub, idea, member, owner, posted, refusal, reply, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -223,6 +223,29 @@ test("a failed withdrawal or second invitation says so and changes nothing", asy
   expect(screen.getByText("Wanjiru Kamau")).toBeTruthy();
 });
 
+test("the demo's refused invitation says nothing was saved as a status, and the field is not marked", async () => {
+  await open(asOwner, [owner()], { "POST /v1/hubs/hub-1/invitations": demoRefusal() });
+  fireEvent.change(await screen.findByLabelText("GitHub username"), { target: { value: "nobody-here" } });
+  press("Send invite");
+  await saidNotSaved();
+  expect(username().value).toBe("nobody-here");
+  expect(username().getAttribute("aria-invalid")).toBeNull();
+});
+
+test("the demo's refused withdrawal and second invitation say nothing was saved as a status, with no alert", async () => {
+  await open(asOwner, [owner(), wanjiru, amina], { "POST /v1/hubs/hub-1/invitations": demoRefusal(), "DELETE /v1/hubs/hub-1/invitations/": demoRefusal() });
+  await screen.findByText("Wanjiru Kamau");
+  press("Withdraw: Wanjiru Kamau");
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Withdraw" }));
+  await saidNotSaved();
+  // the line goes while the second invitation is sent, then is said again
+  press("Invite again: Amina Ndiaye");
+  expect(screen.queryByText("Nothing was saved. The demo cannot be changed.")).toBeNull();
+  await saidNotSaved();
+  expect(posted()).toHaveLength(1);
+  expect(screen.getByText("Wanjiru Kamau")).toBeTruthy();
+});
+
 test("with five active members the invite form gives way to the full-team note", async () => {
   const five = [owner(), member("a-one", "A One"), member("b-two", "B Two"), member("c-three", "C Three"), member("d-four", "D Four")];
   await open(asOwner, five);
@@ -286,6 +309,14 @@ test("declining asks first, then declines and says so", async () => {
   expect(await screen.findByText("You are not in this hub. You declined its invitation, the owner declined your request, or you withdrew it.")).toBeTruthy();
   expect(posted()).toEqual([["/v1/hubs/hub-1/invitation/decline", null]]);
   expect(screen.queryByRole("link", { name: "Read and sign" })).toBeNull();
+});
+
+test("the demo's refused decline says nothing was saved as a status, with no alert, and keeps the invitation", async () => {
+  await open({ viewer: { membership_status: "invited", member_role: "member" } }, [], { "POST /v1/hubs/hub-1/invitation/decline": demoRefusal() });
+  press("Decline");
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Decline this invitation?" })).getByRole("button", { name: "Decline" }));
+  await saidNotSaved();
+  expect(screen.getByRole("link", { name: "Read and sign" })).toBeTruthy();
 });
 
 test("a developer who declined sees their line and nothing private", async () => {

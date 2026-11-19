@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -28,7 +29,7 @@ export function EditHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChang
   const [name, setName] = useState(hub.name);
   const [description, setDescription] = useState(hub.description ?? "");
   const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<boolean | "demo">(false);
   const [busy, setBusy] = useState(false);
   const nameInput = useRef<HTMLInputElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -71,8 +72,7 @@ export function EditHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChang
       setOpen(false);
     } catch (error) {
       if (error instanceof SignedOutError) return;
-      // in the demo the frame says why
-      if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return;
+      if (isDemoRefusal(error)) return setFailed("demo");
       if (error instanceof IdeaError && CHANGED.includes(error.code)) loadHub(hub.id).then((card) => onChange(card, "changed"), () => setFailed(true));
       else setFailed(true);
     } finally {
@@ -129,7 +129,8 @@ export function EditHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChang
         </p>
         <FieldError id="hub-edit-description">{errors.description}</FieldError>
       </div>
-      {failed && (
+      {failed === "demo" && <NotSaved lang={lang} spaced />}
+      {failed === true && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
           {t.manage.failed}
@@ -153,7 +154,7 @@ export function ArchiveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onCh
   const a = t.archive;
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<boolean | "demo">(false);
 
   async function archive() {
     if (busy) return;
@@ -163,7 +164,7 @@ export function ArchiveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onCh
       onChange(await archiveHub(hub.id), "archived");
     } catch (error) {
       if (error instanceof SignedOutError) return;
-      if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return;
+      if (isDemoRefusal(error)) return setFailed("demo");
       // archived already, or no longer the owner's: the hub as it is now says enough
       if (error instanceof IdeaError && CHANGED.includes(error.code)) loadHub(hub.id).then((card) => onChange(card, "changed"), () => setFailed(true));
       else setFailed(true);
@@ -177,7 +178,8 @@ export function ArchiveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onCh
     <section id="archive" className={styles.part}>
       <h2 className={`${ideas.heading} ${styles.heading}`}>{a.heading}</h2>
       <p className={styles.text}>{a.text}</p>
-      {failed && (
+      {failed === "demo" && <NotSaved lang={lang} spaced />}
+      {failed === true && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
           {t.failed}

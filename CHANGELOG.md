@@ -10,7 +10,8 @@ its number:
 
 ## 2026-11-19
 
-- feat: make the match vectors with openai instead of gemini
+- fix(web): say the demo's tour has six steps, not every screen
+- fix(web): show an untitled post's first line as text, not a link-coloured paragraph
 
 ## 2026-11-16
 

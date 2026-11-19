@@ -5,7 +5,7 @@ import { Component, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import IdeasError from "../[lang]/ideas/error";
-import { api, asked, fetchMock, hub, idea, posted, refusal, reply } from "../hubs/test-support";
+import { api, asked, demoRefusal, fetchMock, hub, idea, posted, refusal, reply, saidNotSaved } from "../hubs/test-support";
 import { forgetMe, keepMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { IdeaMatches } from "./idea-matches";
@@ -360,6 +360,15 @@ test.each([
   expect(row.queryByText("Invited")).toBeNull();
   // the other developer shows nothing
   expect(cardOf("danladi").queryByRole("alert")).toBeNull();
+});
+
+test("the demo's refused invitation says nothing was saved as a status beside the row, with no alert", async () => {
+  await show({ "POST /v1/hubs/hub-1/invitations": demoRefusal() });
+  await screen.findByText("Wanjiru Kamau");
+  fireEvent.click(screen.getByRole("button", { name: "Invite to the hub: Wanjiru Kamau" }));
+  await saidNotSaved(screen.getByText("Wanjiru Kamau", { selector: "p, a" }).closest("li")!);
+  expect(cardOf("Wanjiru Kamau").getByRole("button", { name: "Invite to the hub: Wanjiru Kamau" })).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 test("a second try after a refusal clears the sentence", async () => {
