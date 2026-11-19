@@ -188,6 +188,77 @@
   gap: var(--space-3);
 }
 
+/* ---------- a kind or a topic chosen in the address ---------- */
+.filter { margin-block-start: var(--space-4); }
+
+/* The kinds are chips in one row: it scrolls sideways on a phone and wraps when there is room.
+   The padding keeps a chip's tap area and its focus outline inside the box that scrolls. */
+.filterKinds {
+  display: flex;
+  gap: var(--space-2);
+  margin: calc(var(--space-2) * -1) calc(var(--space-1) * -1);
+  padding: var(--space-2) var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+@media (min-width: 768px) {
+  .filterKinds {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+/* a link drawn as a chip: the kinds above the list and the topics of a post */
+.filterKind,
+.topicLink {
+  flex: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.filterKind[aria-current="true"] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* what the list is narrowed to on the left, the way back on the right, wrapping on a phone */
+.showing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-block-start: var(--space-3);
+}
+
+.showing p {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+/* the kind on a post is a 24px pill: as a link its tap area reaches past it to 44px */
+.kindLink {
+  position: relative;
+  text-decoration: none;
+}
+
+.kindLink::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--tap-min) - var(--space-6)) / -2) 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* the chip's own hover would put the chosen kind's light text on a light fill */
+  .filterKinds .filterKind[aria-current="true"]:hover { background: var(--text); }
+
+  .kindLink:hover { text-decoration: underline; }
+}
+
 /* ---------- the topics of your feed ---------- */
 .topics { margin-block-start: var(--space-4); }
 
