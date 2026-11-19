@@ -134,9 +134,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   lists are ordered by it. A match can also name the closest idea of the other person or of mine
   (`similar_idea`). No AI model is called at request time and no idea details are involved.
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
-  `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
-  `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics
-  and your own posts). Likes and saves, each safe to repeat: `PUT /v1/posts/{post_id}/like`,
+  `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists:
+  `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`; search with `q`; `sort` by relevance,
+  newest, active or for_you, newest by default) and `GET /v1/feed` (your feed topics and your own posts,
+  ranked For you by recency, likes and comments, or `sort=newest` or `active`). Likes and saves, each safe to repeat: `PUT /v1/posts/{post_id}/like`,
   `DELETE /v1/posts/{post_id}/like`, `PUT /v1/posts/{post_id}/save`,
   `DELETE /v1/posts/{post_id}/save` and `GET /v1/me/saved-posts`. The author adds an image (JPEG,
   PNG or WebP, up to 4 MB, at most 10) with `POST /v1/uploads` and removes one with `DELETE /v1/uploads/{attachment_id}`. Anyone with its address reads it,

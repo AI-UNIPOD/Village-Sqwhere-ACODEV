@@ -616,7 +616,8 @@ def test_feed_shows_my_topics_and_my_own_posts(client: TestClient, sign_in) -> N
     def feed_with(topics: list[str]) -> list[str]:
         resp = client.put("/v1/me/feed-topics", headers=ada_auth, json={"technologies": topics})
         assert resp.status_code == 200, resp.text
-        return _bodies(client.get("/v1/feed", headers=ada_auth))
+        # newest first: this test is about which posts show, test_post_ranking.py about their order
+        return _bodies(client.get("/v1/feed", headers=ada_auth, params={"sort": "newest"}))
 
     try:
         assert feed_with([]) == ["Ada with no topic", "Moussa on Rust", "Moussa on Python"]
