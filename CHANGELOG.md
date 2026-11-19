@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-19
 
-- fix(web): say nothing was saved when the demo refuses a topic choice (#248)
+- fix(web): say nothing was saved when the demo refuses a topic choice
 
 ## 2026-11-16
 
