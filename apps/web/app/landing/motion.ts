@@ -1,3 +1,5 @@
+import { reducesMotion } from "../site-motion";
+
 // Whether the hero moves. One rule, no second mode:
 //   moving = the visitor chose "on", or they chose nothing and the system does not ask for
 //   reduced motion.
@@ -25,7 +27,7 @@ function stored(): Choice | null {
 export function motionOn(): boolean {
   const choice = stored();
   if (choice) return choice === "on";
-  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return !reducesMotion();
 }
 
 export function setMotion(on: boolean) {

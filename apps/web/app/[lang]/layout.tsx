@@ -5,6 +5,7 @@ import { FONT_CLASSES } from "../fonts";
 import { copy } from "../landing/copy";
 import { THEME_INIT_SCRIPT } from "../landing/theme";
 import { LOCALES, hasLocale } from "../locales";
+import { ReducedMotionNotice } from "../reduced-motion-notice";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -31,6 +32,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
     >
       <body>
         {children}
+        {hasLocale(lang) && <ReducedMotionNotice lang={lang} />}
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT_SCRIPT}
         </Script>
