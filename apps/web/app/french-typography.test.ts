@@ -17,6 +17,7 @@ import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
 import { copy as people } from "./people/copy";
 import { copy as profile } from "./profile/copy";
+import { copy as reducedMotionNotice } from "./reduced-motion-notice-copy";
 import { copy as reviews } from "./reviews/copy";
 import { copy as signIn } from "./sign-in/copy";
 import { copy as tour } from "./tour/copy";
@@ -55,6 +56,7 @@ const french = strings([
   onboarding.fr,
   people.fr,
   profile.fr,
+  reducedMotionNotice.fr,
   reviews.fr,
   signIn.fr,
   tour.fr,

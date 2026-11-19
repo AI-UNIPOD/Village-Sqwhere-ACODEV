@@ -16,6 +16,8 @@ type ConfirmDialogProps = {
   danger?: boolean;
   /** The action is being sent: the confirm button keeps its label and ignores presses. */
   busy?: boolean;
+  /** Opens with no animation at all, not even the fade reduced motion gets. */
+  still?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -24,7 +26,7 @@ type ConfirmDialogProps = {
 // native <dialog>: Escape closes it, focus is held inside and goes back to the button that
 // opened it.
 export function ConfirmDialog(props: ConfirmDialogProps) {
-  const { open, title, children, confirm, cancel, danger, busy, onConfirm, onCancel } = props;
+  const { open, title, children, confirm, cancel, danger, busy, still, onConfirm, onCancel } = props;
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
 
@@ -40,7 +42,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
   return (
     <dialog
       ref={dialog}
-      className={styles.dialog}
+      className={still ? `${styles.dialog} ${styles.still}` : styles.dialog}
       aria-labelledby={`${id}-title`}
       aria-describedby={`${id}-text`}
       onClose={() => open && onCancel()}

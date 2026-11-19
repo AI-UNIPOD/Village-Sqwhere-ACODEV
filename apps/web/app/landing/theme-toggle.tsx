@@ -7,6 +7,7 @@ import { parseEasing, parseSeconds } from "./gather";
 import styles from "./landing-page.module.css";
 import { THEME_KEY } from "./theme";
 import { createTilePlan, tileColours, type TileColours, type TilePlan, type TileRegion } from "./theme-tiles";
+import { reducesMotion } from "../site-motion";
 
 type Theme = "light" | "dark";
 
@@ -70,9 +71,7 @@ function viewportSize() {
   };
 }
 
-function reducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
+const reducedMotion = reducesMotion;
 
 function supports(property: string, value: string) {
   try {

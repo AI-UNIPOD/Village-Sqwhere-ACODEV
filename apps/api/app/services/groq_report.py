@@ -61,5 +61,6 @@ class GroqReportEvaluator:
         except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as error:
             raise RuntimeError("Groq evaluation failed.") from error
         if not isinstance(result, dict):
-            raise ValueError("Groq evaluation response is not an object")
+            # a RuntimeError, like every other failure here, so the report moves on to Claude
+            raise RuntimeError("Groq evaluation response is not an object")
         return result
