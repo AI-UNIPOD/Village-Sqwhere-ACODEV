@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -24,6 +25,8 @@ from app.demo_seed import (
     main,
     seed,
 )
+from app.demo_vectors import DEMO_TEXTS, frozen_vectors, write_frozen_vectors
+from app.demo_vectors import FILE as FROZEN_FILE
 from app.models import (
     Hub,
     HubCommit,
@@ -42,6 +45,8 @@ from app.models import (
     VerificationSession,
     VerificationStatus,
 )
+from app.models.embeddings import EMBEDDING_DIMENSIONS, EMBEDDING_MODEL
+from app.services.embeddings import source_sha256
 from tests.conftest import test_async_session as db_session
 
 
@@ -60,13 +65,14 @@ def _in_french(body: str) -> bool:
 
 
 def _forget_vectors() -> None:
-    """These tests read the demo's scores as they are before anything is compared by meaning. The
-    worker's tests embed everyone in this database, the demo's people included, so their vectors
-    are removed first (a missing vector only means "not embedded yet")."""
+    """These tests read the demo's scores from the vectors the seed freezes. The worker's tests
+    embed everyone in this database with made-up vectors, the demo's people included, so every
+    demo vector is removed before the seed runs (a missing vector only means "not embedded
+    yet"), and the seed writes the frozen ones."""
 
     async def go() -> None:
         async with db_session() as session:
-            people = select(User.id).where(User.username.in_(_seeded_usernames()))
+            people = select(User.id).where(User.is_demo)
             await session.execute(delete(UserEmbedding).where(UserEmbedding.user_id.in_(people)))
             await session.execute(
                 delete(IdeaEmbedding).where(
@@ -82,8 +88,8 @@ def _forget_vectors() -> None:
 def visitor(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     """Signed in to the seeded demo, the way the landing page's button does it."""
     monkeypatch.setattr(config, "DEMO_ENABLED", True)
-    _seed()
     _forget_vectors()
+    _seed()
     signed_in = client.post("/v1/auth/demo")
     assert signed_in.status_code == 200, signed_in.text
     return {"Authorization": f"Bearer {signed_in.json()['data']['access_token']}"}
@@ -516,30 +522,168 @@ def _for_you(client: TestClient, visitor: dict) -> list[dict]:
     return resp.json()["data"]
 
 
-def test_the_visitors_idea_has_a_strong_a_possible_and_a_weak_match(
+def _full(match: dict) -> tuple:
+    """A score with its meaning part counted, and its parts."""
+    assert (match["partial"], match["score_version"]) == (False, 2)
+    parts = match["breakdown"]
+    return (match["score"], *(parts[key]["points"] for key in parts))
+
+
+def test_the_visitors_idea_has_a_strong_a_possible_and_a_weak_match_with_full_scores(
     client: TestClient, visitor: dict
 ) -> None:
     matches = _idea_matches(client, visitor)
 
-    scores = [match["score"] for match in matches]
-    assert scores == sorted(scores, reverse=True) and len(set(scores)) == len(scores)
-    assert any(score >= 80 for score in scores)
-    assert any(60 <= score < 80 for score in scores)
-    assert any(40 <= score < 60 for score in scores)
-    strong = matches[0]
-    assert len(strong["matched_roles"]) == 2 and strong["breakdown"]["sectors"]["points"] == 10
-    assert strong["country_code"] == "SN"
+    # (score, roles, technologies, sectors, meaning), from the vectors frozen in the repository
+    assert {match["username"]: _full(match) for match in matches} == {
+        "aminata_ndiaye": (82, 40, 16, 10, 16),
+        "tendai_moyo": (69, 30, 12, 10, 17),
+        "uwase_mutoni": (43, 30, 4, 5, 4),
+    }
+    assert [match["username"] for match in matches][0] == "aminata_ndiaye"
+    assert matches[0]["country_code"] == "SN"
 
 
-def test_for_you_has_two_ideas_with_different_scores_one_of_them_possible(
+def test_for_you_has_three_ideas_with_full_scores_one_of_them_in_french(
     client: TestClient, visitor: dict
 ) -> None:
     matches = _for_you(client, visitor)
 
-    scores = [match["score"] for match in matches]
-    assert len(matches) >= 2 and len(set(scores)) >= 2
-    assert max(scores) >= 60
+    assert [_full(match) for match in matches] == [
+        (68, 30, 12, 10, 16),
+        (62, 30, 12, 10, 10),
+        (48, 30, 4, 5, 9),
+    ]
     assert any("é" in match["idea"]["title"] for match in matches)  # one is in French
+
+
+def test_one_idea_of_the_demo_reads_close_to_the_visitors_and_both_screens_name_it(
+    client: TestClient, visitor: dict
+) -> None:
+    close_title = FOR_YOU_IDEAS[0][1]
+    own = _my_open_idea(client, visitor)
+
+    tendai = next(m for m in _idea_matches(client, visitor) if m["username"] == "tendai_moyo")
+    similar = client.get(f"/v1/ideas/{own}/similar", headers=visitor).json()["data"]
+
+    assert tendai["similar_idea"]["title"] == close_title
+    assert [idea["title"] for idea in similar] == [close_title]
+    # the other two developers have no idea that close
+    others = [m for m in _idea_matches(client, visitor) if m["username"] != "tendai_moyo"]
+    assert [m["similar_idea"] for m in others] == [None, None]
+
+
+def _demo_vectors() -> dict[str, tuple[str, list[float]]]:
+    """Every demo row's vector, as (hash of its text, the numbers), by row."""
+    sql = text(
+        """
+        SELECT 'idea ' || e.idea_id, e.source_sha256, e.embedding::text FROM idea_embeddings e
+          JOIN ideas i ON i.id = e.idea_id JOIN users u ON u.id = i.author_id WHERE u.is_demo
+        UNION ALL
+        SELECT 'user ' || e.user_id, e.source_sha256, e.embedding::text FROM user_embeddings e
+          JOIN users u ON u.id = e.user_id WHERE u.is_demo
+        """
+    )
+
+    async def go() -> dict[str, tuple[str, list[float]]]:
+        async with db_session() as session:
+            rows = await session.execute(sql)
+            return {row: (digest, json.loads(vector)) for row, digest, vector in rows}
+
+    return asyncio.run(go())
+
+
+def test_the_seed_gives_every_demo_row_the_vector_frozen_for_its_text_and_a_rerun_keeps_them(
+    client: TestClient, visitor: dict
+) -> None:
+    frozen = frozen_vectors()
+    before = _demo_vectors()
+
+    _seed()
+
+    # the frozen vectors are kept in float32, so the stored numbers are those numbers exactly
+    assert before and all(
+        vector == pytest.approx(frozen[digest], abs=1e-7) for digest, vector in before.values()
+    )
+    assert _demo_vectors() == before
+
+
+def test_every_text_the_seed_writes_has_a_frozen_vector(client: TestClient, visitor: dict) -> None:
+    """When this fails, a demo bio, list or idea changed: make the file again
+    (app/demo_vectors.py). test_demo_world.py checks the wider community the same way."""
+    people = select(User.id).where(User.username.in_(_seeded_usernames()))
+    only_the_seeds = {User: User.id.in_(people), Idea: Idea.author_id.in_(people)}
+
+    async def go() -> dict[str, str]:
+        async with db_session() as session:
+            return {
+                source_sha256(text_of(row)): text_of(row).split("\n")[0]
+                for entity, rule, text_of, _, _ in DEMO_TEXTS
+                for row in await session.scalars(
+                    select(entity).where(*rule, only_the_seeds[entity])
+                )
+            }
+
+    texts = asyncio.run(go())
+
+    # the visitor and the developers verified in a role, and the open ideas they wrote
+    assert len(texts) == 13
+    assert [first for digest, first in texts.items() if digest not in frozen_vectors()] == []
+
+
+def test_the_frozen_vectors_are_of_the_model_and_the_width_the_score_reads() -> None:
+    frozen = frozen_vectors()
+
+    assert json.loads(FROZEN_FILE.read_text(encoding="utf-8"))["model"] == EMBEDDING_MODEL
+    assert frozen and all(len(vector) == EMBEDDING_DIMENSIONS for vector in frozen.values())
+
+
+def test_a_demo_text_that_changed_gets_no_frozen_vector_and_the_seed_brings_it_back(
+    client: TestClient, visitor: dict
+) -> None:
+    def tendai_has_a_vector() -> bool:
+        async def go() -> bool:
+            async with db_session() as session:
+                tendai = select(User.id).where(User.username == "tendai_moyo")
+                found = await session.scalar(
+                    select(UserEmbedding.user_id).where(UserEmbedding.user_id.in_(tendai))
+                )
+                return found is not None
+
+        return asyncio.run(go())
+
+    async def change_the_bio_and_freeze() -> None:
+        async with db_session() as session:
+            # the trigger removes the vector, and no frozen vector was made from this text
+            await session.execute(
+                update(User).where(User.username == "tendai_moyo").values(bio="A new bio.")
+            )
+            await write_frozen_vectors(session)
+            await session.commit()
+
+    asyncio.run(change_the_bio_and_freeze())
+    assert not tendai_has_a_vector()
+
+    _seed()  # writes the bio of the demo back, and the vector made from it
+
+    assert tendai_has_a_vector()
+
+
+def test_every_demo_developer_with_a_verified_role_shows_the_green_tick(
+    client: TestClient, visitor: dict
+) -> None:
+    async def go() -> int:
+        async with db_session() as session:
+            return await session.scalar(
+                text(
+                    "SELECT count(*) FROM users u WHERE u.username = ANY(:names) "
+                    "AND NOT u.is_verified AND EXISTS (SELECT 1 FROM user_roles r "
+                    "WHERE r.user_id = u.id AND r.verified_at IS NOT NULL)"
+                ),
+                {"names": _seeded_usernames()},
+            )
+
+    assert asyncio.run(go()) == 0
 
 
 def _seeded_usernames() -> list[str]:

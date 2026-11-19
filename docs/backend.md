@@ -320,8 +320,9 @@ Signs in as the shared demo account, for "Try the demo". No GitHub, no body.
   made-up developers, posts, comments, ideas, hubs and a review case. It also creates the demo
   account itself, so `POST /v1/auth/demo` answers `404` until it has run. Running it again
   rewrites the posts and comments with fresh times. About 1,150 more members, 1,500 posts and
-  6,000 comments come from frozen files (`2026-11-15-lived-in-demo.md`), and the embeddings
-  worker skips every demo account.
+  6,000 comments come from frozen files (`2026-11-15-lived-in-demo.md`), and the seed gives
+  every demo developer and open idea the vector frozen for its text
+  (`2026-11-19-demo-frozen-vectors.md`), so the demo's match scores are full.
 * Why: `docs/decisions/2026-11-13-read-only-demo.md`.
 
 ---

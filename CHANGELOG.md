@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-19
 
+- feat(api): give the demo real match scores from vectors measured once
 - perf(api): load a signed-in person in 7 queries instead of 11 on every request
 - feat(api): fall back to claude and openai in the interview steps
 - fix(web): say nothing was saved when the demo refuses a topic choice
