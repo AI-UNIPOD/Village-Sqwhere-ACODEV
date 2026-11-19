@@ -31,8 +31,8 @@ tables.
 - **Only hashes are stored.** A row is found by the SHA-256 of the state, the code or the
   token, and the value itself is never written. A state and a code are 32 random bytes and a
   token is signed, so nobody can guess one from its hash and no salt is needed. A copy of the
-  database is not enough to finish a sign-in or to reuse a token. Refresh tokens carry no id
-  (`jti`), so the whole token is hashed.
+  database is not enough to finish a sign-in or to reuse a token. The whole refresh token is
+  hashed, not an id inside it, so a token made before this change is covered too.
 - **One use, on every instance.** A state or a code is taken with one statement:
   `DELETE ... WHERE hash = :h AND expires_at > now() RETURNING ...`. When two instances get
   the same value, the database gives the row to one and the other finds nothing. A refresh
@@ -76,9 +76,10 @@ tables.
 - `revoked_refresh_tokens` gets a row for each logout and each refresh, kept until the token
   would have expired. A row is one hash and one date. If the table grows large, that is the
   time for the `refresh_tokens` table above.
-- Two refresh tokens made for one account in the same second are the same token, because a
-  token has no id. Revoking one revokes the other. This was already true and matters most for
-  the shared demo account. Not changed here.
+- A refresh token now carries a random id (`jti`), as an access token already did. Before, two
+  refresh tokens made for one account in the same second were the same token, so revoking one
+  revoked the other. With the revocations shared by every instance, that would have let one
+  visitor's sign-out end another visitor's session on the shared demo account.
 - Two other things still live in one process's memory and are not part of this change: the
   interview tickets (`2026-11-15-interview-ticket.md`) and the listeners of the live hub chat
   (`2026-11-15-live-hub-chat.md`).

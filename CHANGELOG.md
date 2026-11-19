@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-19
 
-- fix(api): keep sign-in state in the database so any instance can finish it
+- fix(api): keep sign-in state in the database so any instance finishes it
 
 ## 2026-11-16
 

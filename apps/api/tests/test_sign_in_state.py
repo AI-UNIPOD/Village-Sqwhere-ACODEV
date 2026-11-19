@@ -161,6 +161,18 @@ def test_logout_is_kept_where_every_instance_reads_it(client: TestClient) -> Non
     assert client.post("/v1/auth/logout", json={"refresh_token": refresh_token}).status_code == 204
 
 
+def test_signing_out_of_one_session_leaves_another_made_in_the_same_second(
+    client: TestClient,
+) -> None:
+    user = make_user()
+    (first, _), (second, _) = create_refresh_token(user.id), create_refresh_token(user.id)
+
+    assert first != second
+    assert client.post("/v1/auth/logout", json={"refresh_token": first}).status_code == 204
+    assert refresh(client, first).status_code == 401
+    assert refresh(client, second).status_code == 200
+
+
 def test_a_refreshed_token_is_revoked_for_every_instance(client: TestClient) -> None:
     refresh_token, _ = create_refresh_token(make_user().id)
 
