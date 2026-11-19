@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
+import { isDemoRefusal, notSaved } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -81,8 +82,8 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
       }
     } catch (error) {
       if (error instanceof SignedOutError) return;
-      // in the demo the frame says why; "try again" would be wrong
-      if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return;
+      // the demo can never save it, so "try again" would be wrong
+      if (isDemoRefusal(error)) return setProblem(notSaved(lang));
       const code = error instanceof IdeaError ? error.code : "";
       if (CHANGED.includes(code) || UNAVAILABLE.includes(code)) {
         // show the hub as it is now, so the buttons fit it

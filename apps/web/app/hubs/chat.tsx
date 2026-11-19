@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 
 import { when } from "../feed/post-parts";
 import { Field } from "../ideas/composer";
+import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -125,12 +126,12 @@ export function Chat({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: 
     }
   }
 
-  // The sentence for a refused or failed write, or null when the frame already says why.
+  // The sentence for a refused or failed write, or null for a signed-out person, who is being sent to sign-in.
   function refused(reason: unknown): Line | null {
     if (reason instanceof SignedOutError) return null;
     const code = reason instanceof IdeaError ? reason.code : "";
-    // in the demo the frame says why; "try again" would be wrong
-    if (code === "DEMO_READ_ONLY") return null;
+    // the demo can never save it, so "try again" would be wrong
+    if (code === DEMO_READ_ONLY) return { text: notSaved(lang), problem: true };
     if (CHANGED.includes(code)) {
       // show the hub as it is now; the line already says what happened
       loadHub(hub.id).then(onChange, () => {});

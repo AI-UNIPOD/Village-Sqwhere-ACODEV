@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
-import { api, asked, fetchMock, hub, idea, member, owner, posted, refusal, reply } from "./test-support";
+import { NOT_SAVED, api, asked, demoRefusal, fetchMock, hub, idea, member, owner, posted, refusal, reply } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -99,6 +99,7 @@ test("someone who already left is not removed twice: the list is read again", as
 test.each([
   ["HUB_ARCHIVED", 409, "This hub is archived"],
   ["INTERNAL", 500, "That did not go through. Nothing was changed, so try again."],
+  ["DEMO_READ_ONLY", 403, NOT_SAVED],
 ])("a removal refused with %s says why and keeps the person", async (code, status, text) => {
   await open(asOwner, { "POST /v1/hubs/hub-1/members/id-tendai-moyo/remove": refusal(status, code) });
   await screen.findByText("Tendai Moyo");
@@ -147,6 +148,14 @@ test("a failed leave says nothing changed and keeps the button", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Leave this hub" }));
   fireEvent.click(within(dialog("Leave this hub?")).getByRole("button", { name: "Leave the hub" }));
   expect((await screen.findByRole("alert")).textContent).toContain("We couldn't take you out of the hub.");
+  expect(screen.getByRole("button", { name: "Leave this hub" })).toBeTruthy();
+});
+
+test("the demo's refused leave says nothing was saved, not to try again, and keeps the button", async () => {
+  await open(asMember, { "POST /v1/hubs/hub-1/membership/leave": demoRefusal() });
+  fireEvent.click(await screen.findByRole("button", { name: "Leave this hub" }));
+  fireEvent.click(within(dialog("Leave this hub?")).getByRole("button", { name: "Leave the hub" }));
+  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
   expect(screen.getByRole("button", { name: "Leave this hub" })).toBeTruthy();
 });
 

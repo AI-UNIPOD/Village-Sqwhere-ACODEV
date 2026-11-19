@@ -148,6 +148,17 @@ test("a failed deletion says nothing changed and keeps the person signed in", as
   expect(window.location.replace).not.toHaveBeenCalled();
 });
 
+test("the demo's refused deletion says nothing was saved in the dialog, not to try again, and keeps the person signed in", async () => {
+  await page(refusal(403, "DEMO_READ_ONLY"));
+  openDialog();
+  fireEvent.click(understood());
+  fireEvent.change(usernameField(), { target: { value: "kwabena-owusu" } });
+  fireEvent.click(confirmButton());
+  expect((await within(dialog()).findByRole("alert")).textContent).toBe("Nothing was saved. The demo cannot be changed.");
+  expect(dialog().textContent).not.toContain("We couldn't delete your account");
+  expect(window.location.replace).not.toHaveBeenCalled();
+});
+
 test("deleting the account speaks French", async () => {
   await page(reply(204), "fr");
   expect(screen.getByRole("heading", { level: 2, name: "Supprimer votre compte" })).toBeTruthy();

@@ -5,7 +5,7 @@ import { IdeaPage } from "../ideas/idea-page";
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
 import { MyHubs } from "./my-hubs";
-import { api, asked, fetchMock, hub, member, owner, posted, refusal, reply } from "./test-support";
+import { NOT_SAVED, api, asked, demoRefusal, fetchMock, hub, member, owner, posted, refusal, reply } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -216,6 +216,13 @@ test.each([
   expect(screen.queryByRole("button", { name: "Ask to join" })).toBeNull();
 });
 
+test("the demo's refused request says nothing was saved, not to try again, and keeps the button", async () => {
+  await view(placed(null), { "POST /v1/hubs/hub-1/join-requests": demoRefusal() });
+  fireEvent.click(await ask());
+  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
+  expect(screen.getByRole("button", { name: "Ask to join" })).toBeTruthy();
+});
+
 test("a hub card that fails to load says so and loads again on Try again", async () => {
   await view(null, { "GET /v1/hubs/hub-1": [refusal(500, "BOOM"), { data: hub(placed(null)) }] });
   expect(await screen.findByText(/We couldn't check where you stand with this hub/)).toBeTruthy();
@@ -335,6 +342,14 @@ test("a failed answer says it did not go through and changes nothing", async () 
   await screen.findByText("Wanjiru Kamau");
   press("Approve: Wanjiru Kamau");
   expect((await screen.findByRole("alert")).textContent).toContain("That did not go through.");
+  expect(rowOf("Wanjiru Kamau").getByText("Asked to join")).toBeTruthy();
+});
+
+test("the demo's refused answer says nothing was saved, not that it did not go through", async () => {
+  await openTeam([owner(), wanjiru], { "POST /v1/hubs/hub-1/members/id-wanjiru-kamau/approve": demoRefusal() });
+  await screen.findByText("Wanjiru Kamau");
+  press("Approve: Wanjiru Kamau");
+  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
   expect(rowOf("Wanjiru Kamau").getByText("Asked to join")).toBeTruthy();
 });
 
@@ -472,6 +487,13 @@ test("a withdrawal that fails says so and leaves the request and the button", as
   expect((await screen.findByRole("alert")).textContent).toContain("That did not go through. Nothing was changed, so try again.");
   expect(screen.getByText("You asked to join. The owner will answer.")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Withdraw my request" }).getAttribute("aria-busy")).toBeNull();
+});
+
+test("the demo's refused withdrawal says nothing was saved, not to try again, and leaves the request", async () => {
+  await view(placed("requested"), { [withdraw]: demoRefusal() });
+  fireEvent.click(await takeBack());
+  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
+  expect(screen.getByText("You asked to join. The owner will answer.")).toBeTruthy();
 });
 
 test("taking a request back is in French", async () => {

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 import { AppFrame } from "../app-frame";
+import { notSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -301,6 +302,8 @@ const ENDINGS = {
   left: { kind: "info", say: "left" },
   dropped: { kind: "error", say: "dropped" },
   refused: { kind: "error", say: "refused" },
+  // the same title; under it, what the demo says where a failure would say why
+  demo: { kind: "error", say: "refused" },
 } as const;
 
 function Conversation({ lang, attemptId }: { lang: Lang; attemptId: string }) {
@@ -333,7 +336,7 @@ function Conversation({ lang, attemptId }: { lang: Lang; attemptId: string }) {
             <Message
               kind={ending.kind}
               title={t[ending.say].title}
-              text={t[ending.say].text}
+              text={status === "demo" ? notSaved(lang) : t[ending.say].text}
               role={ending.kind === "error" ? "alert" : "status"}
             />
             <div className={styles.dockActions}>

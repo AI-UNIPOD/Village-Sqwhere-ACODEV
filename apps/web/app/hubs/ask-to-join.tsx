@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { failureLine } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -114,7 +115,7 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
         setWait(waitUntil((error as IdeaError).detail?.can_ask_again_at) ?? "later");
         setRefused(true);
       }
-      else setProblem(code === "TEAM_FULL" ? t.team.full : t.team.actionFailed);
+      else setProblem(code === "TEAM_FULL" ? t.team.full : failureLine(error, lang, t.team.actionFailed));
     } finally {
       setBusy(false);
     }

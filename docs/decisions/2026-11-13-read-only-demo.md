@@ -102,3 +102,17 @@ Changed on 15 November 2026 (Tanny's decision, "honest writes"):
   and for any refused change, in the feed or elsewhere, the frame adds a second line under the
   demo line, "That was not saved...". It no longer replaces the demo line, which therefore stays
   on every screen. Any other failure keeps its usual sentence.
+
+Changed on 2026-11-19:
+
+- **Outside the feed, a refused write says the same sentence.** On the profile, the ideas, the
+  hubs, onboarding and verification, a change the API refuses for the demo account now shows
+  "Nothing was saved. The demo cannot be changed." where that screen shows its failure sentence,
+  in the same alert. Before, most of them said "We couldn't save... check your connection and try
+  again", which is wrong for a change that can never succeed. The hub's tabs, its phases and its
+  owner's tools, deleting an idea and deleting the account said nothing of their own, and now say
+  the sentence too. Onboarding's last step no longer offers "Try again" after it.
+- **One helper for every screen.** `apps/web/app/demo-refusal.ts` tells the refusal from a
+  failure and gives the sentence, which is the feed's, so there is one wording. Onboarding's save
+  now keeps the API's code, which it used to drop. Any other failure keeps its usual sentence,
+  nothing is disabled up front, and the frame's second line stays.

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { JoinHub } from "./join-hub";
-import { agreement, api, asked, fetchMock, hub, posted, refusal, reply } from "./test-support";
+import { NOT_SAVED, agreement, api, asked, demoRefusal, fetchMock, hub, posted, refusal, reply } from "./test-support";
 
 const nav = vi.hoisted(() => {
   const push = vi.fn();
@@ -142,6 +142,15 @@ test.each([
   expect(await screen.findByRole("heading", { level: 1, name: "There is no invitation to sign" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Open the hub" }).getAttribute("href")).toBe("/en/hubs/view?id=hub-1");
   expect(screen.queryByLabelText("Your full legal name")).toBeNull();
+});
+
+test("the demo's refused signature says nothing was saved, not to check the connection, and keeps everything typed", async () => {
+  await join({ "POST /v1/hubs/hub-1/invitation/accept": demoRefusal() });
+  fillAndSign();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign and join" }));
+  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
+  expect(screen.queryByText(/We couldn't complete your signature/)).toBeNull();
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
 });
 
 test("an invitation withdrawn while the person read gives the same screen when they sign", async () => {

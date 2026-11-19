@@ -404,8 +404,12 @@ shared demo account with `POST /v1/auth/demo` and opens the village. The account
 nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that
 answer for every screen, and `AppFrame` shows the demo account a line under the header that
 says what the demo is, says so when a change was refused, and offers the way out.
-In the feed, a refused write also says so beside the control that was pressed (`NotSaved` in
-`feed/not-saved.tsx`: "Nothing was saved"), where other screens show their usual failure sentence.
+A refused write also says so beside the control that was pressed: "Nothing was saved. The demo
+cannot be changed.", never a failure sentence that says to try again. In the feed it is a status
+line (`NotSaved` in `feed/not-saved.tsx`). On the profile, the ideas, the hubs, onboarding and
+verification it takes the place of the screen's own failure sentence, in the same alert:
+`app/demo-refusal.ts` tells the refusal from a failure (`isDemoRefusal`) and gives the sentence
+(`notSaved`, `failureLine`). Any other failure keeps its usual sentence.
 
 The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
 village, then the feed, one question with its comments, and four on the demo account's own open

@@ -449,13 +449,13 @@ test("for the demo account the address and the shas are plain text, and no sente
   expect(section().textContent).not.toMatch(/made.?up|sample|placeholder|fake|demo/i);
 });
 
-test("the demo's refusal is announced by the frame: the tab says nothing of its own", async () => {
+test("the demo's refusal says nothing was saved where a failure would say to try again", async () => {
   await open(inBuild, tab({ pieces: [payouts] }), { "POST /v1/hubs/hub-1/pieces/p-1/claim": refusal(403, "DEMO_READ_ONLY") }, "en", true);
   click(card("Payouts API"), "I'll build this piece, Payouts API");
   await waitFor(() => expect(sent("POST")).toHaveLength(1));
   await waitFor(() => expect(within(section()).getByRole("button", { name: "I'll build this piece, Payouts API" }).getAttribute("aria-busy")).toBeNull());
-  expect(within(section()).queryByRole("alert")).toBeNull();
-  expect(within(section()).queryByRole("status")).toBeNull();
+  expect(within(section()).getByRole("alert").textContent).toBe("Nothing was saved. The demo cannot be changed.");
+  expect(section().textContent).not.toContain("We couldn't save that");
   expect(reads()).toHaveLength(1);
 });
 

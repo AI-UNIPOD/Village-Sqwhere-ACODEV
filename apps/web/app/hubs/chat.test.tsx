@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
-import { api, asked, fetchMock, hub, idea, owner, posted, refusal, reply } from "./test-support";
+import { NOT_SAVED, api, asked, demoRefusal, fetchMock, hub, idea, owner, posted, refusal, reply } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -187,6 +187,17 @@ test.each(["HUB_ARCHIVED", "HUB_CHANGED", "NOT_HUB_MEMBER"])("a send refused wit
   send();
   await waitFor(() => expect(alertText()).toContain("This hub changed, so you can no longer write in its chat."));
   expect(asked().filter((line) => line === "GET /v1/hubs/hub-1").length).toBeGreaterThan(1);
+});
+
+test("the demo's refused message says nothing was saved, not to try again, and keeps the text", async () => {
+  await open(asMember, { "POST /v1/hubs/hub-1/messages": demoRefusal() });
+  await ready();
+  await waitFor(() => expect(within(section()).getByRole("button", { name: "Send" })).toBeTruthy());
+  write("Hello");
+  send();
+  await waitFor(() => expect(alertText()).toBe(NOT_SAVED));
+  expect(section().textContent).not.toContain("We couldn't save that");
+  expect(field().value).toBe("Hello");
 });
 
 test("an archived hub's chat is for reading only", async () => {

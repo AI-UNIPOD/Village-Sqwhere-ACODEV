@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
+import { failureLine } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -60,7 +61,7 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
       const code = error instanceof IdeaError ? error.code : null;
       // added from another tab a moment ago: the role is there, so show it instead of a failure
       if (code === "ROLE_ALREADY_CLAIMED" && (await loadMe().then(onMe, () => false)) !== false) return;
-      setProblem({ slug, text: code === "ROLE_HAS_VERIFICATION_HISTORY" ? t.errors.history : failure });
+      setProblem({ slug, text: code === "ROLE_HAS_VERIFICATION_HISTORY" ? t.errors.history : failureLine(error, lang, failure) });
     } finally {
       setBusy(null);
       setAsking(null);

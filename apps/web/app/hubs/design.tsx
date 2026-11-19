@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
+import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -141,12 +142,12 @@ export function DesignSketch({ lang, hub, onChange }: { lang: Lang; hub: Hub; on
   const change: Change = (apply) => setSketch((have) => have && apply(have));
   const reloadSketch = () => loadSketch(hub.id).then(setSketch, () => {});
 
-  // The sentence for a refused or failed change, or null when the frame already says why.
+  // The sentence for a refused or failed change, or null for a signed-out person, who is being sent to sign-in.
   function refused(reason: unknown): Line | null {
     if (reason instanceof SignedOutError) return null;
     const code = codeOf(reason);
-    // in the demo the frame says why; "try again" would be wrong
-    if (code === "DEMO_READ_ONLY") return null;
+    // the demo can never save it, so "try again" would be wrong
+    if (code === DEMO_READ_ONLY) return { text: notSaved(lang), problem: true };
     if (MOVED.includes(code)) {
       // show the hub as it is now, so the section fits it; the line already says what happened
       loadHub(hub.id).then(onChange, () => {});

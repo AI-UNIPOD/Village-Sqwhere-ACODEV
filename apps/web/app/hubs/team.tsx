@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
+import { failureLine, isDemoRefusal, notSaved } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -129,7 +130,7 @@ function InviteForm({ lang, hubId, onInvited }: { lang: Lang; hubId: string; onI
       setSentTo(member.user.display_name);
     } catch (failure) {
       if (failure instanceof SignedOutError) return;
-      setError(inviteMessage(failure, t) ?? t.errors.failed);
+      setError(inviteMessage(failure, t) ?? failureLine(failure, lang, t.errors.failed));
     } finally {
       setBusy(false);
     }
@@ -224,7 +225,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
         // the person withdrew nothing, but the request is gone (answered elsewhere): show the list as it is now
         setAttempt((n) => n + 1);
         setProblem(t.team.requestGone);
-      } else setProblem((approve ? inviteMessage(error, t.team) : null) ?? t.team.actionFailed);
+      } else setProblem((approve ? inviteMessage(error, t.team) : null) ?? failureLine(error, lang, t.team.actionFailed));
     } finally {
       setBusy(false);
       setDeclining(null);
@@ -239,7 +240,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
     try {
       put(await inviteMember(hub.id, member.user.username));
     } catch (error) {
-      if (!(error instanceof SignedOutError)) setProblem(inviteMessage(error, t.team) ?? t.team.actionFailed);
+      if (!(error instanceof SignedOutError)) setProblem(inviteMessage(error, t.team) ?? failureLine(error, lang, t.team.actionFailed));
     } finally {
       setBusy(false);
     }
@@ -257,7 +258,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
       if (error instanceof SignedOutError) return;
       // nothing pending any more (they signed, or it was withdrawn): show the list as it is now
       if (error instanceof IdeaError && error.code === "INVITATION_NOT_FOUND") setAttempt((n) => n + 1);
-      else setProblem(t.team.actionFailed);
+      else setProblem(failureLine(error, lang, t.team.actionFailed));
     } finally {
       setBusy(false);
       setWithdrawing(null);
@@ -281,7 +282,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
         // they left, or were removed in another tab: show the list as it is now
         setAttempt((n) => n + 1);
         setNotice(fill(t.team.removeGone, { name: gone.user.display_name }));
-      } else setProblem(code === "HUB_ARCHIVED" ? t.team.errors.archived : t.team.actionFailed);
+      } else setProblem(code === "HUB_ARCHIVED" ? t.team.errors.archived : failureLine(error, lang, t.team.actionFailed));
     } finally {
       setBusy(false);
       setRemoving(null);
@@ -454,7 +455,7 @@ export function LeaveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
   const t = copy[lang].leave;
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState(false);
+  const [problem, setProblem] = useState<boolean | "demo">(false);
 
   async function leave() {
     if (busy) return;
@@ -466,7 +467,7 @@ export function LeaveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
       if (error instanceof SignedOutError) return;
       // no longer an active member (removed or left in another tab): show the hub as it is now
       if (error instanceof IdeaError && error.code === "MEMBERSHIP_NOT_FOUND") loadHub(hub.id).then(onChange, () => setProblem(true));
-      else setProblem(true);
+      else setProblem(isDemoRefusal(error) ? "demo" : true);
     } finally {
       setBusy(false);
       setAsking(false);
@@ -478,7 +479,7 @@ export function LeaveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
       {problem && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
-          {t.failed}
+          {problem === "demo" ? notSaved(lang) : t.failed}
         </p>
       )}
       <button type="button" className={landing.ghost} onClick={() => setAsking(true)}>
@@ -496,7 +497,7 @@ export function InvitationCard({ lang, hub, onChange }: { lang: Lang; hub: Hub; 
   const t = copy[lang].invitation;
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState(false);
+  const [problem, setProblem] = useState<boolean | "demo">(false);
 
   async function decline() {
     if (busy) return;
@@ -510,7 +511,7 @@ export function InvitationCard({ lang, hub, onChange }: { lang: Lang; hub: Hub; 
       if (error instanceof IdeaError && (error.code === "INVITATION_NOT_FOUND" || error.code === "ALREADY_MEMBER")) {
         // the invitation changed under them: show the hub as it is now
         loadHub(hub.id).then(onChange, () => setProblem(true));
-      } else setProblem(true);
+      } else setProblem(isDemoRefusal(error) ? "demo" : true);
     } finally {
       setBusy(false);
       setAsking(false);
@@ -524,7 +525,7 @@ export function InvitationCard({ lang, hub, onChange }: { lang: Lang; hub: Hub; 
       {problem && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
-          {t.failed}
+          {problem === "demo" ? notSaved(lang) : t.failed}
         </p>
       )}
       <div className={styles.invitationActions}>

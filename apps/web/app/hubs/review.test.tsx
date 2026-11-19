@@ -489,15 +489,15 @@ test("unticking the last ticked check takes the Finish button away once the chec
 
 // ---------- refusals ----------
 
-test("the demo's refusal is announced by the frame: the checklist says nothing of its own", async () => {
+test("the demo's refusal says nothing was saved where a failure would say to try again", async () => {
   await open(inReview, sheet([payouts, mobile, gateway]), { "POST /v1/hubs/hub-1/checks/c-1/tick": refusal(403, "DEMO_READ_ONLY") }, "en", true);
+  expect(section().textContent).not.toMatch(/made.?up|sample|placeholder|fake|demo/i);
   press(row("Rejects a negative amount"), "Tick the check: Rejects a negative amount");
   await waitFor(() => expect(sent("POST")).toHaveLength(1));
   await waitFor(() => expect(within(row("Rejects a negative amount")).getByRole("button", { name: /^Tick/ }).getAttribute("aria-busy")).toBeNull());
-  expect(within(section()).queryByRole("alert")).toBeNull();
-  expect(within(section()).queryByRole("status")).toBeNull();
+  expect(within(section()).getByRole("alert").textContent).toBe("Nothing was saved. The demo cannot be changed.");
+  expect(section().textContent).not.toMatch(/We couldn't save that|made.?up|sample|placeholder|fake/i);
   expect(reads()).toHaveLength(1);
-  expect(section().textContent).not.toMatch(/made.?up|sample|placeholder|fake|demo/i);
 });
 
 test("a tick on a piece the viewer built: a sentence, and nothing is read again", async () => {

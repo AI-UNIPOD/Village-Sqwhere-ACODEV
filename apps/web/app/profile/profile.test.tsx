@@ -473,6 +473,42 @@ test("the sectors section is in French", async () => {
   expect(sectors.getByRole("button", { name: "Enregistrer les domaines" })).toBeTruthy();
 });
 
+// ---------- the demo account ----------
+
+const NOT_SAVED = "Nothing was saved. The demo cannot be changed.";
+const demoRefusal = () => refusal(403, "DEMO_READ_ONLY");
+
+test("the demo's refused save says nothing was saved, not to check the connection, and keeps the text", async () => {
+  await page(me(), { "PATCH /v1/me": demoRefusal() });
+  fireEvent.change(screen.getByLabelText("About you"), { target: { value: "New bio" } });
+  press("Save");
+  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
+  expect(document.body.textContent).not.toContain("We couldn't");
+  expect((screen.getByLabelText("About you") as HTMLTextAreaElement).value).toBe("New bio");
+});
+
+test("the demo's refused role, stack and sectors changes say nothing was saved too", async () => {
+  await page(me(), {
+    "POST /v1/me/roles": demoRefusal(),
+    "DELETE /v1/me/roles/devops-cloud-engineer": demoRefusal(),
+    "PUT /v1/me/technologies": demoRefusal(),
+    "PUT /v1/me/sectors": demoRefusal(),
+  });
+  press("Mobile Engineer", screen.getByRole("group", { name: "Add a role" }));
+  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
+  press("Remove", row("DevOps and Cloud Engineer"));
+  press("Remove role");
+  expect((await within(row("DevOps and Cloud Engineer")).findByRole("alert")).textContent).toBe(NOT_SAVED);
+  for (const [name, chip] of [["Stack", "Rust"], ["Sectors", "Health"]]) {
+    const part = within(screen.getByRole("region", { name }));
+    fireEvent.click(part.getByRole("button", { name: chip }));
+    fireEvent.click(part.getByRole("button", { name: `Save ${name.toLowerCase()}` }));
+    expect((await part.findByRole("alert")).textContent).toBe(NOT_SAVED);
+    expect(part.getByRole("button", { name: chip }).getAttribute("aria-pressed")).toBe("true");
+  }
+  expect(document.body.textContent).not.toContain("We couldn't");
+});
+
 test("the account part has both languages, marking the current one, and a sign-out button", async () => {
   await page();
   // the header has its own language link, so the part is looked at by itself

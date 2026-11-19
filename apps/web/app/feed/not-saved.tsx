@@ -1,10 +1,9 @@
-import { IdeaError } from "../ideas/ideas-api";
 import type { Lang } from "../locales";
 import { copy } from "./copy";
 import styles from "./feed.module.css";
 
-// The demo account's changes are refused by the API with this code, whatever the control was.
-export const isDemoRefusal = (error: unknown) => error instanceof IdeaError && error.code === "DEMO_READ_ONLY";
+// The demo account's changes are refused by the API with one code, whatever the control was.
+export { isDemoRefusal } from "../demo-refusal";
 
 // Said beside the control that was pressed when the API refused the change for the demo account.
 // It says what happened to the press and nothing about the demo's content: the demo line under

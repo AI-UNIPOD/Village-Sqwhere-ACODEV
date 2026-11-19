@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { ConfirmDialog } from "../confirm-dialog";
+import { isDemoRefusal, notSaved } from "../demo-refusal";
 import { IdeaError, loadMyIdea, type OwnedIdea } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -94,7 +95,7 @@ function NewHubForm({ lang, ideaId }: { lang: Lang; ideaId: string | null }) {
   const [errors, setErrors] = useState<Errors>({});
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<"changed" | "send" | null>(null);
+  const [problem, setProblem] = useState<"changed" | "send" | "demo" | null>(null);
 
   useEffect(() => {
     if (!ideaId) return;
@@ -172,7 +173,7 @@ function NewHubForm({ lang, ideaId }: { lang: Lang; ideaId: string | null }) {
       } else {
         const why = blockedBy(error, true);
         if (why) setBlocked(why);
-        else setProblem("send");
+        else setProblem(isDemoRefusal(error) ? "demo" : "send");
       }
     } finally {
       setBusy(false);
@@ -302,10 +303,10 @@ function NewHubForm({ lang, ideaId }: { lang: Lang; ideaId: string | null }) {
         />
 
         <div className={`${onboarding.actions} ${ideas.bar}`}>
-          {problem === "send" && (
+          {(problem === "send" || problem === "demo") && (
             <p className={`${onboarding.error} ${ideas.failed}`} role="alert">
               <AlertCircle />
-              {t.errors.send}
+              {problem === "demo" ? notSaved(lang) : t.errors.send}
             </p>
           )}
           <button type="submit" className={landing.btn}>

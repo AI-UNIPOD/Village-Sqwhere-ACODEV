@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 
+import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -41,7 +42,7 @@ export function StartForm({ lang, slug, attemptNumber, actions }: Props) {
   const [text, setText] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<{ repositories?: string; consent?: string }>({});
-  const [sendError, setSendError] = useState<"network" | "server" | null>(null);
+  const [sendError, setSendError] = useState<"network" | "server" | "demo" | null>(null);
   const [busy, setBusy] = useState(false);
   // a second press can arrive before the page has drawn the busy state
   const sending = useRef(false);
@@ -76,7 +77,7 @@ export function StartForm({ lang, slug, attemptNumber, actions }: Props) {
       } else if (response.status === 422) {
         setErrors({ repositories: t.errors.rejected });
       } else {
-        setSendError("server");
+        setSendError(code === DEMO_READ_ONLY ? "demo" : "server");
       }
     } catch (failure) {
       if (!(failure instanceof SignedOutError)) setSendError("network");
@@ -150,7 +151,7 @@ export function StartForm({ lang, slug, attemptNumber, actions }: Props) {
       {sendError && (
         <p className={onboarding.error} role="alert">
           <AlertCircle />
-          {t.failed[sendError]}
+          {sendError === "demo" ? notSaved(lang) : t.failed[sendError]}
         </p>
       )}
       <div>

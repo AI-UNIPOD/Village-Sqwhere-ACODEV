@@ -237,13 +237,13 @@ test.each(["HUB_ARCHIVED", "NOT_HUB_OWNER"])("%s: the hub is loaded again and th
   expect(within(phases()).queryAllByRole("button")).toHaveLength(0);
 });
 
-test("a refusal the demo frame already explains adds no second message and keeps the buttons", async () => {
+test("the demo's refusal says nothing was saved, not to try again, and keeps the buttons", async () => {
   await open(asOwner, { "POST /v1/hubs/hub-1/team/confirm": refusal(403, "DEMO_READ_ONLY") });
   press("Confirm the team");
   confirmIn("Confirm the team?", "Confirm the team");
   await waitFor(() => expect(posted()).toHaveLength(1));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(within(phases()).queryByRole("alert")).toBeNull();
+  expect(within(phases()).getByRole("alert").textContent).toBe("Nothing was saved. The demo cannot be changed.");
   expect(within(phases()).getByRole("button", { name: "Confirm the team" })).toBeTruthy();
 });
 

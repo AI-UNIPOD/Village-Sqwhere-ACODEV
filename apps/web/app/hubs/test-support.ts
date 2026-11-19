@@ -5,6 +5,10 @@ export const fetchMock = vi.fn();
 export const reply = (status: number, body: unknown = {}) => new Response(JSON.stringify(body), { status });
 export const refusal = (status: number, code: string) => reply(status, { detail: { code, message: "English text from the API" } });
 
+// How the API refuses every change of the demo account, and what a screen says in place of its failure sentence.
+export const demoRefusal = () => refusal(403, "DEMO_READ_ONLY");
+export const NOT_SAVED = "Nothing was saved. The demo cannot be changed.";
+
 export const idea = (over: Record<string, unknown> = {}) => ({
   id: "idea-1",
   title: "Borehole map for Kaduna",

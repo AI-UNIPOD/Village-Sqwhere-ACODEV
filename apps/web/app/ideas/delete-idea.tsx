@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
+import { isDemoRefusal, notSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { AlertCircle } from "../onboarding/icons";
@@ -20,7 +21,7 @@ export function DeleteIdea({ lang, id }: { lang: Lang; id: string }) {
   const router = useRouter();
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<"hub" | "failed" | null>(null);
+  const [problem, setProblem] = useState<"hub" | "failed" | "demo" | null>(null);
 
   async function remove() {
     if (busy) return;
@@ -31,8 +32,7 @@ export function DeleteIdea({ lang, id }: { lang: Lang; id: string }) {
       router.push(`/${lang}/ideas/mine?done=deleted`);
     } catch (error) {
       if (error instanceof SignedOutError) return;
-      // in the demo the frame says why
-      if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return;
+      if (isDemoRefusal(error)) return setProblem("demo");
       // already deleted in another tab: the list says it is gone
       if (error instanceof IdeaError && error.status === 404) router.push(`/${lang}/ideas/mine?done=deleted`);
       else setProblem(error instanceof IdeaError && error.code === "IDEA_HAS_HUB" ? "hub" : "failed");
@@ -51,7 +51,7 @@ export function DeleteIdea({ lang, id }: { lang: Lang; id: string }) {
       {problem && (
         <p className={onboarding.error} role="alert">
           <AlertCircle />
-          {problem === "hub" ? t.hasHub : t.failed}
+          {problem === "hub" ? t.hasHub : problem === "demo" ? notSaved(lang) : t.failed}
         </p>
       )}
       {problem !== "hub" && (

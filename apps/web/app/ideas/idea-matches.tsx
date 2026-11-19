@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { AppFrame } from "../app-frame";
+import { failureLine } from "../demo-refusal";
 import { copy as hubsCopy } from "../hubs/copy";
 import { inviteMember, loadHubsByIdea, type Hub } from "../hubs/hubs-api";
 import hubsStyles from "../hubs/hubs.module.css";
@@ -55,7 +56,7 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
       setState("sent");
     } catch (error) {
       setState("idle");
-      if (!(error instanceof SignedOutError)) setProblem(inviteMessage(error, team) ?? team.actionFailed);
+      if (!(error instanceof SignedOutError)) setProblem(inviteMessage(error, team) ?? failureLine(error, lang, team.actionFailed));
     }
   }
 
