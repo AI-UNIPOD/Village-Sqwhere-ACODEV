@@ -7,6 +7,7 @@ import { HeadingText } from "../heading-text";
 import styles from "../landing-page.module.css";
 import { copy, type PrincipleKey } from "./principles-copy";
 import own from "./principles.module.css";
+import { reducesMotion } from "../../site-motion";
 
 // Our own line icons on a 24px grid. Each path draws in once (pathLength 1).
 const ICONS: Record<PrincipleKey, string[]> = {
@@ -38,7 +39,7 @@ export function Principles({ lang }: { lang: Lang }) {
   useEffect(() => {
     const list = listRef.current;
     if (!list || !("IntersectionObserver" in window)) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reducesMotion()) return;
     const items = Array.from(list.querySelectorAll<HTMLElement>("[data-draw]")).filter(
       (el) => el.getBoundingClientRect().top > window.innerHeight,
     );

@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-19
+
+- feat(web): let a visitor with reduced motion turn animations on from a one-time notice
+
 ## 2026-11-16
 
 - perf(api): build the hub list's cards in two queries (#246)

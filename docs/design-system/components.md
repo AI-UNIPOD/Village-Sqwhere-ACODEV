@@ -299,6 +299,15 @@ Native `<dialog>`, max 480px wide, `--surface-raised`, `--radius-l`, `--shadow-3
 `--scrim`. In over `--dur-modal` from 96% scale and 8px low, out over
 `--dur-modal-out`. Esc closes. Destructive actions always confirm here.
 
+The reduced-motion notice is a dialog that does not move at all, not even the fade other
+dialogs keep (`ReducedMotionNotice`). A device that asks for reduced motion sees it once per
+visitor: "Turn animations on" or "Keep them toned down", Esc counting as the second. Both are
+remembered in `localStorage` (`vs-motion-notice`). Turning animations on is remembered under
+`vs-motion-site`: every `prefers-reduced-motion` rule in the style sheets and every script that
+asks for the setting then treats the device as asking for no reduction (`app/site-motion.ts`),
+and the page reloads so each screen starts with its motion. The notice goes away by itself if
+the device setting is turned off while it is open.
+
 ## Drawers and sheets
 
 A drawer slides in from its edge over `--dur-drawer` with `--ease-drawer`, no fade. A
