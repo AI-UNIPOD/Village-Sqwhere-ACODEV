@@ -308,6 +308,21 @@ test("a failed send says it was not saved, keeps the notes and allows another tr
   expect(within(screen.getByRole("main")).getByRole("button", { name: "Pass" }).getAttribute("aria-busy")).toBeNull();
 });
 
+test("the demo's refused decision says nothing was saved as a status, with no alert, and keeps the notes", async () => {
+  api(json({ data: attempt() }), json({ detail: { code: "DEMO_READ_ONLY", message: "English text from the API" } }, 403));
+  render(<ReviewCase lang="en" />);
+  await screen.findByRole("heading", { level: 1 });
+  fireEvent.change(notes(), { target: { value: "My careful notes." } });
+  fireEvent.click(screen.getByRole("button", { name: "Pass" }));
+  fireEvent.click(within(dialog()).getByRole("button", { name: "Pass the attempt" }));
+  expect((await screen.findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByText(/Your decision was not saved/)).toBeNull();
+  expect(notes().value).toBe("My careful notes.");
+  expect(dialog().hasAttribute("open")).toBe(false);
+  expect(nav.router.push).not.toHaveBeenCalled();
+});
+
 test.each([[404], [422]])("a case that answers %s on load shows the same closed screen", async (status) => {
   api(json({ detail: { code: "NOT_FOUND" } }, status));
   render(<ReviewCase lang="en" />);

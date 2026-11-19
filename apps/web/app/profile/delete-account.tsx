@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import dialogStyles from "../confirm-dialog.module.css";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -16,7 +17,7 @@ import { copy } from "./copy";
 import { deleteAccount } from "./profile-api";
 import styles from "./profile.module.css";
 
-type Problem = "mismatch" | "ownsHub" | "failed";
+type Problem = "mismatch" | "ownsHub" | "failed" | "demo";
 
 // Deleting the account cannot be undone, so it takes two deliberate steps inside a dialog:
 // ticking that the person understands, and typing their username. Until both are done the
@@ -69,9 +70,8 @@ export function DeleteAccount({ lang, username }: { lang: Lang; username: string
     } catch (error) {
       setBusy(false);
       if (error instanceof SignedOutError) return;
-      // in the demo the frame says why
-      if (error instanceof IdeaError && error.code === "DEMO_READ_ONLY") return close();
-      if (error instanceof IdeaError && error.code === "CONFIRMATION_MISMATCH") setProblem("mismatch");
+      if (isDemoRefusal(error)) setProblem("demo");
+      else if (error instanceof IdeaError && error.code === "CONFIRMATION_MISMATCH") setProblem("mismatch");
       else if (error instanceof IdeaError && error.code === "OWNS_HUB_WITH_TEAM") setProblem("ownsHub");
       else setProblem("failed");
     }
@@ -152,6 +152,7 @@ export function DeleteAccount({ lang, username }: { lang: Lang; username: string
             )}
           </div>
 
+          {problem === "demo" && <NotSaved lang={lang} spaced />}
           {(problem === "ownsHub" || problem === "failed") && (
             <p className={onboarding.error} role="alert">
               <AlertCircle />

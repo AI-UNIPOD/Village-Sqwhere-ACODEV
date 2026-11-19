@@ -258,12 +258,6 @@
   }
 }
 
-/* said beside a control the demo account pressed: what happened to the press, in the text colour */
-.notSaved {
-  color: var(--text);
-  font: var(--type-body-s);
-}
-
 /* ---------- images ---------- */
 /* One column: a card's single image (its own shape, set inline) and every image on the post's page.
    Two to four in a card make a grid of squares, the first of three across the full width. */
