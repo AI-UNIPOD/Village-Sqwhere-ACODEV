@@ -367,6 +367,16 @@ request key is `technologies`), kept in the profile, and the feed loads again. N
 means every post. Onboarding's topics step is not saved here: it asks about sectors, which the
 API does not know.
 
+The feed can also be narrowed from the address, with nothing saved, so the demo account can do
+it too: `/en/feed?type=question`, `/en/feed?topic=python`, or both (`feed-filter.tsx`). The list
+is then everyone's posts of that kind or on that topic (`GET /v1/posts?type=&topic=`, every page
+of it), not the For you feed, which takes neither. The kind on a post and each of its topics are
+links to that view, in a card and on the post's page, and a row above the list offers every kind
+a person can post. While a filter is on, a line says what is showing with "Clear the filter", no
+tab is marked, and the saved topics and their choice are not shown. A kind or a topic the app
+does not know is ignored. A hub's milestone is not offered as a kind, and Saved and Yours read
+neither parameter.
+
 Comments are a section of the post page (`comments.tsx`, `comment.tsx`, `comment-form.tsx`),
 loaded after the post, at `#comments`. The list gives each top-level comment its first two
 replies; "Show all N replies" loads the rest, and a reply's own replies open the same way, one
@@ -412,7 +422,8 @@ village, then the feed, one question with its comments, and four on the demo acc
 idea and hub (the composer, the matches, the hub's team with the phases below it; the demo's hub
 is seeded in Build): six steps, each counted. `AppFrame` shows the tour's
 panel under the demo line; it sticks to the top of the screen, shrinks to one line on a screen
-that is not the step, and keeps its step in `sessionStorage` (`tour/tour.ts`). A step can name a part of a screen with a hash:
+that is not the step (the feed narrowed to a kind or a topic is still the feed's step), and keeps
+its step in `sessionStorage` (`tour/tour.ts`). A step can name a part of a screen with a hash:
 the hub page scrolls to `#team` once the hub has loaded (`app/scroll.ts`).
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`

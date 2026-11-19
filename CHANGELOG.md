@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-19
+
+- feat(web): filter the feed by kind and by topic from the address
+
 ## 2026-11-16
 
 - perf(api): build the hub list's cards in two queries (#246)

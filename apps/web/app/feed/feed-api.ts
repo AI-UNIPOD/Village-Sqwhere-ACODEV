@@ -46,7 +46,22 @@ export type PostPage = { data: Post[]; next_offset: number | null };
 
 const paging = (offset: number) => `offset=${offset}&limit=20`;
 
-export const loadFeed = (offset = 0) => call<PostPage>(`/v1/feed?${paging(offset)}`);
+// A view of the feed chosen in the page's address: one kind, one topic, or both. Nothing is saved.
+export type FeedFilter = { type?: Kind; topic?: string };
+
+// "type=question&topic=python", the same words in the page's address and in the request.
+export function filterQuery({ type, topic }: FeedFilter) {
+  const query = new URLSearchParams();
+  if (type) query.set("type", type);
+  if (topic) query.set("topic", topic);
+  return query.toString();
+}
+
+// The For you feed takes no kind or topic, so a filtered view asks for everyone's posts.
+export function loadFeed(offset = 0, filter: FeedFilter = {}) {
+  const query = filterQuery(filter);
+  return call<PostPage>(query ? `/v1/posts?${query}&${paging(offset)}` : `/v1/feed?${paging(offset)}`);
+}
 
 export const loadSavedPosts = (offset = 0) => call<PostPage>(`/v1/me/saved-posts?${paging(offset)}`);
 

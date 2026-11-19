@@ -6,8 +6,9 @@ import { copy } from "./copy";
 
 export type Tab = "for-you" | "saved" | "mine";
 
-// The three lists of posts are siblings, in the style of the ideas tabs.
-export function FeedTabs({ lang, current }: { lang: Lang; current: Tab }) {
+// The three lists of posts are siblings, in the style of the ideas tabs. None is `current` while
+// the address narrows the feed to a kind or a topic: For you is then the way back to its own list.
+export function FeedTabs({ lang, current }: { lang: Lang; current?: Tab }) {
   const t = copy[lang];
   const tabs = [
     { id: "for-you", href: `/${lang}/feed`, label: t.tabForYou },
