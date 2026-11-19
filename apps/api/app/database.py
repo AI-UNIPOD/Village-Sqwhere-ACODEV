@@ -26,13 +26,14 @@ def async_database_url(url: str) -> str:
 
 def engine_options(environ: Mapping[str, str]) -> dict[str, Any]:
     """On Vercel, each request can run on a fresh event loop, and a pooled asyncpg
-    connection from an earlier request fails when it is reset there. Open one per session."""
-    return {"poolclass": NullPool} if environ.get("VERCEL") else {}
+    connection from an earlier request fails when it is reset there. Open one per session.
+    SQL is echoed only locally: on Vercel it slowed every request and logged user data."""
+    return {"poolclass": NullPool} if environ.get("VERCEL") else {"echo": True}
 
 
 ASYNC_DATABASE_URL = async_database_url(DATABASE_URL)
 
-engine = create_async_engine(ASYNC_DATABASE_URL, echo=True, **engine_options(os.environ))
+engine = create_async_engine(ASYNC_DATABASE_URL, **engine_options(os.environ))
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 

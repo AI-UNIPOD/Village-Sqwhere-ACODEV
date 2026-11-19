@@ -8,10 +8,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select, update
+from sqlalchemy import event, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AgreementSignature, Hub, HubMember, HubMemberStatus, User
+from tests.conftest import test_engine as db_engine
 from tests.hub_support import (
     add_member,
     auth,
@@ -387,3 +388,26 @@ def test_refuses_a_deleted_user_with_hubs(client: TestClient) -> None:
     assert resp.status_code == 401, resp.text
     assert resp.json()["detail"]["code"] == "UNAUTHENTICATED"
     assert "Farm Ledger Hub" not in resp.text
+
+
+def test_the_number_of_queries_does_not_grow_with_the_hubs(client: TestClient) -> None:
+    # every query crosses to the database, so one more per hub made the list slow on Vercel
+    few, many = make_user(), make_user()
+    hubs_of(few, 1)
+    hubs_of(many, 6)
+    statements: list[str] = []
+
+    def count(conn, cursor, statement, parameters, context, executemany) -> None:
+        statements.append(statement)
+
+    def queries_for(user: User) -> int:
+        statements.clear()
+        event.listen(db_engine.sync_engine, "before_cursor_execute", count)
+        try:
+            resp = client.get(URL, headers=auth(user))
+        finally:
+            event.remove(db_engine.sync_engine, "before_cursor_execute", count)
+        assert resp.status_code == 200, resp.text
+        return len(statements)
+
+    assert queries_for(many) == queries_for(few)
