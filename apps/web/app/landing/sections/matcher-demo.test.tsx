@@ -60,7 +60,7 @@ test("without a script it shows the first idea's suggestions, each with its reas
   ]);
   // the reasons are the app's own: the roles held, the technologies in common, the sectors in common
   expect(section().getByText("Verified in Backend and Systems Engineer and Cybersecurity and Smart Contract Auditor")).toBeTruthy();
-  expect(section().getByText("In common with you: Go, PostgreSQL, Docker")).toBeTruthy();
+  expect(section().getByText("In common with you: Go, PostgreSQL, Docker, Kubernetes, CI/CD")).toBeTruthy();
   expect(section().getByText("You both build for Fintech and Commerce")).toBeTruthy();
   expect(section().getAllByRole("list", { name: "Why this score" })).toHaveLength(3);
 });
@@ -78,30 +78,33 @@ test.each([
 
 // ---------- the score: the app's own component, counted from the made-up facts ----------
 
-// The formula of docs/decisions/2026-11-14-match-score.md, written out again so the demo's data is
-// checked against it and not against itself: 30 for one role and 40 for two or more, 4 for each
-// technology up to 5, 5 for each sector up to 2, and the 70 that exist scaled to 100.
-function expected(roles: number, technologies: number, sectors: number) {
-  const parts = [roles >= 2 ? 40 : roles === 1 ? 30 : 0, Math.min(technologies, 5) * 4, Math.min(sectors, 2) * 5];
-  return { parts, score: Math.round(((parts[0] + parts[1] + parts[2]) * 100) / 70) };
+// The formula of docs/decisions/2026-11-14-match-score.md and 2026-11-15-match-score-meaning.md,
+// written out again so the demo's data is checked against it and not against itself: 30 for one
+// role and 40 for two or more, 4 for each technology up to 5, 5 for each sector up to 2, and up
+// to 30 for meaning, a point for each 0.01 the measured likeness sits above 0.15, added up.
+function expected(roles: number, technologies: number, sectors: number, read: number) {
+  const meaning = Math.min(30, Math.max(0, Math.round((read - 0.15) * 100)));
+  const parts = [roles >= 2 ? 40 : roles === 1 ? 30 : 0, Math.min(technologies, 5) * 4, Math.min(sectors, 2) * 5, meaning];
+  return { parts, score: parts[0] + parts[1] + parts[2] + parts[3] };
 }
 
-// What the formula gives each made-up person, worked by hand: [score, roles, technologies, sectors].
+// What the formula gives each made-up person, worked by hand:
+// [score, roles, technologies, sectors, meaning]. Each idea has a strong, a possible and a weak one.
 const SCORES = [
   [
-    [89, 40, 12, 10],
-    [67, 30, 12, 5],
-    [49, 30, 4, 0],
+    [80, 40, 20, 10, 10],
+    [66, 30, 12, 5, 19],
+    [41, 30, 4, 0, 7],
   ],
   [
-    [83, 40, 8, 10],
-    [61, 30, 8, 5],
-    [54, 30, 8, 0],
+    [89, 40, 20, 10, 19],
+    [48, 30, 8, 5, 5],
+    [43, 30, 12, 0, 1],
   ],
   [
-    [69, 30, 8, 10],
-    [67, 30, 12, 5],
-    [54, 30, 8, 0],
+    [72, 30, 8, 10, 24],
+    [52, 30, 12, 5, 5],
+    [43, 30, 12, 0, 1],
   ],
 ] as const;
 
@@ -115,7 +118,7 @@ test.each(["en", "fr"] as const)("in %s every suggestion's score is the real for
     const scores = found.map((card, m) => {
       const facts = FACTS[i].matches[m];
       const inCommon = facts.sectors.filter((sector) => FACTS[i].ownerSectors.includes(sector)).length;
-      const want = expected(facts.roles.length, facts.shared.length, inCommon);
+      const want = expected(facts.roles.length, facts.shared.length, inCommon, facts.read);
       expect([want.score, ...want.parts]).toEqual([...SCORES[i][m]]);
       expect(within(card).getByText(String(want.score), { selector: "[aria-hidden]" })).toBeTruthy();
       expect(within(card).getByText(idea.matches[m].name)).toBeTruthy();
@@ -132,13 +135,13 @@ test("the demo draws what the formula gives: the score, its parts and what is in
   FACTS.forEach((idea, i) =>
     idea.matches.forEach((match, m) => {
       const drawn = formula.demoScore(i, m);
-      const [score, roles, technologies, sectors] = SCORES[i][m];
+      const [score, roles, technologies, sectors, meaning] = SCORES[i][m];
       expect(drawn.score).toBe(score);
-      expect(drawn.partial).toBe(true);
+      expect(drawn.partial).toBe(false);
       expect(drawn.breakdown.roles).toEqual({ points: roles, max: 40 });
       expect(drawn.breakdown.technologies).toEqual({ points: technologies, max: 20 });
       expect(drawn.breakdown.sectors).toEqual({ points: sectors, max: 10 });
-      expect(drawn.breakdown.meaning).toEqual({ points: null, max: 30 });
+      expect(drawn.breakdown.meaning).toEqual({ points: meaning, max: 30 });
       expect(drawn.shared_technologies.map((tech) => tech.slug)).toEqual(match.shared);
       expect(drawn.shared_sectors.map((sector) => sector.slug)).toEqual(match.sectors.filter((s) => idea.ownerSectors.includes(s)));
     }),
@@ -155,6 +158,10 @@ test("the demo's numbers are the API's: the constants of match_score.py", () => 
   expect(formula.SECTOR_POINTS).toBe(api("SECTOR_POINTS"));
   expect(formula.SECTOR_CAP).toBe(api("SECTOR_CAP"));
   expect(formula.MEANING_MAX).toBe(api("MEANING_MAX"));
+  // the band the meaning points stretch over, which moved when the vectors moved to OpenAI
+  const band = (name: string) => Number(new RegExp(`^${name} = ([\\d.]+)`, "m").exec(python)![1]);
+  expect(formula.MEANING_FLOOR).toBe(band("MEANING_FLOOR"));
+  expect(formula.MEANING_CEILING).toBe(band("MEANING_CEILING"));
 });
 
 test("every technology and sector of the facts is one the product knows, so each shows in the page's language", () => {
@@ -172,25 +179,25 @@ test.each([
     "en",
     "Why this score",
     "Partial score: it counts roles, technologies and sectors. It does not yet compare what the idea and the profile say.",
-    "Match score: 89 out of 100, Strong match. Partial score.",
-    "Match score: 49 out of 100, Weak match. Partial score.",
+    "Match score: 80 out of 100, Strong match.",
+    "Match score: 41 out of 100, Weak match.",
   ],
   // the French no-break space before the colon reads as a space once Testing Library normalises it
   [
     "fr",
     "Pourquoi ce score",
     "Score partiel : il compte les rôles, les technologies et les domaines. Il ne compare pas encore ce que disent l'idée et le profil.",
-    "Score de correspondance : 89 sur 100, très bonne correspondance. Score partiel.",
-    "Score de correspondance : 49 sur 100, correspondance faible. Score partiel.",
+    "Score de correspondance : 80 sur 100, très bonne correspondance.",
+    "Score de correspondance : 41 sur 100, correspondance faible.",
   ],
-] as const)("in %s each suggestion shows its parts, the partial note and one sentence for a screen reader", (lang, why, note, strong, weak) => {
+] as const)("in %s each suggestion shows its four parts, no partial note and one sentence for a screen reader", (lang, why, note, strong, weak) => {
   render(<MatcherDemo lang={lang} />);
   const lists = section().getAllByRole("list", { name: why });
   expect(lists).toHaveLength(3);
-  // roles, technologies, sectors, and the meaning part that is not counted yet
+  // roles, technologies, sectors and meaning, every part counted
   for (const list of lists) expect(within(list).getAllByRole("listitem")).toHaveLength(4);
-  // on each card for wide screens, and once under the list for a phone, where the cards fold
-  expect(section().getAllByText(note)).toHaveLength(4);
+  // the meaning part is measured, so the score is whole: no partial note anywhere
+  expect(section().queryByText(note)).toBeNull();
   expect(section().getByText(strong)).toBeTruthy();
   expect(section().getByText(weak)).toBeTruthy();
 });
@@ -200,18 +207,21 @@ test("the parts are written out with their points, as on the app's card", () => 
   const lines = (card: HTMLElement) => within(card).getAllByRole("listitem").map((item) => item.textContent);
   expect(lines(cards()[0])).toEqual([
     "Roles40 of 40Verified in Backend and Systems Engineer and Cybersecurity and Smart Contract Auditor",
-    "Technologies12 of 20In common with you: Go, PostgreSQL, Docker",
+    "Technologies20 of 20In common with you: Go, PostgreSQL, Docker, Kubernetes, CI/CD",
     "Sectors10 of 10You both build for Fintech and Commerce",
-    "MeaningNot compared yet",
+    "Meaning10 of 30How close what the idea says is to what the developer's profile says.",
   ]);
-  expect(lines(cards()[2]).slice(2)).toEqual(["Sectors0 of 10No sectors in common", "MeaningNot compared yet"]);
+  expect(lines(cards()[2]).slice(2)).toEqual([
+    "Sectors0 of 10No sectors in common",
+    "Meaning7 of 30How close what the idea says is to what the developer's profile says.",
+  ]);
 });
 
 test("in French the technologies, the sectors and the roles are named in French", () => {
   stubMotion(true);
   render(<MatcherDemo lang="fr" />);
   fireEvent.click(section().getAllByRole("radio")[1]);
-  expect(section().getByText(/PyTorch, LLM$/)).toBeTruthy();
+  expect(section().getByText(/PyTorch, LLM, Python$/)).toBeTruthy();
   expect(section().getByText(/Vous construisez tous deux pour Agritech et Commerce/)).toBeTruthy();
   expect(section().getByText(/Vérifié dans Ingénieur backend et systèmes et Ingénieur MLOps et données/)).toBeTruthy();
 });
@@ -228,8 +238,8 @@ test.each(["en", "fr"] as const)("nothing in the %s demo says its scores are sim
 });
 
 test.each([
-  ["en", "Counting the technologies and sectors you share", "Ordering by score: roles, shared technologies, shared sectors"],
-  ["fr", "Décompte des technologies et des domaines en commun", "Classement par score : rôles, technologies en commun, domaines en commun"],
+  ["en", "Counting the technologies and sectors you share", "Ordering by score: roles, technologies, sectors and meaning"],
+  ["fr", "Décompte des technologies et des domaines en commun", "Classement par score : rôles, technologies, domaines et sens"],
 ] as const)("in %s the matcher's last status lines say how the score is counted", (lang, counting, ordering) => {
   expect(copy[lang].run[2]).toBe(counting);
   expect(copy[lang].run[3]).toBe(ordering);
@@ -248,7 +258,7 @@ test("with reduced motion a picked idea's scores show their final value at once"
   render(<MatcherDemo lang="en" />);
   fireEvent.click(section().getByRole("radio", { name: /Clinic queue/ }));
   const first = section().getAllByRole("listitem").find((li) => li.textContent?.includes("Rehema Salim"))!;
-  expect(within(first).getByText("69", { selector: "[aria-hidden]" })).toBeTruthy();
+  expect(within(first).getByText("72", { selector: "[aria-hidden]" })).toBeTruthy();
 });
 
 test("picking an idea runs the matcher line by line, then suggests three developers", () => {
@@ -260,7 +270,7 @@ test("picking an idea runs the matcher line by line, then suggests three develop
   act(() => vi.advanceTimersByTime(450));
   expect(live()).toBe("Finding developers verified in them");
   beats(2, 450);
-  expect(live()).toBe("Ordering by score: roles, shared technologies, shared sectors");
+  expect(live()).toBe("Ordering by score: roles, technologies, sectors and meaning");
   beats(1, 450);
   expect(live()).toBe("Three suggestions. You decide.");
   expect(section().getByText("Rehema Salim")).toBeTruthy();
@@ -333,5 +343,18 @@ test("only a phone folds the reasons, hides the pitch and says partial once", ()
   expect(phone).toContain(".optionMeta, .ideaTitle, .pitch { display: none; }");
   expect(phone).toContain('.reasons[data-open="false"], .reasons > p { display: none; }');
   expect(phone).toContain(".partialOnce { display: block;");
+});
+
+// The meaning part was measured on these exact words: a bio or a fact that changes without being
+// measured again would leave a number that no longer belongs to its profile.
+test("each made-up developer has a one-line bio and a measured likeness", () => {
+  for (const idea of FACTS) {
+    for (const match of idea.matches) {
+      expect(match.bio.length).toBeGreaterThan(20);
+      expect(match.bio).not.toMatch(/\n/);
+      expect(match.read).toBeGreaterThan(0);
+      expect(match.read).toBeLessThan(1);
+    }
+  }
 });
 

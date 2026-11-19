@@ -9,14 +9,25 @@ type Match = {
  * What the score is counted from, the same in both languages so the two can never disagree:
  * the numbers go through the formula of apps/api/app/services/match_score.py (matcher-demo-score.ts).
  */
+type MatchFacts = {
+  roles: number[];
+  shared: string[];
+  sectors: string[];
+  /**
+   * How alike the idea and this developer's profile read, measured once on 19 November 2026 as
+   * the product measures them: OpenAI text-embedding-3-small at 768 dimensions, cosine, on the
+   * idea's title and pitch and on the profile's roles, technologies, sectors and `bio`, in the
+   * format of apps/api/app/services/embeddings.py. Measure again if any of those words change.
+   */
+  read: number;
+  /** The made-up profile's bio, in English: measured, not shown. */
+  bio: string;
+};
+
 type Facts = {
   /** The sectors the idea's owner builds for (slugs of onboarding/options.ts). */
   ownerSectors: string[];
-  matches: [
-    { roles: number[]; shared: string[]; sectors: string[] },
-    { roles: number[]; shared: string[]; sectors: string[] },
-    { roles: number[]; shared: string[]; sectors: string[] },
-  ];
+  matches: [MatchFacts, MatchFacts, MatchFacts];
 };
 
 type Idea = {
@@ -62,7 +73,7 @@ const en: Copy = {
     "Reading the roles your idea needs",
     "Finding developers verified in them",
     "Counting the technologies and sectors you share",
-    "Ordering by score: roles, shared technologies, shared sectors",
+    "Ordering by score: roles, technologies, sectors and meaning",
   ],
   done: "Three suggestions. You decide.",
   tag: "The matcher suggests. The owner decides.",
@@ -127,7 +138,7 @@ const fr: Copy = {
     "Lecture des rôles que votre idée recherche",
     "Recherche des développeurs vérifiés dans ces rôles",
     "Décompte des technologies et des domaines en commun",
-    "Classement par score\u202f: rôles, technologies en commun, domaines en commun",
+    "Classement par score\u202f: rôles, technologies, domaines et sens",
   ],
   done: "Trois propositions. À vous de décider.",
   tag: "Le matcher propose. Le porteur de l'idée décide.",
@@ -194,25 +205,79 @@ export const FACTS: [Facts, Facts, Facts] = [
   {
     ownerSectors: ["fintech", "commerce"],
     matches: [
-      { roles: [0, 2], shared: ["go", "postgresql", "docker"], sectors: ["fintech", "commerce", "health"] },
-      { roles: [1], shared: ["flutter", "react-native", "java"], sectors: ["fintech", "education"] },
-      { roles: [2], shared: ["python"], sectors: ["civic"] },
+      {
+        roles: [0, 2],
+        shared: ["go", "postgresql", "docker", "kubernetes", "ci-cd"],
+        sectors: ["fintech", "commerce", "health"],
+        read: 0.2532,
+        bio: "I build payment backends in Go for small merchants and audit the security of the services that move their money.",
+      },
+      {
+        roles: [1],
+        shared: ["flutter", "react-native", "java"],
+        sectors: ["fintech", "education"],
+        read: 0.3375,
+        bio: "I make Android apps in Flutter that keep working on cheap phones and patchy networks, mostly for savings groups and schools.",
+      },
+      {
+        roles: [2],
+        shared: ["python"],
+        sectors: ["civic"],
+        read: 0.2183,
+        bio: "I review the security of public service systems and write Python tools that test them for leaks.",
+      },
     ],
   },
   {
     ownerSectors: ["agritech", "commerce"],
     matches: [
-      { roles: [0, 1], shared: ["python", "postgresql"], sectors: ["agritech", "commerce", "fintech"] },
-      { roles: [1], shared: ["python", "docker"], sectors: ["agritech", "climate-energy"] },
-      { roles: [2], shared: ["pytorch", "llms"], sectors: ["health"] },
+      {
+        roles: [0, 1],
+        shared: ["python", "postgresql", "docker", "vector-databases", "ci-cd"],
+        sectors: ["agritech", "commerce", "fintech"],
+        read: 0.3379,
+        bio: "I run the data pipelines behind a crop marketplace in Douala, from the database to the daily price reports.",
+      },
+      {
+        roles: [1],
+        shared: ["python", "docker"],
+        sectors: ["agritech", "climate-energy"],
+        read: 0.1983,
+        bio: "I turn weather and harvest data into pipelines that farmer cooperatives use to plan the season.",
+      },
+      {
+        roles: [2],
+        shared: ["pytorch", "llms", "python"],
+        sectors: ["health"],
+        read: 0.1612,
+        bio: "I train language models to read clinical notes in Portuguese and Creole.",
+      },
     ],
   },
   {
     ownerSectors: ["health", "civic"],
     matches: [
-      { roles: [0], shared: ["flutter", "java"], sectors: ["health", "civic"] },
-      { roles: [1], shared: ["docker", "kubernetes", "terraform"], sectors: ["health", "fintech"] },
-      { roles: [2], shared: ["react", "vue"], sectors: ["media-culture"] },
+      {
+        roles: [0],
+        shared: ["flutter", "java"],
+        sectors: ["health", "civic"],
+        read: 0.3896,
+        bio: "I build mobile apps for county health clinics that work offline and send patients reminders.",
+      },
+      {
+        roles: [1],
+        shared: ["docker", "kubernetes", "terraform"],
+        sectors: ["health", "fintech"],
+        read: 0.1971,
+        bio: "I keep hospital and mobile money systems online with Kubernetes and Terraform, and I am on call when they break.",
+      },
+      {
+        roles: [2],
+        shared: ["react", "vue", "nodejs"],
+        sectors: ["media-culture"],
+        read: 0.158,
+        bio: "I design websites and reading apps for publishers and radio stations, in Malagasy and French.",
+      },
     ],
   },
 ];

@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-19
 
+- feat(web): count the meaning part in the matcher demo, measured once
 - feat(web): fold the matcher demo's reasons on phones
 
 ## 2026-11-16
