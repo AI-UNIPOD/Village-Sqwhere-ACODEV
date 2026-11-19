@@ -30,7 +30,7 @@ const en: Copy = {
     },
     {
       q: "Can I look around before signing up?",
-      a: "Yes. The demo is a read-only account with a guided tour of every screen. Nothing can be changed.",
+      a: "Yes. The demo is a read-only account with a guided tour in six steps. Nothing can be changed.",
     },
   ],
 };
@@ -61,7 +61,7 @@ const fr: Copy = {
     },
     {
       q: "Puis-je explorer avant de m'inscrire\u202f?",
-      a: "Oui. La démo est un compte en lecture seule, avec une visite guidée de chaque écran. Rien ne peut être modifié.",
+      a: "Oui. La démo est un compte en lecture seule, avec une visite guidée en six étapes. Rien ne peut être modifié.",
     },
   ],
 };
