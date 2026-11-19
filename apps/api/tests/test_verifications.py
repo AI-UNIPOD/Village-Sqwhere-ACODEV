@@ -10,6 +10,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.orm import selectinload
 
 from app.api.v1 import interviews as interviews_api
+from app.config import VERIFICATION_MAX_ANALYSIS_ATTEMPTS
 from app.main import app
 from app.models.lookups import Role
 from app.models.users import (
@@ -1273,6 +1274,43 @@ def test_worker_gives_the_analyzer_the_stored_language(sign_in) -> None:
 
     asyncio.run(_process())
     assert languages == ["fr"]
+    cleanup_user(user_id)
+
+
+def test_an_attempt_whose_analysis_fails_every_try_ends(sign_in) -> None:
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    cleanup_user(user_id)
+    claim_role(data)
+    started = start_attempt(data)
+    assert started.status_code == 201, started.text
+    session_id = UUID(started.json()["data"]["id"])
+
+    class MissingRepositoryClient:
+        async def snapshot(self, repository_url: str) -> RepositorySnapshot:
+            raise RuntimeError("GitHub answered 404")
+
+    class UnusedAnalyzer:
+        async def analyze(self, *args: object) -> CodebaseAnalysisResult:
+            raise AssertionError("never reached")
+
+    async def _try() -> None:
+        async with db_session() as db:
+            with pytest.raises(RuntimeError):
+                await process_codebase_analysis(
+                    db, session_id, MissingRepositoryClient(), UnusedAnalyzer()
+                )
+
+    statuses = []
+    for _ in range(VERIFICATION_MAX_ANALYSIS_ATTEMPTS):
+        asyncio.run(_try())
+        shown = client.get(f"/v1/me/verifications/{session_id}", headers=bearer(data)).json()
+        statuses.append(shown["data"]["status"])
+
+    assert statuses == ["pending"] * (VERIFICATION_MAX_ANALYSIS_ATTEMPTS - 1) + ["abandoned"]
+    assert shown["data"]["last_error"].startswith("Codebase analysis failed on every try")
+    again = start_attempt(data)
+    assert again.status_code == 201, again.text
     cleanup_user(user_id)
 
 

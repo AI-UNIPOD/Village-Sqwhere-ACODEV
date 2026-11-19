@@ -73,8 +73,8 @@ app/
   models/              SQLAlchemy tables (users, ideas, hubs, posts, lookups)
   schemas/             Pydantic request and response bodies
   services/            the logic routes share: match_score.py, account_deletion.py,
-                       interview.py, embeddings.py, groq*.py, and providers.py with Claude
-                       and OpenAI behind Groq
+                       interview.py, embeddings.py (the vectors, from OpenAI),
+                       groq*.py, and providers.py with Claude and OpenAI behind Groq
   workers/             the verification and embedding worker (python -m app.workers.runner)
   demo_seed.py         the made-up world behind "Try the demo"
   demo_world.py        its wider community, loaded from the frozen files in demo_fixtures/
@@ -107,8 +107,8 @@ language the attempt started in. A provider without its key is skipped, and each
 a schema before it is kept (`docs/decisions/2026-11-19-interviews-without-gemini.md`). Speech goes
 to Groq's Whisper, then OpenAI.
 
-The same worker keeps an embedding of every open idea and every verified developer, from Gemini
-and `GEMINI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
+The same worker keeps an embedding of every open idea and every verified developer, from OpenAI's
+`text-embedding-3-small` and `OPENAI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
 idea's title and summary, and a developer's verified roles, technologies, sectors and bio.
 
 Where `DEMO_ENABLED=true` and the demo has been seeded, the same worker also dates the demo's posts

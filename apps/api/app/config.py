@@ -59,14 +59,13 @@ GROQ_INTERVIEW_CONTEXT_BUDGET_TOKENS = int(
     os.getenv("GROQ_INTERVIEW_CONTEXT_BUDGET_TOKENS", 115_000)
 )
 GROQ_INTERVIEW_MAX_OUTPUT_TOKENS = int(os.getenv("GROQ_INTERVIEW_MAX_OUTPUT_TOKENS", 2_048))
-# Only the embeddings still use it; #255 moves them off Gemini and removes it.
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Claude, then OpenAI, take over a verification step when Groq fails. A deployment only adds
 # the keys: each model has a default.
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 ANTHROPIC_CODEBASE_MODEL = os.getenv("ANTHROPIC_CODEBASE_MODEL") or "claude-haiku-5-5"
 ANTHROPIC_INTERVIEW_MODEL = os.getenv("ANTHROPIC_INTERVIEW_MODEL") or "claude-haiku-5-5"
 ANTHROPIC_EVALUATION_MODEL = os.getenv("ANTHROPIC_EVALUATION_MODEL") or "claude-haiku-5-5"
+# OpenAI also makes the vectors the match score reads (app/services/embeddings.py).
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_CODEBASE_MODEL = os.getenv("OPENAI_CODEBASE_MODEL") or "gpt-6-luna"
 OPENAI_INTERVIEW_MODEL = os.getenv("OPENAI_INTERVIEW_MODEL") or "gpt-6-luna"

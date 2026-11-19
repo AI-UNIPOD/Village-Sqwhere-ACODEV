@@ -24,9 +24,10 @@ Tanny decided on 19 November 2026:
   | `OPENAI_CODEBASE_MODEL`, `OPENAI_INTERVIEW_MODEL`, `OPENAI_EVALUATION_MODEL` | `gpt-6-luna` |
   | `OPENAI_STT_MODEL` | `gpt-transcribe` |
 
-- **Gemini leaves these steps:** its interview and report files, its three model settings, its
-  wiring and its tests. The embeddings still use Gemini on `main`; pull request #255 moves them,
-  so `GEMINI_API_KEY` and the two error classes they raise stay until it merges.
+- **Gemini leaves the product:** its interview and report files, its three model settings, its
+  wiring and its tests. The embeddings moved to OpenAI first
+  (`2026-11-19-embeddings-on-openai.md`), so `GEMINI_API_KEY` and `app/services/gemini.py` go
+  too. A deployment can remove `GEMINI_API_KEY`.
 - **One answer shape per step, sent to both providers:** a JSON schema in
   `app/services/codebase_analysis.py`, `interview.py` and `report.py`. Every answer is then checked
   with the same Pydantic model as Groq's answer. An answer that does not validate, a refusal, an

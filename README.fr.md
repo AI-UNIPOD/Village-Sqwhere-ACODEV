@@ -174,7 +174,7 @@ code.
 | Correspondances | Les développeurs vérifiés dans les rôles d'une idée, notés sur les rôles, les technologies et les secteurs | `/v1/me/ideas/{id}/matches` |
 | Espaces | Créer à partir d'une idée, inviter, demander à rejoindre, signer, quitter, retirer, archiver | `/v1/hubs/*` |
 | Collaboration | Discussion d'équipe, quatre phases, notes de brainstorming, schéma de conception en blocs et liens | `/v1/hubs/{id}/messages`, `/phase`, `/notes`, `/design` |
-| Fil communautaire | Publications, commentaires, réponses, j'aime, enregistrements, sujets | `/v1/feed`, `/v1/posts/*`, `/v1/comments/*` |
+| Fil communautaire | Publications, commentaires, réponses, j'aime, enregistrements, sujets, recherche et ordre Pour vous | `/v1/feed`, `/v1/posts/*`, `/v1/comments/*` |
 
 <p>
   <img src="https://skillicons.dev/icons?i=nextjs,react,ts,python,fastapi,postgres,docker,github&perline=8" alt="Next.js, React, TypeScript, Python, FastAPI, PostgreSQL, Docker et GitHub" />
@@ -273,7 +273,7 @@ uv run --directory apps/api python -m app.demo_seed
 | `DATABASE_URL`, `TEST_DATABASE_URL` | Les bases de développement et de test. |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Votre propre application OAuth GitHub, pour une vraie connexion. |
 | `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | L'analyse, l'entretien avec l'IA et le rapport : Groq d'abord, puis Claude, puis OpenAI. Chacun est ignoré sans sa clé. |
-| `GEMINI_API_KEY` | Les embeddings qui comparent les idées et les profils par leur sens. |
+| `OPENAI_API_KEY` | Aussi les vecteurs qui permettent au score de comparer par le sens. |
 | `DEMO_ENABLED` | Active « Essayer la démo » (API) et laisse le worker redater son fil à jour une fois par jour. Désactivé par défaut. |
 | `NEXT_PUBLIC_API_URL` | Où l'application web trouve l'API. |
 

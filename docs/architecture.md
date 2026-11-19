@@ -20,7 +20,7 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   setting. See `docs/decisions/2026-11-15-post-images-in-postgres.md`.
 - **PostgreSQL + pgvector**: the main data store, set up by the scripts in `infra/db/init/`.
   `idea_embeddings` and `user_embeddings` hold what an idea and a developer mean, as 768
-  numbers each from Google's `gemini-embedding-2`. The worker writes them, never a request
+  numbers each from OpenAI's `text-embedding-3-small`. The worker writes them, never a request
   (see "The worker" below). The match score and similar ideas read them.
 - **The worker** (`python -m app.workers.runner`): the slow steps that must not hold a request.
   It runs the role verification (reading repositories, writing the report) with Groq first,
@@ -30,8 +30,8 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   server for that: an idea's title and summary, and a developer's verified roles, technologies,
   sectors and bio. Never an idea's private brief, an email, a name or a username. When the text
   changes, a database trigger removes the vector and the next run makes a new one. Without
-  `GEMINI_API_KEY` the step does nothing. Why:
-  `docs/decisions/2026-11-15-embeddings-on-gemini.md`. Where `DEMO_ENABLED` is true it also dates
+  `OPENAI_API_KEY` the step does nothing. Why:
+  `docs/decisions/2026-11-19-embeddings-on-openai.md`. Where `DEMO_ENABLED` is true it also dates
   the demo's feed back from now once a day (`docs/decisions/2026-11-15-lived-in-demo.md`).
 - **Hosting**: one Vercel project, from `vercel.json`: the web app, the API and the verification
   worker on one domain (see `infra/README.md`).
@@ -136,9 +136,10 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   lists are ordered by it. A match can also name the closest idea of the other person or of mine
   (`similar_idea`). No AI model is called at request time and no idea details are involved.
 - **Posts** (Developer Exchange, Bearer token): `POST /v1/posts`, `GET /v1/posts/{post_id}`,
-  `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists, newest first:
-  `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`) and `GET /v1/feed` (your feed topics
-  and your own posts). Likes and saves, each safe to repeat: `PUT /v1/posts/{post_id}/like`,
+  `PATCH /v1/posts/{post_id}` and `DELETE /v1/posts/{post_id}`. Lists:
+  `GET /v1/posts` (filter by `type`, repeatable `topic`, `author`; search with `q`; `sort` by relevance,
+  newest, active or for_you, newest by default) and `GET /v1/feed` (your feed topics and your own posts,
+  ranked For you by recency, likes and comments, or `sort=newest` or `active`). Likes and saves, each safe to repeat: `PUT /v1/posts/{post_id}/like`,
   `DELETE /v1/posts/{post_id}/like`, `PUT /v1/posts/{post_id}/save`,
   `DELETE /v1/posts/{post_id}/save` and `GET /v1/me/saved-posts`. The author adds an image (JPEG,
   PNG or WebP, up to 4 MB, at most 10) with `POST /v1/uploads` and removes one with `DELETE /v1/uploads/{attachment_id}`. Anyone with its address reads it,

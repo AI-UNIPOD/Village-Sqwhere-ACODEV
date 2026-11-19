@@ -1,5 +1,9 @@
 # Embeddings of ideas and profiles, from Gemini
 
+Since 19 November 2026 the vectors come from OpenAI: see
+`2026-11-19-embeddings-on-openai.md`. The rest of this record still holds: what is sent, who is
+embedded, the worker and the triggers.
+
 ## Context
 
 The match score has a "meaning" part worth 30 of 100 points that reads "not compared yet"

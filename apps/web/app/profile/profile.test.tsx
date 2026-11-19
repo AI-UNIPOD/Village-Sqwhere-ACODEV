@@ -230,8 +230,8 @@ test("the country field is in French, named and sorted in French", async () => {
 });
 
 test.each([
-  ["en", "About you", "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to Google's Gemini. Your name, your username and your email are never sent."],
-  ["fr", "À propos de vous", "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à Gemini, de Google. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés."],
+  ["en", "About you", "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to OpenAI. Your name, your username and your email are never sent."],
+  ["fr", "À propos de vous", "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à OpenAI. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés."],
 ] as const)("the bio field says what is sent to match by meaning, in %s, tied to the field and to no other", async (lang, label, note) => {
   api({ "GET /v1/me": { data: me() } });
   render(<ProfilePage lang={lang} />);
@@ -471,6 +471,46 @@ test("the sectors section is in French", async () => {
   const sectors = within(await screen.findByRole("region", { name: "Domaines" }));
   expect(sectors.getByRole("button", { name: "Santé" })).toBeTruthy();
   expect(sectors.getByRole("button", { name: "Enregistrer les domaines" })).toBeTruthy();
+});
+
+// ---------- the demo account ----------
+
+const demoRefusal = () => refusal(403, "DEMO_READ_ONLY");
+
+// what a part of the page then says where its failure sentence would be: the calm line, as a status, with no alert
+async function saidNotSaved(part: HTMLElement = document.body) {
+  expect((await within(part).findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(within(part).queryByRole("alert")).toBeNull();
+}
+
+test("the demo's refused save says nothing was saved as a status, with no alert, and keeps the text", async () => {
+  await page(me(), { "PATCH /v1/me": demoRefusal() });
+  fireEvent.change(screen.getByLabelText("About you"), { target: { value: "New bio" } });
+  press("Save");
+  await saidNotSaved();
+  expect((screen.getByLabelText("About you") as HTMLTextAreaElement).value).toBe("New bio");
+});
+
+test("the demo's refused role, stack and sectors changes say nothing was saved too", async () => {
+  await page(me(), {
+    "POST /v1/me/roles": demoRefusal(),
+    "DELETE /v1/me/roles/devops-cloud-engineer": demoRefusal(),
+    "PUT /v1/me/technologies": demoRefusal(),
+    "PUT /v1/me/sectors": demoRefusal(),
+  });
+  press("Mobile Engineer", screen.getByRole("group", { name: "Add a role" }));
+  await saidNotSaved();
+  press("Remove", row("DevOps and Cloud Engineer"));
+  press("Remove role");
+  await saidNotSaved(row("DevOps and Cloud Engineer"));
+  for (const [name, chip] of [["Stack", "Rust"], ["Sectors", "Health"]]) {
+    const part = screen.getByRole("region", { name });
+    fireEvent.click(within(part).getByRole("button", { name: chip }));
+    fireEvent.click(within(part).getByRole("button", { name: `Save ${name.toLowerCase()}` }));
+    await saidNotSaved(part);
+    expect(within(part).getByRole("button", { name: chip }).getAttribute("aria-pressed")).toBe("true");
+  }
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 test("the account part has both languages, marking the current one, and a sign-out button", async () => {

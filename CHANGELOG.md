@@ -12,6 +12,7 @@ its number:
 
 - feat(api): fall back to claude and openai in the interview steps
 - fix(web): say nothing was saved when the demo refuses a topic choice
+- fix(web): say the demo's tour has six steps, not every screen
 - fix(web): show an untitled post's first line as text, not a link-coloured paragraph
 
 ## 2026-11-16

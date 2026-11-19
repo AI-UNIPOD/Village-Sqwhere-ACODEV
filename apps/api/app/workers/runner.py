@@ -18,7 +18,7 @@ from app.database import async_session
 from app.demo_seed import redate_if_stale
 from app.models.users import VerificationPhase, VerificationSession, VerificationStatus
 from app.services.codebase_analysis import StructuredCodebaseAnalyzer
-from app.services.embeddings import GeminiEmbedder
+from app.services.embeddings import OpenAIEmbedder
 from app.services.fallback import FallbackCodebaseAnalyzer
 from app.services.groq import GroqCodebaseAnalyzer
 from app.services.groq_report import GroqReportEvaluator
@@ -96,7 +96,7 @@ async def run_once() -> int:
             logger.exception("Verification report failed for session %s", session_id)
 
     try:
-        processed += await embed_missing(GeminiEmbedder())
+        processed += await embed_missing(OpenAIEmbedder())
     except Exception:
         logger.exception("Embedding run failed")
     await redate_demo()
