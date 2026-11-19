@@ -11,6 +11,8 @@ its number:
 ## 2026-11-19
 
 - fix(web): say when the server, not the connection, failed to save a hub signature
+- fix(api): keep sign-in state in the database so any instance finishes it
+- perf(web): save the five onboarding answers together instead of one after another
 - feat(web): filter the feed by kind and by topic from the address
 - fix(web): say the demo's tour has six steps, not every screen
 - fix(web): show an untitled post's first line as text, not a link-coloured paragraph
