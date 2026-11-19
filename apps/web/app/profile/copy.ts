@@ -90,7 +90,7 @@ const en: Copy = {
     bio: {
       label: "About you",
       help: "A line or two that idea owners will read. Where you build from, what you like working on.",
-      note: "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to Google's Gemini. Your name, your username and your email are never sent.",
+      note: "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to OpenAI. Your name, your username and your email are never sent.",
     },
     country: {
       label: "Country",
@@ -204,7 +204,7 @@ const fr: Copy = {
     bio: {
       label: "À propos de vous",
       help: "Une ou deux lignes que les porteurs d'idées liront. D'où vous construisez, ce que vous aimez faire.",
-      note: "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à Gemini, de Google. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés.",
+      note: "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à OpenAI. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés.",
     },
     country: {
       label: "Pays",

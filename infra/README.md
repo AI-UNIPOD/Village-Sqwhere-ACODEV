@@ -101,6 +101,7 @@ They run in file name order, once, on an empty database:
 | `025-embeddings.sql` | `idea_embeddings` moves to `gemini-embedding-2` and 768 numbers (it removes rows of another model first, since the worker makes them again), and `user_embeddings` is new. Triggers remove a developer's vector when their bio, verified roles, technologies or sectors change. Numbers 021 to 024 belong to other work. Running it twice is safe. |
 | `026-demo-signature-dates.sql` | Dates the demo's made-up signatures at the moment each member joined, where the seed had left them at the day it ran. Only signatures of demo accounts (`users.is_demo`) in hubs a demo account owns; nothing is deleted. Running it twice is safe. |
 | `027-post-image-bytes.sql` | Post images live in Postgres: `post_attachments.data` holds the bytes, `storage_key` is no longer required, and the size cap drops from 5 MB to 4 MB to fit Vercel's request limit. The table was empty before it, since uploads had not shipped. Running it twice is safe. |
+| `028-embeddings-on-openai.sql` | `idea_embeddings` and `user_embeddings` move from `gemini-embedding-2` to OpenAI's `text-embedding-3-small`, still 768 numbers. It removes every vector of another model, since two models cannot be compared and the worker makes them again. Running it twice is safe; if `025` is ever run again, run this one after it. |
 
 | `030-post-search.sql` | A search index on posts (`posts_search_idx`, a partial GIN index on the title and text words, ignoring case and accents). The API searches the same way without it, so applying it only keeps search fast as posts grow. Numbers 028 and 029 belong to other work. Running it twice is safe. |
 
@@ -168,6 +169,7 @@ reaches the API at `https://<domain>/v1/...`.
    | `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ORIGINS` | `https://<domain>` |
    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | A GitHub OAuth app for the real domain, with the callback `https://<domain>/v1/auth/oauth/github/callback` |
    | `GROQ_API_KEY`, `GEMINI_API_KEY` and the model names | As in `.env.example` |
+   | `OPENAI_API_KEY` | For the worker: the vectors the match score reads. Without it the score stays partial |
    | `DEMO_ENABLED` | `true` to offer "Try the demo"; then run `python -m app.demo_seed` once against the database |
 
 5. **Deploy**, then open `https://<deployment>/health`: it answers `{"status":"ok", ...}`.

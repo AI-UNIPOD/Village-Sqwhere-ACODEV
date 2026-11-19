@@ -192,7 +192,7 @@ const en: Copy = {
   summary: {
     label: "Public summary",
     help: "20 to 1,000 characters. The problem, who has it, and what you want to build.",
-    note: "To compare ideas by meaning, Village Sqwhere sends the title and the summary to Google's Gemini. The private brief is never sent.",
+    note: "To compare ideas by meaning, Village Sqwhere sends the title and the summary to OpenAI. The private brief is never sent.",
   },
   details: {
     label: "Private brief (optional)",
@@ -398,7 +398,7 @@ const fr: Copy = {
   summary: {
     label: "Résumé public",
     help: "De 20 à 1\u202f000 caractères. Le problème, qui le rencontre, et ce que vous voulez construire.",
-    note: "Pour comparer les idées par le sens, Village Sqwhere envoie le titre et le résumé à Gemini, de Google. Le dossier privé n'est jamais envoyé.",
+    note: "Pour comparer les idées par le sens, Village Sqwhere envoie le titre et le résumé à OpenAI. Le dossier privé n'est jamais envoyé.",
   },
   details: {
     label: "Dossier privé (facultatif)",
