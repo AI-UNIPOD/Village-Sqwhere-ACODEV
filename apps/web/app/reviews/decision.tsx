@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -26,7 +27,8 @@ export function Decision({ lang, id, role, onClosed }: { lang: Lang; id: string;
   const [tried, setTried] = useState(false);
   const [choice, setChoice] = useState<Choice>("passed");
   const [sending, setSending] = useState(false);
-  const [failed, setFailed] = useState(false);
+  // "demo" when the demo account's decision was refused
+  const [failed, setFailed] = useState<boolean | "demo">(false);
   const field = useRef<HTMLTextAreaElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const missing = tried && !notes.trim();
@@ -55,10 +57,10 @@ export function Decision({ lang, id, role, onClosed }: { lang: Lang; id: string;
       }
       // stays busy until the queue opens
       router.push(`/${lang}/reviews?done=${choice}`);
-    } catch {
+    } catch (error) {
       dialog.current?.close();
       setSending(false);
-      setFailed(true);
+      setFailed(isDemoRefusal(error) ? "demo" : true);
     }
   };
 
@@ -94,7 +96,8 @@ export function Decision({ lang, id, role, onClosed }: { lang: Lang; id: string;
           {t.notesEmpty}
         </p>
       )}
-      {failed && (
+      {failed === "demo" && <NotSaved lang={lang} spaced />}
+      {failed === true && (
         <p className={onboarding.error} role="alert">
           <AlertCircle />
           {t.saveFailed}

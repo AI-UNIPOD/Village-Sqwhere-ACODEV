@@ -1,8 +1,8 @@
-"""What leaves the server to be embedded, and the client that asks Gemini to embed it.
+"""What leaves the server to be embedded, and the client that asks OpenAI to embed it.
 
 Only public text is sent: an idea's title and summary, and a developer's verified roles,
 technologies, sectors and bio. Why, and what the provider's documentation says:
-docs/decisions/2026-11-15-embeddings-on-gemini.md
+docs/decisions/2026-11-19-embeddings-on-openai.md
 """
 
 import asyncio
@@ -12,16 +12,19 @@ import math
 from http.client import HTTPException
 from urllib.request import Request, urlopen
 
-from app.config import GEMINI_API_KEY
+from app.config import OPENAI_API_KEY
 from app.models import Idea, User
 from app.models.embeddings import EMBEDDING_DIMENSIONS, EMBEDDING_MODEL
-from app.services.gemini import GeminiApiError, GeminiConfigurationError
 
-BATCH_EMBED_URL = (
-    f"https://generativelanguage.googleapis.com/v1beta/models/{EMBEDDING_MODEL}:batchEmbedContents"
-)
-# gemini-embedding-2 has no task type field: the task goes in front of the text instead.
-TASK_PREFIX = "task: sentence similarity | query: "
+EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings"
+
+
+class EmbeddingConfigurationError(Exception):
+    pass
+
+
+class EmbeddingApiError(Exception):
+    pass
 
 
 def idea_text(idea: Idea) -> str:
@@ -47,38 +50,35 @@ def source_sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-class GeminiEmbedder:
-    def __init__(self, api_key: str | None = GEMINI_API_KEY, timeout: float = 30) -> None:
+class OpenAIEmbedder:
+    def __init__(self, api_key: str | None = OPENAI_API_KEY, timeout: float = 30) -> None:
         self.api_key = api_key
         self.timeout = timeout
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         """One unit-length vector of EMBEDDING_DIMENSIONS numbers per text, in the same order."""
         if not self.api_key:
-            raise GeminiConfigurationError("A Gemini API key is required.")
+            raise EmbeddingConfigurationError("An OpenAI API key is required.")
         if not texts:
             return []
         payload = {
-            "requests": [
-                {
-                    "model": f"models/{EMBEDDING_MODEL}",
-                    "content": {"parts": [{"text": TASK_PREFIX + text}]},
-                    "embedContentConfig": {"outputDimensionality": EMBEDDING_DIMENSIONS},
-                }
-                for text in texts
-            ]
+            "model": EMBEDDING_MODEL,
+            "input": texts,
+            "dimensions": EMBEDDING_DIMENSIONS,
+            "encoding_format": "float",
         }
         try:
-            response = await asyncio.to_thread(self._post_json_sync, BATCH_EMBED_URL, payload)
+            response = await asyncio.to_thread(self._post_json_sync, EMBEDDINGS_URL, payload)
         except (HTTPException, OSError, ValueError) as error:
-            raise GeminiApiError("Gemini could not be reached.") from error
+            raise EmbeddingApiError("OpenAI could not be reached.") from error
         try:
-            vectors = [unit_length(item["values"]) for item in response["embeddings"]]
+            # the reference names an index on each vector and promises no order, so sort by it
+            items = sorted(response["data"], key=lambda item: item["index"])
+            if [item["index"] for item in items] != list(range(len(texts))):
+                raise ValueError("not one vector per text")
+            return [unit_length(item["embedding"]) for item in items]
         except (KeyError, TypeError, ValueError) as error:
-            raise GeminiApiError("Gemini returned an invalid embedding.") from error
-        if len(vectors) != len(texts):
-            raise GeminiApiError("Gemini returned an invalid embedding.")
-        return vectors
+            raise EmbeddingApiError("OpenAI returned an invalid embedding.") from error
 
     def _post_json_sync(self, url: str, payload: dict) -> dict:
         request = Request(
@@ -87,14 +87,14 @@ class GeminiEmbedder:
             headers={
                 "Content-Type": "application/json",
                 "User-Agent": "village-sqwhere-api",
-                "x-goog-api-key": self.api_key or "",
+                "Authorization": f"Bearer {self.api_key or ''}",
             },
             method="POST",
         )
         with urlopen(request, timeout=self.timeout) as response:
             result = json.load(response)
         if not isinstance(result, dict):
-            raise ValueError("Gemini response is not an object")
+            raise ValueError("OpenAI response is not an object")
         return result
 
 

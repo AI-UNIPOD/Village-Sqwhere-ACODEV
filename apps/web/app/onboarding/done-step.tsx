@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
+import { NotSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { copy, fill } from "./copy";
@@ -101,6 +102,8 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
           {status === "saving" ? t.saving : country ? t.savedWithCountry : t.saved}
         </p>
       )}
+      {/* the demo can never save them, so it is not offered another try */}
+      {status === "demo" && <NotSaved lang={lang} spaced />}
       {status === "failed" && (
         <>
           <p className={styles.error} role="alert">

@@ -53,7 +53,6 @@ type Copy = {
   likeFailed: string;
   saveFailed: string;
   /** Beside a control the API refused for the demo account. */
-  notSaved: string;
   commentOne: string;
   commentMany: string;
   write: string;
@@ -272,7 +271,6 @@ export const copy: Record<Lang, Copy> = {
     save: "Save",
     likeFailed: "The like did not go through. Try again.",
     saveFailed: "The save did not go through. Try again.",
-    notSaved: "Nothing was saved. The demo cannot be changed.",
     commentOne: "{n} comment",
     commentMany: "{n} comments",
     write: "Write a post",
@@ -531,7 +529,6 @@ export const copy: Record<Lang, Copy> = {
     save: "Enregistrer",
     likeFailed: "Le j'aime n'a pas abouti. Réessayez.",
     saveFailed: "L'enregistrement n'a pas abouti. Réessayez.",
-    notSaved: "Rien n'a été enregistré. La démo ne peut pas être modifiée.",
     commentOne: "{n} commentaire",
     commentMany: "{n} commentaires",
     write: "Écrire une publication",
