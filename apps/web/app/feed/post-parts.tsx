@@ -15,6 +15,7 @@ import { SignedOutError } from "../session/session";
 import village from "../village/village.module.css";
 import { copy } from "./copy";
 import { setMark, type Post } from "./feed-api";
+import { feedHref } from "./feed-filter";
 import styles from "./feed.module.css";
 import { isDemoRefusal, NotSaved } from "./not-saved";
 
@@ -26,17 +27,30 @@ export function when(iso: string, now: number, lang: Lang): string {
   return fill(copy[lang].ago, { time: waited(iso, now, lang) });
 }
 
-// Who wrote it, when, and the kind of post unless it is a plain one.
+// Who wrote it, when, and the kind of post unless it is a plain one. The kind leads to the feed's
+// posts of that kind, except a hub's milestone, which nobody writes and the feed does not filter by.
 export function PostHead({ lang, post, now }: { lang: Lang; post: Post; now: number }) {
+  const t = copy[lang];
   return (
     <div className={styles.head}>
       <Person lang={lang} user={post.author} />
       <p className={styles.when}>
         <time dateTime={post.created_at}>{when(post.created_at, now, lang)}</time>
-        {post.type !== "general" && (
+        {post.type === "hub_milestone" ? (
           <span className={village.pill} data-state="open">
-            {copy[lang].types[post.type]}
+            {t.types[post.type]}
           </span>
+        ) : (
+          post.type !== "general" && (
+            <Link
+              className={`${village.pill} ${styles.kindLink}`}
+              data-state="open"
+              href={feedHref(lang, { type: post.type })}
+              aria-label={fill(t.filter.seeKind, { kind: t.types[post.type] })}
+            >
+              {t.types[post.type]}
+            </Link>
+          )
         )}
       </p>
     </div>
@@ -82,15 +96,30 @@ export function PostLink({ lang, url }: { lang: Lang; url: string }) {
   );
 }
 
-export function PostTopics({ lang, topics }: { lang: Lang; topics: Post["topics"] }) {
+// Each topic leads to the feed's posts on it. `plain` keeps them as text, for a form that must not
+// be left by accident, and so does a topic the app has no name for: the feed could not filter by it.
+export function PostTopics({ lang, topics, plain }: { lang: Lang; topics: Post["topics"]; plain?: boolean }) {
   if (topics.length === 0) return null;
   return (
     <ul className={village.tags}>
-      {topics.map((topic) => (
-        <li key={topic.slug} className={village.tag}>
-          {TECHNOLOGIES.find((known) => known.slug === topic.slug)?.name[lang] ?? topic.name}
-        </li>
-      ))}
+      {topics.map((topic) => {
+        const known = TECHNOLOGIES.find((tech) => tech.slug === topic.slug)?.name[lang];
+        return known && !plain ? (
+          <li key={topic.slug}>
+            <Link
+              className={`${onboarding.chip} ${styles.topicLink}`}
+              href={feedHref(lang, { topic: topic.slug })}
+              aria-label={fill(copy[lang].filter.seeTopic, { topic: known })}
+            >
+              {known}
+            </Link>
+          </li>
+        ) : (
+          <li key={topic.slug} className={village.tag}>
+            {known ?? topic.name}
+          </li>
+        );
+      })}
     </ul>
   );
 }
