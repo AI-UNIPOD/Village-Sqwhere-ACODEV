@@ -8,11 +8,13 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession
 from app.config import (
-    GEMINI_API_KEY,
-    GEMINI_INTERVIEW_MODEL,
+    ANTHROPIC_API_KEY,
+    ANTHROPIC_INTERVIEW_MODEL,
     GROQ_API_KEY,
     GROQ_GUARD_MODEL,
     GROQ_INTERVIEW_MODEL,
+    OPENAI_API_KEY,
+    OPENAI_INTERVIEW_MODEL,
     VERIFICATION_INTERVIEW_MAX_TURNS,
 )
 from app.core.security import decode_access_token
@@ -28,7 +30,6 @@ from app.models.users import (
     VerificationStatus,
 )
 from app.schemas.verification import InterviewTicket, InterviewTicketResponse
-from app.services.gemini_interview import GeminiAudioTranscriber, GeminiInterviewAgent
 from app.services.groq_interview import (
     GroqInterviewAgent,
     GroqPromptGuard,
@@ -43,11 +44,14 @@ from app.services.interview import (
     InterviewAgent,
     InterviewHistoryItem,
     InterviewUnavailable,
+    StructuredInterviewAgent,
     UnconfiguredAnswerGuard,
     UnconfiguredAudioTranscriber,
     interview_completed_at,
     parse_interview_message,
 )
+from app.services.openai_speech import OpenAITranscriber
+from app.services.providers import ClaudeJson, OpenAIJson
 
 router = APIRouter()
 
@@ -142,12 +146,29 @@ async def load_interview_session(session_id: UUID, user_id: UUID, db) -> Verific
 
 
 def interview_agent() -> InterviewAgent:
-    agent: InterviewAgent = DefaultInterviewAgent()
-    if GEMINI_API_KEY and GEMINI_INTERVIEW_MODEL:
-        agent = FallbackInterviewAgent(GeminiInterviewAgent(), agent)
+    """Groq, then Claude, then OpenAI, each only with its key, then the built-in questions."""
+    agents: list[InterviewAgent] = []
     if GROQ_API_KEY and GROQ_INTERVIEW_MODEL:
-        agent = FallbackInterviewAgent(GroqInterviewAgent(), agent)
-    return agent
+        agents.append(GroqInterviewAgent())
+    if ANTHROPIC_API_KEY:
+        agents.append(
+            StructuredInterviewAgent(ClaudeJson(ANTHROPIC_INTERVIEW_MODEL, ANTHROPIC_API_KEY))
+        )
+    if OPENAI_API_KEY:
+        agents.append(StructuredInterviewAgent(OpenAIJson(OPENAI_INTERVIEW_MODEL, OPENAI_API_KEY)))
+    return FallbackInterviewAgent(*agents, DefaultInterviewAgent())
+
+
+def audio_transcriber() -> AudioTranscriber:
+    """Groq's Whisper, then OpenAI, each only with its key."""
+    transcribers: list[AudioTranscriber] = []
+    if GROQ_API_KEY:
+        transcribers.append(GroqWhisperTranscriber())
+    if OPENAI_API_KEY:
+        transcribers.append(OpenAITranscriber(OPENAI_API_KEY))
+    if not transcribers:
+        return UnconfiguredAudioTranscriber()
+    return FallbackAudioTranscriber(*transcribers)
 
 
 def interview_history(interview: VerificationInterview) -> list[InterviewHistoryItem]:
@@ -249,17 +270,7 @@ async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
             await db.flush()
 
         agent = interview_agent()
-        transcriber: AudioTranscriber = UnconfiguredAudioTranscriber()
-        if GEMINI_API_KEY and GEMINI_INTERVIEW_MODEL:
-            transcriber = FallbackAudioTranscriber(
-                transcriber,
-                GeminiAudioTranscriber(),
-            )
-        if GROQ_API_KEY:
-            transcriber = FallbackAudioTranscriber(
-                GroqWhisperTranscriber(),
-                transcriber,
-            )
+        transcriber = audio_transcriber()
         guard: AnswerGuard = (
             GroqPromptGuard() if GROQ_API_KEY and GROQ_GUARD_MODEL else UnconfiguredAnswerGuard()
         )
