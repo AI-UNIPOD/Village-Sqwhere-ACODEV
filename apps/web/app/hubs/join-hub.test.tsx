@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { JoinHub } from "./join-hub";
-import { NOT_SAVED, agreement, api, asked, demoRefusal, fetchMock, hub, posted, refusal, reply } from "./test-support";
+import { agreement, api, asked, demoRefusal, fetchMock, hub, posted, refusal, reply, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => {
   const push = vi.fn();
@@ -144,12 +144,11 @@ test.each([
   expect(screen.queryByLabelText("Your full legal name")).toBeNull();
 });
 
-test("the demo's refused signature says nothing was saved, not to check the connection, and keeps everything typed", async () => {
+test("the demo's refused signature says nothing was saved as a status, with no alert, and keeps everything typed", async () => {
   await join({ "POST /v1/hubs/hub-1/invitation/accept": demoRefusal() });
   fillAndSign();
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sign and join" }));
-  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
-  expect(screen.queryByText(/We couldn't complete your signature/)).toBeNull();
+  await saidNotSaved();
   expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
 });
 

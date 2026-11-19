@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { failureLine } from "../demo-refusal";
+import { NotSaved, failureOf } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -115,7 +115,7 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
         setWait(waitUntil((error as IdeaError).detail?.can_ask_again_at) ?? "later");
         setRefused(true);
       }
-      else setProblem(code === "TEAM_FULL" ? t.team.full : failureLine(error, lang, t.team.actionFailed));
+      else setProblem(code === "TEAM_FULL" ? t.team.full : failureOf(error, t.team.actionFailed));
     } finally {
       setBusy(false);
     }
@@ -183,7 +183,8 @@ export function AskToJoin({ lang, hubId }: { lang: Lang; hubId: string | null })
     return (
       <>
         <p className={ideas.lead}>{t.ask.what}</p>
-        {problem && (
+        {problem === "demo" && <NotSaved lang={lang} spaced />}
+        {problem && problem !== "demo" && (
           <p className={`${onboarding.error} ${ideas.act}`} role="alert">
             <AlertCircle />
             {problem}

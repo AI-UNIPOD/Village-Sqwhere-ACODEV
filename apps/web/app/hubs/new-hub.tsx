@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { ConfirmDialog } from "../confirm-dialog";
-import { isDemoRefusal, notSaved } from "../demo-refusal";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import { IdeaError, loadMyIdea, type OwnedIdea } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -303,10 +303,11 @@ function NewHubForm({ lang, ideaId }: { lang: Lang; ideaId: string | null }) {
         />
 
         <div className={`${onboarding.actions} ${ideas.bar}`}>
-          {(problem === "send" || problem === "demo") && (
+          {problem === "demo" && <NotSaved lang={lang} className={ideas.failed} />}
+          {problem === "send" && (
             <p className={`${onboarding.error} ${ideas.failed}`} role="alert">
               <AlertCircle />
-              {problem === "demo" ? notSaved(lang) : t.errors.send}
+              {t.errors.send}
             </p>
           )}
           <button type="submit" className={landing.btn}>

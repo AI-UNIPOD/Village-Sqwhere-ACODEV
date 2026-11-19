@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
-import { notSaved } from "../demo-refusal";
+import { NotSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { copy, fill } from "./copy";
@@ -102,18 +102,17 @@ export function DoneStep({ lang, answers, profile, onChange }: DoneStepProps) {
           {status === "saving" ? t.saving : country ? t.savedWithCountry : t.saved}
         </p>
       )}
-      {(status === "failed" || status === "demo") && (
+      {/* the demo can never save them, so it is not offered another try */}
+      {status === "demo" && <NotSaved lang={lang} spaced />}
+      {status === "failed" && (
         <>
           <p className={styles.error} role="alert">
             <AlertCircle />
-            {status === "demo" ? notSaved(lang) : t.saveFailed}
+            {t.saveFailed}
           </p>
-          {/* the demo can never save them, so it is not offered another try */}
-          {status === "failed" && (
-            <button type="button" className={`${landing.ghost} ${styles.retry}`} onClick={retry}>
-              {t.retry}
-            </button>
-          )}
+          <button type="button" className={`${landing.ghost} ${styles.retry}`} onClick={retry}>
+            {t.retry}
+          </button>
         </>
       )}
       <div className={styles.actions}>

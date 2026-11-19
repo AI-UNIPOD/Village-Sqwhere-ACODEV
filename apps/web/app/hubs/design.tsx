@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
-import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -147,7 +147,7 @@ export function DesignSketch({ lang, hub, onChange }: { lang: Lang; hub: Hub; on
     if (reason instanceof SignedOutError) return null;
     const code = codeOf(reason);
     // the demo can never save it, so "try again" would be wrong
-    if (code === DEMO_READ_ONLY) return { text: notSaved(lang), problem: true };
+    if (code === DEMO_READ_ONLY) return { text: "", demo: true };
     if (MOVED.includes(code)) {
       // show the hub as it is now, so the section fits it; the line already says what happened
       loadHub(hub.id).then(onChange, () => {});
@@ -265,7 +265,9 @@ export function DesignSketch({ lang, hub, onChange }: { lang: Lang; hub: Hub; on
         </>
       )}
       {line &&
-        (line.problem ? (
+        (line.demo ? (
+          <NotSaved key={line.n} lang={lang} spaced />
+        ) : line.problem ? (
           <p key={line.n} ref={said} tabIndex={-1} className={`${onboarding.error} ${styles.problem}`} role="alert">
             <AlertCircle />
             {line.text}

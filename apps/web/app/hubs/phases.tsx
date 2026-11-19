@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
-import { isDemoRefusal, notSaved } from "../demo-refusal";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -83,7 +83,7 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
     } catch (error) {
       if (error instanceof SignedOutError) return;
       // the demo can never save it, so "try again" would be wrong
-      if (isDemoRefusal(error)) return setProblem(notSaved(lang));
+      if (isDemoRefusal(error)) return setProblem("demo");
       const code = error instanceof IdeaError ? error.code : "";
       if (CHANGED.includes(code) || UNAVAILABLE.includes(code)) {
         // show the hub as it is now, so the buttons fit it
@@ -149,7 +149,8 @@ export function Phases({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange
           {notice}
         </p>
       )}
-      {problem && (
+      {problem === "demo" && <NotSaved lang={lang} spaced />}
+      {problem && problem !== "demo" && (
         <p ref={said} tabIndex={-1} className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
           {problem}

@@ -364,13 +364,14 @@ test("a stop that fails says so inside the question and keeps the attempt", asyn
   expect(screen.getByRole("heading", { level: 3, name: "Peer review" })).toBeTruthy();
 });
 
-test("the demo's refused stop says nothing was saved inside the question, not to try again", async () => {
+test("the demo's refused stop says nothing was saved as a status inside the question, with no alert", async () => {
   signedInWith([role()], [attempt({ status: "awaiting_review", current_phase: null })]);
   overrides.set(`POST /v1/me/verifications/${ATTEMPT_ID}/abandon`, () => refused(403, "DEMO_READ_ONLY"));
   render(<Verification lang="en" />);
   fireEvent.click(await screen.findByRole("button", { name: "Stop this attempt" }));
   fireEvent.click(screen.getByRole("button", { name: "Stop the attempt" }));
-  expect((await screen.findByRole("alert")).textContent).toBe("Nothing was saved. The demo cannot be changed.");
+  expect((await screen.findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByRole("heading", { level: 3, name: "Peer review" })).toBeTruthy();
 });
 
@@ -547,12 +548,12 @@ test.each([
   expect(screen.getByRole("button", { name: "Start verification" }).getAttribute("aria-busy")).toBe("false");
 });
 
-test("the demo's refused start says nothing was saved, not that something went wrong, and keeps the typed text", async () => {
+test("the demo's refused start says nothing was saved as a status, with no alert, and keeps the typed text", async () => {
   const field = (await openForm()) as HTMLTextAreaElement;
   overrides.set(START, () => refused(403, "DEMO_READ_ONLY"));
   submitWith(REPOS);
-  expect((await screen.findByRole("alert")).textContent).toBe("Nothing was saved. The demo cannot be changed.");
-  expect(screen.queryByText(/the verification did not start/)).toBeNull();
+  expect((await screen.findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(field.value).toBe(REPOS);
 });
 

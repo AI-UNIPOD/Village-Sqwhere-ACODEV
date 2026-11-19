@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
-import { failureLine, isDemoRefusal, notSaved } from "../demo-refusal";
+import { NotSaved, failureOf, isDemoRefusal } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -109,11 +109,14 @@ function InviteForm({ lang, hubId, onInvited }: { lang: Lang; hubId: string; onI
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // the demo account's invitation was refused: said as a line, and the field is not marked
+  const [refused, setRefused] = useState(false);
 
   async function send(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
     setSentTo(null);
+    setRefused(false);
     // people paste "@ada-obi" from GitHub; the API wants the bare username
     const clean = username.trim().replace(/^@/, "");
     if (!clean) {
@@ -130,7 +133,8 @@ function InviteForm({ lang, hubId, onInvited }: { lang: Lang; hubId: string; onI
       setSentTo(member.user.display_name);
     } catch (failure) {
       if (failure instanceof SignedOutError) return;
-      setError(inviteMessage(failure, t) ?? failureLine(failure, lang, t.errors.failed));
+      if (isDemoRefusal(failure)) setRefused(true);
+      else setError(inviteMessage(failure, t) ?? t.errors.failed);
     } finally {
       setBusy(false);
     }
@@ -159,6 +163,7 @@ function InviteForm({ lang, hubId, onInvited }: { lang: Lang; hubId: string; onI
           {t.form.help}
         </p>
         <FieldError id="invite-username">{error ?? undefined}</FieldError>
+        {refused && <NotSaved lang={lang} spaced />}
       </div>
       <button type="submit" className={`${landing.btn} ${styles.send}`} aria-busy={busy || undefined}>
         {t.form.send}
@@ -187,6 +192,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
   const [declining, setDeclining] = useState<Member | null>(null);
   const [removing, setRemoving] = useState<Member | null>(null);
   const [busy, setBusy] = useState(false);
+  // the sentence for an answer that did not go through, or "demo" when the demo account's was refused
   const [problem, setProblem] = useState<string | null>(null);
   // what the owner's last answer did, for a screen reader
   const [notice, setNotice] = useState<string | null>(null);
@@ -225,7 +231,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
         // the person withdrew nothing, but the request is gone (answered elsewhere): show the list as it is now
         setAttempt((n) => n + 1);
         setProblem(t.team.requestGone);
-      } else setProblem((approve ? inviteMessage(error, t.team) : null) ?? failureLine(error, lang, t.team.actionFailed));
+      } else setProblem((approve ? inviteMessage(error, t.team) : null) ?? failureOf(error, t.team.actionFailed));
     } finally {
       setBusy(false);
       setDeclining(null);
@@ -240,7 +246,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
     try {
       put(await inviteMember(hub.id, member.user.username));
     } catch (error) {
-      if (!(error instanceof SignedOutError)) setProblem(inviteMessage(error, t.team) ?? failureLine(error, lang, t.team.actionFailed));
+      if (!(error instanceof SignedOutError)) setProblem(inviteMessage(error, t.team) ?? failureOf(error, t.team.actionFailed));
     } finally {
       setBusy(false);
     }
@@ -258,7 +264,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
       if (error instanceof SignedOutError) return;
       // nothing pending any more (they signed, or it was withdrawn): show the list as it is now
       if (error instanceof IdeaError && error.code === "INVITATION_NOT_FOUND") setAttempt((n) => n + 1);
-      else setProblem(failureLine(error, lang, t.team.actionFailed));
+      else setProblem(failureOf(error, t.team.actionFailed));
     } finally {
       setBusy(false);
       setWithdrawing(null);
@@ -282,7 +288,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
         // they left, or were removed in another tab: show the list as it is now
         setAttempt((n) => n + 1);
         setNotice(fill(t.team.removeGone, { name: gone.user.display_name }));
-      } else setProblem(code === "HUB_ARCHIVED" ? t.team.errors.archived : failureLine(error, lang, t.team.actionFailed));
+      } else setProblem(code === "HUB_ARCHIVED" ? t.team.errors.archived : failureOf(error, t.team.actionFailed));
     } finally {
       setBusy(false);
       setRemoving(null);
@@ -391,7 +397,8 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
           {notice}
         </p>
       )}
-      {problem && (
+      {problem === "demo" && <NotSaved lang={lang} spaced />}
+      {problem && problem !== "demo" && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
           {problem}
@@ -476,10 +483,11 @@ export function LeaveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
 
   return (
     <div className={styles.line}>
-      {problem && (
+      {problem === "demo" && <NotSaved lang={lang} spaced />}
+      {problem === true && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
-          {problem === "demo" ? notSaved(lang) : t.failed}
+          {t.failed}
         </p>
       )}
       <button type="button" className={landing.ghost} onClick={() => setAsking(true)}>
@@ -522,10 +530,11 @@ export function InvitationCard({ lang, hub, onChange }: { lang: Lang; hub: Hub; 
     <div className={styles.invitation}>
       <h2 className={styles.invitationTitle}>{t.title}</h2>
       <p className={styles.text}>{t.text}</p>
-      {problem && (
+      {problem === "demo" && <NotSaved lang={lang} spaced />}
+      {problem === true && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
-          {problem === "demo" ? notSaved(lang) : t.failed}
+          {t.failed}
         </p>
       )}
       <div className={styles.invitationActions}>

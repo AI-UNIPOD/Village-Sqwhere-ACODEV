@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
-import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
@@ -96,7 +96,7 @@ export function ReviewTab({ lang, hub, onChange }: { lang: Lang; hub: Hub; onCha
     if (reason instanceof SignedOutError) return null;
     const code = codeOf(reason);
     // the demo can never save it, so "try again" would be wrong
-    if (code === DEMO_READ_ONLY) return { text: notSaved(lang), problem: true };
+    if (code === DEMO_READ_ONLY) return { text: "", demo: true };
     if (MOVED.includes(code)) {
       // show the hub and the checklist as they are now, so the section and its buttons fit them; the
       // line already says what happened
@@ -171,7 +171,9 @@ export function ReviewTab({ lang, hub, onChange }: { lang: Lang; hub: Hub; onCha
   const says = (area: string) =>
     line &&
     home === area &&
-    (line.problem ? (
+    (line.demo ? (
+      <NotSaved key={line.n} lang={lang} spaced />
+    ) : line.problem ? (
       <p key={line.n} ref={said} tabIndex={-1} className={`${onboarding.error} ${styles.problem}`} role="alert">
         <AlertCircle />
         {line.text}

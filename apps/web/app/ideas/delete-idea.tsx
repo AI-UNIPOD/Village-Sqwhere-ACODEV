@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
-import { isDemoRefusal, notSaved } from "../demo-refusal";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { AlertCircle } from "../onboarding/icons";
@@ -48,10 +48,11 @@ export function DeleteIdea({ lang, id }: { lang: Lang; id: string }) {
         {t.heading}
       </h2>
       <p className={styles.note}>{t.text}</p>
-      {problem && (
+      {problem === "demo" && <NotSaved lang={lang} spaced />}
+      {problem && problem !== "demo" && (
         <p className={onboarding.error} role="alert">
           <AlertCircle />
-          {problem === "hub" ? t.hasHub : problem === "demo" ? notSaved(lang) : t.failed}
+          {problem === "hub" ? t.hasHub : t.failed}
         </p>
       )}
       {problem !== "hub" && (

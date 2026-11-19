@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { ConfirmDialog } from "../confirm-dialog";
-import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -184,10 +184,11 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
           onLegalName={(legalName) => change({ legalName })}
         />
         <div className={`${onboarding.actions} ${ideas.bar}`}>
-          {(problem === "send" || problem === "demo") && (
+          {problem === "demo" && <NotSaved lang={lang} className={ideas.failed} />}
+          {problem === "send" && (
             <p className={`${onboarding.error} ${ideas.failed}`} role="alert">
               <AlertCircle />
-              {problem === "demo" ? notSaved(lang) : t.join.send}
+              {t.join.send}
             </p>
           )}
           <button type="submit" className={landing.btn}>

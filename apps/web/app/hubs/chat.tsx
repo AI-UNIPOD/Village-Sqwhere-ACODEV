@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 
 import { when } from "../feed/post-parts";
 import { Field } from "../ideas/composer";
-import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -27,7 +27,8 @@ const CHANGED = ["HUB_ARCHIVED", "HUB_CHANGED", "NOT_HUB_MEMBER"];
 const size = (text: string) => [...text.trim()].length;
 
 // `focus` is for a line that replaces the button that was pressed, so focus does not fall to the page.
-type Line = { text: string; problem?: boolean; focus?: boolean };
+// `demo` is the demo account's refused change: the shared line is drawn, and `text` is not read.
+type Line = { text: string; problem?: boolean; focus?: boolean; demo?: boolean };
 
 // Adds messages to the ones shown, oldest first, keeping one copy of each.
 function merge(have: Message[], more: Message[]): Message[] {
@@ -131,7 +132,7 @@ export function Chat({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: 
     if (reason instanceof SignedOutError) return null;
     const code = reason instanceof IdeaError ? reason.code : "";
     // the demo can never save it, so "try again" would be wrong
-    if (code === DEMO_READ_ONLY) return { text: notSaved(lang), problem: true };
+    if (code === DEMO_READ_ONLY) return { text: "", demo: true };
     if (CHANGED.includes(code)) {
       // show the hub as it is now; the line already says what happened
       loadHub(hub.id).then(onChange, () => {});
@@ -330,7 +331,9 @@ export function Chat({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChange: 
         </>
       )}
       {line &&
-        (line.problem ? (
+        (line.demo ? (
+          <NotSaved key={line.n} lang={lang} spaced />
+        ) : line.problem ? (
           <p key={line.n} ref={said} tabIndex={-1} className={`${onboarding.error} ${styles.problem}`} role="alert">
             <AlertCircle />
             {line.text}

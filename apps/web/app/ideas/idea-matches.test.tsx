@@ -5,7 +5,7 @@ import { Component, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import IdeasError from "../[lang]/ideas/error";
-import { api, asked, fetchMock, hub, idea, posted, refusal, reply } from "../hubs/test-support";
+import { api, asked, demoRefusal, fetchMock, hub, idea, posted, refusal, reply, saidNotSaved } from "../hubs/test-support";
 import { forgetMe, keepMe } from "../session/me";
 import { SESSION_KEY } from "../session/session";
 import { IdeaMatches } from "./idea-matches";
@@ -349,7 +349,6 @@ test.each([
   ["HUB_ARCHIVED", 409, "This hub is archived, so nobody can be invited."],
   ["TEAM_FULL", 409, "The team is full: five members is the most a hub takes."],
   ["BOOM", 500, "That did not go through. Nothing was changed, so try again."],
-  ["DEMO_READ_ONLY", 403, "Nothing was saved. The demo cannot be changed."],
 ])("an invitation refused with %s says so beside the row and leaves the button to try again", async (code, status, sentence) => {
   await show({ "POST /v1/hubs/hub-1/invitations": refusal(status, code) });
   await screen.findByText("Wanjiru Kamau");
@@ -361,6 +360,15 @@ test.each([
   expect(row.queryByText("Invited")).toBeNull();
   // the other developer shows nothing
   expect(cardOf("danladi").queryByRole("alert")).toBeNull();
+});
+
+test("the demo's refused invitation says nothing was saved as a status beside the row, with no alert", async () => {
+  await show({ "POST /v1/hubs/hub-1/invitations": demoRefusal() });
+  await screen.findByText("Wanjiru Kamau");
+  fireEvent.click(screen.getByRole("button", { name: "Invite to the hub: Wanjiru Kamau" }));
+  await saidNotSaved(screen.getByText("Wanjiru Kamau", { selector: "p, a" }).closest("li")!);
+  expect(cardOf("Wanjiru Kamau").getByRole("button", { name: "Invite to the hub: Wanjiru Kamau" })).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 test("a second try after a refusal clears the sentence", async () => {

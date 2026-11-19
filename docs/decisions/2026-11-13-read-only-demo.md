@@ -105,14 +105,17 @@ Changed on 15 November 2026 (Tanny's decision, "honest writes"):
 
 Changed on 2026-11-19:
 
-- **Outside the feed, a refused write says the same sentence.** On the profile, the ideas, the
-  hubs, onboarding and verification, a change the API refuses for the demo account now shows
-  "Nothing was saved. The demo cannot be changed." where that screen shows its failure sentence,
-  in the same alert. Before, most of them said "We couldn't save... check your connection and try
-  again", which is wrong for a change that can never succeed. The hub's tabs, its phases and its
-  owner's tools, deleting an idea and deleting the account said nothing of their own, and now say
-  the sentence too. Onboarding's last step no longer offers "Try again" after it.
-- **One helper for every screen.** `apps/web/app/demo-refusal.ts` tells the refusal from a
-  failure and gives the sentence, which is the feed's, so there is one wording. Onboarding's save
-  now keeps the API's code, which it used to drop. Any other failure keeps its usual sentence,
-  nothing is disabled up front, and the frame's second line stays.
+- **Outside the feed, a refused write says the same sentence, the same way.** On the profile,
+  the ideas, the hubs, onboarding, verification and the reviews, a change the API refuses for the
+  demo account now shows "Nothing was saved. The demo cannot be changed." where that screen shows
+  its failure sentence, drawn as in the feed: a polite status line in the text colour, with no
+  alert icon. A red alert would make a refusal the demo is meant to give look like a fault.
+  Before, most of them said "We couldn't save... check your connection and try again", which is
+  wrong for a change that can never succeed. The hub's tabs, its phases and its owner's tools,
+  deleting an idea and deleting the account said nothing of their own, and now say the sentence
+  too. Onboarding's last step no longer offers "Try again" after it.
+- **One home for the line.** `apps/web/app/demo-refusal.tsx` holds the line, its two sentences,
+  its style and the check that tells the refusal from a failure, so no screen loads the feed's
+  copy or stylesheet for it and there is one wording. Onboarding's save and a reviewer's decision
+  now keep the API's code, which they used to drop. Any other failure keeps its usual sentence
+  as an alert, nothing is disabled up front, and the frame's second line stays.

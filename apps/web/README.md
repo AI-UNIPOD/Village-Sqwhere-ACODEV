@@ -405,11 +405,13 @@ nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` noti
 answer for every screen, and `AppFrame` shows the demo account a line under the header that
 says what the demo is, says so when a change was refused, and offers the way out.
 A refused write also says so beside the control that was pressed: "Nothing was saved. The demo
-cannot be changed.", never a failure sentence that says to try again. In the feed it is a status
-line (`NotSaved` in `feed/not-saved.tsx`). On the profile, the ideas, the hubs, onboarding and
-verification it takes the place of the screen's own failure sentence, in the same alert:
-`app/demo-refusal.ts` tells the refusal from a failure (`isDemoRefusal`) and gives the sentence
-(`notSaved`, `failureLine`). Any other failure keeps its usual sentence.
+cannot be changed.", never a failure sentence that says to try again. It is one calm line on
+every screen (`NotSaved` in `app/demo-refusal.tsx`, with its two sentences and its style): a
+status in the text colour, with no alert icon, because a refusal is what the demo is meant to
+do. In the feed, on the profile, the ideas, the hubs, onboarding, verification and the reviews
+it stands where the screen's own failure sentence would be. The same file tells the refusal
+from a failure (`isDemoRefusal`), and `feed/not-saved.tsx` only passes both on. Any other
+failure keeps its red alert and its usual sentence.
 
 The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
 village, then the feed, one question with its comments, and four on the demo account's own open

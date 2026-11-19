@@ -266,14 +266,14 @@ test("a failed save says so and keeps every word", async () => {
   expect(nav.replace).not.toHaveBeenCalled();
 });
 
-test("the demo's refused save says nothing was saved, not to check the connection, and keeps every word", async () => {
+test("the demo's refused save says nothing was saved as a status, with no alert, and keeps every word", async () => {
   fetchMock.mockResolvedValue(reply(403, { detail: { code: "DEMO_READ_ONLY", message: "English text from the API" } }));
   render(<IdeaComposer lang="en" />);
   type("Title", "Offline farm ledger");
   type("Public summary", SUMMARY);
   press("Save draft");
-  expect((await screen.findByRole("alert")).textContent).toBe("Nothing was saved. The demo cannot be changed.");
-  expect(screen.queryByText(/We couldn't save your idea/)).toBeNull();
+  expect((await screen.findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
   expect((screen.getByLabelText("Public summary") as HTMLTextAreaElement).value).toBe(SUMMARY);
   expect(nav.replace).not.toHaveBeenCalled();
 });

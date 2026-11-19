@@ -1,13 +1,21 @@
-import { vi } from "vitest";
+import { within } from "@testing-library/react";
+import { expect, vi } from "vitest";
 
 // What the hub tests share: made-up API answers and a fake `fetch` that serves them.
 export const fetchMock = vi.fn();
 export const reply = (status: number, body: unknown = {}) => new Response(JSON.stringify(body), { status });
 export const refusal = (status: number, code: string) => reply(status, { detail: { code, message: "English text from the API" } });
 
-// How the API refuses every change of the demo account, and what a screen says in place of its failure sentence.
+// How the API refuses every change of the demo account.
 export const demoRefusal = () => refusal(403, "DEMO_READ_ONLY");
-export const NOT_SAVED = "Nothing was saved. The demo cannot be changed.";
+
+// What a screen then says inside `area`, where its failure sentence would be: the calm line, as a
+// status, with no alert beside it.
+export async function saidNotSaved(area: HTMLElement = document.body) {
+  const line = await within(area).findByText("Nothing was saved. The demo cannot be changed.");
+  expect(line.getAttribute("role")).toBe("status");
+  expect(within(area).queryByRole("alert")).toBeNull();
+}
 
 export const idea = (over: Record<string, unknown> = {}) => ({
   id: "idea-1",

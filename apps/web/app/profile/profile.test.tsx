@@ -475,15 +475,19 @@ test("the sectors section is in French", async () => {
 
 // ---------- the demo account ----------
 
-const NOT_SAVED = "Nothing was saved. The demo cannot be changed.";
 const demoRefusal = () => refusal(403, "DEMO_READ_ONLY");
 
-test("the demo's refused save says nothing was saved, not to check the connection, and keeps the text", async () => {
+// what a part of the page then says where its failure sentence would be: the calm line, as a status, with no alert
+async function saidNotSaved(part: HTMLElement = document.body) {
+  expect((await within(part).findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(within(part).queryByRole("alert")).toBeNull();
+}
+
+test("the demo's refused save says nothing was saved as a status, with no alert, and keeps the text", async () => {
   await page(me(), { "PATCH /v1/me": demoRefusal() });
   fireEvent.change(screen.getByLabelText("About you"), { target: { value: "New bio" } });
   press("Save");
-  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
-  expect(document.body.textContent).not.toContain("We couldn't");
+  await saidNotSaved();
   expect((screen.getByLabelText("About you") as HTMLTextAreaElement).value).toBe("New bio");
 });
 
@@ -495,18 +499,18 @@ test("the demo's refused role, stack and sectors changes say nothing was saved t
     "PUT /v1/me/sectors": demoRefusal(),
   });
   press("Mobile Engineer", screen.getByRole("group", { name: "Add a role" }));
-  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
+  await saidNotSaved();
   press("Remove", row("DevOps and Cloud Engineer"));
   press("Remove role");
-  expect((await within(row("DevOps and Cloud Engineer")).findByRole("alert")).textContent).toBe(NOT_SAVED);
+  await saidNotSaved(row("DevOps and Cloud Engineer"));
   for (const [name, chip] of [["Stack", "Rust"], ["Sectors", "Health"]]) {
-    const part = within(screen.getByRole("region", { name }));
-    fireEvent.click(part.getByRole("button", { name: chip }));
-    fireEvent.click(part.getByRole("button", { name: `Save ${name.toLowerCase()}` }));
-    expect((await part.findByRole("alert")).textContent).toBe(NOT_SAVED);
-    expect(part.getByRole("button", { name: chip }).getAttribute("aria-pressed")).toBe("true");
+    const part = screen.getByRole("region", { name });
+    fireEvent.click(within(part).getByRole("button", { name: chip }));
+    fireEvent.click(within(part).getByRole("button", { name: `Save ${name.toLowerCase()}` }));
+    await saidNotSaved(part);
+    expect(within(part).getByRole("button", { name: chip }).getAttribute("aria-pressed")).toBe("true");
   }
-  expect(document.body.textContent).not.toContain("We couldn't");
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 test("the account part has both languages, marking the current one, and a sign-out button", async () => {

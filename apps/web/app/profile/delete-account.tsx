@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import dialogStyles from "../confirm-dialog.module.css";
-import { isDemoRefusal, notSaved } from "../demo-refusal";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -152,11 +152,12 @@ export function DeleteAccount({ lang, username }: { lang: Lang; username: string
             )}
           </div>
 
-          {(problem === "ownsHub" || problem === "failed" || problem === "demo") && (
+          {problem === "demo" && <NotSaved lang={lang} spaced />}
+          {(problem === "ownsHub" || problem === "failed") && (
             <p className={onboarding.error} role="alert">
               <AlertCircle />
               <span>
-                {problem === "ownsHub" ? t.ownsHub : problem === "demo" ? notSaved(lang) : t.failed}
+                {problem === "ownsHub" ? t.ownsHub : t.failed}
                 {problem === "ownsHub" && (
                   <>
                     {" "}

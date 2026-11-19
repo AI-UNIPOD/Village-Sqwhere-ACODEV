@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
-import { api, asked, fetchMock, hub, idea, owner, phasesAt, refusal } from "./test-support";
+import { api, asked, fetchMock, hub, idea, owner, phasesAt, refusal, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -490,7 +490,7 @@ test("a hub that moved on while a delete was asked about says so", async () => {
   await waitFor(() => expect(within(section()).queryByRole("button", { name: /^Delete/ })).toBeNull());
 });
 
-test("the demo's refusal says nothing was saved, not to try again, keeps the text and keeps the cards", async () => {
+test("the demo's refusal says nothing was saved as a status, with no alert, keeps the text and keeps the cards", async () => {
   await open(inDesign, {
     [DESIGN]: starting,
     "POST /v1/hubs/hub-1/pieces": refusal(403, "DEMO_READ_ONLY"),
@@ -503,7 +503,7 @@ test("the demo's refusal says nothing was saved, not to try again, keeps the tex
   await waitFor(() => expect(sent("POST")).toHaveLength(1));
   await waitFor(() => expect(within(pieceForm()).getByRole("button", { name: "Add the piece" }).getAttribute("aria-busy")).toBeNull());
   expect((within(pieceForm()).getByLabelText("Name") as HTMLInputElement).value).toBe("Demo piece");
-  expect(alertText()).toBe("Nothing was saved. The demo cannot be changed.");
+  await saidNotSaved(section());
   click(card("Mobile app"), "Edit the piece Mobile app");
   const form = within(screen.getByRole("form", { name: "Edit the piece Mobile app" }));
   type(form.getByLabelText("Name"), "Demo edit");
@@ -511,14 +511,13 @@ test("the demo's refusal says nothing was saved, not to try again, keeps the tex
   await waitFor(() => expect(sent("PATCH")).toHaveLength(1));
   await waitFor(() => expect(form.getByRole("button", { name: "Save" }).getAttribute("aria-busy")).toBeNull());
   expect((form.getByLabelText("Name") as HTMLInputElement).value).toBe("Demo edit");
-  expect(alertText()).toBe("Nothing was saved. The demo cannot be changed.");
+  await saidNotSaved(section());
   fireEvent.click(form.getByRole("button", { name: "Cancel" }));
   click(card("Mobile app"), "Delete the piece Mobile app");
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete the piece" }));
   await waitFor(() => expect(sent("DELETE")).toHaveLength(1));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(within(section()).getByRole("alert").textContent).toBe("Nothing was saved. The demo cannot be changed.");
-  expect(section().textContent).not.toContain("We couldn't save that");
+  await saidNotSaved(section());
   expect(cards()).toHaveLength(2);
 });
 

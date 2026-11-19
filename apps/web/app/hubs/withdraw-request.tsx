@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { isDemoRefusal, notSaved } from "../demo-refusal";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -45,10 +45,11 @@ export function WithdrawRequest({ lang, hubId, onDone }: { lang: Lang; hubId: st
 
   return (
     <>
-      {failed && (
+      {failed === "demo" && <NotSaved lang={lang} spaced />}
+      {failed === true && (
         <p className={`${onboarding.error} ${ideas.act}`} role="alert">
           <AlertCircle />
-          {failed === "demo" ? notSaved(lang) : t.team.actionFailed}
+          {t.team.actionFailed}
         </p>
       )}
       <button type="button" className={`${landing.ghost} ${ideas.act}`} aria-busy={busy || undefined} onClick={withdraw}>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
-import { failureLine } from "../demo-refusal";
+import { NotSaved, failureOf } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -34,7 +34,7 @@ function verification(role: MeRole) {
 export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: Me) => void }) {
   const t = copy[lang].roles;
   // what is being sent ("add:<slug>"), the role a confirmation is open for, and the sentence
-  // under the role it went wrong for
+  // under the role it went wrong for ("demo" when the demo account's change was refused)
   const [busy, setBusy] = useState<string | null>(null);
   const [asking, setAsking] = useState<string | null>(null);
   const [problem, setProblem] = useState<{ slug: string; text: string } | null>(null);
@@ -61,7 +61,7 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
       const code = error instanceof IdeaError ? error.code : null;
       // added from another tab a moment ago: the role is there, so show it instead of a failure
       if (code === "ROLE_ALREADY_CLAIMED" && (await loadMe().then(onMe, () => false)) !== false) return;
-      setProblem({ slug, text: code === "ROLE_HAS_VERIFICATION_HISTORY" ? t.errors.history : failureLine(error, lang, failure) });
+      setProblem({ slug, text: code === "ROLE_HAS_VERIFICATION_HISTORY" ? t.errors.history : failureOf(error, failure) });
     } finally {
       setBusy(null);
       setAsking(null);
@@ -150,7 +150,8 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
                   </>
                 )}
               </div>
-              {problem?.slug === role.slug && (
+              {problem?.slug === role.slug && problem.text === "demo" && <NotSaved lang={lang} spaced />}
+              {problem?.slug === role.slug && problem.text !== "demo" && (
                 <p className={onboarding.error} role="alert">
                   <AlertCircle />
                   {problem.text}
@@ -183,7 +184,8 @@ export function RolesSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me
               </button>
             ))}
           </div>
-          {addProblem && (
+          {addProblem?.text === "demo" && <NotSaved lang={lang} spaced />}
+          {addProblem && addProblem.text !== "demo" && (
             <p className={onboarding.error} role="alert">
               <AlertCircle />
               {addProblem.text}

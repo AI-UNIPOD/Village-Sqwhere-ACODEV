@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
-import { NOT_SAVED, api, asked, demoRefusal, fetchMock, hub, idea, owner, posted, refusal, reply } from "./test-support";
+import { api, asked, demoRefusal, fetchMock, hub, idea, owner, posted, refusal, reply, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -150,17 +150,17 @@ test("an archive that fails says so and keeps the hub active", async () => {
   expect(asked().filter((line) => line === "GET /v1/hubs/hub-1")).toHaveLength(1);
 });
 
-test("the demo's refused edit and archive say nothing was saved, not to try again, and keep the hub as it was", async () => {
+test("the demo's refused edit and archive say nothing was saved as a status, with no alert, and keep the hub as it was", async () => {
   await open(asOwner, { "PATCH /v1/hubs/hub-1": demoRefusal(), "POST /v1/hubs/hub-1/archive": demoRefusal() });
   press("Edit the name and description");
   fireEvent.change(nameField(), { target: { value: "Borehole finder" } });
   press("Save");
-  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
+  await saidNotSaved();
   expect(nameField().value).toBe("Borehole finder");
   press("Archive this hub");
   fireEvent.click(within(archiveDialog()).getByRole("button", { name: "Archive the hub" }));
-  await waitFor(() => expect(within(document.querySelector<HTMLElement>("section#archive")!).getByRole("alert").textContent).toBe(NOT_SAVED));
-  expect(document.body.textContent).not.toContain("We couldn't save that");
+  await saidNotSaved(document.querySelector<HTMLElement>("section#archive")!);
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByText("Active")).toBeTruthy();
 });
 

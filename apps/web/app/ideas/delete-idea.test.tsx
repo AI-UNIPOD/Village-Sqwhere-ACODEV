@@ -123,11 +123,11 @@ test("a failed delete says so and keeps the idea", async () => {
   expect(nav.push).not.toHaveBeenCalled();
 });
 
-test("the demo's refused delete says nothing was saved, not to try again, and keeps the idea", async () => {
+test("the demo's refused delete says nothing was saved as a status, with no alert, and keeps the idea", async () => {
   await open(refusal(403, "DEMO_READ_ONLY"));
   confirm();
-  expect((await screen.findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("alert");
-  expect(screen.queryByText(/We couldn't delete the idea/)).toBeNull();
+  expect((await screen.findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByRole("button", { name: "Delete this idea" })).toBeTruthy();
   expect(nav.push).not.toHaveBeenCalled();
 });

@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { AppFrame } from "../app-frame";
 import { ConfirmDialog } from "../confirm-dialog";
-import { isDemoRefusal, notSaved } from "../demo-refusal";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -397,10 +397,11 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
 
         {!closed && (
           <div className={`${onboarding.actions} ${onboarding.questionActions} ${styles.bar}`}>
-            {failed && (
+            {failed === "demo" && <NotSaved lang={lang} className={styles.failed} />}
+            {failed === true && (
               <p className={`${onboarding.error} ${styles.failed}`} role="alert">
                 <AlertCircle />
-                {failed === "demo" ? notSaved(lang) : t.errors.save}
+                {t.errors.save}
               </p>
             )}
             {status === "draft" ? (

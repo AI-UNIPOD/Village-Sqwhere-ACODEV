@@ -7,7 +7,7 @@ import { copy } from "./copy";
 import { HubPage } from "./hub-page";
 import { MyHubs } from "./my-hubs";
 import { NewHub } from "./new-hub";
-import { NOT_SAVED, agreement, api, demoRefusal, fetchMock, hub, idea, owner, posted, refusal, reply } from "./test-support";
+import { agreement, api, demoRefusal, fetchMock, hub, idea, owner, posted, refusal, reply, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => {
   const push = vi.fn();
@@ -171,12 +171,11 @@ test("a failed send says so and keeps everything typed", async () => {
   expect((screen.getByLabelText("Hub name") as HTMLInputElement).value).toBe("Borehole map for Kaduna");
 });
 
-test("the demo's refused hub says nothing was saved, not to check the connection, and keeps everything typed", async () => {
+test("the demo's refused hub says nothing was saved as a status, with no alert, and keeps everything typed", async () => {
   await form({ "POST /v1/hubs": demoRefusal() });
   fillAndSign();
   fireEvent.click(screen.getByRole("button", { name: "Sign and create" }));
-  expect((await screen.findByRole("alert")).textContent).toBe(NOT_SAVED);
-  expect(screen.queryByText(/We couldn't create the hub/)).toBeNull();
+  await saidNotSaved();
   expect((screen.getByLabelText("Hub name") as HTMLInputElement).value).toBe("Borehole map for Kaduna");
 });
 

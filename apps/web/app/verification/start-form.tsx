@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 
-import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -148,10 +148,11 @@ export function StartForm({ lang, slug, attemptNumber, actions }: Props) {
         )}
       </div>
 
-      {sendError && (
+      {sendError === "demo" && <NotSaved lang={lang} spaced />}
+      {sendError && sendError !== "demo" && (
         <p className={onboarding.error} role="alert">
           <AlertCircle />
-          {sendError === "demo" ? notSaved(lang) : t.failed[sendError]}
+          {t.failed[sendError]}
         </p>
       )}
       <div>

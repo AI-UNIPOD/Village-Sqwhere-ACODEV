@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { AppFrame } from "../app-frame";
-import { failureLine } from "../demo-refusal";
+import { NotSaved, failureOf } from "../demo-refusal";
 import { copy as hubsCopy } from "../hubs/copy";
 import { inviteMember, loadHubsByIdea, type Hub } from "../hubs/hubs-api";
 import hubsStyles from "../hubs/hubs.module.css";
@@ -56,7 +56,7 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
       setState("sent");
     } catch (error) {
       setState("idle");
-      if (!(error instanceof SignedOutError)) setProblem(inviteMessage(error, team) ?? failureLine(error, lang, team.actionFailed));
+      if (!(error instanceof SignedOutError)) setProblem(inviteMessage(error, team) ?? failureOf(error, team.actionFailed));
     }
   }
 
@@ -85,7 +85,8 @@ function DeveloperCard({ lang, person, hub }: { lang: Lang; person: Developer; h
       <p className={landing.srOnly} role="status">
         {state === "sent" ? fill(team.form.sent, { name: person.display_name }) : ""}
       </p>
-      {problem && (
+      {problem === "demo" && <NotSaved lang={lang} spaced />}
+      {problem && problem !== "demo" && (
         <p className={onboarding.error} role="alert">
           <AlertCircle />
           {problem}

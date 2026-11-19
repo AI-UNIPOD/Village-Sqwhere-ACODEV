@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, type ComponentType } from "react";
 
-import { DEMO_READ_ONLY, notSaved } from "../demo-refusal";
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { AlertCircle, ArrowRight, Check, Clock } from "../onboarding/icons";
@@ -97,10 +97,11 @@ function StopAttempt({ lang, attemptId, actions }: { lang: Lang; attemptId: stri
           {t.title}
         </h2>
         <p className={styles.dialogText}>{t.text}</p>
-        {failed && (
+        {failed === "demo" && <NotSaved lang={lang} spaced />}
+        {failed === true && (
           <p className={onboarding.error} role="alert">
             <AlertCircle />
-            {failed === "demo" ? notSaved(lang) : t.failed}
+            {t.failed}
           </p>
         )}
         <div className={onboarding.actions}>

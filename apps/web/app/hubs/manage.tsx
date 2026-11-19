@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { ConfirmDialog } from "../confirm-dialog";
-import { isDemoRefusal, notSaved } from "../demo-refusal";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -129,10 +129,11 @@ export function EditHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChang
         </p>
         <FieldError id="hub-edit-description">{errors.description}</FieldError>
       </div>
-      {failed && (
+      {failed === "demo" && <NotSaved lang={lang} spaced />}
+      {failed === true && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
-          {failed === "demo" ? notSaved(lang) : t.manage.failed}
+          {t.manage.failed}
         </p>
       )}
       <div className={styles.phaseActions}>
@@ -177,10 +178,11 @@ export function ArchiveHub({ lang, hub, onChange }: { lang: Lang; hub: Hub; onCh
     <section id="archive" className={styles.part}>
       <h2 className={`${ideas.heading} ${styles.heading}`}>{a.heading}</h2>
       <p className={styles.text}>{a.text}</p>
-      {failed && (
+      {failed === "demo" && <NotSaved lang={lang} spaced />}
+      {failed === true && (
         <p className={`${onboarding.error} ${styles.problem}`} role="alert">
           <AlertCircle />
-          {failed === "demo" ? notSaved(lang) : t.failed}
+          {t.failed}
         </p>
       )}
       <div className={styles.phaseActions}>
