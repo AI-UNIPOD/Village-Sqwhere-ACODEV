@@ -59,12 +59,18 @@ GROQ_INTERVIEW_CONTEXT_BUDGET_TOKENS = int(
     os.getenv("GROQ_INTERVIEW_CONTEXT_BUDGET_TOKENS", 115_000)
 )
 GROQ_INTERVIEW_MAX_OUTPUT_TOKENS = int(os.getenv("GROQ_INTERVIEW_MAX_OUTPUT_TOKENS", 2_048))
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_CODEBASE_MODEL = os.getenv("GEMINI_CODEBASE_MODEL")
-GEMINI_INTERVIEW_MODEL = os.getenv("GEMINI_INTERVIEW_MODEL")
-GEMINI_EVALUATION_MODEL = os.getenv("GEMINI_EVALUATION_MODEL")
-# The vectors the match score reads (app/services/embeddings.py).
+# Claude, then OpenAI, take over a verification step when Groq fails. A deployment only adds
+# the keys: each model has a default.
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+ANTHROPIC_CODEBASE_MODEL = os.getenv("ANTHROPIC_CODEBASE_MODEL") or "claude-haiku-5-5"
+ANTHROPIC_INTERVIEW_MODEL = os.getenv("ANTHROPIC_INTERVIEW_MODEL") or "claude-haiku-5-5"
+ANTHROPIC_EVALUATION_MODEL = os.getenv("ANTHROPIC_EVALUATION_MODEL") or "claude-haiku-5-5"
+# OpenAI also makes the vectors the match score reads (app/services/embeddings.py).
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_CODEBASE_MODEL = os.getenv("OPENAI_CODEBASE_MODEL") or "gpt-6-luna"
+OPENAI_INTERVIEW_MODEL = os.getenv("OPENAI_INTERVIEW_MODEL") or "gpt-6-luna"
+OPENAI_EVALUATION_MODEL = os.getenv("OPENAI_EVALUATION_MODEL") or "gpt-6-luna"
+OPENAI_STT_MODEL = os.getenv("OPENAI_STT_MODEL") or "gpt-transcribe"
 VERIFICATION_MAX_ANALYSIS_ATTEMPTS = int(os.getenv("VERIFICATION_MAX_ANALYSIS_ATTEMPTS", 3))
 VERIFICATION_WORKER_INTERVAL_SECONDS = float(os.getenv("VERIFICATION_WORKER_INTERVAL_SECONDS", 5))
 VERIFICATION_INTERVIEW_MAX_TURNS = max(1, int(os.getenv("VERIFICATION_INTERVIEW_MAX_TURNS", 5)))

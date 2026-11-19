@@ -171,8 +171,7 @@ reaches the API at `https://<domain>/v1/...`.
    | `JWT_SECRET_KEY` | A new random value of 32 characters or more, never the local one |
    | `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ORIGINS` | `https://<domain>` |
    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | A GitHub OAuth app for the real domain, with the callback `https://<domain>/v1/auth/oauth/github/callback` |
-   | `GROQ_API_KEY`, `GEMINI_API_KEY` and the model names | As in `.env.example` |
-   | `OPENAI_API_KEY` | For the worker: the vectors the match score reads. Without it the score stays partial |
+   | `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and the model names | As in `.env.example`. `OPENAI_API_KEY` also makes the vectors the match score reads |
    | `DEMO_ENABLED` | `true` to offer "Try the demo"; then run `python -m app.demo_seed` once against the database |
 
 5. **Deploy**, then open `https://<deployment>/health`: it answers `{"status":"ok", ...}`.

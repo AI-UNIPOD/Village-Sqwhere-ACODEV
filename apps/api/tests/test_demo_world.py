@@ -11,8 +11,11 @@ from sqlalchemy import delete, func, select, text
 
 from app import config
 from app.demo_seed import seed
+from app.demo_vectors import frozen_vectors
 from app.demo_world import IMAGES, load_members, load_posts, write_world
-from app.models import Comment, Post, User
+from app.models import Comment, Post, User, UserEmbedding
+from app.services.embeddings import profile_text, source_sha256
+from app.workers.embeddings import EMBEDDED_USERS
 from tests.conftest import test_async_session as db_session
 
 FULL, LIGHT = load_members()
@@ -197,6 +200,29 @@ def test_the_world_is_written_whole_and_every_account_is_a_demo_account(world) -
         MEMBERS
     )
     assert _scalar("SELECT count(*) FROM users WHERE username = ANY(:handles)") == len(MEMBERS)
+
+
+def test_every_verified_member_gets_the_vector_frozen_for_their_profile(world) -> None:
+    """When this fails, a member's roles, technologies, sectors or bio changed in the fixtures:
+    make demo_fixtures/vectors.json again (app/demo_vectors.py)."""
+    members = (*EMBEDDED_USERS, User.username.in_(list(MEMBERS)))
+
+    async def go(session) -> tuple[set[str], set[str]]:
+        texts = {
+            source_sha256(profile_text(user))
+            for user in await session.scalars(select(User).where(*members))
+        }
+        stored = set(
+            await session.scalars(select(UserEmbedding.source_sha256).join(User).where(*members))
+        )
+        return texts, stored
+
+    texts, stored = _run(go)
+
+    # the full members verified in a role; with the seed's own 13 texts, the 77 of the file
+    assert len(texts) == 64
+    assert texts <= set(frozen_vectors())
+    assert stored == texts
 
 
 def test_the_original_seven_keep_the_posts_the_seed_wrote_them(world) -> None:

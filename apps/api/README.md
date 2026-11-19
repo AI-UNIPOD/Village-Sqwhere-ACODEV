@@ -75,7 +75,7 @@ app/
   schemas/             Pydantic request and response bodies
   services/            the logic routes share: match_score.py, account_deletion.py,
                        interview.py, embeddings.py (the vectors, from OpenAI),
-                       groq*.py and gemini*.py with a fallback between them
+                       groq*.py, and providers.py with Claude and OpenAI behind Groq
   workers/             the verification and embedding worker (python -m app.workers.runner)
   demo_seed.py         the made-up world behind "Try the demo"
   demo_world.py        its wider community, loaded from the frozen files in demo_fixtures/
@@ -102,8 +102,11 @@ stateDiagram-v2
 ```
 
 The worker does the slow parts (reading public repositories, writing the report) outside any
-request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The interview
-and the report use Groq, with Gemini as the fallback, in the language the attempt started in.
+request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The repositories
+check, the interview and the report use Groq, then Claude, then OpenAI when one fails, in the
+language the attempt started in. A provider without its key is skipped, and each answer must match
+a schema before it is kept (`docs/decisions/2026-11-19-interviews-without-gemini.md`). Speech goes
+to Groq's Whisper, then OpenAI.
 
 The same worker keeps an embedding of every open idea and every verified developer, from OpenAI's
 `text-embedding-3-small` and `OPENAI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
@@ -192,7 +195,11 @@ give the same world, every like is chosen by a hash, and every count the feed sh
 database's own count of the rows. A rerun deletes those posts and writes them again with the
 same ids, dated back from now (a post cannot change its own time), and leaves the members.
 About 160 of the posts carry a picture (`demo_fixtures/images`, stored like uploads). The
-embeddings worker skips every demo account and the ideas they write. The names, bios and
+demo's vectors were measured once and are kept in `demo_fixtures/vectors.json`; the seed
+writes them, and the embeddings worker embeds a demo row the seed left without one
+(`docs/decisions/2026-11-19-demo-frozen-vectors.md`). After changing a demo bio, list or
+idea, run `python -m app.demo_vectors` against a newly seeded database with `OPENAI_API_KEY`
+set. The names, bios and
 texts are data: to change them, edit the files and keep `tests/test_demo_world.py` green.
 
 The world reads like the real product in real use: the demo bar is the only place that says it
