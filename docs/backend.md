@@ -698,29 +698,30 @@ It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each 
 with a database row lock, and a failed job is logged while the loop continues.
 
 **Embeddings.** The same loop also embeds, each run, up to 20 ideas and 20 developers that have
-no vector, with Google's `gemini-embedding-2` and the `GEMINI_API_KEY` the API already has. No
+no vector, with OpenAI's `text-embedding-3-small` and `OPENAI_API_KEY`. No
 route writes them. The match score and similar ideas read them (see "Matching"). Why:
-`docs/decisions/2026-11-15-embeddings-on-gemini.md`.
+`docs/decisions/2026-11-19-embeddings-on-openai.md`.
 
 * **What is sent.** For an idea, its title and summary, never `details`. For a developer, their
   verified role names, technology names, sector names and bio, in a fixed order, never an email,
   a legal name, a display name or a username.
 * **Who is embedded.** An idea that is `open` and not deleted, the same rule the match lists use.
   A developer with at least one verified role whose account is not deleted. Demo accounts too.
-* **Where it is stored.** `idea_embeddings` and `user_embeddings` (`025-embeddings.sql`): one row
+* **Where it is stored.** `idea_embeddings` and `user_embeddings` (`025-embeddings.sql`, moved to
+  OpenAI's model by `028-embeddings-on-openai.sql`): one row
   per idea or developer with a 768-wide `vector`, the `model`, and the SHA-256 of the exact text
   that was sent. A missing row means the text needs embedding.
 * **When a vector goes stale.** A database trigger removes it when the idea's title or summary
   changes, or a developer's bio changes, or a row in their `user_roles`, `user_technologies` or
   `user_sectors` is added, removed or changed. The next run embeds it again. A text that changes
-  while Gemini answers is read again before it is stored, and gets no vector until the next run.
+  while OpenAI answers is read again before it is stored, and gets no vector until the next run.
   The one exception is a technology, a sector or a role changed in the moment between that check
   and the commit: the vector is then stored with a hash that no longer matches the profile, and
   stays until the profile changes again.
-* **When it fails.** An unreachable or bad answer from Gemini is logged without the text or the
-  key, nothing is written, and the next run tries again. If Gemini refuses a request of several
+* **When it fails.** An unreachable or bad answer from OpenAI is logged without the text or the
+  key, nothing is written, and the next run tries again. If OpenAI refuses a request of several
   texts, each text is asked for alone, so one text it always refuses holds back only itself. An
-  error in the idea step does not stop the developer step. With no `GEMINI_API_KEY` the step does
+  error in the idea step does not stop the developer step. With no `OPENAI_API_KEY` the step does
   nothing and the log says so once.
 * **Account deletion** removes the developer's vector with the rest of their profile.
 

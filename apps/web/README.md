@@ -123,7 +123,7 @@ technologies the feed should show and the sectors (`POST /v1/me/roles`,
 developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
 under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
 (`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
-The stack step says what is sent to Google's Gemini to match by meaning, tied to the chips as
+The stack step says what is sent to OpenAI to match by meaning, tied to the chips as
 their help text (the same sentence as the profile's bio field).
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
@@ -381,7 +381,7 @@ follows (`PUT` and `DELETE /v1/comments/{id}/like`).
 The profile is `app/profile/`, at `/en/profile`: the name, bio and country (`PATCH /v1/me`; the
 country is a native list with "No country" first, saved as its code or `null`, and the form says
 other signed-in developers can see it; a second help line under the bio says what is sent to
-Google's Gemini to match by meaning, and that the name, username and email never are), the roles
+OpenAI to match by meaning, and that the name, username and email never are), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.

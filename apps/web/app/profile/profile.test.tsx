@@ -230,8 +230,8 @@ test("the country field is in French, named and sorted in French", async () => {
 });
 
 test.each([
-  ["en", "About you", "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to Google's Gemini. Your name, your username and your email are never sent."],
-  ["fr", "À propos de vous", "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à Gemini, de Google. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés."],
+  ["en", "About you", "To match you by meaning, Village Sqwhere sends your bio, your verified roles, your technologies and your sectors to OpenAI. Your name, your username and your email are never sent."],
+  ["fr", "À propos de vous", "Pour vous associer par le sens, Village Sqwhere envoie votre bio, vos rôles vérifiés, vos technologies et vos domaines à OpenAI. Votre nom, votre nom d'utilisateur et votre e\u2011mail ne sont jamais envoyés."],
 ] as const)("the bio field says what is sent to match by meaning, in %s, tied to the field and to no other", async (lang, label, note) => {
   api({ "GET /v1/me": { data: me() } });
   render(<ProfilePage lang={lang} />);
