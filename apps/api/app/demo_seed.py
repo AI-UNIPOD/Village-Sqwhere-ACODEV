@@ -31,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import config
 from app import demo_review_case as review_case
 from app.api.v1.auth import DEMO_ACCOUNT_ID
+from app.demo_vectors import write_frozen_vectors
 from app.demo_world import write_world
 from app.models import (
     AgreementSignature,
@@ -81,12 +82,26 @@ PEOPLE = {
         "Ọláolúwa Adébáyọ̀",
         "Backend engineer in Lagos, building payments.",
     ),
-    "aminata": ("aminata_ndiaye", "Aminata Ndiaye", "Développeuse mobile et frontend à Dakar."),
+    "aminata": (
+        "aminata_ndiaye",
+        "Aminata Ndiaye",
+        "Développeuse mobile et frontend à Dakar. Applications de paiement pour les coopératives "
+        "et les tontines, où chaque versement doit arriver une seule fois.",
+    ),
     "kwabena": ("kwabena_owusu", "Kwabena Ɔwusu", "Frontend and design systems, Kumasi."),
     "danladi": ("danladi_kabir", "Ɗanladi Ƙabir", "Embedded and IoT for farms in Kano."),
     "wanjiru": ("wanjiru_kamau", "Wanjiru Kamau", "ML engineer in Nairobi, mostly Swahili NLP."),
-    "tendai": ("tendai_moyo", "Tendai Moyo", "DevOps in Harare. Keeps things running."),
-    "uwase": ("uwase_mutoni", "Uwase Mutoni", "Développeuse frontend à Kigali, pour les écoles."),
+    "tendai": (
+        "tendai_moyo",
+        "Tendai Moyo",
+        "DevOps in Harare. Keeps payment services running, with audit logs a co-operative can "
+        "trust.",
+    ),
+    "uwase": (
+        "uwase_mutoni",
+        "Uwase Mutoni",
+        "Développeuse frontend à Kigali, pour les écoles et les coopératives.",
+    ),
 }
 # where each person lives, from their bio
 COUNTRIES = {
@@ -108,16 +123,20 @@ VERIFIED = {
     "tendai": ["devops-cloud-engineer"],
     "uwase": ["frontend-engineer"],
 }
-# What each stack and sector list shares with the visitor decides the match scores on the demo's
-# screens: on the visitor's idea Aminata scores Strong, Tendai Possible and Uwase Weak.
+# What each stack and sector list shares with the visitor, and how close each bio reads to the
+# visitor's idea, decide the match scores on the demo's screens: on the visitor's idea Aminata
+# scores Strong (82), Tendai Possible (69) and Uwase Weak (43). The meaning part of each comes
+# from the vectors frozen in demo_fixtures/vectors.json, so a change to a bio, a list or an
+# idea's text here needs that file made again (app/demo_vectors.py).
+# docs/decisions/2026-11-19-demo-frozen-vectors.md
 STACKS = {
     "you": ["python", "nodejs", "postgresql", "docker", "ci-cd"],
-    "aminata": ["flutter", "react-native", "react", "nodejs", "ci-cd"],
+    "aminata": ["flutter", "react-native", "react", "nodejs", "ci-cd", "docker", "postgresql"],
     "kwabena": ["react", "nodejs"],
     "danladi": ["rust", "go"],
     "wanjiru": ["python", "pytorch"],
     "tendai": ["docker", "kubernetes", "terraform", "ci-cd", "postgresql"],
-    "uwase": ["react", "vue"],
+    "uwase": ["react", "vue", "nodejs"],
 }
 SECTORS = {
     "you": ["fintech", "agritech"],
@@ -125,12 +144,20 @@ SECTORS = {
     "kwabena": ["agritech", "commerce"],
     "danladi": ["agritech", "climate-energy"],
     "wanjiru": ["education", "civic"],
-    "tendai": ["fintech", "developer-tools"],
-    "uwase": ["education"],
+    "tendai": ["fintech", "developer-tools", "agritech"],
+    "uwase": ["education", "agritech"],
 }
 # Open ideas by others that need the visitor's role and have no hub, so "For you" has matches,
-# as (who, title, summary, days since published)
+# as (who, title, summary, days since published). The first reads close to the visitor's own
+# idea, so Tendai's card and the idea's page name it as a similar idea.
 FOR_YOU_IDEAS = [
+    (
+        "tendai",
+        "Burial society payouts that never go out twice",
+        "A payout service for burial societies in Harare, with idempotent mobile money "
+        "transfers and an audit trail for the committee.",
+        4,
+    ),
     (
         "tendai",
         "Uptime watch for mobile money agents",
@@ -339,6 +366,8 @@ async def seed(db: AsyncSession) -> bool:
     await _write_hub_chats(db, people)
     await _write_review_case(db, people)
     await _write_feed(db, people)
+    # last: a trigger removes a vector when the bio, the lists or the idea's text change above
+    await write_frozen_vectors(db)
     await db.commit()
     return created
 

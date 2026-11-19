@@ -21,6 +21,7 @@ from uuid import UUID, uuid5
 from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.demo_vectors import write_frozen_vectors
 from app.models import (
     Comment,
     CommentLike,
@@ -227,6 +228,7 @@ async def write_world(db: AsyncSession) -> tuple[int, int]:
         await _insert(db, Comment, [row for row in comment_rows if row["depth"] == level])
     await _insert(db, PostLike, like_rows)
     await _insert(db, CommentLike, comment_like_rows)
+    await write_frozen_vectors(db)  # the verified members' own, once they are all there
     return len(post_rows), len(comment_rows)
 
 

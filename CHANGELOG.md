@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-19
 
+- feat(api): give the demo real match scores from vectors measured once
 - feat: make the match vectors with openai instead of gemini
 
 ## 2026-11-16

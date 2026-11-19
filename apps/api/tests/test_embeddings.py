@@ -246,17 +246,17 @@ def test_only_open_ideas_are_embedded() -> None:
     assert [idea_vector(idea) for idea in skipped] == [None, None, None]
 
 
-def test_an_open_idea_by_a_demo_account_is_never_embedded() -> None:
+def test_an_open_idea_by_a_demo_account_with_no_vector_is_embedded_like_any_other() -> None:
     tag = uuid4().hex
     real, demo = make_idea(tag), make_idea(tag, is_demo=True)
 
     embed_everything(FakeEmbedder())
 
     assert idea_vector(real) is not None
-    assert idea_vector(demo) is None
+    assert idea_vector(demo) is not None
 
 
-def test_only_developers_with_a_verified_role_on_a_live_real_account_are_embedded() -> None:
+def test_only_developers_with_a_verified_role_on_a_live_account_are_embedded() -> None:
     tag = uuid4().hex
     developer = make_developer(tag)
     demo = make_developer(tag, is_demo=True)
@@ -266,7 +266,8 @@ def test_only_developers_with_a_verified_role_on_a_live_real_account_are_embedde
     embed_everything(FakeEmbedder())
 
     assert user_vector(developer) is not None
-    assert user_vector(demo) is None
+    # a demo developer the seed gave no frozen vector is embedded too
+    assert user_vector(demo) is not None
     assert user_vector(unverified) is None
     assert user_vector(deleted) is None
 
