@@ -60,7 +60,11 @@ GROQ_INTERVIEW_CONTEXT_BUDGET_TOKENS = int(
 )
 GROQ_INTERVIEW_MAX_OUTPUT_TOKENS = int(os.getenv("GROQ_INTERVIEW_MAX_OUTPUT_TOKENS", 2_048))
 # Claude, then OpenAI, take over a verification step when Groq fails. A deployment only adds
-# the keys: each model has a default.
+# the keys: each model has a default. Claude is left out of every step until CLAUDE_ENABLED is
+# "true": the Anthropic account must pass identity verification before Claude answers, and
+# until then each try would only delay OpenAI.
+# docs/decisions/2026-11-19-interviews-without-gemini.md
+CLAUDE_ENABLED = os.getenv("CLAUDE_ENABLED", "false").strip().lower() == "true"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 ANTHROPIC_CODEBASE_MODEL = os.getenv("ANTHROPIC_CODEBASE_MODEL") or "claude-haiku-5-5"
 ANTHROPIC_INTERVIEW_MODEL = os.getenv("ANTHROPIC_INTERVIEW_MODEL") or "claude-haiku-5-5"

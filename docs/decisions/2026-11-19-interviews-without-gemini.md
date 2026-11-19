@@ -108,6 +108,12 @@ OpenAI (`developers.openai.com/api/docs/...`), read on 19 November 2026:
 
 ## Consequences
 
+- **Changed on 20 November 2026: Claude is off until it is switched on.** Every call to Claude
+  failed with "Identity verification is required to continue" because the Anthropic account
+  has not passed that check, and each try only delayed OpenAI. Claude now takes part only
+  where `CLAUDE_ENABLED` is `true`; by default OpenAI follows Groq directly in all three
+  steps. Set it to `true` once the account is verified and a real call has answered.
+
 - A deployment that sets only the two new keys gets the full chain. With no key at all, the steps
   fail as before and the interview uses its built-in questions.
 - The answer guard is still Groq's. Without `GROQ_API_KEY` every answer is flagged

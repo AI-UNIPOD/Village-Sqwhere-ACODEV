@@ -312,8 +312,16 @@ def test_report_raises_a_runtime_error_when_every_provider_fails() -> None:
     assert calls == ["Groq", "OpenAI"]
 
 
+@pytest.mark.parametrize(
+    ("claude_enabled", "after_groq"),
+    [
+        (True, [(ClaudeJson, "claude-haiku-5-5"), (OpenAIJson, "gpt-6-luna")]),
+        (False, [(OpenAIJson, "gpt-6-luna")]),
+    ],
+    ids=["claude switched on", "claude switched off"],
+)
 def test_the_worker_builds_both_steps_as_groq_then_claude_then_openai(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, claude_enabled: bool, after_groq: list
 ) -> None:
     built: dict = {}
 
@@ -338,6 +346,7 @@ def test_the_worker_builds_both_steps_as_groq_then_claude_then_openai(
     monkeypatch.setattr(runner, "process_verification_report", capture_evaluator)
     monkeypatch.setattr(runner, "embed_missing", nothing)
     monkeypatch.setattr(runner, "redate_demo", nothing)
+    monkeypatch.setattr(runner, "CLAUDE_ENABLED", claude_enabled)
 
     asyncio.run(runner.run_once())
 
@@ -346,10 +355,7 @@ def test_the_worker_builds_both_steps_as_groq_then_claude_then_openai(
     assert isinstance(groq_analyzer, GroqCodebaseAnalyzer)
     assert isinstance(groq_evaluator, GroqReportEvaluator)
     for step in (analyzers, evaluators):
-        assert [(type(item.provider), item.provider.model) for item in step] == [
-            (ClaudeJson, "claude-haiku-5-5"),
-            (OpenAIJson, "gpt-6-luna"),
-        ]
+        assert [(type(item.provider), item.provider.model) for item in step] == after_groq
 
 
 def test_worker_claims_pending_session_and_advances_phase(sign_in) -> None:

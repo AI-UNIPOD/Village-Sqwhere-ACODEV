@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-20
+
+- fix(api): skip claude in the interview steps until it is switched on
+
 ## 2026-11-19
 
 - fix(api): log a failed sign-in callback by its error type

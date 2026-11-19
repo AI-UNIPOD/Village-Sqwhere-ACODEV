@@ -24,7 +24,8 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   (see "The worker" below). The match score and similar ideas read them.
 - **The worker** (`python -m app.workers.runner`): the slow steps that must not hold a request.
   It runs the role verification (reading repositories, writing the report) with Groq first,
-  then Claude, then OpenAI, the same order as the interview socket
+  then Claude (only where `CLAUDE_ENABLED` is true), then OpenAI, the same order as the
+  interview socket
   (`docs/decisions/2026-11-19-interviews-without-gemini.md`). Each run it also embeds up to 20
   open ideas and 20 developers that have no vector. Only public text leaves the
   server for that: an idea's title and summary, and a developer's verified roles, technologies,

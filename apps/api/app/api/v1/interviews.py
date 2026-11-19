@@ -10,6 +10,7 @@ from app.api.deps import CurrentUser, DbSession
 from app.config import (
     ANTHROPIC_API_KEY,
     ANTHROPIC_INTERVIEW_MODEL,
+    CLAUDE_ENABLED,
     GROQ_API_KEY,
     GROQ_GUARD_MODEL,
     GROQ_INTERVIEW_MODEL,
@@ -146,11 +147,12 @@ async def load_interview_session(session_id: UUID, user_id: UUID, db) -> Verific
 
 
 def interview_agent() -> InterviewAgent:
-    """Groq, then Claude, then OpenAI, each only with its key, then the built-in questions."""
+    """Groq, then Claude (only where CLAUDE_ENABLED), then OpenAI, each only with its key, then
+    the built-in questions."""
     agents: list[InterviewAgent] = []
     if GROQ_API_KEY and GROQ_INTERVIEW_MODEL:
         agents.append(GroqInterviewAgent())
-    if ANTHROPIC_API_KEY:
+    if CLAUDE_ENABLED and ANTHROPIC_API_KEY:
         agents.append(
             StructuredInterviewAgent(ClaudeJson(ANTHROPIC_INTERVIEW_MODEL, ANTHROPIC_API_KEY))
         )
