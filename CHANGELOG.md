@@ -10,7 +10,7 @@ its number:
 
 ## 2026-11-19
 
-- fix(web): say the demo's tour has six steps, not every screen (#249)
+- fix(web): say the demo's tour has six steps, not every screen
 
 ## 2026-11-16
 
