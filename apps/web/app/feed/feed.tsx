@@ -14,7 +14,7 @@ import { useMe } from "../session/me";
 import { SignedOutError } from "../session/session";
 import { RequireSession } from "../session/session-ui";
 import { copy } from "./copy";
-import { filterQuery, loadFeed, loadPostsBy, loadSavedPosts, type FeedFilter, type Post } from "./feed-api";
+import { filterQuery, loadFeed, loadPostsBy, loadSavedPosts, narrows, type FeedFilter, type Post } from "./feed-api";
 import { FeedFilters, feedHref, readFilter } from "./feed-filter";
 import { FeedTabs, type Tab } from "./feed-tabs";
 import { FeedTopics } from "./feed-topics";
@@ -68,8 +68,8 @@ export function FeedLoading({ lang, tab }: { lang: Lang; tab: Tab }) {
 }
 
 // `filtered`: the address narrows the list, so the way on is back to the feed without the filter.
-function Empty({ lang, tab, filtered }: { lang: Lang; tab: Tab; filtered: boolean }) {
-  const t = filtered ? copy[lang].filter.empty : copy[lang].empty[tab === "for-you" ? "forYou" : tab];
+function Empty({ lang, tab, filtered, searched }: { lang: Lang; tab: Tab; filtered: boolean; searched: boolean }) {
+  const t = searched ? copy[lang].filter.search.empty : filtered ? copy[lang].filter.empty : copy[lang].empty[tab === "for-you" ? "forYou" : tab];
   const EmptyIcon = tab === "saved" ? Bookmark : Newspaper;
   return (
     <div className={onboarding.empty}>
@@ -92,7 +92,7 @@ function Empty({ lang, tab, filtered }: { lang: Lang; tab: Tab; filtered: boolea
 // address asks for: every page of the list is asked for with them.
 function PostList({ lang, tab, username, filter }: { lang: Lang; tab: Tab; username?: string; filter: FeedFilter }) {
   const t = copy[lang];
-  const { type, topic } = filter;
+  const { type, topic, q, sort } = filter;
   // read once per visit, so every post counts from the same moment
   const [now] = useState(() => Date.now());
   const [posts, setPosts] = useState<Post[] | null>(null);
@@ -102,7 +102,7 @@ function PostList({ lang, tab, username, filter }: { lang: Lang; tab: Tab; usern
 
   const show = useCallback(
     (offset: number) => {
-      const loading = tab === "saved" ? loadSavedPosts(offset) : tab === "mine" ? loadPostsBy(username!, offset) : loadFeed(offset, { type, topic });
+      const loading = tab === "saved" ? loadSavedPosts(offset) : tab === "mine" ? loadPostsBy(username!, offset) : loadFeed(offset, { type, topic, q, sort });
       return loading.then((page) => {
         // a post can move down a page while the next one loads, and would show twice
         setPosts((shown) => {
@@ -112,7 +112,7 @@ function PostList({ lang, tab, username, filter }: { lang: Lang; tab: Tab; usern
         setNext(page.next_offset);
       });
     },
-    [tab, username, type, topic],
+    [tab, username, type, topic, q, sort],
   );
 
   useEffect(() => {
@@ -127,7 +127,7 @@ function PostList({ lang, tab, username, filter }: { lang: Lang; tab: Tab; usern
 
   if (failure) throw failure;
   if (!posts) return <Blocks lang={lang} />;
-  if (posts.length === 0) return <Empty lang={lang} tab={tab} filtered={Boolean(type || topic)} />;
+  if (posts.length === 0) return <Empty lang={lang} tab={tab} filtered={narrows(filter)} searched={Boolean(q)} />;
 
   return (
     <>
@@ -170,7 +170,9 @@ function PostList({ lang, tab, username, filter }: { lang: Lang; tab: Tab; usern
 
 function Posts({ lang, tab, filter }: { lang: Lang; tab: Tab; filter: FeedFilter }) {
   const t = copy[lang];
-  // with a kind or a topic the list is everyone's posts, so it is no longer the For you page
+  // with a kind, a topic or search words the list is everyone's posts, so it is no longer the For you
+  // page. An order alone keeps it: the same feed, another order.
+  const narrowed = narrows(filter);
   const query = filterQuery(filter);
   // every tab asks for the profile, so the places bar knows whether to offer Reviews
   const me = useMe();
@@ -183,7 +185,7 @@ function Posts({ lang, tab, filter }: { lang: Lang; tab: Tab; filter: FeedFilter
       <h1 className={ideas.title}>{t.title}</h1>
       <p className={ideas.lead}>{t.lead}</p>
       <div className={ideas.toolbar}>
-        <FeedTabs lang={lang} current={query ? undefined : tab} />
+        <FeedTabs lang={lang} current={narrowed ? undefined : tab} />
       </div>
       {tab === "mine" && deleted && (
         <p className={ideas.done} role="status">
@@ -196,7 +198,7 @@ function Posts({ lang, tab, filter }: { lang: Lang; tab: Tab; filter: FeedFilter
       </Link>
       {tab === "for-you" && <FeedFilters lang={lang} filter={filter} />}
       {/* the saved topics are not what a filtered list shows, so their line and its choice wait */}
-      {tab === "for-you" && me && !query && <FeedTopics lang={lang} me={me} onSaved={() => setLoaded((n) => n + 1)} />}
+      {tab === "for-you" && me && !narrowed && <FeedTopics lang={lang} me={me} onSaved={() => setLoaded((n) => n + 1)} />}
       {tab === "mine" ? (
         // your own posts are the ones whose author is you, so they wait for your username
         me ? <PostList lang={lang} tab={tab} username={me.username} filter={filter} /> : <Blocks lang={lang} />
