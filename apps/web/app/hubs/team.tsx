@@ -289,7 +289,8 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
   }
 
   // an archived hub's team cannot change, and the owner is never removed
-  const removable = (member: Member) => isOwner && hub.status === "active" && member.status === "active" && member.member_role !== "owner";
+  const manages = isOwner && hub.status === "active";
+  const removable = (member: Member) => manages && member.status === "active" && member.member_role !== "owner";
   const active = members?.filter((member) => member.status === "active").length ?? hub.member_count;
   // requests wait on the owner, so they come first
   const shown = [...(members ?? [])].sort((a, b) => Number(b.status === "requested") - Number(a.status === "requested"));
@@ -336,7 +337,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
               {member.status !== "active" && (
                 <div className={styles.side}>
                   <Pill status={member.status} label={t.team[member.status]} />
-                  {isOwner && member.status === "requested" && (
+                  {manages && member.status === "requested" && (
                     <>
                       <button
                         type="button"
@@ -357,7 +358,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
                       </button>
                     </>
                   )}
-                  {isOwner && member.status === "invited" && (
+                  {manages && member.status === "invited" && (
                     <button
                       type="button"
                       className={landing.ghost}
@@ -367,7 +368,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
                       {t.team.withdraw}
                     </button>
                   )}
-                  {isOwner && member.status === "declined" && (
+                  {manages && member.status === "declined" && (
                     <button
                       type="button"
                       className={landing.ghost}
@@ -396,7 +397,7 @@ export function Team({ lang, hub }: { lang: Lang; hub: Hub }) {
           {problem}
         </p>
       )}
-      {isOwner &&
+      {manages &&
         members &&
         (active >= TEAM_MAX ? (
           <p className={styles.full}>{t.team.full}</p>

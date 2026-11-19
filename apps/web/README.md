@@ -232,7 +232,8 @@ invites again after a decline (`team.tsx`); an invited developer sees the invita
 team's brief. The owner of an active hub edits its name and description in place under the title
 (`PATCH /v1/hubs/{id}`; an emptied description is sent as `null`) and archives it at the end of the
 page behind a confirm dialog (`POST /v1/hubs/{id}/archive`, `hubs/manage.tsx`). Archiving cannot be
-undone; the page then shows the hub as archived, read only, and the owner's tools go. In an active
+undone; the page then shows the hub as archived, read only, and the owner's tools go, team actions included
+(inviting, approving or declining a request, withdrawing, inviting again). In an active
 hub the owner removes an active member behind a confirm dialog
 (`POST /v1/hubs/{id}/members/{user_id}/remove`), and a member who is not the owner leaves the same
 way (`POST /v1/hubs/{id}/membership/leave`); the page then shows the hub as someone who left, or
