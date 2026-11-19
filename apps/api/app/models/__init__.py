@@ -32,6 +32,7 @@ from app.models.posts import (
     PostType,
     SavedPost,
 )
+from app.models.sign_in import LoginCode, OAuthState, RevokedRefreshToken
 from app.models.users import (
     AuthProvider,
     InterviewStatus,
@@ -77,6 +78,8 @@ __all__ = [
     "IdeaStage",
     "IdeaStatus",
     "InterviewStatus",
+    "LoginCode",
+    "OAuthState",
     "PlatformRole",
     "PostAttachment",
     "Post",
@@ -84,6 +87,7 @@ __all__ = [
     "PostRevision",
     "PostTopic",
     "PostType",
+    "RevokedRefreshToken",
     "Role",
     "SavedPost",
     "Sector",

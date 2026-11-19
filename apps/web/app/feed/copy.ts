@@ -1,5 +1,5 @@
 import type { Lang } from "../locales";
-import type { Kind } from "./feed-api";
+import type { Kind, Sort } from "./feed-api";
 
 // every type a post can have, except the plain one, which has no label
 export type LabelledType =
@@ -30,6 +30,23 @@ type Copy = {
   moreFailed: string;
   deleted: string;
   types: Record<LabelledType, string>;
+  /** A kind or a topic chosen in the address: the row of kinds, the line that says what shows, the links on a post. */
+  filter: {
+    kinds: string;
+    all: string;
+    kind: Record<Kind, string>;
+    topic: string;
+    showing: string;
+    clear: string;
+    seeKind: string;
+    seeTopic: string;
+    empty: Empty;
+    /** The search box, and what shows when nothing matches. */
+    search: { label: string; placeholder: string; button: string; what: string; empty: Empty };
+    /** The order of the list: its name, its choices, and one honest line on how each is decided. */
+    sort: { label: string } & Record<Sort, string>;
+    order: Record<Sort | "activeSearch", string>;
+  };
   ago: string;
   postBy: string;
   opensNewTab: string;
@@ -222,6 +239,50 @@ export const copy: Record<Lang, Copy> = {
       rfc: "RFC",
       research_note: "Research note",
       hub_milestone: "Hub milestone",
+    },
+    filter: {
+      kinds: "Kinds of post",
+      all: "All kinds",
+      kind: {
+        general: "General",
+        question: "Questions",
+        architecture_challenge: "Architecture challenges",
+        code_review_request: "Code review requests",
+        oss_release: "Open source releases",
+        rfc: "RFCs",
+        research_note: "Research notes",
+      },
+      topic: "Topic: {name}",
+      showing: "Showing: {what}. Posts from every developer.",
+      clear: "Clear the filter",
+      seeKind: "{kind}: see posts of this kind",
+      seeTopic: "{topic}: see posts on this topic",
+      empty: {
+        title: "No posts here yet",
+        text: "Nobody has shared a post that matches this filter. Clear the filter to see the rest of the feed.",
+        action: "Clear the filter",
+      },
+      search: {
+        label: "Search posts",
+        placeholder: "Search titles and text",
+        button: "Search",
+        what: "Search: \u201c{q}\u201d",
+        empty: {
+          title: "No post matches",
+          text: "Nobody has shared a post with these words. Check the spelling, try fewer words, or clear the search to see the feed.",
+          action: "Clear the search",
+        },
+      },
+      sort: { label: "Order", for_you: "Ranked", relevance: "Best match", newest: "Newest", active: "Most active" },
+      order: {
+        for_you:
+          "Ordered by how recent, liked and discussed each post is. Posts on your topics, or on the technologies of your profile, rank higher. It does not use what you read or click.",
+        relevance:
+          "Best match first: words in a title count most, then the text, then topic names. Equal matches go to the post with more likes and comments, then the newer one.",
+        newest: "Newest first.",
+        active: "The posts with the most likes and comments from the last 7 days.",
+        activeSearch: "The matching posts with the most likes and comments.",
+      },
     },
     ago: "{time} ago",
     postBy: "Post by {name}",
@@ -457,6 +518,50 @@ export const copy: Record<Lang, Copy> = {
       rfc: "RFC",
       research_note: "Note de recherche",
       hub_milestone: "Étape d'espace",
+    },
+    filter: {
+      kinds: "Types de publication",
+      all: "Tous les types",
+      kind: {
+        general: "Général",
+        question: "Questions",
+        architecture_challenge: "Défis d'architecture",
+        code_review_request: "Demandes de revue de code",
+        oss_release: "Versions open source",
+        rfc: "RFC",
+        research_note: "Notes de recherche",
+      },
+      topic: "Sujet : {name}",
+      showing: "Publications affichées : {what}. Elles viennent de tous les développeurs.",
+      clear: "Retirer le filtre",
+      seeKind: "{kind} : voir les publications de ce type",
+      seeTopic: "{topic} : voir les publications sur ce sujet",
+      empty: {
+        title: "Aucune publication ici pour l'instant",
+        text: "Personne n'a encore partagé de publication qui correspond à ce filtre. Retirez le filtre pour voir le reste du fil.",
+        action: "Retirer le filtre",
+      },
+      search: {
+        label: "Rechercher des publications",
+        placeholder: "Titres et textes",
+        button: "Rechercher",
+        what: "Recherche\u202f: \u00ab\u202f{q}\u202f\u00bb",
+        empty: {
+          title: "Aucune publication ne correspond",
+          text: "Personne n'a partag\u00e9 de publication avec ces mots. V\u00e9rifiez l'orthographe, essayez moins de mots, ou effacez la recherche pour revoir le fil.",
+          action: "Effacer la recherche",
+        },
+      },
+      sort: { label: "Ordre", for_you: "Classement", relevance: "Meilleure correspondance", newest: "Plus r\u00e9centes", active: "Plus actives" },
+      order: {
+        for_you:
+          "Class\u00e9es selon leur anciennet\u00e9, les j'aime et les commentaires. Les publications sur vos sujets, ou sur les technologies de votre profil, passent devant. Ce que vous lisez ou touchez n'est pas utilis\u00e9.",
+        relevance:
+          "La meilleure correspondance d'abord : les mots d'un titre comptent le plus, puis le texte, puis les noms de sujets. \u00c0 correspondance \u00e9gale, la publication qui a le plus de j'aime et de commentaires passe devant, puis la plus r\u00e9cente.",
+        newest: "Les plus r\u00e9centes d'abord.",
+        active: "Les publications qui ont le plus de j'aime et de commentaires depuis 7 jours.",
+        activeSearch: "Les publications trouv\u00e9es qui ont le plus de j'aime et de commentaires.",
+      },
     },
     ago: "il y a {time}",
     postBy: "Publication de {name}",

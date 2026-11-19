@@ -626,8 +626,12 @@ successful run stores the result and advances `current_phase` to `technical_defe
 failed run returns to `pending` and can be claimed again until
 `VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached; the run that reaches it ends the attempt as
 `abandoned` with its `last_error`, so the page stops waiting and the developer can start again
-(it still counts as one of the role's three attempts). The primary Groq analyzer falls back to the
-configured Gemini analyzer after a Groq configuration or API error.
+(it still counts as one of the role's three attempts). The Groq analyzer goes first. After a
+Groq configuration or API error, Claude (`ANTHROPIC_API_KEY`, `ANTHROPIC_CODEBASE_MODEL`) tries,
+then OpenAI (`OPENAI_API_KEY`, `OPENAI_CODEBASE_MODEL`). Both are asked for JSON that matches a
+schema, and the answer is checked against `CodebaseAnalysisResult` before it is stored. A
+provider without a key is skipped. The run fails only when every provider fails. Why:
+`docs/decisions/2026-11-19-interviews-without-gemini.md`.
 
 #### `POST /v1/me/verifications/{session_id}/interview-ticket`
 
@@ -635,7 +639,7 @@ The applicant asks for a one-use ticket just before opening the interview socket
 token never goes in a URL, where servers and proxies log it. No body. Answers `201` with
 `{"data": {"ticket": "...", "expires_at": "..."}}`. The ticket works once, for about 60
 seconds, only for this attempt and this person, and is kept in the API's memory (one process,
-like the sign-in codes).
+unlike the sign-in codes, which are in the database).
 
 * **Errors:** `401`, `403 DEMO_READ_ONLY` (the demo cannot take an interview), `404 NOT_FOUND`
   (no such attempt of yours), `409 INTERVIEW_NOT_AVAILABLE` (the attempt is not at its
@@ -658,14 +662,15 @@ Text answers use `{"type":"answer","text":"..."}`. Audio is sent as binary frame
 closed with `{"type":"answer_end"}`. With `GROQ_API_KEY` configured, the server sends the
 audio to `GROQ_STT_MODEL`, checks the transcript with `GROQ_GUARD_MODEL`, and gets the next
 question from `GROQ_INTERVIEW_MODEL`. If Groq is unavailable or returns invalid structured output,
-the conversation falls back to `GEMINI_INTERVIEW_MODEL`. Audio transcription also falls back to
-Gemini multimodal input when Groq Whisper is unavailable. If neither provider is available,
+the conversation falls back to Claude (`ANTHROPIC_INTERVIEW_MODEL`), then to OpenAI
+(`OPENAI_INTERVIEW_MODEL`), each only when its key is set. Audio transcription falls back from
+Groq Whisper to OpenAI (`OPENAI_STT_MODEL`); Claude has no speech to text. If no provider answers,
 deterministic conversation keeps text interviews usable. Questions one to three cover architecture
 and ownership, role fundamentals, and testing and reliability. Questions four and five use the
 codebase analysis and prior answers for adaptive depth, trade-offs, and problem solving. Audio
 reports `TRANSCRIPTION_UNAVAILABLE` when transcription is not configured.
 Groq interview requests use a conservative 115,000-token input budget, below the 131,072-token
-GPT-OSS context window. Requests over that budget go directly to the Gemini interview fallback.
+GPT-OSS context window. Requests over that budget skip Groq and go to the next provider.
 
 An audio answer can name its type with the optional `audio_content_type` query parameter,
 which defaults to `audio/webm`. The value must be one of `audio/webm`, `audio/webm;codecs=opus`,
@@ -728,8 +733,9 @@ route writes them. The match score and similar ideas read them (see "Matching").
   nothing and the log says so once.
 * **Account deletion** removes the developer's vector with the rest of their profile.
 
-Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to
-`GEMINI_EVALUATION_MODEL`. Both providers must return the same validated report shape. The
+Final report evaluation uses `GROQ_EVALUATION_MODEL` first and falls back to Claude
+(`ANTHROPIC_EVALUATION_MODEL`), then OpenAI (`OPENAI_EVALUATION_MODEL`). Every provider must return
+the same validated report shape. The
 summary, findings and concerns are written in the attempt's `language`. The JSON keys,
 `security_flags` codes, `model` and numbers do not change.
 
@@ -2083,7 +2089,7 @@ export async function generatePKCE() {
   }
   ```
 * Save the new `access_token` and the new rotated `refresh_token`, then retry the original failed request. The user experiences zero interruption.
-* Refresh tokens, login codes and OAuth states are kept in the API's memory for now. A restart cancels sign-ins in progress and forgets logouts (a logged-out refresh token works again until it expires), so run a single API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
+* OAuth states, login codes and revoked refresh tokens are kept in the database, as SHA-256 hashes only. Any API instance can finish a sign-in another started, a restart loses nothing, and a logged-out refresh token stays refused everywhere. A refresh token works once: when two requests send the same one, one gets a new pair and the other gets `401 REFRESH_TOKEN_INVALID`. See `docs/decisions/2026-11-19-sign-in-state-in-postgres.md`.
 
 ---
 

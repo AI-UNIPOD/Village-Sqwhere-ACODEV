@@ -40,7 +40,9 @@ export function TourPanel({ lang, path }: { lang: Lang; path: string }) {
     };
   }, [needsRoute, attempt]);
 
-  const onStep = tour !== null && path === stepPath(tour.step, tour.route);
+  // the feed narrowed to a kind or a topic is still the feed: its step invites just that
+  const shown = path.startsWith("feed?") ? "feed" : path;
+  const onStep = tour !== null && shown === stepPath(tour.step, tour.route);
   // a step was just chosen on this screen or the one before it: the screen that is on its way
   // takes focus, so a keyboard or screen reader user hears the step. A plain load does not.
   useEffect(() => {

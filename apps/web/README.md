@@ -120,7 +120,9 @@ the real text: `hero-headline.tsx`, words in `hero-headline-copy.ts`), then one 
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
 technologies the feed should show and the sectors (`POST /v1/me/roles`,
 `PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`) and, when the
-developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
+developer chose a country, the country (`PATCH /v1/me` with `country_code`). The five calls go out
+together (`saveAnswers`), so the wait is the slowest one, not the sum of five round trips; each is safe
+to send again, which is what "Try again" does. The answer is kept
 under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
 (`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
 The stack step says what is sent to OpenAI to match by meaning, tied to the chips as
@@ -143,6 +145,10 @@ header has scrolled out of view it turns into a pill near the top (`app/frame-pi
 line in `PLACES` and one word in `app/app-frame-copy.ts`. The profile is kept for the visit, so
 a screen opened later shows at once; a screen that changes it calls `loadMe()` or `keepMe()`.
 The frame asks for the profile itself when no screen has, sharing one request with the screen.
+It also shows who is signed in on every screen: a round avatar with their initials at the end of the
+header (`app/profile-menu.tsx`, letters from `app/initials.ts`) that opens a menu with their name,
+"Profile and settings" and the way out ("Sign out", or "Leave the demo" for the demo account). A
+locked screen and onboarding do not show it.
 Screens crossfade with React's `<ViewTransition>` (`globals.css`), and a sticky row at the
 bottom of a screen uses `var(--app-bottom)` to sit above the bar.
 
@@ -368,6 +374,26 @@ request key is `technologies`), kept in the profile, and the feed loads again. N
 means every post. Onboarding's topics step is not saved here: it asks about sectors, which the
 API does not know.
 
+The feed can also be narrowed from the address, with nothing saved, so the demo account can do
+it too: `/en/feed?type=question`, `/en/feed?topic=python`, or both (`feed-filter.tsx`). The list
+is then everyone's posts of that kind or on that topic (`GET /v1/posts?type=&topic=`, every page
+of it), not the For you feed, which takes neither. The kind on a post and each of its topics are
+links to that view, in a card and on the post's page, and a row above the list offers every kind
+a person can post. While a filter is on, a line says what is showing with "Clear the filter", no
+tab is marked, and the saved topics and their choice are not shown. A kind or a topic the app
+does not know is ignored. A hub's milestone is not offered as a kind, and Saved and Yours read
+neither parameter.
+
+The For you feed is ranked, and it can be searched and re-ordered, again from the address with
+nothing saved (`feed-filter.tsx`, `feed-api.ts`). `?q=` holds search words (at most 100 characters),
+which list everyone's best matches (`GET /v1/posts?q=&sort=relevance`, with any kind or topic kept),
+and `?sort=` picks the order: Ranked (the default; recency, likes and comments, with a boost for the
+viewer's topics), Newest, or Most active. Search starts with Best match. An order alone keeps the
+For you feed (`GET /v1/feed?sort=`). The address leaves out the order a view starts with, and an
+unknown order, or Best match without words, is ignored. A line under the choices says how the order
+is decided, and says nothing about reading or clicking being used, because it is not. The rules are
+in `docs/decisions/2026-11-19-feed-ranking-and-search.md`.
+
 Comments are a section of the post page (`comments.tsx`, `comment.tsx`, `comment-form.tsx`),
 loaded after the post, at `#comments`. The list gives each top-level comment its first two
 replies; "Show all N replies" loads the rest, and a reply's own replies open the same way, one
@@ -419,7 +445,8 @@ village, then the feed, one question with its comments, and four on the demo acc
 idea and hub (the composer, the matches, the hub's team with the phases below it; the demo's hub
 is seeded in Build): six steps, each counted. `AppFrame` shows the tour's
 panel under the demo line; it sticks to the top of the screen, shrinks to one line on a screen
-that is not the step, and keeps its step in `sessionStorage` (`tour/tour.ts`). A step can name a part of a screen with a hash:
+that is not the step (the feed narrowed to a kind or a topic is still the feed's step), and keeps
+its step in `sessionStorage` (`tour/tour.ts`). A step can name a part of a screen with a hash:
 the hub page scrolls to `#team` once the hub has loaded (`app/scroll.ts`).
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`

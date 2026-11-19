@@ -23,8 +23,10 @@ Browser ──► apps/web (Next.js) ──► apps/api (FastAPI) ──► Post
   numbers each from OpenAI's `text-embedding-3-small`. The worker writes them, never a request
   (see "The worker" below). The match score and similar ideas read them.
 - **The worker** (`python -m app.workers.runner`): the slow steps that must not hold a request.
-  It runs the role verification (reading repositories, writing the report) and, each run,
-  embeds up to 20 open ideas and 20 developers that have no vector. Only public text leaves the
+  It runs the role verification (reading repositories, writing the report) with Groq first,
+  then Claude, then OpenAI, the same order as the interview socket
+  (`docs/decisions/2026-11-19-interviews-without-gemini.md`). Each run it also embeds up to 20
+  open ideas and 20 developers that have no vector. Only public text leaves the
   server for that: an idea's title and summary, and a developer's verified roles, technologies,
   sectors and bio. Never an idea's private brief, an email, a name or a username. When the text
   changes, a database trigger removes the vector and the next run makes a new one. Without
@@ -148,8 +150,9 @@ All routes are under `/v1` (`apps/api/app/api/v1/router.py`). Details and exampl
   (with the first two replies of each), `GET /v1/comments/{comment_id}/replies` and
   `GET /v1/comments/{comment_id}/thread` (five levels below). Likes, safe to repeat:
   `PUT /v1/comments/{comment_id}/like` and `DELETE /v1/comments/{comment_id}/like`.
-- OAuth states, login codes and revoked refresh tokens are kept in API memory, so run one
-  API process. See `docs/decisions/2026-11-07-sign-in-without-dev-login.md`.
+- OAuth states, login codes and revoked refresh tokens are kept in PostgreSQL, as SHA-256
+  hashes only, so any API instance can finish a sign-in another started and a logout holds
+  on all of them. See `docs/decisions/2026-11-19-sign-in-state-in-postgres.md`.
 
 ## Core flow
 

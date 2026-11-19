@@ -1,5 +1,9 @@
 # Verification API and peer review
 
+> **19 November 2026:** Gemini is no longer the fallback in these steps. Groq stays first, then
+> Claude, then OpenAI: `2026-11-19-interviews-without-gemini.md`. The Gemini text below is kept
+> as it was decided.
+
 ## Context
 
 The database already supports role verification with three attempts, asynchronous analysis

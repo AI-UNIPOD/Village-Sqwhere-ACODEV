@@ -43,6 +43,9 @@ def create_refresh_token(user_id: UUID | str) -> tuple[str, datetime]:
     payload = {
         "sub": str(user_id),
         "type": "refresh",
+        # two tokens made for one account in the same second must not be the same token, or
+        # signing out of one session would sign out the other (the shared demo account)
+        "jti": secrets.token_hex(8),
         "iat": now,
         "exp": expire,
     }

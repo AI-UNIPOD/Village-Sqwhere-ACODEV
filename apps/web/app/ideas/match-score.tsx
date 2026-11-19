@@ -11,6 +11,7 @@ import { sectorName, technologyName } from "./names";
 import { copy } from "./copy";
 import type { Scored } from "./ideas-api";
 import styles from "./match-score.module.css";
+import { reducesMotion } from "../site-motion";
 
 type Step = "strong" | "possible" | "weak" | "poor";
 
@@ -22,7 +23,7 @@ const icons: Record<Step, ComponentType | null> = { strong: Check, possible: nul
 // `--ease-strong`, for when the token cannot be read
 const strong = cubicBezier([0.16, 1, 0.3, 1]);
 
-const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const still = reducesMotion;
 
 // "Backend Engineer and Systems Engineer": names as a sentence reads them in the page's language.
 export const sentenceList = (lang: Lang, names: string[]) => new Intl.ListFormat(lang, { type: "conjunction" }).format(names);
