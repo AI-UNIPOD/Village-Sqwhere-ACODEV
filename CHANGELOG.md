@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-19
+
+- fix(web): offer no team actions to the owner of an archived hub
+
 ## 2026-11-16
 
 - perf(api): build the hub list's cards in two queries (#246)
