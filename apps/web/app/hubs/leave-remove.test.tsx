@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
-import { api, asked, fetchMock, hub, idea, member, owner, posted, refusal, reply } from "./test-support";
+import { api, asked, demoRefusal, fetchMock, hub, idea, member, owner, posted, refusal, reply, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -147,6 +147,23 @@ test("a failed leave says nothing changed and keeps the button", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Leave this hub" }));
   fireEvent.click(within(dialog("Leave this hub?")).getByRole("button", { name: "Leave the hub" }));
   expect((await screen.findByRole("alert")).textContent).toContain("We couldn't take you out of the hub.");
+  expect(screen.getByRole("button", { name: "Leave this hub" })).toBeTruthy();
+});
+
+test("the demo's refused removal says nothing was saved as a status, with no alert, and keeps the person", async () => {
+  await open(asOwner, { "POST /v1/hubs/hub-1/members/id-tendai-moyo/remove": demoRefusal() });
+  await screen.findByText("Tendai Moyo");
+  fireEvent.click(removeButton()!);
+  fireEvent.click(within(dialog("Remove this member?")).getByRole("button", { name: "Remove" }));
+  await saidNotSaved();
+  expect(screen.getByText("Tendai Moyo")).toBeTruthy();
+});
+
+test("the demo's refused leave says nothing was saved as a status, with no alert, and keeps the button", async () => {
+  await open(asMember, { "POST /v1/hubs/hub-1/membership/leave": demoRefusal() });
+  fireEvent.click(await screen.findByRole("button", { name: "Leave this hub" }));
+  fireEvent.click(within(dialog("Leave this hub?")).getByRole("button", { name: "Leave the hub" }));
+  await saidNotSaved();
   expect(screen.getByRole("button", { name: "Leave this hub" })).toBeTruthy();
 });
 

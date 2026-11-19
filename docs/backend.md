@@ -623,7 +623,9 @@ successful run stores the result and advances `current_phase` to `technical_defe
 
 `analysis_attempts` and `last_error` are returned to the applicant for progress reporting. A
 failed run returns to `pending` and can be claimed again until
-`VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached. The primary Groq analyzer falls back to the
+`VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached; the run that reaches it ends the attempt as
+`abandoned` with its `last_error`, so the page stops waiting and the developer can start again
+(it still counts as one of the role's three attempts). The primary Groq analyzer falls back to the
 configured Gemini analyzer after a Groq configuration or API error.
 
 #### `POST /v1/me/verifications/{session_id}/interview-ticket`

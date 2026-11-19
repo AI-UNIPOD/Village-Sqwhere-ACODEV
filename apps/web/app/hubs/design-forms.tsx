@@ -19,7 +19,8 @@ export const size = (text: string) => [...text.trim()].length;
 export const codeOf = (reason: unknown) => (reason instanceof IdeaError ? reason.code : "");
 
 // `focus` is for a line that replaces the button that was pressed, so focus does not fall to the page.
-export type Line = { text: string; problem?: boolean; focus?: boolean };
+// `demo` is the demo account's refused change: the shared line is drawn, and `text` is not read.
+export type Line = { text: string; problem?: boolean; focus?: boolean; demo?: boolean };
 
 // Runs one change under `key`, which the button that started it shows as busy. `run` answers the
 // line to say, or null when it already told the person (a field error).

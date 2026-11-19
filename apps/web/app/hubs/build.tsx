@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
@@ -86,12 +87,12 @@ export function BuildTab({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
 
   const reloadBuild = () => loadBuild(hub.id).then(apply, () => {});
 
-  // The sentence for a refused or failed change, or null when the frame already says why.
+  // The sentence for a refused or failed change, or null for a signed-out person, who is being sent to sign-in.
   function refused(reason: unknown): Line | null {
     if (reason instanceof SignedOutError) return null;
     const code = codeOf(reason);
-    // in the demo the frame says why; "try again" would be wrong
-    if (code === "DEMO_READ_ONLY") return null;
+    // the demo can never save it, so "try again" would be wrong
+    if (code === DEMO_READ_ONLY) return { text: "", demo: true };
     if (MOVED.includes(code)) {
       // show the hub and the tab as they are now, so the section and its buttons fit them; the line
       // already says what happened
@@ -144,7 +145,9 @@ export function BuildTab({ lang, hub, onChange }: { lang: Lang; hub: Hub; onChan
   // the line of an area: a sentence that says what happened, or a problem
   const says = (area: Area) =>
     line?.area === area &&
-    (line.problem ? (
+    (line.demo ? (
+      <NotSaved key={line.n} lang={lang} spaced />
+    ) : line.problem ? (
       <p key={line.n} ref={said} tabIndex={-1} className={`${onboarding.error} ${styles.problem}`} role="alert">
         <AlertCircle />
         {line.text}
