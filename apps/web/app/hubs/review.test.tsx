@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
-import { api, asked, fetchMock, hub, idea, owner, phasesAt, refusal, reply } from "./test-support";
+import { api, asked, fetchMock, hub, idea, owner, phasesAt, refusal, reply, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -489,15 +489,15 @@ test("unticking the last ticked check takes the Finish button away once the chec
 
 // ---------- refusals ----------
 
-test("the demo's refusal is announced by the frame: the checklist says nothing of its own", async () => {
+test("the demo's refusal says nothing was saved as a status, where a failure would be an alert", async () => {
   await open(inReview, sheet([payouts, mobile, gateway]), { "POST /v1/hubs/hub-1/checks/c-1/tick": refusal(403, "DEMO_READ_ONLY") }, "en", true);
+  expect(section().textContent).not.toMatch(/made.?up|sample|placeholder|fake|demo/i);
   press(row("Rejects a negative amount"), "Tick the check: Rejects a negative amount");
   await waitFor(() => expect(sent("POST")).toHaveLength(1));
   await waitFor(() => expect(within(row("Rejects a negative amount")).getByRole("button", { name: /^Tick/ }).getAttribute("aria-busy")).toBeNull());
-  expect(within(section()).queryByRole("alert")).toBeNull();
-  expect(within(section()).queryByRole("status")).toBeNull();
+  await saidNotSaved(section());
+  expect(section().textContent).not.toMatch(/made.?up|sample|placeholder|fake/i);
   expect(reads()).toHaveLength(1);
-  expect(section().textContent).not.toMatch(/made.?up|sample|placeholder|fake|demo/i);
 });
 
 test("a tick on a piece the viewer built: a sentence, and nothing is read again", async () => {

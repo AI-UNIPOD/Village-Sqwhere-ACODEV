@@ -1,5 +1,9 @@
 # The meaning part of the match score, and similar ideas
 
+Since 19 November 2026 the vectors come from another model, so the numbers below were measured
+again: the band is 0.15 to 0.45 and two ideas read close from 0.60. See
+`2026-11-19-embeddings-on-openai.md`. The rules of this record still hold.
+
 ## Context
 
 The match score has a "meaning" part worth 30 of 100 points. Until now it read "not compared

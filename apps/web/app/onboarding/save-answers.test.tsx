@@ -112,6 +112,12 @@ test("after a failure, retry saves again and ends saved", async () => {
   expect(requests().map(([method]) => method)).toEqual(["POST", "POST", "PUT", "PUT", "PUT", "PATCH"]);
 });
 
+test("the demo's refusal is told from a failure, whichever call it comes from", async () => {
+  fetchMock.mockResolvedValueOnce(reply(201)).mockResolvedValueOnce(reply(403, { detail: { code: "DEMO_READ_ONLY" } }));
+  const { result } = renderHook(() => useSavedProfile(answers));
+  await waitFor(() => expect(result.current.status).toBe("demo"));
+});
+
 test("two done steps opened together save once", async () => {
   fetchMock.mockResolvedValueOnce(reply(201)).mockResolvedValueOnce(reply(200)).mockResolvedValueOnce(reply(200)).mockResolvedValueOnce(reply(200)).mockResolvedValueOnce(reply(200));
   const first = renderHook(() => useSavedProfile(answers));

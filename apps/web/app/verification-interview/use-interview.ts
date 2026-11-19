@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { DEMO_READ_ONLY } from "../demo-refusal";
 import { API_URL, SignedOutError, apiFetch } from "../session/session";
 
 export const MAX_ANSWER = 10_000;
@@ -7,8 +8,9 @@ export const MAX_ANSWER = 10_000;
 export type Turn = { id: number; from: "ai" | "you"; text: string; sequence?: number };
 
 // idle: the socket was never opened. asking: a question waits for its answer. reading: our
-// answer is with the interviewer. The last four end the attempt, one way or another.
-export type Status = "idle" | "connecting" | "asking" | "reading" | "complete" | "left" | "dropped" | "refused";
+// answer is with the interviewer. The next four end the attempt, one way or another. demo: the
+// demo account asked to begin, which the API refuses.
+export type Status = "idle" | "connecting" | "asking" | "reading" | "complete" | "left" | "dropped" | "refused" | "demo";
 
 export type Problem = "required" | "tooLong" | "failed";
 
@@ -87,7 +89,7 @@ export function useInterview(attemptId: string) {
       const response = await apiFetch(`${attempt}/interview-ticket`, { method: "POST" });
       const body = await response.json().catch(() => null);
       if (!response.ok || typeof body?.data?.ticket !== "string") {
-        if (alive.current) setStatus("refused");
+        if (alive.current) setStatus(body?.detail?.code === DEMO_READ_ONLY ? "demo" : "refused");
         return;
       }
       ticket = body.data.ticket;

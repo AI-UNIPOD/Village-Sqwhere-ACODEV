@@ -1,5 +1,6 @@
 import type { Lang } from "../locales";
 import { ROLES } from "../onboarding/options";
+import { IdeaError } from "../ideas/ideas-api";
 import { apiFetch } from "../session/session";
 
 // An attempt waiting for review, as the API answers it. The AI's result and the evidence are
@@ -100,7 +101,8 @@ export async function loadCase(id: string): Promise<Attempt | null> {
   return body?.data as Attempt;
 }
 
-// "closed" when someone else decided the case first. Any other failure throws.
+// "closed" when someone else decided the case first. Any other failure throws, with the API's
+// code, so the form can tell the demo's refusal from a failure.
 export async function decide(id: string, decision: Decision, notes: string): Promise<"saved" | "closed"> {
   const response = await apiFetch(`/v1/reviews/verifications/${encodeURIComponent(id)}/decision`, {
     method: "POST",
@@ -108,6 +110,9 @@ export async function decide(id: string, decision: Decision, notes: string): Pro
     body: JSON.stringify({ decision, notes }),
   });
   if (response.status === 404) return "closed";
-  if (!response.ok) throw new Error(`POST a review decision answered ${response.status}`);
+  if (!response.ok) {
+    const code = (await response.json().catch(() => null))?.detail?.code;
+    throw new IdeaError(response.status, typeof code === "string" ? code : "UNKNOWN");
+  }
   return "saved";
 }

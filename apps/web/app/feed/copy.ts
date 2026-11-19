@@ -30,6 +30,18 @@ type Copy = {
   moreFailed: string;
   deleted: string;
   types: Record<LabelledType, string>;
+  /** A kind or a topic chosen in the address: the row of kinds, the line that says what shows, the links on a post. */
+  filter: {
+    kinds: string;
+    all: string;
+    kind: Record<Kind, string>;
+    topic: string;
+    showing: string;
+    clear: string;
+    seeKind: string;
+    seeTopic: string;
+    empty: Empty;
+  };
   ago: string;
   postBy: string;
   opensNewTab: string;
@@ -41,7 +53,6 @@ type Copy = {
   likeFailed: string;
   saveFailed: string;
   /** Beside a control the API refused for the demo account. */
-  notSaved: string;
   commentOne: string;
   commentMany: string;
   write: string;
@@ -224,6 +235,29 @@ export const copy: Record<Lang, Copy> = {
       research_note: "Research note",
       hub_milestone: "Hub milestone",
     },
+    filter: {
+      kinds: "Kinds of post",
+      all: "All kinds",
+      kind: {
+        general: "General",
+        question: "Questions",
+        architecture_challenge: "Architecture challenges",
+        code_review_request: "Code review requests",
+        oss_release: "Open source releases",
+        rfc: "RFCs",
+        research_note: "Research notes",
+      },
+      topic: "Topic: {name}",
+      showing: "Showing: {what}. Posts from every developer.",
+      clear: "Clear the filter",
+      seeKind: "{kind}: see posts of this kind",
+      seeTopic: "{topic}: see posts on this topic",
+      empty: {
+        title: "No posts here yet",
+        text: "Nobody has shared a post that matches this filter. Clear the filter to see the rest of the feed.",
+        action: "Clear the filter",
+      },
+    },
     ago: "{time} ago",
     postBy: "Post by {name}",
     opensNewTab: "opens in a new tab",
@@ -237,7 +271,6 @@ export const copy: Record<Lang, Copy> = {
     save: "Save",
     likeFailed: "The like did not go through. Try again.",
     saveFailed: "The save did not go through. Try again.",
-    notSaved: "Nothing was saved. The demo cannot be changed.",
     commentOne: "{n} comment",
     commentMany: "{n} comments",
     write: "Write a post",
@@ -460,6 +493,29 @@ export const copy: Record<Lang, Copy> = {
       research_note: "Note de recherche",
       hub_milestone: "Étape d'espace",
     },
+    filter: {
+      kinds: "Types de publication",
+      all: "Tous les types",
+      kind: {
+        general: "Général",
+        question: "Questions",
+        architecture_challenge: "Défis d'architecture",
+        code_review_request: "Demandes de revue de code",
+        oss_release: "Versions open source",
+        rfc: "RFC",
+        research_note: "Notes de recherche",
+      },
+      topic: "Sujet : {name}",
+      showing: "Publications affichées : {what}. Elles viennent de tous les développeurs.",
+      clear: "Retirer le filtre",
+      seeKind: "{kind} : voir les publications de ce type",
+      seeTopic: "{topic} : voir les publications sur ce sujet",
+      empty: {
+        title: "Aucune publication ici pour l'instant",
+        text: "Personne n'a encore partagé de publication qui correspond à ce filtre. Retirez le filtre pour voir le reste du fil.",
+        action: "Retirer le filtre",
+      },
+    },
     ago: "il y a {time}",
     postBy: "Publication de {name}",
     opensNewTab: "s'ouvre dans un nouvel onglet",
@@ -473,7 +529,6 @@ export const copy: Record<Lang, Copy> = {
     save: "Enregistrer",
     likeFailed: "Le j'aime n'a pas abouti. Réessayez.",
     saveFailed: "L'enregistrement n'a pas abouti. Réessayez.",
-    notSaved: "Rien n'a été enregistré. La démo ne peut pas être modifiée.",
     commentOne: "{n} commentaire",
     commentMany: "{n} commentaires",
     write: "Écrire une publication",

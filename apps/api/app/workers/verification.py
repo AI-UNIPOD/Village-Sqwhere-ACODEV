@@ -56,8 +56,14 @@ async def process_codebase_analysis(
             analyzer,
         )
     except Exception:
-        session.status = VerificationStatus.PENDING
-        session.last_error = "Codebase analysis failed. It will be retried if attempts remain."
+        if session.analysis_attempts >= VERIFICATION_MAX_ANALYSIS_ATTEMPTS:
+            # The worker never picks it up again, so end it: otherwise the page waits forever
+            # and a new start is refused as "in progress".
+            session.status = VerificationStatus.ABANDONED
+            session.last_error = "Codebase analysis failed on every try, so the attempt ended."
+        else:
+            session.status = VerificationStatus.PENDING
+            session.last_error = "Codebase analysis failed. It will be retried if attempts remain."
         await db.commit()
         raise
     session.ai_score = analysis.score

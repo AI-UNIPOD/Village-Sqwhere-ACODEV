@@ -212,13 +212,13 @@ def similar(client: TestClient, viewer: User, idea_id: str) -> list[str]:
     [
         (-0.3, 0),
         (0.0, 0),
-        (0.70, 0),
-        (0.7019, 0),
-        (0.7021, 1),
-        (0.76, 15),
-        (0.8179, 29),
-        (0.8181, 30),
-        (0.82, 30),
+        (0.15, 0),
+        (0.1549, 0),
+        (0.1551, 1),
+        (0.30, 15),
+        (0.4449, 29),
+        (0.4451, 30),
+        (0.45, 30),
         (1.0, 30),
         (1.0000002, 30),
     ],
@@ -230,13 +230,13 @@ def test_meaning_points_stretch_the_measured_band_over_0_to_30(
 
 
 def test_meaning_points_round_a_half_up() -> None:
-    # 0.814 and 0.818 give exactly 28.5 and 29.5 points before rounding
-    assert meaning_points(0.814) == 29
-    assert meaning_points(0.818) == 30
+    # 0.435 and 0.445 give exactly 28.5 and 29.5 points before rounding
+    assert meaning_points(0.435) == 29
+    assert meaning_points(0.445) == 30
 
 
 def test_the_sql_meaning_points_are_the_python_ones_for_every_similarity() -> None:
-    edges = [round(0.70 + (half + 0.5) / 250, 3) for half in range(30)]
+    edges = [round(0.15 + (half + 0.5) / 100, 3) for half in range(30)]
     values = [step / 1000 for step in range(-100, 1101)] + edges
     values += [edge + shift for edge in edges for shift in (-1e-9, 1e-9)]
 
@@ -257,7 +257,7 @@ def test_a_pair_with_both_vectors_is_scored_in_version_2(
     plane.give_idea(idea_id, plane.base)
     by_similarity = {
         similarity: developer(role, plane, plane.at(similarity))
-        for similarity in (0.6, 0.7, 0.76, 0.82, 0.95)
+        for similarity in (0.05, 0.15, 0.30, 0.45, 0.95)
     }
     without_vector = developer(role, plane)
 
@@ -267,7 +267,7 @@ def test_a_pair_with_both_vectors_is_scored_in_version_2(
     assert {
         similarity: (cards[user.username]["score"], parts(cards[user.username])["meaning"])
         for similarity, user in by_similarity.items()
-    } == {0.6: (30, 0), 0.7: (30, 0), 0.76: (45, 15), 0.82: (60, 30), 0.95: (60, 30)}
+    } == {0.05: (30, 0), 0.15: (30, 0), 0.30: (45, 15), 0.45: (60, 30), 0.95: (60, 30)}
     assert all(
         cards[user.username]["score_version"] == 2 and cards[user.username]["partial"] is False
         for user in by_similarity.values()
@@ -288,16 +288,16 @@ def test_the_meaning_points_round_at_the_edges_of_the_band(
     # it cannot sit on the exact edge
     users = {
         similarity: developer(role, plane, plane.at(similarity))
-        for similarity in (0.7019, 0.7021, 0.8179, 0.8181)
+        for similarity in (0.1549, 0.1551, 0.4449, 0.4451)
     }
 
     cards = {card["username"]: card for card in people(client, owner, idea_id)["data"]}
 
     assert {s: parts(cards[user.username])["meaning"] for s, user in users.items()} == {
-        0.7019: 0,
-        0.7021: 1,
-        0.8179: 29,
-        0.8181: 30,
+        0.1549: 0,
+        0.1551: 1,
+        0.4449: 29,
+        0.4451: 30,
     }
 
 
@@ -308,7 +308,7 @@ def test_a_missing_vector_on_either_side_keeps_version_1(
     without_idea_vector = new_idea(client, owner, role)
     with_idea_vector = new_idea(client, other_owner, role)
     plane.give_idea(with_idea_vector, plane.base)
-    with_vector = developer(role, plane, plane.at(0.82))
+    with_vector = developer(role, plane, plane.at(0.45))
     without_vector = developer(role, plane)
 
     no_idea_vector = {
@@ -333,15 +333,15 @@ def test_a_developer_list_can_hold_both_kinds_and_follows_the_score_shown(
     idea_id = new_idea(client, owner, role)
     plane.give_idea(idea_id, plane.base)
     # a vector at the top of the band: 30 + 30
-    top = developer(role, plane, plane.at(0.82))
+    top = developer(role, plane, plane.at(0.45))
     # no vector, two shared technologies: 38 of 70, scaled to 54
     scaled = developer(role, plane, technologies=("python", "react"))
     # a vector in the middle and one shared technology: 34 + 15
-    middle = developer(role, plane, plane.at(0.76), ("python",))
+    middle = developer(role, plane, plane.at(0.30), ("python",))
     # the role alone, no vector: 30 of 70, scaled to 43
     bare = developer(role, plane)
     # the same 30 raw points with a vector that reads far apart: 30, below the scaled 43
-    far = developer(role, plane, plane.at(0.5))
+    far = developer(role, plane, plane.at(0.05))
 
     cards: list[dict[str, Any]] = []
     offset: int | None = 0
@@ -362,11 +362,11 @@ def test_a_developer_list_can_hold_both_kinds_and_follows_the_score_shown(
 def test_for_you_scores_a_vector_pair_in_version_2_and_the_rest_in_version_1(
     client: TestClient, role: Role, plane: Plane
 ) -> None:
-    me = developer(role, plane, plane.at(0.76))
+    me = developer(role, plane, plane.at(0.30))
     near, far, unread = make_user(), make_user(), make_user()
     near_idea = plane.give_idea(new_idea(client, near, role), plane.base)
-    # a vector at a right angle to the plane's first axis reads 0.65 close to mine
-    far_idea = plane.give_idea(new_idea(client, far, role), plane.vector(0.0, 1.0))
+    # a vector on the other side of the plane's first axis reads far from mine, under the band
+    far_idea = plane.give_idea(new_idea(client, far, role), plane.vector(1.0, -1.0))
     unread_idea = new_idea(client, unread, role)
 
     cards = {card["idea"]["id"]: card for card in for_you(client, me)["data"]}
@@ -389,16 +389,16 @@ def test_a_developer_card_names_their_own_open_idea_that_reads_closest_to_mine(
     idea_id = new_idea(client, owner, role)
     plane.give_idea(idea_id, plane.base)
     on_the_line, just_under, nearest, hidden, nothing = (developer(role, plane) for _ in range(5))
-    # 4 over 5 is exactly 0.80, where two ideas read close
-    line_idea = open_idea(client, on_the_line, plane, plane.vector(4.0, 3.0))
-    open_idea(client, just_under, plane, 0.7999)
+    # 3 over 5 is exactly 0.60, where two ideas read close
+    line_idea = open_idea(client, on_the_line, plane, plane.vector(3.0, 4.0))
+    open_idea(client, just_under, plane, 0.5999)
     for similarity in (0.85, 0.9):
         open_idea(client, nearest, plane, similarity)
     closest = open_idea(client, nearest, plane, 0.95)
     # drafts, closed and deleted ideas never show, even when they read closer
     for status in ("draft", "closed", "deleted"):
         idea_with_status(client, hidden, plane, status)
-    allowed = open_idea(client, hidden, plane, 0.81)
+    allowed = open_idea(client, hidden, plane, 0.61)
     # an idea by someone who is not on the list does not show on anyone's card
     open_idea(client, make_user(), plane, 0.99)
 
@@ -487,11 +487,11 @@ def test_similar_ideas_come_closest_first_and_stop_at_five(
     assert "similarity" not in response.text and "details" not in response.text
 
 
-def test_an_idea_is_similar_from_0_80_and_not_just_under(client: TestClient, plane: Plane) -> None:
+def test_an_idea_is_similar_from_0_60_and_not_just_under(client: TestClient, plane: Plane) -> None:
     viewer = make_user()
     idea_id = open_idea(client, make_user(), plane, 1.0)
-    on_the_line = open_idea(client, make_user(), plane, plane.vector(4.0, 3.0))
-    open_idea(client, make_user(), plane, 0.7999)
+    on_the_line = open_idea(client, make_user(), plane, plane.vector(3.0, 4.0))
+    open_idea(client, make_user(), plane, 0.5999)
 
     assert similar(client, viewer, idea_id) == [on_the_line]
 
@@ -513,7 +513,7 @@ def test_similar_ideas_are_never_drafts_closed_or_deleted(client: TestClient, pl
     idea_id = open_idea(client, author, plane, 1.0)
     for status in ("draft", "closed", "deleted"):
         idea_with_status(client, make_user(), plane, status)
-    open_one = open_idea(client, make_user(), plane, 0.81)
+    open_one = open_idea(client, make_user(), plane, 0.61)
 
     assert similar(client, viewer, idea_id) == [open_one]
 

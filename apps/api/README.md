@@ -74,8 +74,8 @@ app/
   models/              SQLAlchemy tables (users, sign_in, ideas, hubs, posts, lookups)
   schemas/             Pydantic request and response bodies
   services/            the logic routes share: match_score.py, account_deletion.py,
-                       interview.py, embeddings.py, groq*.py and gemini*.py with a fallback
-                       between them
+                       interview.py, embeddings.py (the vectors, from OpenAI),
+                       groq*.py and gemini*.py with a fallback between them
   workers/             the verification and embedding worker (python -m app.workers.runner)
   demo_seed.py         the made-up world behind "Try the demo"
   demo_world.py        its wider community, loaded from the frozen files in demo_fixtures/
@@ -105,8 +105,8 @@ The worker does the slow parts (reading public repositories, writing the report)
 request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The interview
 and the report use Groq, with Gemini as the fallback, in the language the attempt started in.
 
-The same worker keeps an embedding of every open idea and every verified developer, from Gemini
-and `GEMINI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
+The same worker keeps an embedding of every open idea and every verified developer, from OpenAI's
+`text-embedding-3-small` and `OPENAI_API_KEY`, in `idea_embeddings` and `user_embeddings`. It sends only public text: an
 idea's title and summary, and a developer's verified roles, technologies, sectors and bio.
 
 Where `DEMO_ENABLED=true` and the demo has been seeded, the same worker also dates the demo's posts
