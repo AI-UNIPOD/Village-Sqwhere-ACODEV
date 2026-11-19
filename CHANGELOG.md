@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-20
 
+- fix(web): keep the matcher demo's height so links below it land in place
 - fix(api): skip claude in the interview steps until it is switched on
 
 ## 2026-11-19

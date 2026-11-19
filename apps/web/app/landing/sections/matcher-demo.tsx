@@ -59,6 +59,11 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
   const [ran, setRan] = useState(false);
   const section = useRef<HTMLElement>(null);
   const picker = useRef<HTMLFieldSetElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  // The height of the suggestions, kept while they are hidden (waiting, or running), so the
+  // sections below never move as a run plays. Without it, a link to a later section measured its
+  // place with the suggestions hidden, and stopped short once they appeared on the way there.
+  const [reserve, setReserve] = useState<number>();
   const id = useId();
   const idea = t.ideas[ideaIndex];
   const found = ideasCopy[lang].matches;
@@ -68,6 +73,7 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
     const el = section.current;
     if (!el || still() || !("IntersectionObserver" in window)) return;
     if (el.getBoundingClientRect().top < window.innerHeight) return;
+    setReserve(panel.current?.getBoundingClientRect().height);
     setPhase("idle");
     const seen = new IntersectionObserver(
       ([entry]) => {
@@ -98,6 +104,7 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
   }, [phase, step, t.run.length, idea.matches.length]);
 
   function pick(index: number) {
+    setReserve(panel.current?.getBoundingClientRect().height);
     setRan(true);
     setIdeaIndex(index);
     setStep(0);
@@ -148,7 +155,12 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
             <p className={styles.note}>{t.sampleNote}</p>
           </fieldset>
 
-          <div className={styles.panel} data-phase={phase}>
+          <div
+            ref={panel}
+            className={styles.panel}
+            data-phase={phase}
+            style={reserve && (phase === "idle" || phase === "running") ? { minBlockSize: reserve } : undefined}
+          >
             <div className={styles.ideaHead}>
               <p className={styles.ideaTitle}>{idea.title}</p>
               <p className={styles.pitch}>{idea.pitch}</p>
