@@ -13,6 +13,7 @@ import { SignedOutError } from "../session/session";
 import { copy } from "./copy";
 import { saveFeedTopics } from "./feed-api";
 import styles from "./feed.module.css";
+import { isDemoRefusal, NotSaved } from "./not-saved";
 
 const place = (slug: string) => {
   const at = TECHNOLOGIES.findIndex((tech) => tech.slug === slug);
@@ -33,7 +34,7 @@ export function FeedTopics({ lang, me, onSaved }: { lang: Lang; me: Me; onSaved:
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<"demo" | "error" | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
 
@@ -47,7 +48,7 @@ export function FeedTopics({ lang, me, onSaved }: { lang: Lang; me: Me; onSaved:
 
   function show() {
     setPicked(held.map((topic) => topic.slug));
-    setFailed(false);
+    setFailed(null);
     setOpen(true);
   }
 
@@ -59,7 +60,7 @@ export function FeedTopics({ lang, me, onSaved }: { lang: Lang; me: Me; onSaved:
   async function save() {
     if (busy) return;
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
       // in the order of the list, as the stack is saved
       const topics = await saveFeedTopics(TECHNOLOGIES.map((tech) => tech.slug).filter((slug) => picked.includes(slug)));
@@ -67,7 +68,7 @@ export function FeedTopics({ lang, me, onSaved }: { lang: Lang; me: Me; onSaved:
       close();
       onSaved();
     } catch (error) {
-      if (!(error instanceof SignedOutError)) setFailed(true);
+      if (!(error instanceof SignedOutError)) setFailed(isDemoRefusal(error) ? "demo" : "error");
     } finally {
       setBusy(false);
     }
@@ -114,7 +115,8 @@ export function FeedTopics({ lang, me, onSaved }: { lang: Lang; me: Me; onSaved:
             </button>
           ))}
         </div>
-        {failed && (
+        {failed === "demo" && <NotSaved lang={lang} />}
+        {failed === "error" && (
           <p className={onboarding.error} role="alert">
             <AlertCircle />
             {t.failed}
