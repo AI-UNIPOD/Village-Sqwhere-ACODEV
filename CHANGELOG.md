@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-19
 
+- fix(web): say nothing was saved when the demo refuses outside the feed
 - fix(web): offer no team actions to the owner of an archived hub
 - fix(api): end a verification attempt whose analysis failed on every try
 - fix(web): say nothing was saved when the demo refuses a topic choice

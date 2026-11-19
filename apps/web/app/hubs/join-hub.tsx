@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { AppFrame } from "../app-frame";
 import { ConfirmDialog } from "../confirm-dialog";
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -54,7 +55,7 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
   const [errors, setErrors] = useState<Errors>({});
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<"changed" | "send" | null>(null);
+  const [problem, setProblem] = useState<"changed" | "send" | "demo" | null>(null);
   const hubAddress = `/${lang}/hubs/view?id=${encodeURIComponent(id ?? "")}`;
 
   useEffect(() => {
@@ -128,7 +129,7 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
       else if (code === "HUB_ARCHIVED") setBlocked("archived");
       // the last place went to someone else while this person was reading
       else if (code === "TEAM_FULL") setBlocked("full");
-      else setProblem("send");
+      else setProblem(code === DEMO_READ_ONLY ? "demo" : "send");
     } finally {
       setBusy(false);
       setAsking(false);
@@ -183,6 +184,7 @@ function JoinForm({ lang, id }: { lang: Lang; id: string | null }) {
           onLegalName={(legalName) => change({ legalName })}
         />
         <div className={`${onboarding.actions} ${ideas.bar}`}>
+          {problem === "demo" && <NotSaved lang={lang} className={ideas.failed} />}
           {problem === "send" && (
             <p className={`${onboarding.error} ${ideas.failed}`} role="alert">
               <AlertCircle />

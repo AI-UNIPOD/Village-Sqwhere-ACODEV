@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { AppFrame } from "../app-frame";
 import { ConfirmDialog } from "../confirm-dialog";
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { fill } from "../onboarding/copy";
@@ -106,7 +107,8 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
   const [fields, setFields] = useState(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  // "demo" when the demo account's save was refused
+  const [failed, setFailed] = useState<boolean | "demo">(false);
   // the idea was published or closed elsewhere: it is loaded again and the page says why
   const [changed, setChanged] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -168,7 +170,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
     else if (id && error instanceof IdeaError && (error.code === "IDEA_NOT_DRAFT" || error.code === "IDEA_NOT_OPEN")) {
       setChanged(true);
       setSaved(undefined);
-    } else setFailed(true);
+    } else setFailed(isDemoRefusal(error) ? "demo" : true);
   }
 
   // Runs one action at a time. A second press while it is sending does nothing.
@@ -395,7 +397,8 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
 
         {!closed && (
           <div className={`${onboarding.actions} ${onboarding.questionActions} ${styles.bar}`}>
-            {failed && (
+            {failed === "demo" && <NotSaved lang={lang} className={styles.failed} />}
+            {failed === true && (
               <p className={`${onboarding.error} ${styles.failed}`} role="alert">
                 <AlertCircle />
                 {t.errors.save}
