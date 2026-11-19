@@ -232,7 +232,8 @@ invites again after a decline (`team.tsx`); an invited developer sees the invita
 team's brief. The owner of an active hub edits its name and description in place under the title
 (`PATCH /v1/hubs/{id}`; an emptied description is sent as `null`) and archives it at the end of the
 page behind a confirm dialog (`POST /v1/hubs/{id}/archive`, `hubs/manage.tsx`). Archiving cannot be
-undone; the page then shows the hub as archived, read only, and the owner's tools go. In an active
+undone; the page then shows the hub as archived, read only, and the owner's tools go, team actions included
+(inviting, approving or declining a request, withdrawing, inviting again). In an active
 hub the owner removes an active member behind a confirm dialog
 (`POST /v1/hubs/{id}/members/{user_id}/remove`), and a member who is not the owner leaves the same
 way (`POST /v1/hubs/{id}/membership/leave`); the page then shows the hub as someone who left, or
@@ -404,8 +405,14 @@ shared demo account with `POST /v1/auth/demo` and opens the village. The account
 nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that
 answer for every screen, and `AppFrame` shows the demo account a line under the header that
 says what the demo is, says so when a change was refused, and offers the way out.
-In the feed, a refused write also says so beside the control that was pressed (`NotSaved` in
-`feed/not-saved.tsx`: "Nothing was saved"), where other screens show their usual failure sentence.
+A refused write also says so beside the control that was pressed: "Nothing was saved. The demo
+cannot be changed.", never a failure sentence that says to try again. It is one calm line on
+every screen (`NotSaved` in `app/demo-refusal.tsx`, with its two sentences and its style): a
+status in the text colour, with no alert icon, because a refusal is what the demo is meant to
+do. In the feed, on the profile, the ideas, the hubs, onboarding, verification and the reviews
+it stands where the screen's own failure sentence would be. The same file tells the refusal
+from a failure (`isDemoRefusal`), and `feed/not-saved.tsx` only passes both on. Any other
+failure keeps its red alert and its usual sentence.
 
 The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
 village, then the feed, one question with its comments, and four on the demo account's own open

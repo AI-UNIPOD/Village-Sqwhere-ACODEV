@@ -103,6 +103,8 @@ They run in file name order, once, on an empty database:
 | `027-post-image-bytes.sql` | Post images live in Postgres: `post_attachments.data` holds the bytes, `storage_key` is no longer required, and the size cap drops from 5 MB to 4 MB to fit Vercel's request limit. The table was empty before it, since uploads had not shipped. Running it twice is safe. |
 | `028-embeddings-on-openai.sql` | `idea_embeddings` and `user_embeddings` move from `gemini-embedding-2` to OpenAI's `text-embedding-3-small`, still 768 numbers. It removes every vector of another model, since two models cannot be compared and the worker makes them again. Running it twice is safe; if `025` is ever run again, run this one after it. |
 
+| `030-post-search.sql` | A search index on posts (`posts_search_idx`, a partial GIN index on the title and text words, ignoring case and accents). The API searches the same way without it, so applying it only keeps search fast as posts grow. Numbers 028 and 029 belong to other work. Running it twice is safe. |
+
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
 

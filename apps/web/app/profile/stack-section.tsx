@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { NotSaved, failureOf } from "../demo-refusal";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
@@ -32,7 +33,8 @@ type ChoicesProps = {
 function ChoicesSection({ id, lang, t, options, held: heldList, save: send, onSaved }: ChoicesProps) {
   const [picked, setPicked] = useState(() => heldList.map((item) => item.slug));
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  // the sentence for a save that did not go through, or "demo" when the demo account's was refused
+  const [failed, setFailed] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const held = new Set(heldList.map((item) => item.slug));
@@ -41,19 +43,19 @@ function ChoicesSection({ id, lang, t, options, held: heldList, save: send, onSa
   function toggle(slug: string) {
     setPicked((now) => (now.includes(slug) ? now.filter((other) => other !== slug) : [...now, slug]));
     setSaved(false);
-    setFailed(false);
+    setFailed(null);
   }
 
   async function save() {
     if (!dirty || busy) return;
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
       // in the order of the list, as onboarding saves it
       onSaved(await send(options.map((option) => option.slug).filter((slug) => picked.includes(slug))));
       setSaved(true);
     } catch (error) {
-      if (!(error instanceof SignedOutError)) setFailed(true);
+      if (!(error instanceof SignedOutError)) setFailed(failureOf(error, t.failed));
     } finally {
       setBusy(false);
     }
@@ -82,10 +84,11 @@ function ChoicesSection({ id, lang, t, options, held: heldList, save: send, onSa
         {fill(t.selected, { n: picked.length })}
       </p>
       <div className={`${onboarding.actions} ${styles.bar}`}>
-        {failed && (
+        {failed === "demo" && <NotSaved lang={lang} className={styles.failed} />}
+        {failed && failed !== "demo" && (
           <p className={`${onboarding.error} ${styles.failed}`} role="alert">
             <AlertCircle />
-            {t.failed}
+            {failed}
           </p>
         )}
         <button

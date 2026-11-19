@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
+import { NotSaved, failureOf } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -109,7 +110,8 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
   const country = typed.country ?? me.country_code ?? "";
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  // the sentence for a save that did not go through, or "demo" when the demo account's was refused
+  const [failed, setFailed] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   function edit(next: { name?: string; bio?: string; country?: string }) {
@@ -136,7 +138,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
     };
     if (Object.keys(changes).length > 0) {
       setBusy(true);
-      setFailed(false);
+      setFailed(null);
       try {
         const profile = await saveProfile(changes);
         onMe(profile);
@@ -147,7 +149,7 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
         if (field) {
           setErrors({ [field]: t.errors[field] });
           document.getElementById(`profile-${field}`)?.focus();
-        } else setFailed(true);
+        } else setFailed(failureOf(error, t.errors.save));
         return;
       } finally {
         setBusy(false);
@@ -229,10 +231,11 @@ export function YouSection({ lang, me, onMe }: { lang: Lang; me: Me; onMe: (me: 
           </select>
         </Field>
         <div className={`${onboarding.actions} ${styles.bar}`}>
-          {failed && (
+          {failed === "demo" && <NotSaved lang={lang} className={styles.failed} />}
+          {failed && failed !== "demo" && (
             <p className={`${onboarding.error} ${styles.failed}`} role="alert">
               <AlertCircle />
-              {t.errors.save}
+              {failed}
             </p>
           )}
           <button type="submit" className={landing.btn} aria-busy={busy || undefined}>

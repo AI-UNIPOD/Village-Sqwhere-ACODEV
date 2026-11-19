@@ -624,7 +624,9 @@ successful run stores the result and advances `current_phase` to `technical_defe
 
 `analysis_attempts` and `last_error` are returned to the applicant for progress reporting. A
 failed run returns to `pending` and can be claimed again until
-`VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached. The primary Groq analyzer falls back to the
+`VERIFICATION_MAX_ANALYSIS_ATTEMPTS` is reached; the run that reaches it ends the attempt as
+`abandoned` with its `last_error`, so the page stops waiting and the developer can start again
+(it still counts as one of the role's three attempts). The primary Groq analyzer falls back to the
 configured Gemini analyzer after a Groq configuration or API error.
 
 #### `POST /v1/me/verifications/{session_id}/interview-ticket`
@@ -2301,7 +2303,7 @@ Soft-delete a post.
 
 ### `GET /v1/posts`
 
-List visible posts, newest first. Deleted posts never appear. A hub's milestone posts do
+List visible posts, newest first unless `q` or `sort` says otherwise. Deleted posts never appear. A hub's milestone posts do
 (`type: "hub_milestone"`): they carry `milestone: {"hub_id", "hub_name", "phase"}` so the web
 can say them in English or French, and only the hub's name and phase, never the idea.
 `milestone` is `null` on every other post.
@@ -2314,6 +2316,15 @@ can say them in English or French, and only the hub's name and phase, never the 
     `?topic=python&topic=react`. A post appears once if it has any of them, and a request
     may give at most 10 topics.
   * `author`: a username, in any case. The profile page lists a developer's posts with it.
+  * `q`: search words, at most 100 characters; a blank `q` is no search. It matches the
+    title and the text, ignoring case and the accents of French and Yoruba (`demarrage` finds
+    `démarrage`). It understands `"a phrase"`, `OR` and `-excluded`. A single word also matches
+    the start of a topic name, so `pyth` finds posts tagged Python. Without `sort`, the best
+    match comes first: a match in the title counts most, then the text, then a topic name, and
+    equal matches go to the post with more likes plus 3 times comments, then the newer one.
+  * `sort`: `relevance` (needs `q`, otherwise 422 `SORT_NEEDS_SEARCH`), `newest` (the default
+    without `q`), `active` (likes plus 3 times comments, then newest; without `q` only posts
+    of the last 7 days) or `for_you` (the feed's ranking, below). An unknown value returns 422.
   * `offset` (default 0, at most 100000) and `limit` (default 20, at most 50).
 * An unknown topic or author returns an empty list. A malformed one (not a slug or a
   username) returns 422.
@@ -2331,15 +2342,24 @@ can say them in English or French, and only the hub's name and phase, never the 
 
 ### `GET /v1/feed`
 
-The signed-in developer's feed, newest first, paged like `GET /v1/posts`.
+The signed-in developer's feed, ranked For you by default, paged like `GET /v1/posts`.
 
 * **Authentication:** Required (Bearer token)
 * Shows posts that share a topic with the developer's feed topics (`PUT /v1/me/feed-topics`),
   plus every post they wrote.
 * With no feed topics chosen, it shows every post. `GET /v1/me` tells the app whether
   `feed_topics` is empty, so it can invite the developer to pick some.
-* New posts can shift later pages, so skip post ids already on screen.
-* Why: `docs/decisions/2026-11-13-post-feed-and-lists.md`.
+* `sort` (optional): `for_you` (the default), `newest`, or `active` (the most liked and
+  discussed posts of the last 7 days). Anything else returns 422.
+* **For you** orders the posts of the last 30 days by
+  `(likes + 3 x comments + 1) x boost / (age in hours + 2) ^ 1.5`. The boost is 1.5 for a post on
+  one of the developer's feed topics, or, when none are chosen, on a technology of their profile,
+  and 1 otherwise. Posts older than 30 days follow, newest first. The rule is computed per
+  request in SQL. It uses no AI and nothing about what the developer read or clicked, and it is
+  the same for every account, the demo included (`app/services/feed_rank.py`).
+* New posts, and new likes and comments, can shift later pages, so skip post ids already on screen.
+* Why: `docs/decisions/2026-11-13-post-feed-and-lists.md` and
+  `docs/decisions/2026-11-19-feed-ranking-and-search.md`.
 
 ---
 

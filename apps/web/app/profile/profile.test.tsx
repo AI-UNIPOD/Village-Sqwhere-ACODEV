@@ -473,6 +473,46 @@ test("the sectors section is in French", async () => {
   expect(sectors.getByRole("button", { name: "Enregistrer les domaines" })).toBeTruthy();
 });
 
+// ---------- the demo account ----------
+
+const demoRefusal = () => refusal(403, "DEMO_READ_ONLY");
+
+// what a part of the page then says where its failure sentence would be: the calm line, as a status, with no alert
+async function saidNotSaved(part: HTMLElement = document.body) {
+  expect((await within(part).findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(within(part).queryByRole("alert")).toBeNull();
+}
+
+test("the demo's refused save says nothing was saved as a status, with no alert, and keeps the text", async () => {
+  await page(me(), { "PATCH /v1/me": demoRefusal() });
+  fireEvent.change(screen.getByLabelText("About you"), { target: { value: "New bio" } });
+  press("Save");
+  await saidNotSaved();
+  expect((screen.getByLabelText("About you") as HTMLTextAreaElement).value).toBe("New bio");
+});
+
+test("the demo's refused role, stack and sectors changes say nothing was saved too", async () => {
+  await page(me(), {
+    "POST /v1/me/roles": demoRefusal(),
+    "DELETE /v1/me/roles/devops-cloud-engineer": demoRefusal(),
+    "PUT /v1/me/technologies": demoRefusal(),
+    "PUT /v1/me/sectors": demoRefusal(),
+  });
+  press("Mobile Engineer", screen.getByRole("group", { name: "Add a role" }));
+  await saidNotSaved();
+  press("Remove", row("DevOps and Cloud Engineer"));
+  press("Remove role");
+  await saidNotSaved(row("DevOps and Cloud Engineer"));
+  for (const [name, chip] of [["Stack", "Rust"], ["Sectors", "Health"]]) {
+    const part = screen.getByRole("region", { name });
+    fireEvent.click(within(part).getByRole("button", { name: chip }));
+    fireEvent.click(within(part).getByRole("button", { name: `Save ${name.toLowerCase()}` }));
+    await saidNotSaved(part);
+    expect(within(part).getByRole("button", { name: chip }).getAttribute("aria-pressed")).toBe("true");
+  }
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 test("the account part has both languages, marking the current one, and a sign-out button", async () => {
   await page();
   // the header has its own language link, so the part is looked at by itself

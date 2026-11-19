@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
-import { api, asked, fetchMock, hub, idea, owner, phasesAt, posted, refusal } from "./test-support";
+import { api, asked, fetchMock, hub, idea, owner, phasesAt, posted, refusal, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -237,13 +237,13 @@ test.each(["HUB_ARCHIVED", "NOT_HUB_OWNER"])("%s: the hub is loaded again and th
   expect(within(phases()).queryAllByRole("button")).toHaveLength(0);
 });
 
-test("a refusal the demo frame already explains adds no second message and keeps the buttons", async () => {
+test("the demo's refusal says nothing was saved as a status, with no alert, and keeps the buttons", async () => {
   await open(asOwner, { "POST /v1/hubs/hub-1/team/confirm": refusal(403, "DEMO_READ_ONLY") });
   press("Confirm the team");
   confirmIn("Confirm the team?", "Confirm the team");
   await waitFor(() => expect(posted()).toHaveLength(1));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(within(phases()).queryByRole("alert")).toBeNull();
+  await saidNotSaved(phases());
   expect(within(phases()).getByRole("button", { name: "Confirm the team" })).toBeTruthy();
 });
 

@@ -168,6 +168,21 @@ test("when no ticket can be had, no socket opens and the page says it could not 
   expect(FakeSocket.all).toHaveLength(0);
 });
 
+test("the demo's refused ticket says nothing was saved as a status, with no alert, and opens no socket", async () => {
+  fetchMock.mockImplementation(async (url: string) =>
+    String(url).endsWith("/interview-ticket")
+      ? new Response(JSON.stringify({ detail: { code: "DEMO_READ_ONLY" } }), { status: 403 })
+      : ready(),
+  );
+  render(<Interview lang="en" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Begin the interview" }));
+  expect((await screen.findByText("Nothing was saved. The demo cannot be changed.")).getAttribute("role")).toBe("status");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByText("We couldn't start the interview")).toBeNull();
+  expect(screen.getByRole("link", { name: "Back to your verification" })).toBeTruthy();
+  expect(FakeSocket.all).toHaveLength(0);
+});
+
 test("the welcome and the first question appear, the question with its number", async () => {
   await begun();
   const log = screen.getByRole("log");
