@@ -8,6 +8,10 @@ its number:
 - feat(api): add idea embedding endpoint (#12)
 ```
 
+## 2026-11-19
+
+- fix(web): show an untitled post's first line as text, not a link-coloured paragraph
+
 ## 2026-11-16
 
 - perf(api): build the hub list's cards in two queries (#246)
