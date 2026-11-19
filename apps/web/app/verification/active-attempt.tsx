@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, type ComponentType } from "react";
 
+import { DEMO_READ_ONLY, NotSaved } from "../demo-refusal";
 import landing from "../landing/landing-page.module.css";
 import type { Lang } from "../locales";
 import { AlertCircle, ArrowRight, Check, Clock } from "../onboarding/icons";
@@ -50,7 +51,7 @@ function StopAttempt({ lang, attemptId, actions }: { lang: Lang; attemptId: stri
   const keep = useRef<HTMLButtonElement>(null);
   const sending = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<boolean | "demo">(false);
 
   async function stop() {
     if (sending.current) return;
@@ -59,12 +60,13 @@ function StopAttempt({ lang, attemptId, actions }: { lang: Lang; attemptId: stri
     setFailed(false);
     try {
       const response = await apiFetch(`/v1/me/verifications/${attemptId}/abandon`, { method: "POST" });
+      const code = response.ok ? "" : await errorCode(response);
       if (response.ok) {
         actions.accept((await response.json()).data);
-      } else if (response.status === 409 && (await errorCode(response)) === "VERIFICATION_NOT_ACTIVE") {
+      } else if (response.status === 409 && code === "VERIFICATION_NOT_ACTIVE") {
         actions.reload();
       } else {
-        setFailed(true);
+        setFailed(code === DEMO_READ_ONLY ? "demo" : true);
         return;
       }
       dialog.current?.close();
@@ -95,7 +97,8 @@ function StopAttempt({ lang, attemptId, actions }: { lang: Lang; attemptId: stri
           {t.title}
         </h2>
         <p className={styles.dialogText}>{t.text}</p>
-        {failed && (
+        {failed === "demo" && <NotSaved lang={lang} spaced />}
+        {failed === true && (
           <p className={onboarding.error} role="alert">
             <AlertCircle />
             {t.failed}

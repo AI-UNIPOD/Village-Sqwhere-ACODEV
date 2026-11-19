@@ -165,7 +165,7 @@ The rest of this page is for people who want to read, run or contribute to the c
 | Matching | Developers verified in the roles an idea needs, scored on roles, technologies and sectors | `/v1/me/ideas/{id}/matches` |
 | Hubs | Create from an idea, invite, ask to join, sign, leave, remove, archive | `/v1/hubs/*` |
 | Collaboration | Team chat, four phases, brainstorm notes, a design sketch of pieces and links | `/v1/hubs/{id}/messages`, `/phase`, `/notes`, `/design` |
-| Community feed | Posts, comments, replies, likes, saves, topics | `/v1/feed`, `/v1/posts/*`, `/v1/comments/*` |
+| Community feed | Posts, comments, replies, likes, saves, topics, search and a ranked For you order | `/v1/feed`, `/v1/posts/*`, `/v1/comments/*` |
 
 
 <p>
@@ -264,6 +264,7 @@ uv run --directory apps/api python -m app.demo_seed
 | `DATABASE_URL`, `TEST_DATABASE_URL` | The development and test databases. |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Your own GitHub OAuth app, for real sign-in. |
 | `GROQ_API_KEY`, `GEMINI_API_KEY` | The AI interview and report. |
+| `OPENAI_API_KEY` | The vectors that let the match score compare by meaning. |
 | `DEMO_ENABLED` | Turns on "Try the demo" (API) and lets the worker date its feed back from now once a day. Off by default. |
 | `NEXT_PUBLIC_API_URL` | Where the web app finds the API. |
 

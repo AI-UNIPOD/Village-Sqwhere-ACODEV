@@ -700,29 +700,30 @@ It polls both queues every `VERIFICATION_WORKER_INTERVAL_SECONDS` seconds. Each 
 with a database row lock, and a failed job is logged while the loop continues.
 
 **Embeddings.** The same loop also embeds, each run, up to 20 ideas and 20 developers that have
-no vector, with Google's `gemini-embedding-2` and the `GEMINI_API_KEY` the API already has. No
+no vector, with OpenAI's `text-embedding-3-small` and `OPENAI_API_KEY`. No
 route writes them. The match score and similar ideas read them (see "Matching"). Why:
-`docs/decisions/2026-11-15-embeddings-on-gemini.md`.
+`docs/decisions/2026-11-19-embeddings-on-openai.md`.
 
 * **What is sent.** For an idea, its title and summary, never `details`. For a developer, their
   verified role names, technology names, sector names and bio, in a fixed order, never an email,
   a legal name, a display name or a username.
 * **Who is embedded.** An idea that is `open` and not deleted, the same rule the match lists use.
   A developer with at least one verified role whose account is not deleted. Demo accounts too.
-* **Where it is stored.** `idea_embeddings` and `user_embeddings` (`025-embeddings.sql`): one row
+* **Where it is stored.** `idea_embeddings` and `user_embeddings` (`025-embeddings.sql`, moved to
+  OpenAI's model by `028-embeddings-on-openai.sql`): one row
   per idea or developer with a 768-wide `vector`, the `model`, and the SHA-256 of the exact text
   that was sent. A missing row means the text needs embedding.
 * **When a vector goes stale.** A database trigger removes it when the idea's title or summary
   changes, or a developer's bio changes, or a row in their `user_roles`, `user_technologies` or
   `user_sectors` is added, removed or changed. The next run embeds it again. A text that changes
-  while Gemini answers is read again before it is stored, and gets no vector until the next run.
+  while OpenAI answers is read again before it is stored, and gets no vector until the next run.
   The one exception is a technology, a sector or a role changed in the moment between that check
   and the commit: the vector is then stored with a hash that no longer matches the profile, and
   stays until the profile changes again.
-* **When it fails.** An unreachable or bad answer from Gemini is logged without the text or the
-  key, nothing is written, and the next run tries again. If Gemini refuses a request of several
+* **When it fails.** An unreachable or bad answer from OpenAI is logged without the text or the
+  key, nothing is written, and the next run tries again. If OpenAI refuses a request of several
   texts, each text is asked for alone, so one text it always refuses holds back only itself. An
-  error in the idea step does not stop the developer step. With no `GEMINI_API_KEY` the step does
+  error in the idea step does not stop the developer step. With no `OPENAI_API_KEY` the step does
   nothing and the log says so once.
 * **Account deletion** removes the developer's vector with the rest of their profile.
 
@@ -873,7 +874,7 @@ never contains the confidential `details` field. A developer asks to join throug
 
 Up to 5 other open ideas that read close to this one, closest first, in the same card shape as
 `GET /v1/ideas`: `{"data": [<public idea card>], "next_offset": null}`. An idea is close when
-its vector and this idea's vector have a similarity of at least 0.80 (see "Matching"). Drafts,
+its vector and this idea's vector have a similarity of at least 0.60 (see "Matching"). Drafts,
 closed ideas, deleted ideas and the idea itself never appear. No similarity number is returned:
 being in the list is the fact. An idea with no vector yet, or with nothing close, gives an empty
 list, not an error. The caller must be able to read the idea, as for `GET /v1/ideas/{idea_id}`:
@@ -908,9 +909,9 @@ There are two versions, and a list can hold both. Each row says which one it is.
 
 * **Version 2**, when both vectors exist for the pair (the idea's and the developer's): the plain
   sum of the four parts, out of 100. The meaning points are
-  `round(30 * clamp((similarity - 0.70) / (0.82 - 0.70), 0, 1))`, a whole number from 0 to 30,
+  `round(30 * clamp((similarity - 0.15) / (0.45 - 0.15), 0, 1))`, a whole number from 0 to 30,
   where `similarity` is 1 minus the cosine distance of the two vectors. The band is narrow on
-  purpose: an idea and a profile read 0.71 to 0.82 apart, so the raw number is not a percentage.
+  purpose: an idea and a profile read 0.17 to 0.46 alike, so the raw number is not a percentage.
   Rounding is half up.
 * **Version 1**, when either vector is missing (not made yet): the 70 points that exist are scaled
   to 100 and rounded to a whole number, half up: `(raw * 100 + 35) // 70`. Raw 30 gives 43, 42
@@ -927,7 +928,7 @@ Both lists add these fields to each item:
 * `similar_idea`: `{"id", "title"}` or `null`. On the developer list it is the developer's own
   open idea that reads closest to the caller's idea. On the idea list it is the caller's own open
   idea that reads closest to the listed idea. It is set only when their similarity is at least
-  0.80, never for a draft, a closed or a deleted idea, and never across the demo wall. No
+  0.60, never for a draft, a closed or a deleted idea, and never across the demo wall. No
   similarity number is returned: 0.83 would read as "83% alike", which it does not mean.
 * `shared_sectors`: the sectors both people have, sorted by name like `shared_technologies`
   (`[]` when none). On the developer list it is the developer's sectors that the idea's author
@@ -2301,7 +2302,7 @@ Soft-delete a post.
 
 ### `GET /v1/posts`
 
-List visible posts, newest first. Deleted posts never appear. A hub's milestone posts do
+List visible posts, newest first unless `q` or `sort` says otherwise. Deleted posts never appear. A hub's milestone posts do
 (`type: "hub_milestone"`): they carry `milestone: {"hub_id", "hub_name", "phase"}` so the web
 can say them in English or French, and only the hub's name and phase, never the idea.
 `milestone` is `null` on every other post.
@@ -2314,6 +2315,15 @@ can say them in English or French, and only the hub's name and phase, never the 
     `?topic=python&topic=react`. A post appears once if it has any of them, and a request
     may give at most 10 topics.
   * `author`: a username, in any case. The profile page lists a developer's posts with it.
+  * `q`: search words, at most 100 characters; a blank `q` is no search. It matches the
+    title and the text, ignoring case and the accents of French and Yoruba (`demarrage` finds
+    `démarrage`). It understands `"a phrase"`, `OR` and `-excluded`. A single word also matches
+    the start of a topic name, so `pyth` finds posts tagged Python. Without `sort`, the best
+    match comes first: a match in the title counts most, then the text, then a topic name, and
+    equal matches go to the post with more likes plus 3 times comments, then the newer one.
+  * `sort`: `relevance` (needs `q`, otherwise 422 `SORT_NEEDS_SEARCH`), `newest` (the default
+    without `q`), `active` (likes plus 3 times comments, then newest; without `q` only posts
+    of the last 7 days) or `for_you` (the feed's ranking, below). An unknown value returns 422.
   * `offset` (default 0, at most 100000) and `limit` (default 20, at most 50).
 * An unknown topic or author returns an empty list. A malformed one (not a slug or a
   username) returns 422.
@@ -2331,15 +2341,24 @@ can say them in English or French, and only the hub's name and phase, never the 
 
 ### `GET /v1/feed`
 
-The signed-in developer's feed, newest first, paged like `GET /v1/posts`.
+The signed-in developer's feed, ranked For you by default, paged like `GET /v1/posts`.
 
 * **Authentication:** Required (Bearer token)
 * Shows posts that share a topic with the developer's feed topics (`PUT /v1/me/feed-topics`),
   plus every post they wrote.
 * With no feed topics chosen, it shows every post. `GET /v1/me` tells the app whether
   `feed_topics` is empty, so it can invite the developer to pick some.
-* New posts can shift later pages, so skip post ids already on screen.
-* Why: `docs/decisions/2026-11-13-post-feed-and-lists.md`.
+* `sort` (optional): `for_you` (the default), `newest`, or `active` (the most liked and
+  discussed posts of the last 7 days). Anything else returns 422.
+* **For you** orders the posts of the last 30 days by
+  `(likes + 3 x comments + 1) x boost / (age in hours + 2) ^ 1.5`. The boost is 1.5 for a post on
+  one of the developer's feed topics, or, when none are chosen, on a technology of their profile,
+  and 1 otherwise. Posts older than 30 days follow, newest first. The rule is computed per
+  request in SQL. It uses no AI and nothing about what the developer read or clicked, and it is
+  the same for every account, the demo included (`app/services/feed_rank.py`).
+* New posts, and new likes and comments, can shift later pages, so skip post ids already on screen.
+* Why: `docs/decisions/2026-11-13-post-feed-and-lists.md` and
+  `docs/decisions/2026-11-19-feed-ranking-and-search.md`.
 
 ---
 

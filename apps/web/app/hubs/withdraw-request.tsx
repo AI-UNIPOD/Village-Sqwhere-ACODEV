@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { NotSaved, isDemoRefusal } from "../demo-refusal";
 import { IdeaError } from "../ideas/ideas-api";
 import ideas from "../ideas/ideas.module.css";
 import landing from "../landing/landing-page.module.css";
@@ -20,7 +21,7 @@ export type WithdrawOutcome = "withdrawn" | "answered";
 export function WithdrawRequest({ lang, hubId, onDone }: { lang: Lang; hubId: string; onDone: (hub: Hub, outcome: WithdrawOutcome) => void }) {
   const t = copy[lang];
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<boolean | "demo">(false);
 
   const withdraw = async () => {
     if (busy) return;
@@ -36,7 +37,7 @@ export function WithdrawRequest({ lang, hubId, onDone }: { lang: Lang; hubId: st
         onDone(await loadHub(hubId), "answered");
       } catch (again) {
         if (again instanceof SignedOutError) return;
-        setFailed(true);
+        setFailed(isDemoRefusal(again) ? "demo" : true);
         setBusy(false);
       }
     }
@@ -44,7 +45,8 @@ export function WithdrawRequest({ lang, hubId, onDone }: { lang: Lang; hubId: st
 
   return (
     <>
-      {failed && (
+      {failed === "demo" && <NotSaved lang={lang} spaced />}
+      {failed === true && (
         <p className={`${onboarding.error} ${ideas.act}`} role="alert">
           <AlertCircle />
           {t.team.actionFailed}

@@ -359,7 +359,8 @@ test("editing loads the post, shows its kind and topics as fixed, and says so", 
   expect(screen.getByText("The kind cannot be changed after you post.")).toBeTruthy();
   expect(screen.getByText("The topics cannot be changed after you post.")).toBeTruthy();
   expect(screen.getByText("Question", { selector: "p" })).toBeTruthy();
-  expect(screen.getByText("Python")).toBeTruthy();
+  // text, not a link to the feed: a press must not leave the form
+  expect(screen.getByText("Python").closest("a")).toBeNull();
   expect(screen.getByRole("button", { name: "Save changes" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Cancel" }).getAttribute("href")).toBe("/en/posts/view?id=post-1");
 });

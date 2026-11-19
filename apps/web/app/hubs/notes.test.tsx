@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SESSION_KEY } from "../session/session";
 import { HubPage } from "./hub-page";
-import { api, asked, fetchMock, hub, idea, owner, phasesAt, posted, refusal } from "./test-support";
+import { api, asked, fetchMock, hub, idea, owner, phasesAt, posted, refusal, saidNotSaved } from "./test-support";
 
 const nav = vi.hoisted(() => ({ search: "" }));
 
@@ -247,7 +247,7 @@ test("what was typed stays when the request fails", async () => {
   expect(cards()).toHaveLength(0);
 });
 
-test("the demo's refusal to add adds no message of its own and keeps the text", async () => {
+test("the demo's refusal to add says nothing was saved as a status, with no alert, and keeps the text", async () => {
   await open(brainstorm, { "POST /v1/hubs/hub-1/notes": refusal(403, "DEMO_READ_ONLY") });
   await ready();
   await waitFor(field);
@@ -255,12 +255,11 @@ test("the demo's refusal to add adds no message of its own and keeps the text", 
   add();
   await waitFor(() => expect(posted()).toHaveLength(1));
   await waitFor(() => expect(within(section()).getByRole("button", { name: "Add the note" }).getAttribute("aria-busy")).toBeNull());
-  expect(within(section()).queryByRole("alert")).toBeNull();
-  expect(within(section()).queryByRole("status")).toBeNull();
+  await saidNotSaved(section());
   expect(field().value).toBe("A demo note");
 });
 
-test("the demo's refusal to delete adds no message of its own and keeps the card", async () => {
+test("the demo's refusal to delete says nothing was saved as a status, with no alert, and keeps the card", async () => {
   await open(brainstorm, { [NOTES]: list(note("n-1", "Mine", { can_delete: true })), "DELETE /v1/hubs/hub-1/notes/n-1": refusal(403, "DEMO_READ_ONLY") });
   await ready();
   await waitFor(() => expect(cards()).toHaveLength(1));
@@ -268,8 +267,7 @@ test("the demo's refusal to delete adds no message of its own and keeps the card
   confirmDelete();
   await waitFor(() => expect(requests("DELETE")).toHaveLength(1));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(within(section()).queryByRole("alert")).toBeNull();
-  expect(within(section()).queryByRole("status")).toBeNull();
+  await saidNotSaved(section());
   expect(cards()).toHaveLength(1);
 });
 

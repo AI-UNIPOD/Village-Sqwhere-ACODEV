@@ -11,6 +11,8 @@ its number:
 ## 2026-11-19
 
 - perf(api): load a signed-in person in 7 queries instead of 11 on every request
+- feat(web): filter the feed by kind and by topic from the address
+- fix(web): say the demo's tour has six steps, not every screen
 - fix(api): end a verification attempt whose analysis failed on every try
 - fix(web): say nothing was saved when the demo refuses a topic choice
 - fix(web): show an untitled post's first line as text, not a link-coloured paragraph

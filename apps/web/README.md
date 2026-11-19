@@ -123,7 +123,7 @@ technologies the feed should show and the sectors (`POST /v1/me/roles`,
 developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
 under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
 (`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
-The stack step says what is sent to Google's Gemini to match by meaning, tied to the chips as
+The stack step says what is sent to OpenAI to match by meaning, tied to the chips as
 their help text (the same sentence as the profile's bio field).
 
 A signed-in developer's home is the village, `app/village/` (at `/en/village`): who they are,
@@ -232,7 +232,8 @@ invites again after a decline (`team.tsx`); an invited developer sees the invita
 team's brief. The owner of an active hub edits its name and description in place under the title
 (`PATCH /v1/hubs/{id}`; an emptied description is sent as `null`) and archives it at the end of the
 page behind a confirm dialog (`POST /v1/hubs/{id}/archive`, `hubs/manage.tsx`). Archiving cannot be
-undone; the page then shows the hub as archived, read only, and the owner's tools go. In an active
+undone; the page then shows the hub as archived, read only, and the owner's tools go, team actions included
+(inviting, approving or declining a request, withdrawing, inviting again). In an active
 hub the owner removes an active member behind a confirm dialog
 (`POST /v1/hubs/{id}/members/{user_id}/remove`), and a member who is not the owner leaves the same
 way (`POST /v1/hubs/{id}/membership/leave`); the page then shows the hub as someone who left, or
@@ -367,6 +368,16 @@ request key is `technologies`), kept in the profile, and the feed loads again. N
 means every post. Onboarding's topics step is not saved here: it asks about sectors, which the
 API does not know.
 
+The feed can also be narrowed from the address, with nothing saved, so the demo account can do
+it too: `/en/feed?type=question`, `/en/feed?topic=python`, or both (`feed-filter.tsx`). The list
+is then everyone's posts of that kind or on that topic (`GET /v1/posts?type=&topic=`, every page
+of it), not the For you feed, which takes neither. The kind on a post and each of its topics are
+links to that view, in a card and on the post's page, and a row above the list offers every kind
+a person can post. While a filter is on, a line says what is showing with "Clear the filter", no
+tab is marked, and the saved topics and their choice are not shown. A kind or a topic the app
+does not know is ignored. A hub's milestone is not offered as a kind, and Saved and Yours read
+neither parameter.
+
 Comments are a section of the post page (`comments.tsx`, `comment.tsx`, `comment-form.tsx`),
 loaded after the post, at `#comments`. The list gives each top-level comment its first two
 replies; "Show all N replies" loads the rest, and a reply's own replies open the same way, one
@@ -381,7 +392,7 @@ follows (`PUT` and `DELETE /v1/comments/{id}/like`).
 The profile is `app/profile/`, at `/en/profile`: the name, bio and country (`PATCH /v1/me`; the
 country is a native list with "No country" first, saved as its code or `null`, and the form says
 other signed-in developers can see it; a second help line under the bio says what is sent to
-Google's Gemini to match by meaning, and that the name, username and email never are), the roles
+OpenAI to match by meaning, and that the name, username and email never are), the roles
 (add, make main, remove; the page loads the profile again after each) and the stack
 (`PUT /v1/me/technologies`), then the language and sign out. A developer with no role is sent to
 onboarding first. The village's "Edit my profile" link opens it.
@@ -404,15 +415,22 @@ shared demo account with `POST /v1/auth/demo` and opens the village. The account
 nothing: the API answers every change with 403 `DEMO_READ_ONLY`. `apiFetch` notices that
 answer for every screen, and `AppFrame` shows the demo account a line under the header that
 says what the demo is, says so when a change was refused, and offers the way out.
-In the feed, a refused write also says so beside the control that was pressed (`NotSaved` in
-`feed/not-saved.tsx`: "Nothing was saved"), where other screens show their usual failure sentence.
+A refused write also says so beside the control that was pressed: "Nothing was saved. The demo
+cannot be changed.", never a failure sentence that says to try again. It is one calm line on
+every screen (`NotSaved` in `app/demo-refusal.tsx`, with its two sentences and its style): a
+status in the text colour, with no alert icon, because a refusal is what the demo is meant to
+do. In the feed, on the profile, the ideas, the hubs, onboarding, verification and the reviews
+it stands where the screen's own failure sentence would be. The same file tells the refusal
+from a failure (`isDemoRefusal`), and `feed/not-saved.tsx` only passes both on. Any other
+failure keeps its red alert and its usual sentence.
 
 The guided tour starts from the demo line's "Take the tour" (`app/tour/`): a start on the
 village, then the feed, one question with its comments, and four on the demo account's own open
 idea and hub (the composer, the matches, the hub's team with the phases below it; the demo's hub
 is seeded in Build): six steps, each counted. `AppFrame` shows the tour's
 panel under the demo line; it sticks to the top of the screen, shrinks to one line on a screen
-that is not the step, and keeps its step in `sessionStorage` (`tour/tour.ts`). A step can name a part of a screen with a hash:
+that is not the step (the feed narrowed to a kind or a topic is still the feed's step), and keeps
+its step in `sessionStorage` (`tour/tour.ts`). A step can name a part of a screen with a hash:
 the hub page scrolls to `#team` once the hub has loaded (`app/scroll.ts`).
 
 Sign-in starts at `/{lang}/sign-in` (`app/sign-in/`) and finishes at `/{lang}/auth/callback`

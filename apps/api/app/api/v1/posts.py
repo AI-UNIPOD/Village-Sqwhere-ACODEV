@@ -40,7 +40,9 @@ from app.schemas.posts import (
     PostResponse,
     PostUpdateRequest,
 )
+from app.services import feed_rank
 from app.services import uploads as image_storage
+from app.services.feed_rank import NEWEST_FIRST, FeedSort, PostSort
 
 router = APIRouter()
 
@@ -50,7 +52,7 @@ TopicSlug = Annotated[str, StringConstraints(max_length=64, pattern=r"^[a-z0-9]+
 # The team capped repeatable filters at ten, so a shared link cannot grow without limit.
 MAX_TOPIC_FILTERS = 10
 TopicFilters = Annotated[list[TopicSlug] | None, Query(max_length=MAX_TOPIC_FILTERS)]
-NEWEST_FIRST = (Post.created_at.desc(), Post.id.desc())
+SearchText = Annotated[str | None, Query(max_length=feed_rank.MAX_QUERY_LENGTH)]
 
 
 # --- Route helpers ---------------------------------------------------------------------------
@@ -348,9 +350,13 @@ async def list_posts(
     post_type: Annotated[PostType | None, Query(alias="type")] = None,
     topic: TopicFilters = None,
     author: Annotated[str | None, Query(pattern=r"^[A-Za-z0-9_-]{3,39}$")] = None,
+    q: SearchText = None,
+    sort: PostSort | None = None,
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
+    """Posts, newest first. With `q`, the posts that match, best match first. `sort` changes the
+    order: relevance (needs `q`), newest, active (likes and comments) or for_you."""
     query = visible_posts(current_user)
     if post_type is not None:
         query = query.where(Post.type == post_type)
@@ -368,16 +374,44 @@ async def list_posts(
                 select(User.id).where(func.lower(User.username) == func.lower(author))
             )
         )
-    return await _post_page(query.order_by(*NEWEST_FIRST), offset, limit, current_user.id, db)
+    words = feed_rank.clean_query(q)
+    search = feed_rank.build_search(words) if words else None
+    chosen = sort or (PostSort.RELEVANCE if search else PostSort.NEWEST)
+    if chosen is PostSort.RELEVANCE and search is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "SORT_NEEDS_SEARCH",
+                "message": "Sorting by relevance needs search words in q.",
+            },
+        )
+    if search is not None:
+        query = query.where(search.match)
+    match chosen:
+        case PostSort.RELEVANCE:
+            assert search is not None
+            order = feed_rank.search_order(search)
+        case PostSort.ACTIVE:
+            if search is None:
+                query = query.where(feed_rank.active_since())
+            order = feed_rank.active_order()
+        case PostSort.FOR_YOU:
+            order = feed_rank.for_you_order(feed_rank.viewer_topic_ids(current_user))
+        case PostSort.NEWEST:
+            order = NEWEST_FIRST
+    return await _post_page(query.order_by(*order), offset, limit, current_user.id, db)
 
 
 @router.get("/feed", response_model=PostListResponse)
 async def my_feed(
     current_user: CurrentUser,
     db: DbSession,
+    sort: FeedSort = FeedSort.FOR_YOU,
     offset: PageOffset = 0,
     limit: PageLimit = 20,
 ) -> PostListResponse:
+    """The feed: your topics' posts (every post until you choose topics) plus your own, ranked
+    for_you by recency, likes and comments, or newest, or the most active of the week."""
     query = visible_posts(current_user)
     topic_ids = [feed_topic.technology_id for feed_topic in current_user.feed_topics]
     # With no topics chosen yet, the feed is every post, so a new developer never sees an
@@ -391,7 +425,15 @@ async def my_feed(
                 ),
             )
         )
-    return await _post_page(query.order_by(*NEWEST_FIRST), offset, limit, current_user.id, db)
+    match sort:
+        case FeedSort.FOR_YOU:
+            order = feed_rank.for_you_order(feed_rank.viewer_topic_ids(current_user))
+        case FeedSort.ACTIVE:
+            query = query.where(feed_rank.active_since())
+            order = feed_rank.active_order()
+        case FeedSort.NEWEST:
+            order = NEWEST_FIRST
+    return await _post_page(query.order_by(*order), offset, limit, current_user.id, db)
 
 
 async def _set_mark(
