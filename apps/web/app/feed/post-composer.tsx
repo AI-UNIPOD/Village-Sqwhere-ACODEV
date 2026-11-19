@@ -436,7 +436,7 @@ function Composer({ lang, id }: { lang: Lang; id: string | null }) {
           </p>
           {saved ? (
             <>
-              {saved.topics.length > 0 ? <PostTopics lang={lang} topics={saved.topics} /> : <p>{c.noTopics}</p>}
+              {saved.topics.length > 0 ? <PostTopics lang={lang} topics={saved.topics} plain /> : <p>{c.noTopics}</p>}
               <p className={ideas.help}>{c.fixedTopics}</p>
             </>
           ) : (

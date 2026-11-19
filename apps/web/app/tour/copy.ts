@@ -30,7 +30,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "The feed",
-        text: "Developers share ideas, questions, RFCs and releases here. The topic filter narrows the feed to the technologies you choose.",
+        text: "Developers share ideas, questions, RFCs and releases here. Press a kind above the list, or a topic on a post, to see only the posts that match.",
       },
       {
         name: "A conversation",
@@ -69,7 +69,7 @@ export const copy: Record<Lang, Copy> = {
       },
       {
         name: "Le fil",
-        text: "Les développeurs y partagent des idées, des questions, des RFC et des versions. Le filtre par sujet limite le fil aux technologies que vous choisissez.",
+        text: "Les développeurs y partagent des idées, des questions, des RFC et des versions. Appuyez sur un type au-dessus de la liste, ou sur un sujet dans une publication, pour ne voir que les publications qui correspondent.",
       },
       {
         name: "Une conversation",
