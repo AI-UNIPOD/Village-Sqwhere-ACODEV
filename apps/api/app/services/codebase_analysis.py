@@ -119,8 +119,10 @@ class StructuredCodebaseAnalyzer:
         prompt = build_codebase_analysis_prompt(role_slug, repositories, language)
         answer = await self.provider.answer(prompt.system, prompt.user, CODEBASE_ANALYSIS_SCHEMA)
         try:
-            return CodebaseAnalysisResult.model_validate_json(answer)
+            result = CodebaseAnalysisResult.model_validate_json(answer)
         except ValueError as error:
             raise ProviderUnavailable(
                 f"{self.provider.name} returned an invalid codebase analysis."
             ) from error
+        # the model that answered, not the name it gives itself, which is often wrong
+        return result.model_copy(update={"model": self.provider.model})

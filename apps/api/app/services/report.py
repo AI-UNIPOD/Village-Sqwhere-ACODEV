@@ -72,11 +72,13 @@ class StructuredReportEvaluator:
         system, user = build_report_prompt(role_slug, codebase_result, interview_turns, language)
         answer = await self.provider.answer(system, user, REPORT_SCHEMA)
         try:
-            return VerificationReport.model_validate_json(answer)
+            report = VerificationReport.model_validate_json(answer)
         except ValueError as error:
             raise ProviderUnavailable(
                 f"{self.provider.name} returned an invalid verification report."
             ) from error
+        # the model that answered, not the name it gives itself, which is often wrong
+        return report.model_copy(update={"model": self.provider.model})
 
 
 def build_report_prompt(

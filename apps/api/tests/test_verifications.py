@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 from datetime import UTC, datetime
 from uuid import UUID
@@ -21,6 +22,7 @@ from app.models.users import (
     VerificationSession,
     VerificationStatus,
 )
+from app.services import groq_report as groq_report_module
 from app.services.codebase_analysis import (
     CODEBASE_ANALYSIS_SCHEMA,
     AnalysisCriterion,
@@ -125,6 +127,7 @@ class FakeProvider:
 
     def __init__(self, name: str, calls: list[str], answer: dict | str | None = None) -> None:
         self.name = name
+        self.model = f"{name.lower()}-model"
         self.calls = calls
         self.answer_value = answer
         self.systems: list[str] = []
@@ -186,6 +189,8 @@ def test_codebase_analysis_tries_groq_then_claude_then_openai() -> None:
 
     assert calls == ["Groq", "Claude", "OpenAI"]
     assert result.model_dump(mode="json")["evidence"] == CODEBASE_ANSWER["evidence"]
+    # the model that answered is stored, whatever name the answer gives itself
+    assert result.model == "openai-model"
     assert openai.schemas == [CODEBASE_ANALYSIS_SCHEMA]
     assert "untrusted data" in openai.systems[0]
 
@@ -270,10 +275,26 @@ def test_report_tries_groq_then_claude_then_openai() -> None:
 
     report = asyncio.run(evaluator.evaluate("backend-engineer", {}, [], "fr"))
 
-    assert report == VerificationReport(**REPORT_ANSWER)
+    assert report == VerificationReport(**{**REPORT_ANSWER, "model": "openai-model"})
     assert calls == ["Groq", "Claude", "OpenAI"]
     assert openai.schemas == [REPORT_SCHEMA]
     assert "in French" in openai.systems[0]
+
+
+def test_report_moves_on_when_groq_answers_something_that_is_not_an_object(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    groq = GroqReportEvaluator(api_key="test-key", model="test-model")
+    monkeypatch.setattr(groq_report_module, "urlopen", lambda request, timeout: io.BytesIO(b"[]"))
+    evaluator = FallbackReportEvaluator(
+        groq, StructuredReportEvaluator(FakeProvider("Claude", calls, REPORT_ANSWER))
+    )
+
+    report = asyncio.run(evaluator.evaluate("backend-engineer", {}, [], "en"))
+
+    assert report == VerificationReport(**{**REPORT_ANSWER, "model": "claude-model"})
+    assert calls == ["Claude"]
 
 
 def test_report_raises_a_runtime_error_when_every_provider_fails() -> None:
@@ -326,7 +347,7 @@ def test_the_worker_builds_both_steps_as_groq_then_claude_then_openai(
     for step in (analyzers, evaluators):
         assert [(type(item.provider), item.provider.model) for item in step] == [
             (ClaudeJson, "claude-haiku-5-5"),
-            (OpenAIJson, "gpt-5-nano"),
+            (OpenAIJson, "gpt-6-luna"),
         ]
 
 

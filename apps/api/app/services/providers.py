@@ -26,6 +26,7 @@ class ProviderUnavailable(RuntimeError):
 
 class JsonProvider(Protocol):
     name: str
+    model: str
 
     async def answer(self, system: str, user: str, schema: dict[str, Any]) -> str: ...
 

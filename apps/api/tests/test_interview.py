@@ -302,7 +302,7 @@ def test_interview_agent_tries_groq_then_claude_then_openai(
     assert calls == ["Groq", "Claude", "OpenAI"]
     assert built == [
         ("Claude", "claude-haiku-5-5", "anthropic-key"),
-        ("OpenAI", "gpt-5-nano", "openai-key"),
+        ("OpenAI", "gpt-6-luna", "openai-key"),
     ]
 
 

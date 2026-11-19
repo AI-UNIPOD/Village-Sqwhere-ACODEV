@@ -21,7 +21,7 @@ Tanny decided on 19 November 2026:
   | Setting | Default |
   |---|---|
   | `ANTHROPIC_CODEBASE_MODEL`, `ANTHROPIC_INTERVIEW_MODEL`, `ANTHROPIC_EVALUATION_MODEL` | `claude-haiku-5-5` |
-  | `OPENAI_CODEBASE_MODEL`, `OPENAI_INTERVIEW_MODEL`, `OPENAI_EVALUATION_MODEL` | `gpt-5-nano` |
+  | `OPENAI_CODEBASE_MODEL`, `OPENAI_INTERVIEW_MODEL`, `OPENAI_EVALUATION_MODEL` | `gpt-6-luna` |
   | `OPENAI_STT_MODEL` | `gpt-transcribe` |
 
 - **Gemini leaves these steps:** its interview and report files, its three model settings, its
@@ -90,9 +90,10 @@ OpenAI (`developers.openai.com/api/docs/...`), read on 19 November 2026:
 ## Options we considered
 
 - **Gemini kept as a third fallback.** Not chosen: Tanny expects it to go down and wants it out.
-- **`gpt-6-luna` as OpenAI's default.** It costs twice as much, but it is the replacement
-  OpenAI names and is not deprecated. `gpt-5-nano` was chosen because it is the cheapest and
-  passed the trial; see Consequences for its shutdown date.
+- **`gpt-5-nano` as OpenAI's default.** It is the cheapest ($0.05 in, $0.40 out per million
+  tokens) and passed the trial, but OpenAI shuts it down on 11 December 2026, three weeks after
+  this decision. `gpt-6-luna`, the replacement OpenAI names, costs $0.10 and $0.50, which is
+  still a fraction of a cent per verification, so it is the default.
 - **`gpt-4o-mini-transcribe` for speech.** Its estimate, $0.003 a minute, is below
   `gpt-transcribe`'s $0.0045, but it is deprecated and shuts down on 26 February 2027.
   `gpt-transcribe` is the cheapest model that is not deprecated, so it was chosen.
@@ -108,17 +109,20 @@ OpenAI (`developers.openai.com/api/docs/...`), read on 19 November 2026:
 
 - A deployment that sets only the two new keys gets the full chain. With no key at all, the steps
   fail as before and the interview uses its built-in questions.
-- **`gpt-5-nano` shuts down on 11 December 2026.** Before then, set `OPENAI_*_MODEL` to
-  `gpt-6-luna` or change the default in `app/config.py`.
 - The answer guard is still Groq's. Without `GROQ_API_KEY` every answer is flagged
   `guard_not_configured`, as before. Claude and OpenAI get the same instruction that the text is
   untrusted data, and their answers are held to a schema.
 - **Checked by hand on 19 November 2026,** with made-up data, one call per step per provider:
-  OpenAI's `gpt-5-nano` returned a valid codebase analysis, interview turn and report, and
+  OpenAI's `gpt-6-luna` returned a valid codebase analysis (11.4 s), interview turn (2.3 s) and
+  report (5.0 s), as `gpt-5-nano` had before it, and
   `gpt-transcribe` turned a spoken sentence (made with Windows speech synthesis) into the right
   text. Claude answered every call with a 400, "Identity verification is required to continue":
   the Anthropic account needs that check before Claude can be tried for real.
 - **Not checked:** Groq, since no Groq key is set on the machine used; Claude's real answers, until
   the account is verified; the chain end to end in a deployment.
-- The `model` field of a report or analysis is what the model writes. In the trial `gpt-5-nano`
-  wrote "provider model identifier", copied from the prompt. Groq's answers work the same way.
+- The `model` field of a report or analysis from Claude or OpenAI is the model that answered, set
+  by the code. The models name themselves wrongly: in the trial `gpt-6-luna` called itself
+  "OpenAI GPT-4.1" once and "unknown" once. Groq's answers still carry the name Groq's model
+  writes.
+- A Groq report answer that is not a JSON object now counts as Groq failing, so the report moves
+  on to Claude. Before, it raised an error the fallback did not catch.
