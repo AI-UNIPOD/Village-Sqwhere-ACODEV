@@ -104,7 +104,9 @@ stateDiagram-v2
 The worker does the slow parts (reading public repositories, writing the report) outside any
 request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The repositories
 check, the interview and the report use Groq, then Claude, then OpenAI when one fails, in the
-language the attempt started in. A provider without its key is skipped, and each answer must match
+language the attempt started in. Claude takes part only where `CLAUDE_ENABLED=true`; until the
+Anthropic account passes identity verification it is off, so OpenAI follows Groq. A provider
+without its key is skipped, and each answer must match
 a schema before it is kept (`docs/decisions/2026-11-19-interviews-without-gemini.md`). Speech goes
 to Groq's Whisper, then OpenAI.
 

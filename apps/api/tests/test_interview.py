@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import json
 import re
 from io import BytesIO
@@ -6,6 +7,7 @@ from urllib.error import HTTPError
 
 import pytest
 
+from app import config
 from app.api.v1 import interviews as interviews_api
 from app.api.v1.interviews import complete_interview, mark_interview_incomplete
 from app.models.users import (
@@ -263,6 +265,7 @@ def use_interview_providers(
     anthropic: str | None = "anthropic-key",
     openai: str | None = "openai-key",
     failing: tuple[str, ...] = (),
+    claude_enabled: bool = True,
 ) -> list[tuple]:
     built: list[tuple] = []
 
@@ -283,6 +286,7 @@ def use_interview_providers(
     monkeypatch.setattr(interviews_api, "GROQ_API_KEY", groq)
     monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", "groq-model")
     monkeypatch.setattr(interviews_api, "ANTHROPIC_API_KEY", anthropic)
+    monkeypatch.setattr(interviews_api, "CLAUDE_ENABLED", claude_enabled)
     monkeypatch.setattr(interviews_api, "OPENAI_API_KEY", openai)
     monkeypatch.setattr(interviews_api, "GroqInterviewAgent", Groq)
     monkeypatch.setattr(interviews_api, "ClaudeJson", provider("Claude"))
@@ -304,6 +308,36 @@ def test_interview_agent_tries_groq_then_claude_then_openai(
         ("Claude", "claude-haiku-5-5", "anthropic-key"),
         ("OpenAI", "gpt-6-luna", "openai-key"),
     ]
+
+
+def test_interview_agent_leaves_claude_out_until_it_is_switched_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    built = use_interview_providers(monkeypatch, calls, failing=("Groq",), claude_enabled=False)
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "en"))
+
+    # the Anthropic key is set, but Claude is not built or tried: OpenAI follows Groq
+    assert opening.welcome == "Welcome from OpenAI."
+    assert calls == ["Groq", "OpenAI"]
+    assert [name for name, *_ in built] == ["OpenAI"]
+
+
+def test_claude_is_off_unless_the_setting_says_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    def enabled(value: str | None) -> bool:
+        if value is None:
+            monkeypatch.delenv("CLAUDE_ENABLED", raising=False)
+        else:
+            monkeypatch.setenv("CLAUDE_ENABLED", value)
+        return importlib.reload(config).CLAUDE_ENABLED
+
+    try:
+        assert [enabled(v) for v in (None, "", "false", "1", "yes")] == [False] * 5
+        assert [enabled(v) for v in ("true", " TRUE ")] == [True, True]
+    finally:
+        monkeypatch.delenv("CLAUDE_ENABLED", raising=False)
+        importlib.reload(config)
 
 
 def test_interview_agent_stops_at_the_first_provider_that_answers(

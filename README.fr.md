@@ -238,7 +238,7 @@ membre signe exactement le même accord. Plus de détails dans
 | Web | Next.js 16 (App Router), React 19, TypeScript, modules CSS sur des tokens de design | Une seule base de code pour les deux langues, pages rendues côté serveur, aucun kit d'interface à contourner |
 | API | Python 3.13, FastAPI, SQLAlchemy asynchrone, Pydantic | Requêtes et réponses typées, documentation OpenAPI sur `/docs` |
 | Base de données | PostgreSQL 17 avec pgvector | Données relationnelles et vecteurs de similarité d'idées dans un seul stockage |
-| IA | Groq d'abord, puis Claude, puis OpenAI si l'un échoue | L'analyse des dépôts, l'entretien de vérification, la transcription vocale et le rapport |
+| IA | Groq d'abord, puis Claude (s'il est activé), puis OpenAI si l'un échoue | L'analyse des dépôts, l'entretien de vérification, la transcription vocale et le rapport |
 | Outils | pnpm, uv, Docker Compose, Vitest, pytest, Ruff, ESLint | Installations rapides et une commande par tâche |
 | Hébergement | Vercel (web, API et worker dans un seul projet) | Un seul domaine pour l'application et son API ; voir [`infra/README.md`](infra/README.md#deployment-vercel) |
 
@@ -273,6 +273,7 @@ uv run --directory apps/api python -m app.demo_seed
 | `DATABASE_URL`, `TEST_DATABASE_URL` | Les bases de développement et de test. |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Votre propre application OAuth GitHub, pour une vraie connexion. |
 | `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | L'analyse, l'entretien avec l'IA et le rapport : Groq d'abord, puis Claude, puis OpenAI. Chacun est ignoré sans sa clé. |
+| `CLAUDE_ENABLED` | `true` fait participer Claude. Désactivé par défaut tant que le compte Anthropic n'a pas passé la vérification d'identité : OpenAI suit alors Groq. |
 | `OPENAI_API_KEY` | Aussi les vecteurs qui permettent au score de comparer par le sens. |
 | `DEMO_ENABLED` | Active « Essayer la démo » (API) et laisse le worker redater son fil à jour une fois par jour. Désactivé par défaut. |
 | `NEXT_PUBLIC_API_URL` | Où l'application web trouve l'API. |

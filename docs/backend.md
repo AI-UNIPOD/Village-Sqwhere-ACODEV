@@ -628,7 +628,7 @@ failed run returns to `pending` and can be claimed again until
 `abandoned` with its `last_error`, so the page stops waiting and the developer can start again
 (it still counts as one of the role's three attempts). The Groq analyzer goes first. After a
 Groq configuration or API error, Claude (`ANTHROPIC_API_KEY`, `ANTHROPIC_CODEBASE_MODEL`) tries,
-then OpenAI (`OPENAI_API_KEY`, `OPENAI_CODEBASE_MODEL`). Both are asked for JSON that matches a
+where `CLAUDE_ENABLED` is true (off by default), then OpenAI (`OPENAI_API_KEY`, `OPENAI_CODEBASE_MODEL`). Both are asked for JSON that matches a
 schema, and the answer is checked against `CodebaseAnalysisResult` before it is stored. A
 provider without a key is skipped. The run fails only when every provider fails. Why:
 `docs/decisions/2026-11-19-interviews-without-gemini.md`.

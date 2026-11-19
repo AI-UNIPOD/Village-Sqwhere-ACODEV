@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.config import (
     ANTHROPIC_CODEBASE_MODEL,
     ANTHROPIC_EVALUATION_MODEL,
+    CLAUDE_ENABLED,
     OPENAI_CODEBASE_MODEL,
     OPENAI_EVALUATION_MODEL,
     VERIFICATION_MAX_ANALYSIS_ATTEMPTS,
@@ -64,10 +65,17 @@ async def report_session_ids(limit: int = 10) -> list[UUID]:
         return list(result.scalars().all())
 
 
+def claude_only_where_enabled[T](step: T) -> list[T]:
+    """Claude's place in a step's chain: empty until CLAUDE_ENABLED, so OpenAI follows Groq."""
+    return [step] if CLAUDE_ENABLED else []
+
+
 async def run_once() -> int:
     codebase_analyzer = FallbackCodebaseAnalyzer(
         GroqCodebaseAnalyzer(),
-        StructuredCodebaseAnalyzer(ClaudeJson(ANTHROPIC_CODEBASE_MODEL)),
+        *claude_only_where_enabled(
+            StructuredCodebaseAnalyzer(ClaudeJson(ANTHROPIC_CODEBASE_MODEL))
+        ),
         StructuredCodebaseAnalyzer(OpenAIJson(OPENAI_CODEBASE_MODEL)),
     )
     repository_client = GitHubRepositoryClient()
@@ -84,7 +92,9 @@ async def run_once() -> int:
 
     report_evaluator = FallbackReportEvaluator(
         GroqReportEvaluator(),
-        StructuredReportEvaluator(ClaudeJson(ANTHROPIC_EVALUATION_MODEL, timeout=90)),
+        *claude_only_where_enabled(
+            StructuredReportEvaluator(ClaudeJson(ANTHROPIC_EVALUATION_MODEL, timeout=90))
+        ),
         StructuredReportEvaluator(OpenAIJson(OPENAI_EVALUATION_MODEL, timeout=90)),
     )
     for session_id in await report_session_ids():
