@@ -383,7 +383,9 @@ type Copy = {
     frozen: string;
     sign: string;
     confirm: { title: string; confirm: string; cancel: string };
+    /** The signature was not saved because the connection failed, or because the server did not save it. */
     send: string;
+    server: string;
     noInvitation: Screen;
     archived: Screen;
     full: Screen;
@@ -959,6 +961,7 @@ const en: Copy = {
     sign: "Sign and join",
     confirm: { title: "Join this hub?", confirm: "Sign and join", cancel: "Go back" },
     send: "We couldn't complete your signature. Nothing you typed was lost, so check your connection and try again.",
+    server: "The server did not save your signature. Nothing you typed was lost, so try again in a moment.",
     noInvitation: {
       title: "There is no invitation to sign",
       text: "You can only join a hub you were invited to. Ask the owner to invite you.",
@@ -1553,6 +1556,7 @@ const fr: Copy = {
     sign: "Signer et rejoindre",
     confirm: { title: "Rejoindre cet espace\u202f?", confirm: "Signer et rejoindre", cancel: "Revenir" },
     send: "Nous n'avons pas pu enregistrer votre signature. Rien de ce que vous avez saisi n'est perdu, vérifiez votre connexion et réessayez.",
+    server: "Le serveur n'a pas enregistré votre signature. Rien de ce que vous avez saisi n'est perdu, réessayez dans un instant.",
     noInvitation: {
       title: "Aucune invitation à signer",
       text: "On ne peut rejoindre qu'un espace où l'on est invité. Demandez au porteur de vous inviter.",
