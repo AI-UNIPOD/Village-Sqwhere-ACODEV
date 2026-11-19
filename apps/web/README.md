@@ -120,7 +120,9 @@ the real text: `hero-headline.tsx`, words in `hero-headline-copy.ts`), then one 
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
 technologies the feed should show and the sectors (`POST /v1/me/roles`,
 `PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`) and, when the
-developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
+developer chose a country, the country (`PATCH /v1/me` with `country_code`). The five calls go out
+together (`saveAnswers`), so the wait is the slowest one, not the sum of five round trips; each is safe
+to send again, which is what "Try again" does. The answer is kept
 under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
 (`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
 The stack step says what is sent to OpenAI to match by meaning, tied to the chips as
