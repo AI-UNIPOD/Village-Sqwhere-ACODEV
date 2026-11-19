@@ -5,7 +5,16 @@ from typing import Final
 from pydantic import BaseModel, Field
 
 from app.services.interview import LANGUAGE_NAMES
-from app.services.verification import RepositorySnapshot
+from app.services.providers import (
+    NUMBER,
+    TEXT,
+    TEXT_LIST,
+    JsonProvider,
+    ProviderUnavailable,
+    list_of,
+    object_schema,
+)
+from app.services.verification import CodebaseAnalysisResult, RepositorySnapshot
 
 
 class AnalysisCriterion(StrEnum):
@@ -71,3 +80,47 @@ def build_codebase_analysis_prompt(
         ),
         user=json.dumps(evidence, ensure_ascii=True, separators=(",", ":")),
     )
+
+
+# The answer's shape as build_codebase_analysis_prompt describes it. CodebaseAnalysisResult keeps
+# evidence and criterion_assessments as loose objects, so the schema spells them out here.
+CODEBASE_ANALYSIS_SCHEMA = object_schema(
+    score=NUMBER,
+    summary=TEXT,
+    strengths=TEXT_LIST,
+    concerns=TEXT_LIST,
+    evidence=list_of(object_schema(criterion=TEXT, reference=TEXT)),
+    model=TEXT,
+    criterion_assessments=list_of(
+        object_schema(
+            criterion={
+                "type": "string",
+                "enum": [criterion.value for criterion in CODEBASE_CRITERIA],
+            },
+            score=NUMBER,
+            rationale=TEXT,
+            evidence=TEXT_LIST,
+        )
+    ),
+    security_flags=TEXT_LIST,
+    confidence=NUMBER,
+)
+
+
+class StructuredCodebaseAnalyzer:
+    """The repositories check on Claude or OpenAI, with the answer held to its schema."""
+
+    def __init__(self, provider: JsonProvider) -> None:
+        self.provider = provider
+
+    async def analyze(
+        self, repositories: list[RepositorySnapshot], role_slug: str, language: str
+    ) -> CodebaseAnalysisResult:
+        prompt = build_codebase_analysis_prompt(role_slug, repositories, language)
+        answer = await self.provider.answer(prompt.system, prompt.user, CODEBASE_ANALYSIS_SCHEMA)
+        try:
+            return CodebaseAnalysisResult.model_validate_json(answer)
+        except ValueError as error:
+            raise ProviderUnavailable(
+                f"{self.provider.name} returned an invalid codebase analysis."
+            ) from error

@@ -7,19 +7,23 @@ from uuid import UUID
 from sqlalchemy import select
 
 from app.config import (
+    ANTHROPIC_CODEBASE_MODEL,
+    ANTHROPIC_EVALUATION_MODEL,
+    OPENAI_CODEBASE_MODEL,
+    OPENAI_EVALUATION_MODEL,
     VERIFICATION_MAX_ANALYSIS_ATTEMPTS,
     VERIFICATION_WORKER_INTERVAL_SECONDS,
 )
 from app.database import async_session
 from app.demo_seed import redate_if_stale
 from app.models.users import VerificationPhase, VerificationSession, VerificationStatus
+from app.services.codebase_analysis import StructuredCodebaseAnalyzer
 from app.services.embeddings import GeminiEmbedder
 from app.services.fallback import FallbackCodebaseAnalyzer
-from app.services.gemini import GeminiCodebaseAnalyzer
-from app.services.gemini_report import GeminiReportEvaluator
 from app.services.groq import GroqCodebaseAnalyzer
 from app.services.groq_report import GroqReportEvaluator
-from app.services.report import FallbackReportEvaluator
+from app.services.providers import ClaudeJson, OpenAIJson
+from app.services.report import FallbackReportEvaluator, StructuredReportEvaluator
 from app.services.verification import GitHubRepositoryClient
 from app.workers.embeddings import embed_missing
 from app.workers.verification import process_codebase_analysis, process_verification_report
@@ -63,7 +67,8 @@ async def report_session_ids(limit: int = 10) -> list[UUID]:
 async def run_once() -> int:
     codebase_analyzer = FallbackCodebaseAnalyzer(
         GroqCodebaseAnalyzer(),
-        GeminiCodebaseAnalyzer(),
+        StructuredCodebaseAnalyzer(ClaudeJson(ANTHROPIC_CODEBASE_MODEL)),
+        StructuredCodebaseAnalyzer(OpenAIJson(OPENAI_CODEBASE_MODEL)),
     )
     repository_client = GitHubRepositoryClient()
     processed = 0
@@ -79,7 +84,8 @@ async def run_once() -> int:
 
     report_evaluator = FallbackReportEvaluator(
         GroqReportEvaluator(),
-        GeminiReportEvaluator(),
+        StructuredReportEvaluator(ClaudeJson(ANTHROPIC_EVALUATION_MODEL, timeout=90)),
+        StructuredReportEvaluator(OpenAIJson(OPENAI_EVALUATION_MODEL, timeout=90)),
     )
     for session_id in await report_session_ids():
         try:

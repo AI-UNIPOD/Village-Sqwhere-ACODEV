@@ -22,15 +22,22 @@ from app.models.users import (
     VerificationStatus,
 )
 from app.services.codebase_analysis import (
+    CODEBASE_ANALYSIS_SCHEMA,
     AnalysisCriterion,
+    StructuredCodebaseAnalyzer,
     build_codebase_analysis_prompt,
 )
 from app.services.fallback import FallbackCodebaseAnalyzer
-from app.services.gemini import GeminiCodebaseAnalyzer, GeminiConfigurationError
-from app.services.gemini_report import GeminiReportEvaluator
 from app.services.groq import GroqApiError, GroqCodebaseAnalyzer, GroqConfigurationError
 from app.services.groq_report import GroqReportEvaluator
-from app.services.report import VerificationReport, build_report_prompt
+from app.services.providers import ClaudeJson, OpenAIJson, ProviderUnavailable
+from app.services.report import (
+    REPORT_SCHEMA,
+    FallbackReportEvaluator,
+    StructuredReportEvaluator,
+    VerificationReport,
+    build_report_prompt,
+)
 from app.services.verification import (
     CodebaseAnalysisResult,
     GitHubRepositoryClient,
@@ -38,6 +45,7 @@ from app.services.verification import (
     RepositorySnapshot,
     run_codebase_analysis,
 )
+from app.workers import runner
 from app.workers.verification import process_codebase_analysis, process_verification_report
 from tests.conftest import test_async_session as db_session
 
@@ -112,45 +120,214 @@ def test_groq_codebase_analyzer_validates_structured_output() -> None:
     assert result.model == "test-model"
 
 
-def test_gemini_codebase_analyzer_requires_configuration() -> None:
-    analyzer = GeminiCodebaseAnalyzer()
-    with pytest.raises(GeminiConfigurationError):
-        asyncio.run(analyzer.analyze([], "backend-engineer", "en"))
+class FakeProvider:
+    """Stands in for ClaudeJson or OpenAIJson: records the order it was asked in."""
+
+    def __init__(self, name: str, calls: list[str], answer: dict | str | None = None) -> None:
+        self.name = name
+        self.calls = calls
+        self.answer_value = answer
+        self.systems: list[str] = []
+        self.schemas: list[dict] = []
+
+    async def answer(self, system: str, user: str, schema: dict) -> str:
+        self.calls.append(self.name)
+        self.systems.append(system)
+        self.schemas.append(schema)
+        if self.answer_value is None:
+            raise ProviderUnavailable(f"{self.name} is down")
+        if isinstance(self.answer_value, str):
+            return self.answer_value
+        return json.dumps(self.answer_value)
 
 
-def test_codebase_analyzer_falls_back_to_gemini_after_groq_error() -> None:
-    primary = GroqCodebaseAnalyzer(api_key="test-key", model="test-model")
-    fallback = GeminiCodebaseAnalyzer(api_key="test-key", model="test-model")
+CODEBASE_ANSWER = {
+    "score": 70,
+    "summary": "Layered service with tests.",
+    "strengths": ["Tests cover the payment flow."],
+    "concerns": [],
+    "evidence": [{"criterion": "test_coverage", "reference": "tests/test_payments.py"}],
+    "model": "claude-haiku-5-5",
+    "criterion_assessments": [
+        {
+            "criterion": "test_coverage",
+            "score": 18,
+            "rationale": "A test file per module.",
+            "evidence": ["tests/test_payments.py"],
+        }
+    ],
+    "security_flags": [],
+    "confidence": 0.7,
+}
 
-    async def failed_primary(
-        repositories: list[RepositorySnapshot], role_slug: str, language: str
-    ) -> None:
+
+def failing_groq_analyzer(calls: list[str]) -> GroqCodebaseAnalyzer:
+    groq = GroqCodebaseAnalyzer(api_key="test-key", model="test-model")
+
+    async def rate_limited(repositories, role_slug: str, language: str) -> None:
+        calls.append("Groq")
         raise GroqApiError("rate limited")
 
-    async def successful_fallback(
-        repositories: list[RepositorySnapshot], role_slug: str, language: str
-    ) -> CodebaseAnalysisResult:
-        return CodebaseAnalysisResult(
-            score=70,
-            summary="Fallback analysis complete.",
-            strengths=[],
-            concerns=[],
-            evidence=[],
-            model="gemini-test-model",
-        )
+    groq.analyze = rate_limited
+    return groq
 
-    primary.analyze = failed_primary
-    fallback.analyze = successful_fallback
-    analyzer = FallbackCodebaseAnalyzer(primary, fallback)
+
+def test_codebase_analysis_tries_groq_then_claude_then_openai() -> None:
+    calls: list[str] = []
+    claude = FakeProvider("Claude", calls)
+    openai = FakeProvider("OpenAI", calls, CODEBASE_ANSWER)
+    analyzer = FallbackCodebaseAnalyzer(
+        failing_groq_analyzer(calls),
+        StructuredCodebaseAnalyzer(claude),
+        StructuredCodebaseAnalyzer(openai),
+    )
+
     result = asyncio.run(analyzer.analyze([], "backend-engineer", "en"))
 
-    assert result.model == "gemini-test-model"
+    assert calls == ["Groq", "Claude", "OpenAI"]
+    assert result.model_dump(mode="json")["evidence"] == CODEBASE_ANSWER["evidence"]
+    assert openai.schemas == [CODEBASE_ANALYSIS_SCHEMA]
+    assert "untrusted data" in openai.systems[0]
 
 
-def test_gemini_report_evaluator_requires_configuration() -> None:
-    evaluator = GeminiReportEvaluator()
-    with pytest.raises(RuntimeError):
+def test_codebase_analysis_skips_providers_without_a_key() -> None:
+    calls: list[str] = []
+    analyzer = FallbackCodebaseAnalyzer(
+        GroqCodebaseAnalyzer(api_key=None, model=None),
+        StructuredCodebaseAnalyzer(ClaudeJson("claude-haiku-5-5", api_key=None)),
+        StructuredCodebaseAnalyzer(FakeProvider("OpenAI", calls, CODEBASE_ANSWER)),
+    )
+
+    result = asyncio.run(analyzer.analyze([], "backend-engineer", "en"))
+
+    assert result.score == 70
+    assert calls == ["OpenAI"]
+
+
+@pytest.mark.parametrize(
+    "answer",
+    ["not json", json.dumps({**CODEBASE_ANSWER, "score": 140}), json.dumps({"score": 70})],
+    ids=["not-json", "score-out-of-range", "missing-fields"],
+)
+def test_a_codebase_answer_that_does_not_validate_moves_on_to_the_next_provider(
+    answer: str,
+) -> None:
+    calls: list[str] = []
+    analyzer = FallbackCodebaseAnalyzer(
+        StructuredCodebaseAnalyzer(FakeProvider("Claude", calls, answer)),
+        StructuredCodebaseAnalyzer(FakeProvider("OpenAI", calls, CODEBASE_ANSWER)),
+    )
+
+    result = asyncio.run(analyzer.analyze([], "backend-engineer", "en"))
+
+    assert result.score == 70
+    assert calls == ["Claude", "OpenAI"]
+
+
+def test_codebase_analysis_raises_the_last_failure_when_every_provider_fails() -> None:
+    calls: list[str] = []
+    analyzer = FallbackCodebaseAnalyzer(
+        failing_groq_analyzer(calls),
+        StructuredCodebaseAnalyzer(FakeProvider("Claude", calls)),
+        StructuredCodebaseAnalyzer(FakeProvider("OpenAI", calls, "{}")),
+    )
+
+    with pytest.raises(ProviderUnavailable, match="OpenAI returned an invalid codebase analysis"):
+        asyncio.run(analyzer.analyze([], "backend-engineer", "en"))
+
+    assert calls == ["Groq", "Claude", "OpenAI"]
+
+
+REPORT_ANSWER = {
+    "score": 72,
+    "summary": "Solid evidence for the role.",
+    "codebase_findings": ["Tests cover the payment flow."],
+    "interview_findings": ["Explained the retry queue."],
+    "concerns": [],
+    "security_flags": [],
+    "confidence": 0.8,
+    "model": "gpt-5-nano",
+}
+
+
+class FailingGroqEvaluator:
+    def __init__(self, calls: list[str]) -> None:
+        self.calls = calls
+
+    async def evaluate(self, role_slug, codebase_result, interview_turns, language):
+        self.calls.append("Groq")
+        raise RuntimeError("Groq evaluation failed.")
+
+
+def test_report_tries_groq_then_claude_then_openai() -> None:
+    calls: list[str] = []
+    openai = FakeProvider("OpenAI", calls, REPORT_ANSWER)
+    evaluator = FallbackReportEvaluator(
+        FailingGroqEvaluator(calls),
+        StructuredReportEvaluator(FakeProvider("Claude", calls, {**REPORT_ANSWER, "summary": ""})),
+        StructuredReportEvaluator(openai),
+    )
+
+    report = asyncio.run(evaluator.evaluate("backend-engineer", {}, [], "fr"))
+
+    assert report == VerificationReport(**REPORT_ANSWER)
+    assert calls == ["Groq", "Claude", "OpenAI"]
+    assert openai.schemas == [REPORT_SCHEMA]
+    assert "in French" in openai.systems[0]
+
+
+def test_report_raises_a_runtime_error_when_every_provider_fails() -> None:
+    calls: list[str] = []
+    evaluator = FallbackReportEvaluator(
+        FailingGroqEvaluator(calls),
+        StructuredReportEvaluator(ClaudeJson("claude-haiku-5-5", api_key=None)),
+        StructuredReportEvaluator(FakeProvider("OpenAI", calls)),
+    )
+
+    with pytest.raises(RuntimeError, match="OpenAI is down"):
         asyncio.run(evaluator.evaluate("backend-engineer", {}, [], "en"))
+
+    assert calls == ["Groq", "OpenAI"]
+
+
+def test_the_worker_builds_both_steps_as_groq_then_claude_then_openai(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    built: dict = {}
+
+    async def one_session(limit: int = 10) -> list[UUID]:
+        return [UUID(int=1)]
+
+    async def capture_analyzer(db, session_id, repository_client, analyzer) -> bool:
+        built["analyzer"] = analyzer
+        return False
+
+    async def capture_evaluator(db, session_id, evaluator) -> bool:
+        built["evaluator"] = evaluator
+        return False
+
+    async def nothing(*args) -> int:
+        return 0
+
+    monkeypatch.setattr(runner, "async_session", db_session)
+    monkeypatch.setattr(runner, "pending_session_ids", one_session)
+    monkeypatch.setattr(runner, "report_session_ids", one_session)
+    monkeypatch.setattr(runner, "process_codebase_analysis", capture_analyzer)
+    monkeypatch.setattr(runner, "process_verification_report", capture_evaluator)
+    monkeypatch.setattr(runner, "embed_missing", nothing)
+    monkeypatch.setattr(runner, "redate_demo", nothing)
+
+    asyncio.run(runner.run_once())
+
+    groq_analyzer, *analyzers = built["analyzer"].analyzers
+    groq_evaluator, *evaluators = built["evaluator"].evaluators
+    assert isinstance(groq_analyzer, GroqCodebaseAnalyzer)
+    assert isinstance(groq_evaluator, GroqReportEvaluator)
+    for step in (analyzers, evaluators):
+        assert [(type(item.provider), item.provider.model) for item in step] == [
+            (ClaudeJson, "claude-haiku-5-5"),
+            (OpenAIJson, "gpt-5-nano"),
+        ]
 
 
 def test_worker_claims_pending_session_and_advances_phase(sign_in) -> None:
@@ -418,8 +595,8 @@ def configure_test_interview(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(interviews_api, "GROQ_API_KEY", None)
     monkeypatch.setattr(interviews_api, "GROQ_GUARD_MODEL", None)
     monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", None)
-    monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", None)
-    monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", None)
+    monkeypatch.setattr(interviews_api, "ANTHROPIC_API_KEY", None)
+    monkeypatch.setattr(interviews_api, "OPENAI_API_KEY", None)
 
 
 class RecordingTranscriber:
@@ -991,28 +1168,24 @@ def test_codebase_analyzers_send_the_language_in_their_prompt() -> None:
         "model": "test-model",
     }
     groq = GroqCodebaseAnalyzer(api_key="test-key", model="test-model")
-    gemini = GeminiCodebaseAnalyzer(api_key="test-key", model="test-model")
+    claude = FakeProvider("Claude", [], result)
 
     async def groq_post(url: str, payload: dict) -> dict:
         sent.append(payload["messages"][0]["content"])
         return {"choices": [{"message": {"content": json.dumps(result)}}]}
 
-    async def gemini_post(url: str, payload: dict) -> dict:
-        sent.append(payload["contents"][0]["parts"][0]["text"])
-        return {"candidates": [{"content": {"parts": [{"text": json.dumps(result)}]}}]}
-
     groq._post_json = groq_post
-    gemini._post_json = gemini_post
     asyncio.run(groq.analyze([], "backend-engineer", "fr"))
-    asyncio.run(gemini.analyze([], "backend-engineer", "fr"))
+    asyncio.run(StructuredCodebaseAnalyzer(claude).analyze([], "backend-engineer", "fr"))
 
+    sent.extend(claude.systems)
     assert len(sent) == 2
     assert all("rationale in French" in text for text in sent)
 
 
 def test_fallback_codebase_analyzer_passes_the_language_on() -> None:
     primary = GroqCodebaseAnalyzer(api_key="test-key", model="test-model")
-    fallback = GeminiCodebaseAnalyzer(api_key="test-key", model="test-model")
+    fallback = StructuredCodebaseAnalyzer(FakeProvider("Claude", []))
     languages: list[str] = []
 
     async def failed_primary(

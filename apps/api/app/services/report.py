@@ -4,6 +4,15 @@ from typing import Protocol
 from pydantic import BaseModel, Field
 
 from app.services.interview import LANGUAGE_NAMES
+from app.services.providers import (
+    NUMBER,
+    TEXT,
+    TEXT_LIST,
+    JsonProvider,
+    ProviderUnavailable,
+    first_answer,
+    object_schema,
+)
 
 
 class VerificationReport(BaseModel):
@@ -24,21 +33,50 @@ class ReportEvaluator(Protocol):
 
 
 class FallbackReportEvaluator:
-    def __init__(self, primary: ReportEvaluator, fallback: ReportEvaluator) -> None:
-        self.primary = primary
-        self.fallback = fallback
+    def __init__(self, *evaluators: ReportEvaluator) -> None:
+        self.evaluators = evaluators
 
     async def evaluate(
         self, role_slug: str, codebase_result: dict, interview_turns: list[dict], language: str
     ) -> VerificationReport:
+        return await first_answer(
+            self.evaluators,
+            lambda evaluator: evaluator.evaluate(
+                role_slug, codebase_result, interview_turns, language
+            ),
+            (RuntimeError,),
+        )
+
+
+REPORT_SCHEMA = object_schema(
+    score=NUMBER,
+    summary=TEXT,
+    codebase_findings=TEXT_LIST,
+    interview_findings=TEXT_LIST,
+    concerns=TEXT_LIST,
+    security_flags=TEXT_LIST,
+    confidence=NUMBER,
+    model=TEXT,
+)
+
+
+class StructuredReportEvaluator:
+    """The report on Claude or OpenAI, with the answer held to the report's schema."""
+
+    def __init__(self, provider: JsonProvider) -> None:
+        self.provider = provider
+
+    async def evaluate(
+        self, role_slug: str, codebase_result: dict, interview_turns: list[dict], language: str
+    ) -> VerificationReport:
+        system, user = build_report_prompt(role_slug, codebase_result, interview_turns, language)
+        answer = await self.provider.answer(system, user, REPORT_SCHEMA)
         try:
-            return await self.primary.evaluate(
-                role_slug, codebase_result, interview_turns, language
-            )
-        except RuntimeError:
-            return await self.fallback.evaluate(
-                role_slug, codebase_result, interview_turns, language
-            )
+            return VerificationReport.model_validate_json(answer)
+        except ValueError as error:
+            raise ProviderUnavailable(
+                f"{self.provider.name} returned an invalid verification report."
+            ) from error
 
 
 def build_report_prompt(

@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 from io import BytesIO
+from urllib.error import HTTPError
 
 import pytest
 
@@ -14,22 +15,31 @@ from app.models.users import (
     VerificationSession,
     VerificationStatus,
 )
-from app.services import gemini_interview, groq_interview
-from app.services.gemini_interview import GeminiAudioTranscriber, GeminiInterviewAgent
+from app.services import groq_interview, openai_speech
 from app.services.groq_interview import GroqInterviewAgent
 from app.services.interview import (
+    ANSWER_SCHEMAS,
     DEFAULT_MESSAGES,
     DEFAULT_QUESTIONS,
     INTERVIEW_COMPETENCIES,
     DefaultInterviewAgent,
     FallbackAudioTranscriber,
     FallbackInterviewAgent,
+    InterviewClosing,
+    InterviewContinuation,
     InterviewHistoryItem,
+    InterviewOpening,
     InterviewUnavailable,
+    StructuredInterviewAgent,
     UnconfiguredAnswerGuard,
+    closing_request,
+    continuation_request,
     interview_system_prompt,
+    opening_request,
     parse_interview_message,
 )
+from app.services.openai_speech import OpenAITranscriber
+from app.services.providers import ProviderUnavailable
 
 
 def test_default_agent_covers_five_competencies_with_conversation() -> None:
@@ -167,187 +177,310 @@ def test_groq_agent_rejects_context_before_calling_provider(
         asyncio.run(agent.opening("backend-engineer", {"summary": "evidence"}, "en"))
 
 
-def test_gemini_agent_requires_configuration() -> None:
-    agent = GeminiInterviewAgent(api_key=None, model=None)
+class FakeProvider:
+    """Stands in for ClaudeJson or OpenAIJson: records what it was asked and answers as told."""
 
-    with pytest.raises(InterviewUnavailable, match="not configured"):
+    def __init__(
+        self,
+        name: str,
+        calls: list[str] | None = None,
+        answer: str | None = None,
+        fails: bool = False,
+    ) -> None:
+        self.name = name
+        self.calls = calls if calls is not None else []
+        self.fixed_answer = answer
+        self.fails = fails
+        self.requests: list[tuple[str, dict, dict]] = []
+
+    async def answer(self, system: str, user: str, schema: dict) -> str:
+        self.calls.append(self.name)
+        payload = json.loads(user)
+        self.requests.append((system, payload, schema))
+        if self.fails:
+            raise ProviderUnavailable(f"{self.name} is down")
+        if self.fixed_answer is not None:
+            return self.fixed_answer
+        if payload["phase"] == "opening":
+            return json.dumps({"welcome": f"Welcome from {self.name}.", "question": "First?"})
+        if payload["phase"] == "continuation":
+            return json.dumps({"acknowledgement": "Thanks.", "question": "Follow-up?"})
+        return json.dumps({"acknowledgement": "Thanks.", "closing": "Goodbye."})
+
+
+def test_structured_agent_sends_groqs_requests_with_a_schema_for_each_answer() -> None:
+    provider = FakeProvider("Claude")
+    agent = StructuredInterviewAgent(provider)
+    history = [InterviewHistoryItem(sequence=1, question="Question", answer="I used a queue.")]
+
+    opening = asyncio.run(agent.opening("backend-engineer", {"score": 70}, "en"))
+    continuation = asyncio.run(agent.continuation("backend-engineer", 5, {}, history, "en"))
+    closing = asyncio.run(agent.closing("backend-engineer", {}, history, "en"))
+
+    assert opening.welcome == "Welcome from Claude."
+    assert continuation.question == "Follow-up?"
+    assert closing.closing == "Goodbye."
+    payloads = [payload for _, payload, _ in provider.requests]
+    assert payloads == [
+        opening_request("backend-engineer", {"score": 70}),
+        continuation_request("backend-engineer", 5, {}, history),
+        closing_request("backend-engineer", {}, history),
+    ]
+    assert payloads[1]["competency"] == "trade-offs and problem solving"
+    assert [schema for *_, schema in provider.requests] == [
+        ANSWER_SCHEMAS[InterviewOpening],
+        ANSWER_SCHEMAS[InterviewContinuation],
+        ANSWER_SCHEMAS[InterviewClosing],
+    ]
+    for system, _, _ in provider.requests:
+        assert "untrusted data" in system
+        assert "neutral" in system
+
+
+@pytest.mark.parametrize(
+    "answer",
+    ["{}", "not json", json.dumps({"acknowledgement": "x" * 1001, "question": "Next?"})],
+    ids=["missing-fields", "not-json", "too-long"],
+)
+def test_structured_agent_rejects_an_answer_that_does_not_validate(answer: str) -> None:
+    agent = StructuredInterviewAgent(FakeProvider("OpenAI", answer=answer))
+
+    with pytest.raises(InterviewUnavailable, match="OpenAI interview continuation failed"):
+        asyncio.run(agent.continuation("backend-engineer", 2, {}, [], "en"))
+
+
+def test_structured_agent_reports_a_provider_failure_as_interview_unavailable() -> None:
+    agent = StructuredInterviewAgent(FakeProvider("Claude", fails=True))
+
+    with pytest.raises(InterviewUnavailable, match="Claude interview opening failed"):
         asyncio.run(agent.opening("backend-engineer", {}, "en"))
 
 
-def test_gemini_audio_transcriber_sends_inline_audio(monkeypatch: pytest.MonkeyPatch) -> None:
-    transcriber = GeminiAudioTranscriber(api_key="test-key", model="test-model")
-    captured: dict = {}
+def use_interview_providers(
+    monkeypatch: pytest.MonkeyPatch,
+    calls: list[str],
+    groq: str | None = "groq-key",
+    anthropic: str | None = "anthropic-key",
+    openai: str | None = "openai-key",
+    failing: tuple[str, ...] = (),
+) -> list[tuple]:
+    built: list[tuple] = []
 
-    def fake_urlopen(request, timeout):
-        captured["payload"] = json.loads(request.data)
-        return BytesIO(b'{"candidates":[{"content":{"parts":[{"text":"spoken answer"}]}}]}')
+    class Groq(DefaultInterviewAgent):
+        async def opening(self, role_slug, analysis, language):
+            calls.append("Groq")
+            if "Groq" in failing:
+                raise InterviewUnavailable("Groq is down")
+            return await super().opening(role_slug, analysis, language)
 
-    monkeypatch.setattr(gemini_interview, "urlopen", fake_urlopen)
+    def provider(name: str):
+        def build(model: str, api_key: str | None) -> FakeProvider:
+            built.append((name, model, api_key))
+            return FakeProvider(name, calls, fails=name in failing)
 
-    transcript = asyncio.run(transcriber.transcribe(b"audio", "audio/webm"))
+        return build
 
-    assert transcript == "spoken answer"
-    part = captured["payload"]["contents"][0]["parts"][1]["inlineData"]
-    assert part["mimeType"] == "audio/webm"
-    assert part["data"] == "YXVkaW8="
+    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", groq)
+    monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", "groq-model")
+    monkeypatch.setattr(interviews_api, "ANTHROPIC_API_KEY", anthropic)
+    monkeypatch.setattr(interviews_api, "OPENAI_API_KEY", openai)
+    monkeypatch.setattr(interviews_api, "GroqInterviewAgent", Groq)
+    monkeypatch.setattr(interviews_api, "ClaudeJson", provider("Claude"))
+    monkeypatch.setattr(interviews_api, "OpenAIJson", provider("OpenAI"))
+    return built
 
 
-def test_audio_transcriber_falls_back_to_gemini() -> None:
+def test_interview_agent_tries_groq_then_claude_then_openai(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    built = use_interview_providers(monkeypatch, calls, failing=("Groq", "Claude"))
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "en"))
+
+    assert opening.welcome == "Welcome from OpenAI."
+    assert calls == ["Groq", "Claude", "OpenAI"]
+    assert built == [
+        ("Claude", "claude-haiku-5-5", "anthropic-key"),
+        ("OpenAI", "gpt-5-nano", "openai-key"),
+    ]
+
+
+def test_interview_agent_stops_at_the_first_provider_that_answers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    use_interview_providers(monkeypatch, calls, failing=("Groq",))
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "en"))
+
+    assert opening.welcome == "Welcome from Claude."
+    assert calls == ["Groq", "Claude"]
+
+
+def test_interview_agent_skips_a_provider_with_no_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    built = use_interview_providers(monkeypatch, calls, groq=None, anthropic=None)
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "en"))
+
+    assert opening.welcome == "Welcome from OpenAI."
+    assert calls == ["OpenAI"]
+    assert [name for name, *_ in built] == ["OpenAI"]
+
+
+def test_interview_agent_uses_the_built_in_questions_when_every_provider_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    use_interview_providers(monkeypatch, calls, failing=("Groq", "Claude", "OpenAI"))
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "en"))
+
+    assert opening.welcome.startswith("Welcome to your backend engineer verification")
+    assert calls == ["Groq", "Claude", "OpenAI"]
+
+
+def test_interview_agent_with_no_key_at_all_uses_the_built_in_questions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    use_interview_providers(monkeypatch, calls, groq=None, anthropic=None, openai=None)
+
+    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "fr"))
+
+    assert opening.welcome.startswith("Bienvenue")
+    assert calls == []
+
+
+def test_audio_transcriber_falls_back_to_the_next_transcriber() -> None:
     class Unavailable:
         async def transcribe(self, audio: bytes, content_type: str) -> str:
             raise InterviewUnavailable("Groq unavailable")
 
     class Available:
         async def transcribe(self, audio: bytes, content_type: str) -> str:
-            return "Gemini transcript"
+            return "OpenAI transcript"
 
     transcript = asyncio.run(
         FallbackAudioTranscriber(Unavailable(), Available()).transcribe(b"audio", "audio/webm")
     )
 
-    assert transcript == "Gemini transcript"
+    assert transcript == "OpenAI transcript"
 
 
-def test_gemini_agent_generates_structured_adaptive_conversation() -> None:
-    agent = GeminiInterviewAgent(api_key="test-key", model="test-model")
-    requests: list[dict] = []
-
-    async def fake_generate(payload: dict, language: str) -> str:
-        requests.append(payload)
-        if payload["phase"] == "opening":
-            return json.dumps({"welcome": "Welcome.", "question": "First question?"})
-        if payload["phase"] == "continuation":
-            return json.dumps({"acknowledgement": "Thanks.", "question": "Follow-up?"})
-        return json.dumps({"acknowledgement": "Thanks.", "closing": "Goodbye."})
-
-    agent._generate = fake_generate
-    history = [
-        InterviewHistoryItem(sequence=1, question="Question", answer="I used a queue."),
-    ]
-
-    opening = asyncio.run(agent.opening("backend-engineer", {"score": 70}, "en"))
-    continuation = asyncio.run(agent.continuation("backend-engineer", 5, {}, history, "en"))
-    closing = asyncio.run(agent.closing("backend-engineer", {}, history, "en"))
-
-    assert opening.welcome == "Welcome."
-    assert continuation.question == "Follow-up?"
-    assert closing.closing == "Goodbye."
-    assert requests[1]["competency"] == "trade-offs and problem solving"
-    assert requests[1]["history"][0]["answer"] == "I used a queue."
-
-
-def test_gemini_agent_rejects_invalid_structured_response() -> None:
-    agent = GeminiInterviewAgent(api_key="test-key", model="test-model")
-
-    async def fake_generate(payload: dict, language: str) -> str:
-        return "{}"
-
-    agent._generate = fake_generate
-
-    with pytest.raises(InterviewUnavailable, match="continuation is invalid"):
-        asyncio.run(agent.continuation("backend-engineer", 2, {}, [], "en"))
-
-
-def test_gemini_agent_requests_json_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    agent = GeminiInterviewAgent(api_key="test-key", model="gemini/test model")
-    captured: dict = {}
+@pytest.mark.parametrize(
+    ("content_type", "file_name"),
+    [
+        ("audio/webm;codecs=opus", "answer.webm"),
+        ("audio/ogg", "answer.ogg"),
+        ("audio/mpeg", "answer.mp3"),
+        ("audio/x-wav", "answer.wav"),
+    ],
+)
+def test_openai_transcriber_sends_the_audio_with_the_key_only_in_a_header(
+    monkeypatch: pytest.MonkeyPatch, content_type: str, file_name: str
+) -> None:
+    sent: list = []
 
     def fake_urlopen(request, timeout):
-        captured["url"] = request.full_url
-        captured["payload"] = json.loads(request.data)
-        return BytesIO(b'{"candidates":[{"content":{"parts":[{"text":"{}"}]}}]}')
+        sent.append(request)
+        return BytesIO(b'{"text": "  I owned the payment queue. ", "languages": [{"code": "en"}]}')
 
-    monkeypatch.setattr(gemini_interview, "urlopen", fake_urlopen)
+    monkeypatch.setattr(openai_speech, "urlopen", fake_urlopen)
 
-    response = agent._generate_sync({"phase": "opening"}, "en")
+    transcript = asyncio.run(
+        OpenAITranscriber(api_key="openai-key").transcribe(b"spoken audio", content_type)
+    )
 
-    assert response["candidates"]
-    assert "gemini%2Ftest%20model" in captured["url"]
-    assert captured["payload"]["generationConfig"]["responseMimeType"] == "application/json"
-    prompt = captured["payload"]["contents"][0]["parts"][0]["text"]
-    assert "untrusted data" in prompt
+    assert transcript == "I owned the payment queue."
+    (request,) = sent
+    assert request.full_url == "https://api.openai.com/v1/audio/transcriptions"
+    assert "openai-key" not in request.full_url
+    assert request.get_header("Authorization") == "Bearer openai-key"
+    body = request.data.decode("latin-1")
+    assert 'name="model"\r\n\r\ngpt-transcribe\r\n' in body
+    assert f'filename="{file_name}"' in body
+    assert f"Content-Type: {content_type}" in body
+    assert "spoken audio" in body
 
 
-def test_interview_agent_falls_back_from_groq_to_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize(
+    "reply",
+    [
+        HTTPError("https://api.openai.com/v1/audio/transcriptions", 500, "Error", {}, None),
+        TimeoutError("timed out"),
+        b'{"text": "   "}',
+        b"[]",
+    ],
+    ids=["http-error", "timeout", "no-text", "not-an-object"],
+)
+def test_openai_transcriber_failures_are_interview_unavailable(
+    monkeypatch: pytest.MonkeyPatch, reply
+) -> None:
+    def fake_urlopen(request, timeout):
+        if isinstance(reply, Exception):
+            raise reply
+        return BytesIO(reply)
+
+    monkeypatch.setattr(openai_speech, "urlopen", fake_urlopen)
+
+    with pytest.raises(InterviewUnavailable):
+        asyncio.run(OpenAITranscriber(api_key="openai-key").transcribe(b"audio", "audio/webm"))
+
+
+def test_openai_transcriber_without_a_key_sends_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    def must_not_send(request, timeout):
+        raise AssertionError("no request without a key")
+
+    monkeypatch.setattr(openai_speech, "urlopen", must_not_send)
+
+    with pytest.raises(InterviewUnavailable, match="not configured"):
+        asyncio.run(OpenAITranscriber(api_key=None).transcribe(b"audio", "audio/webm"))
+
+
+def use_transcribers(
+    monkeypatch: pytest.MonkeyPatch, calls: list[str], groq: str | None, openai: str | None
+) -> None:
+    class Groq:
+        async def transcribe(self, audio: bytes, content_type: str) -> str:
+            calls.append("Groq")
+            raise InterviewUnavailable("Groq is down")
+
+    class OpenAI:
+        def __init__(self, api_key: str | None) -> None:
+            self.api_key = api_key
+
+        async def transcribe(self, audio: bytes, content_type: str) -> str:
+            calls.append(f"OpenAI with {self.api_key}")
+            return "OpenAI transcript"
+
+    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", groq)
+    monkeypatch.setattr(interviews_api, "OPENAI_API_KEY", openai)
+    monkeypatch.setattr(interviews_api, "GroqWhisperTranscriber", Groq)
+    monkeypatch.setattr(interviews_api, "OpenAITranscriber", OpenAI)
+
+
+def test_speech_falls_back_from_groq_to_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
+    use_transcribers(monkeypatch, calls, groq="groq-key", openai="openai-key")
 
-    class UnavailableGroq:
-        async def opening(self, role_slug, analysis, language):
-            calls.append("groq")
-            raise InterviewUnavailable("Groq unavailable")
+    transcript = asyncio.run(interviews_api.audio_transcriber().transcribe(b"audio", "audio/webm"))
 
-    class AvailableGemini(DefaultInterviewAgent):
-        async def opening(self, role_slug, analysis, language):
-            calls.append("gemini")
-            return await super().opening(role_slug, analysis, language)
-
-    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", "groq-key")
-    monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", "groq-model")
-    monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", "gemini-key")
-    monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", "gemini-model")
-    monkeypatch.setattr(interviews_api, "GroqInterviewAgent", UnavailableGroq)
-    monkeypatch.setattr(interviews_api, "GeminiInterviewAgent", AvailableGemini)
-
-    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "en"))
-
-    assert opening.welcome.startswith("Welcome")
-    assert calls == ["groq", "gemini"]
+    assert transcript == "OpenAI transcript"
+    assert calls == ["Groq", "OpenAI with openai-key"]
 
 
-def test_interview_agent_uses_gemini_when_groq_is_not_configured(
+def test_speech_without_any_key_says_it_is_not_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
+    use_transcribers(monkeypatch, calls, groq=None, openai=None)
 
-    class AvailableGemini(DefaultInterviewAgent):
-        async def opening(self, role_slug, analysis, language):
-            calls.append("gemini")
-            return await super().opening(role_slug, analysis, language)
+    with pytest.raises(InterviewUnavailable, match="not configured"):
+        asyncio.run(interviews_api.audio_transcriber().transcribe(b"audio", "audio/webm"))
 
-    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", None)
-    monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", None)
-    monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", "gemini-key")
-    monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", "gemini-model")
-    monkeypatch.setattr(interviews_api, "GeminiInterviewAgent", AvailableGemini)
-
-    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "en"))
-
-    assert opening.question
-    assert calls == ["gemini"]
-
-
-def test_interview_agent_uses_local_fallback_when_both_providers_fail(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    calls: list[str] = []
-
-    class UnavailableAgent:
-        def __init__(self, provider: str) -> None:
-            self.provider = provider
-
-        async def opening(self, role_slug, analysis, language):
-            calls.append(self.provider)
-            raise InterviewUnavailable(f"{self.provider} unavailable")
-
-    monkeypatch.setattr(interviews_api, "GROQ_API_KEY", "groq-key")
-    monkeypatch.setattr(interviews_api, "GROQ_INTERVIEW_MODEL", "groq-model")
-    monkeypatch.setattr(interviews_api, "GEMINI_API_KEY", "gemini-key")
-    monkeypatch.setattr(interviews_api, "GEMINI_INTERVIEW_MODEL", "gemini-model")
-    monkeypatch.setattr(
-        interviews_api,
-        "GroqInterviewAgent",
-        lambda: UnavailableAgent("groq"),
-    )
-    monkeypatch.setattr(
-        interviews_api,
-        "GeminiInterviewAgent",
-        lambda: UnavailableAgent("gemini"),
-    )
-
-    opening = asyncio.run(interviews_api.interview_agent().opening("backend-engineer", {}, "en"))
-
-    assert opening.welcome.startswith("Welcome")
-    assert calls == ["groq", "gemini"]
+    assert calls == []
 
 
 @pytest.mark.parametrize("raw", ["not json", "[]", "{}", '{"type": 4}'])
@@ -478,25 +611,14 @@ def test_groq_agent_asks_for_the_stored_language(language, instruction, other) -
         ("en", "Write every message to the candidate in English."),
     ],
 )
-def test_gemini_agent_asks_for_the_stored_language(
-    monkeypatch: pytest.MonkeyPatch, language: str, instruction: str
-) -> None:
-    agent = GeminiInterviewAgent(api_key="test-key", model="test-model")
-    prompts: list[str] = []
+def test_structured_agent_asks_for_the_stored_language(language: str, instruction: str) -> None:
+    provider = FakeProvider("Claude")
 
-    def fake_urlopen(request, timeout):
-        prompts.append(json.loads(request.data)["contents"][0]["parts"][0]["text"])
-        text = json.dumps({"welcome": "Welcome.", "question": "First question?"})
-        return BytesIO(
-            json.dumps({"candidates": [{"content": {"parts": [{"text": text}]}}]}).encode()
-        )
+    asyncio.run(StructuredInterviewAgent(provider).opening("backend-engineer", {}, language))
 
-    monkeypatch.setattr(gemini_interview, "urlopen", fake_urlopen)
-
-    asyncio.run(agent.opening("backend-engineer", {}, language))
-
-    assert instruction in prompts[0]
-    assert "untrusted data" in prompts[0]
+    ((system, _, _),) = provider.requests
+    assert instruction in system
+    assert "untrusted data" in system
 
 
 def test_language_instruction_comes_only_from_the_fixed_mapping() -> None:

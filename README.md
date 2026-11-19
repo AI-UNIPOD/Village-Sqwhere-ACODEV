@@ -186,7 +186,7 @@ flowchart LR
   end
   DB[("PostgreSQL 17<br />+ pgvector")]
   GH["GitHub OAuth<br />+ public repos"]
-  AI["Groq, Gemini<br />(interview + report)"]
+  AI["Groq, Claude, OpenAI<br />(interview + report)"]
 
   UI <--> LS
   UI -- "JSON over HTTPS<br />Bearer token" --> R
@@ -229,7 +229,7 @@ decision records in [`docs/decisions/`](docs/decisions/).
 | Web | Next.js 16 (App Router), React 19, TypeScript, CSS modules on design tokens | One codebase for both languages, server-rendered pages, no UI kit to fight |
 | API | Python 3.13, FastAPI, async SQLAlchemy, Pydantic | Typed requests and responses, OpenAPI docs at `/docs` |
 | Database | PostgreSQL 17 with pgvector | Relational data and vectors for idea similarity in one store |
-| AI | Groq and Gemini, one falling back to the other | The verification interview, speech to text and the report |
+| AI | Groq first, then Claude, then OpenAI if one fails | The repositories check, the verification interview, speech to text and the report |
 | Tooling | pnpm, uv, Docker Compose, Vitest, pytest, Ruff, ESLint | Fast installs and one command per task |
 | Hosting | Vercel (web, API and worker as one project) | One domain for the app and its API; see [`infra/README.md`](infra/README.md#deployment-vercel) |
 
@@ -263,7 +263,8 @@ uv run --directory apps/api python -m app.demo_seed
 | `JWT_SECRET_KEY` | Signs access tokens. Required, 32 characters or more. |
 | `DATABASE_URL`, `TEST_DATABASE_URL` | The development and test databases. |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Your own GitHub OAuth app, for real sign-in. |
-| `GROQ_API_KEY`, `GEMINI_API_KEY` | The AI interview and report. |
+| `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | The AI checks, interview and report: Groq first, then Claude, then OpenAI. Each is skipped without its key. |
+| `GEMINI_API_KEY` | The embeddings that compare ideas and profiles by meaning. |
 | `DEMO_ENABLED` | Turns on "Try the demo" (API) and lets the worker date its feed back from now once a day. Off by default. |
 | `NEXT_PUBLIC_API_URL` | Where the web app finds the API. |
 
