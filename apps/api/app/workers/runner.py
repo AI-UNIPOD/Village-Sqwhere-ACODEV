@@ -89,11 +89,12 @@ async def run_once() -> int:
         except Exception:
             logger.exception("Verification report failed for session %s", session_id)
 
+    # first, so a demo brought up to date gets its frozen vectors before anything is embedded
+    await redate_demo()
     try:
         processed += await embed_missing(OpenAIEmbedder())
     except Exception:
         logger.exception("Embedding run failed")
-    await redate_demo()
     return processed
 
 

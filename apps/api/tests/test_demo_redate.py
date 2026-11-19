@@ -6,11 +6,11 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, update
 
 from app import config, demo_seed
-from app.demo_seed import redate_if_stale, seed
-from app.models import Post, User
+from app.demo_seed import PEOPLE, redate_if_stale, seed
+from app.models import Post, User, UserEmbedding
 from app.workers import runner
 from tests.conftest import test_async_session as db_session
 
@@ -82,6 +82,48 @@ def test_a_demo_written_today_is_left_alone(
 
     assert _run(redate_if_stale) is False
     assert demo_on_and_world_written_elsewhere == []
+
+
+def test_a_demo_seeded_by_older_code_is_brought_up_to_date_with_its_frozen_vectors(
+    demo_on_and_world_written_elsewhere: list[int],
+) -> None:
+    _run(lambda session: seed(session))
+    tendai = select(User.id).where(User.username == "tendai_moyo")
+
+    async def as_an_older_seed_left_it(session) -> None:
+        # the trigger removes his vector with the old bio
+        await session.execute(
+            update(User).where(User.username == "tendai_moyo").values(bio="DevOps in Harare.")
+        )
+        await session.commit()
+
+    _run(as_an_older_seed_left_it)
+    assert (
+        _run(
+            lambda s: s.scalar(
+                select(UserEmbedding.user_id).where(UserEmbedding.user_id.in_(tendai))
+            )
+        )
+        is None
+    )
+
+    assert _run(redate_if_stale) is True
+
+    assert (
+        _run(lambda s: s.scalar(select(User.bio).where(User.username == "tendai_moyo")))
+        == (PEOPLE["tendai"][2])
+    )
+    assert (
+        _run(
+            lambda s: s.scalar(
+                select(UserEmbedding.user_id).where(UserEmbedding.user_id.in_(tendai))
+            )
+        )
+        is not None
+    )
+    assert demo_on_and_world_written_elsewhere == [1]
+    # and once up to date, the next pass leaves it alone
+    assert _run(redate_if_stale) is False
 
 
 def test_nothing_is_written_where_the_demo_is_off(

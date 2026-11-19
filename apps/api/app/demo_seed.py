@@ -969,11 +969,29 @@ async def _write_feed(db: AsyncSession, people: dict[str, User]) -> None:
 STALE_AFTER = timedelta(hours=22)
 
 
+async def _written_by_older_code(db: AsyncSession) -> bool:
+    """True when a person's bio on the database is not the one in PEOPLE: the code that seeded it
+    was older than this one, so its texts, and the frozen vectors made from them, are out of date.
+    docs/decisions/2026-11-19-demo-frozen-vectors.md"""
+    held = dict(
+        (
+            await db.execute(
+                select(User.username, User.bio).where(
+                    User.username.in_([username for username, _, _ in PEOPLE.values()])
+                )
+            )
+        ).all()
+    )
+    return any(held.get(username, bio) != bio for username, _, bio in PEOPLE.values())
+
+
 async def redate_if_stale(db: AsyncSession) -> bool:
     """Writes the demo's posts and comments again, dated back from now, when the newest one has
-    grown old, so the live demo never reads "3 weeks ago". Only where the demo is on and has been
-    seeded: this never makes the demo, and never runs where DEMO_ENABLED is not true. Returns True
-    when it wrote. docs/decisions/2026-11-15-lived-in-demo.md"""
+    grown old, so the live demo never reads "3 weeks ago", or when an older version of this code
+    seeded it, so a deployment brings the demo's texts and frozen vectors up to date by itself.
+    Only where the demo is on and has been seeded: this never makes the demo, and never runs where
+    DEMO_ENABLED is not true. Returns True when it wrote.
+    docs/decisions/2026-11-15-lived-in-demo.md"""
     if not config.DEMO_ENABLED or await db.get(User, DEMO_ACCOUNT_ID) is None:
         return False
     newest = await db.scalar(
@@ -981,7 +999,8 @@ async def redate_if_stale(db: AsyncSession) -> bool:
             Post.author_id.in_(select(User.id).where(User.is_demo))
         )
     )
-    if newest is not None and datetime.now(UTC) - newest < STALE_AFTER:
+    fresh = newest is not None and datetime.now(UTC) - newest < STALE_AFTER
+    if fresh and not await _written_by_older_code(db):
         return False
     await seed(db)
     await write_world(db)

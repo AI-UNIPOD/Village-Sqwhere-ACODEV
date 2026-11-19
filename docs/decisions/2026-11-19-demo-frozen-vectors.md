@@ -27,6 +27,11 @@ to send the demo's made-up profiles to a provider.
   changes nothing.
 - **Live.** The worker no longer leaves the demo out. A demo row the seed left without a vector,
   because its text changed since the file was made, gets one on the next run where a key is set.
+- **No manual step on a live server.** The worker already writes the demo again once a day, to
+  keep its feed fresh. It now also does so when a demo person's bio on the database differs from
+  the code's, which means older code seeded it. So the first worker pass after a deployment of
+  this change rewrites the bios, lists and ideas and writes the frozen vectors. That pass runs
+  before the embedding step, so the worker sends nothing it is about to replace.
 - **Making the file again.** `python -m app.demo_vectors`, against a newly seeded database with
   `OPENAI_API_KEY` set, after a change to a demo bio, stack, sector or verified role, or to an
   idea's title or summary. It keeps the vectors of texts that did not change, sends the others
