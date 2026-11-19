@@ -56,11 +56,14 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
   const [step, setStep] = useState(0);
   // whether the suggestions on screen came from a run the visitor saw (their scores count up)
   const [ran, setRan] = useState(false);
+  // on a phone each suggestion's reasons fold behind "Why this score": the ones opened
+  const [opened, setOpened] = useState<number[]>([]);
   const section = useRef<HTMLElement>(null);
   const picker = useRef<HTMLFieldSetElement>(null);
   const id = useId();
   const idea = t.ideas[ideaIndex];
   const found = ideasCopy[lang].matches;
+  const scoreCopy = ideasCopy[lang].score;
 
   // Arm the first run: hide the server's suggestions and run them once the section is in view.
   useEffect(() => {
@@ -98,6 +101,7 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
 
   function pick(index: number) {
     setRan(true);
+    setOpened([]);
     setIdeaIndex(index);
     setStep(0);
     setPhase(still() ? "results" : "running");
@@ -111,6 +115,10 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
   function again() {
     setPhase("idle");
     picker.current?.querySelector<HTMLInputElement>("input:checked")?.focus();
+  }
+
+  function toggle(i: number) {
+    setOpened((now) => (now.includes(i) ? now.filter((j) => j !== i) : [...now, i]));
   }
 
   // each suggestion's score, counted from the made-up facts as the API counts a real one
@@ -212,7 +220,19 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
                     <div className={styles.scoreCell}>
                       <MatchScore lang={lang} score={scored[i].score} partial={scored[i].partial} count={ran} />
                     </div>
-                    <div className={styles.reasons}>
+                    <button
+                      type="button"
+                      className={styles.why}
+                      aria-expanded={opened.includes(i)}
+                      aria-controls={`${id}-why-${i}`}
+                      onClick={() => toggle(i)}
+                    >
+                      {scoreCopy.why}
+                      <svg className={styles.chevron} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </button>
+                    <div className={styles.reasons} id={`${id}-why-${i}`} data-open={opened.includes(i)}>
                       <ScoreReasons
                         lang={lang}
                         scored={scored[i]}
@@ -227,6 +247,10 @@ export function MatcherDemo({ lang }: { lang: Lang }) {
                 ))}
               </ol>
             )}
+
+            {/* on a phone the reasons fold away, and with them each card's own note that the
+                score is partial: it is said once here instead, so it is never out of sight */}
+            {shown && scored.some((one) => one.partial) && <p className={styles.partialOnce}>{scoreCopy.partial}</p>}
 
             {shown && (
               <div className={styles.foot}>

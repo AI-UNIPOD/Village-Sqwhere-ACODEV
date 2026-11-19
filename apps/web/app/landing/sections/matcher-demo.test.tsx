@@ -189,7 +189,8 @@ test.each([
   expect(lists).toHaveLength(3);
   // roles, technologies, sectors, and the meaning part that is not counted yet
   for (const list of lists) expect(within(list).getAllByRole("listitem")).toHaveLength(4);
-  expect(section().getAllByText(note)).toHaveLength(3);
+  // on each card for wide screens, and once under the list for a phone, where the cards fold
+  expect(section().getAllByText(note)).toHaveLength(4);
   expect(section().getByText(strong)).toBeTruthy();
   expect(section().getByText(weak)).toBeTruthy();
 });
@@ -296,3 +297,41 @@ test("the Green Tick question leads to the section that answers it", () => {
   render(<MatcherDemo lang="en" />);
   expect(section().getByRole("link", { name: "What is a Green Tick?" }).getAttribute("href")).toBe("#green-tick");
 });
+
+test("each suggestion's reasons open and close from its own Why this score button", () => {
+  render(<MatcherDemo lang="en" />);
+  const buttons = section().getAllByRole("button", { name: "Why this score" });
+  expect(buttons).toHaveLength(3);
+  const reasons = (i: number) => document.getElementById(buttons[i].getAttribute("aria-controls")!)!;
+  expect(buttons.map((b) => b.getAttribute("aria-expanded"))).toEqual(["false", "false", "false"]);
+  fireEvent.click(buttons[1]);
+  expect(buttons[1].getAttribute("aria-expanded")).toBe("true");
+  expect(reasons(1).getAttribute("data-open")).toBe("true");
+  expect(reasons(0).getAttribute("data-open")).toBe("false");
+  fireEvent.click(buttons[1]);
+  expect(reasons(1).getAttribute("data-open")).toBe("false");
+});
+
+test("picking another idea folds the reasons again", () => {
+  stubMotion(true);
+  render(<MatcherDemo lang="en" />);
+  fireEvent.click(section().getAllByRole("button", { name: "Why this score" })[0]);
+  fireEvent.click(section().getAllByRole("radio")[1]);
+  expect(section().getAllByRole("button", { name: "Why this score" }).map((b) => b.getAttribute("aria-expanded"))).toEqual([
+    "false",
+    "false",
+    "false",
+  ]);
+});
+
+// jsdom has no layout, so this reads the stylesheet: the folding and the single note are for a
+// phone only; wider screens show every reason open, with no button
+test("only a phone folds the reasons, hides the pitch and says partial once", () => {
+  const css = readFileSync(join(__dirname, "matcher-demo.module.css"), "utf8").replace(/\s+/g, " ");
+  expect(css).toContain(".why, .partialOnce { display: none; } @media (max-width: 767px) {");
+  const phone = css.slice(css.indexOf(".why, .partialOnce { display: none; }"));
+  expect(phone).toContain(".optionMeta, .ideaTitle, .pitch { display: none; }");
+  expect(phone).toContain('.reasons[data-open="false"], .reasons > p { display: none; }');
+  expect(phone).toContain(".partialOnce { display: block;");
+});
+
