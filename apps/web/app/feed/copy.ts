@@ -543,7 +543,7 @@ export const copy: Record<Lang, Copy> = {
       },
       search: {
         label: "Rechercher des publications",
-        placeholder: "Chercher dans les titres et les textes",
+        placeholder: "Titres et textes",
         button: "Rechercher",
         what: "Recherche\u202f: \u00ab\u202f{q}\u202f\u00bb",
         empty: {
