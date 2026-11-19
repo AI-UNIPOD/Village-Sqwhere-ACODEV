@@ -57,6 +57,12 @@
   overflow-wrap: anywhere;
 }
 
+/* an untitled post's first line links to the post: it reads as text, like a title, not as a link-coloured paragraph */
+.body a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .body[data-clamp] {
   display: -webkit-box;
   overflow: hidden;
@@ -137,6 +143,7 @@
   }
 
   .cardTitle a:hover { text-decoration: underline; }
+  .body a:hover { text-decoration: underline; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -249,6 +249,30 @@ test("a failed save keeps the choice open, says so, and leaves the feed and the 
   expect(await screen.findByText("Showing posts about Go and Python. Your own posts always show too.")).toBeTruthy();
 });
 
+test("in the demo a refused save says nothing was saved, not that it failed, and keeps the choice open", async () => {
+  api([go], { "PUT /v1/me/feed-topics": reply(403, { detail: { code: "DEMO_READ_ONLY", message: "English" } }) });
+  render(<Feed lang="en" tab="for-you" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Change topics" }));
+  await screen.findByRole("heading", { name: "Pooling with asyncpg" });
+  fireEvent.click(chip("Python"));
+  fireEvent.click(within(panel()).getByRole("button", { name: "Save" }));
+  expect((await within(panel()).findByRole("status")).textContent).toBe("Nothing was saved. The demo cannot be changed.");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(panel().hidden).toBe(false);
+  expect(chip("Python").getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByText("Showing posts about Go. Your own posts always show too.")).toBeTruthy();
+});
+
+test("in the demo a refused save says nothing was saved, in French", async () => {
+  api([], { "PUT /v1/me/feed-topics": reply(403, { detail: { code: "DEMO_READ_ONLY", message: "English" } }) });
+  render(<Feed lang="fr" tab="for-you" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Choisir des sujets" }));
+  fireEvent.click(chip("Go"));
+  fireEvent.click(within(panel()).getByRole("button", { name: "Enregistrer" }));
+  expect(await within(panel()).findByText("Rien n'a été enregistré. La démo ne peut pas être modifiée.")).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 test("Save pressed twice while it is sending sends one request", async () => {
   let release: (response: Response) => void = () => {};
   api([]);
