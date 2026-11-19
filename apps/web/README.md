@@ -380,6 +380,16 @@ tab is marked, and the saved topics and their choice are not shown. A kind or a 
 does not know is ignored. A hub's milestone is not offered as a kind, and Saved and Yours read
 neither parameter.
 
+The For you feed is ranked, and it can be searched and re-ordered, again from the address with
+nothing saved (`feed-filter.tsx`, `feed-api.ts`). `?q=` holds search words (at most 100 characters),
+which list everyone's best matches (`GET /v1/posts?q=&sort=relevance`, with any kind or topic kept),
+and `?sort=` picks the order: Ranked (the default; recency, likes and comments, with a boost for the
+viewer's topics), Newest, or Most active. Search starts with Best match. An order alone keeps the
+For you feed (`GET /v1/feed?sort=`). The address leaves out the order a view starts with, and an
+unknown order, or Best match without words, is ignored. A line under the choices says how the order
+is decided, and says nothing about reading or clicking being used, because it is not. The rules are
+in `docs/decisions/2026-11-19-feed-ranking-and-search.md`.
+
 Comments are a section of the post page (`comments.tsx`, `comment.tsx`, `comment-form.tsx`),
 loaded after the post, at `#comments`. The list gives each top-level comment its first two
 replies; "Show all N replies" loads the rest, and a reply's own replies open the same way, one

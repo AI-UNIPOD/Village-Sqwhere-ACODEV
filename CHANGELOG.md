@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-19
 
+- feat(web): search the feed and choose its order from the address
 - fix(web): say when the server, not the connection, failed to save a hub signature
 - fix(api): keep sign-in state in the database so any instance finishes it
 - perf(web): save the five onboarding answers together instead of one after another

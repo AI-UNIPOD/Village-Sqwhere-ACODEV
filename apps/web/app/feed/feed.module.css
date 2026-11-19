@@ -223,6 +223,38 @@
   color: var(--bg);
 }
 
+/* the search box, with its button beside it; the box takes the room the button leaves */
+.search {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+
+.searchBox {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+/* the order: its name, then its choices as chips like the kinds, then one line on how it is decided */
+.sorts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+}
+
+.sortLabel {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.order {
+  margin-block-start: var(--space-2);
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
 /* what the list is narrowed to on the left, the way back on the right, wrapping on a phone */
 .showing {
   display: flex;
@@ -254,7 +286,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   /* the chip's own hover would put the chosen kind's light text on a light fill */
-  .filterKinds .filterKind[aria-current="true"]:hover { background: var(--text); }
+  .filterKinds .filterKind[aria-current="true"]:hover,
+  .sorts .filterKind[aria-current="true"]:hover { background: var(--text); }
 
   .kindLink:hover { text-decoration: underline; }
 }
