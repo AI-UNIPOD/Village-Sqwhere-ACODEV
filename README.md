@@ -165,7 +165,7 @@ The rest of this page is for people who want to read, run or contribute to the c
 | Matching | Developers verified in the roles an idea needs, scored on roles, technologies and sectors | `/v1/me/ideas/{id}/matches` |
 | Hubs | Create from an idea, invite, ask to join, sign, leave, remove, archive | `/v1/hubs/*` |
 | Collaboration | Team chat, four phases, brainstorm notes, a design sketch of pieces and links | `/v1/hubs/{id}/messages`, `/phase`, `/notes`, `/design` |
-| Community feed | Posts, comments, replies, likes, saves, topics | `/v1/feed`, `/v1/posts/*`, `/v1/comments/*` |
+| Community feed | Posts, comments, replies, likes, saves, topics, search and a ranked For you order | `/v1/feed`, `/v1/posts/*`, `/v1/comments/*` |
 
 
 <p>

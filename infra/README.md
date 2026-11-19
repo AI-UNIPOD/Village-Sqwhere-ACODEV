@@ -102,6 +102,8 @@ They run in file name order, once, on an empty database:
 | `026-demo-signature-dates.sql` | Dates the demo's made-up signatures at the moment each member joined, where the seed had left them at the day it ran. Only signatures of demo accounts (`users.is_demo`) in hubs a demo account owns; nothing is deleted. Running it twice is safe. |
 | `027-post-image-bytes.sql` | Post images live in Postgres: `post_attachments.data` holds the bytes, `storage_key` is no longer required, and the size cap drops from 5 MB to 4 MB to fit Vercel's request limit. The table was empty before it, since uploads had not shipped. Running it twice is safe. |
 
+| `030-post-search.sql` | A search index on posts (`posts_search_idx`, a partial GIN index on the title and text words, ignoring case and accents). The API searches the same way without it, so applying it only keeps search fast as posts grow. Numbers 028 and 029 belong to other work. Running it twice is safe. |
+
 **An existing local database does not get 003 to 009 by itself.** Rebuild it, which deletes
 your local data:
 
