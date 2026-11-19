@@ -137,13 +137,16 @@ async def get_current_user(
 
     query = (
         select(User)
+        # Every signed-in request runs this first, so its query count is paid on every screen.
+        # Each list is one query, and the one lookup row behind each item (the role, the
+        # technology, the sector) joins into that query instead of costing another round trip.
         .options(
             selectinload(User.identities),
-            selectinload(User.roles).selectinload(UserRole.role),
+            selectinload(User.roles).joinedload(UserRole.role),
             selectinload(User.roles).selectinload(UserRole.verification_sessions),
-            selectinload(User.technologies).selectinload(UserTechnology.technology),
-            selectinload(User.feed_topics).selectinload(UserFeedTopic.technology),
-            selectinload(User.sectors).selectinload(UserSector.sector),
+            selectinload(User.technologies).joinedload(UserTechnology.technology),
+            selectinload(User.feed_topics).joinedload(UserFeedTopic.technology),
+            selectinload(User.sectors).joinedload(UserSector.sector),
         )
         .where(User.id == user_id, User.deleted_at.is_(None))
     )
