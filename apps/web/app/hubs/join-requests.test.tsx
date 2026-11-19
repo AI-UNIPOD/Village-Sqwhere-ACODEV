@@ -260,6 +260,23 @@ async function openTeam(people: unknown[], routes: Record<string, unknown> = {},
 
 const rowOf = (name: string) => within(screen.getAllByRole("listitem").find((row) => row.textContent?.includes(name))!);
 
+test("the owner of an archived hub sees the team but no way to change it", async () => {
+  const declined = member("fatou-sow", "Fatou Sow", { status: "declined", joined_at: null });
+  nav.search = "id=hub-1";
+  api({
+    "GET /v1/hubs/hub-1": { data: hub({ ...asOwner, status: "archived" }) },
+    "GET /v1/hubs/hub-1/members": { data: [owner(), wanjiru, invitedByOwner, declined] },
+    "GET /v1/hubs/hub-1/idea": { data: { id: "idea-1", title: "Borehole map for Kaduna", summary: "x", details: "Brief." } },
+  });
+  render(<HubPage lang="en" />);
+  await screen.findByText("Wanjiru Kamau");
+  expect(rowOf("Wanjiru Kamau").getByText("Asked to join")).toBeTruthy();
+  for (const name of [/^Approve/, /^Decline/, /^Withdraw/, /^Invite again/, "Send invite"]) {
+    expect(screen.queryByRole("button", { name })).toBeNull();
+  }
+  expect(screen.queryByRole("link", { name: "Find developers who match this idea" })).toBeNull();
+});
+
 test("requests come first, each with the Asked to join pill and Approve and Decline named for the person", async () => {
   await openTeam([owner(), tendai, invitedByOwner, wanjiru, fatou]);
   await screen.findByText("Wanjiru Kamau");
