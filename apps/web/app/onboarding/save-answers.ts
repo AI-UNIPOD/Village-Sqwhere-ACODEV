@@ -6,26 +6,35 @@ import { SignedOutError } from "../session/session";
 import { ALPHA2 } from "./options";
 import type { Answers } from "./steps";
 
-// Saves the main role, then the stack, then the technologies the feed should show, then the
-// sectors, then the country if one was chosen. Each call is safe to send again, which is what
-// makes "Try again" safe: a role the developer already has is only made the main one, and the
-// same country is set again. A skipped country sends nothing, so it never clears one already
-// on the profile. Throws when any call fails, with the API's code, so the done step can tell
-// the demo's refusal from a failure. Only call it with a role.
-export async function saveAnswers(answers: Answers): Promise<void> {
+// The role as the main one. A role the developer already has is only made the main one, so this
+// is safe to send again.
+async function saveRole(role: string | null) {
   try {
-    await call("/v1/me/roles", "POST", { role: answers.role, is_primary: true });
+    await call("/v1/me/roles", "POST", { role, is_primary: true });
   } catch (error) {
     if (!(error instanceof IdeaError && error.status === 409 && error.code === "ROLE_ALREADY_CLAIMED")) throw error;
-    await call(`/v1/me/roles/${answers.role}`, "PATCH", { is_primary: true });
+    await call(`/v1/me/roles/${role}`, "PATCH", { is_primary: true });
   }
-  await call("/v1/me/technologies", "PUT", { technologies: answers.stack });
-  // the API calls a feed topic a technology; an empty list means "show every post"
-  await call("/v1/me/feed-topics", "PUT", { technologies: answers.feed });
-  // the answers call them topics, from before the API had a name for them
-  await call("/v1/me/sectors", "PUT", { sectors: answers.topics });
-  // the answer is kept under the three-letter code, the API wants two letters
-  if (answers.country) await call("/v1/me", "PATCH", { country_code: ALPHA2[answers.country] });
+}
+
+// Saves the main role, the stack, the technologies the feed should show, the sectors and the
+// country if one was chosen. None of them needs another to be saved first, so they go out
+// together and the wait is the slowest call, not the sum of five (each is a round trip to the
+// server). Each call is safe to send again, which is what makes "Try again" safe: the same list
+// replaces the same list, and the same country is set again. A skipped country sends nothing, so
+// it never clears one already on the profile. Throws when any call fails, with the API's code, so
+// the done step can tell the demo's refusal from a failure. Only call it with a role.
+export async function saveAnswers(answers: Answers): Promise<void> {
+  await Promise.all([
+    saveRole(answers.role),
+    call("/v1/me/technologies", "PUT", { technologies: answers.stack }),
+    // the API calls a feed topic a technology; an empty list means "show every post"
+    call("/v1/me/feed-topics", "PUT", { technologies: answers.feed }),
+    // the answers call them topics, from before the API had a name for them
+    call("/v1/me/sectors", "PUT", { sectors: answers.topics }),
+    // the answer is kept under the three-letter code, the API wants two letters
+    answers.country ? call("/v1/me", "PATCH", { country_code: ALPHA2[answers.country] }) : null,
+  ]);
 }
 
 // Saves started together share one run. React mounts twice in development, and two stack

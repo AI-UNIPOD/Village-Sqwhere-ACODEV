@@ -120,7 +120,9 @@ the real text: `hero-headline.tsx`, words in `hero-headline-copy.ts`), then one 
 `app/onboarding/` (at `/en/onboarding`). Its last screen saves the main role, the stack, the
 technologies the feed should show and the sectors (`POST /v1/me/roles`,
 `PUT /v1/me/technologies`, `PUT /v1/me/feed-topics`, `PUT /v1/me/sectors`) and, when the
-developer chose a country, the country (`PATCH /v1/me` with `country_code`). The answer is kept
+developer chose a country, the country (`PATCH /v1/me` with `country_code`). The five calls go out
+together (`saveAnswers`), so the wait is the slowest one, not the sum of five round trips; each is safe
+to send again, which is what "Try again" does. The answer is kept
 under the three-letter code of `landing/gather.ts` and sent as the API's two-letter code
 (`ALPHA2` in `app/onboarding/options.ts`, checked against `apps/api/app/countries.py` by a test).
 The stack step says what is sent to OpenAI to match by meaning, tied to the chips as
@@ -377,6 +379,16 @@ a person can post. While a filter is on, a line says what is showing with "Clear
 tab is marked, and the saved topics and their choice are not shown. A kind or a topic the app
 does not know is ignored. A hub's milestone is not offered as a kind, and Saved and Yours read
 neither parameter.
+
+The For you feed is ranked, and it can be searched and re-ordered, again from the address with
+nothing saved (`feed-filter.tsx`, `feed-api.ts`). `?q=` holds search words (at most 100 characters),
+which list everyone's best matches (`GET /v1/posts?q=&sort=relevance`, with any kind or topic kept),
+and `?sort=` picks the order: Ranked (the default; recency, likes and comments, with a boost for the
+viewer's topics), Newest, or Most active. Search starts with Best match. An order alone keeps the
+For you feed (`GET /v1/feed?sort=`). The address leaves out the order a view starts with, and an
+unknown order, or Best match without words, is ignored. A line under the choices says how the order
+is decided, and says nothing about reading or clicking being used, because it is not. The rules are
+in `docs/decisions/2026-11-19-feed-ranking-and-search.md`.
 
 Comments are a section of the post page (`comments.tsx`, `comment.tsx`, `comment-form.tsx`),
 loaded after the post, at `#comments`. The list gives each top-level comment its first two

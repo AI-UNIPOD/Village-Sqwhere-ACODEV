@@ -80,11 +80,11 @@ afterEach(() => {
 // ---------- the address reaches the request ----------
 
 test.each([
-  ["type=question", "GET /v1/posts?type=question&offset=0&limit=20"],
-  ["topic=vector-databases", "GET /v1/posts?topic=vector-databases&offset=0&limit=20"],
-  ["type=rfc&topic=python", "GET /v1/posts?type=rfc&topic=python&offset=0&limit=20"],
+  ["type=question", "GET /v1/posts?type=question&sort=for_you&offset=0&limit=20"],
+  ["topic=vector-databases", "GET /v1/posts?topic=vector-databases&sort=for_you&offset=0&limit=20"],
+  ["type=rfc&topic=python", "GET /v1/posts?type=rfc&topic=python&sort=for_you&offset=0&limit=20"],
   // the order in the address does not matter, and neither does the message of another screen
-  ["done=deleted&topic=python&type=rfc", "GET /v1/posts?type=rfc&topic=python&offset=0&limit=20"],
+  ["done=deleted&topic=python&type=rfc", "GET /v1/posts?type=rfc&topic=python&sort=for_you&offset=0&limit=20"],
 ])("?%s asks for everyone's posts with it, not for the For you feed", async (search, request) => {
   nav.search = search;
   api();
@@ -113,7 +113,7 @@ test("a known kind is kept when the topic beside it is not known", async () => {
   api();
   render(<Feed lang="en" tab="for-you" />);
   await loaded();
-  expect(asked()).toContain("GET /v1/posts?type=question&offset=0&limit=20");
+  expect(asked()).toContain("GET /v1/posts?type=question&sort=for_you&offset=0&limit=20");
   expect(screen.getByText("Showing: Questions. Posts from every developer.")).toBeTruthy();
 });
 
@@ -144,7 +144,7 @@ test("Show more asks for the next page with the same kind and topic", async () =
   await loaded();
   fireEvent.click(screen.getByRole("button", { name: "Show more" }));
   expect(await screen.findByRole("heading", { name: "Second question" })).toBeTruthy();
-  expect(asked()).toContain("GET /v1/posts?type=question&topic=python&offset=20&limit=20");
+  expect(asked()).toContain("GET /v1/posts?type=question&topic=python&sort=for_you&offset=20&limit=20");
   expect(asked().some((call) => call.startsWith("GET /v1/feed"))).toBe(false);
 });
 
