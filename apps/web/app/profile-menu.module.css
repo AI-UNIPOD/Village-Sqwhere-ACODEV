@@ -1,0 +1,145 @@
+/* The profile menu in the header (profile-menu.tsx): a round avatar with initials that opens a small
+   menu. The menu follows components.md: raised surface, a 1px line, the medium radius and shadow 2,
+   items 40px high, growing from the avatar over --dur-menu. */
+
+.root {
+  position: relative;
+  flex: none;
+}
+
+/* a 44px tap area around the avatar, which is a little smaller than that */
+.trigger {
+  display: grid;
+  place-items: center;
+  inline-size: var(--tap-min);
+  block-size: var(--tap-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  /* the line keeps the circle visible on Ink, where the page and the sunken surface match */
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  font: var(--type-label);
+  letter-spacing: 0;
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    border-color var(--dur-press) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.trigger[aria-expanded="true"] .avatar {
+  border-color: var(--text);
+}
+
+.trigger:active .avatar {
+  transform: scale(0.97);
+}
+
+/* under the avatar, on its trailing edge, and never wider than the screen */
+.panel {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-2));
+  inset-inline-end: 0;
+  z-index: 30;
+  inline-size: max-content;
+  min-inline-size: 200px;
+  max-inline-size: min(280px, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+  transform-origin: top right;
+  animation: menu-in var(--dur-menu) var(--ease-out);
+  /* a click on a hidden pill's menu must not be lost to its blurred surface */
+  white-space: normal;
+}
+
+/* who is signed in: a long name breaks inside its word rather than leaving the menu */
+.who {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-block-end: 1px solid var(--line);
+  margin-block-end: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+.name {
+  font: var(--type-label);
+}
+
+.username {
+  color: var(--text-muted);
+  font: var(--type-body-s);
+}
+
+.menu {
+  display: grid;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  min-block-size: 40px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--text);
+  font: var(--type-body);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .trigger:hover .avatar {
+    background: var(--surface);
+    border-color: var(--line-strong);
+  }
+
+  .item:hover {
+    background: var(--surface-sunken);
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* reduced motion: it fades in and does not grow */
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation-name: menu-fade;
+  }
+
+  .trigger:active .avatar {
+    transform: none;
+  }
+
+  @keyframes menu-fade {
+    from {
+      opacity: 0;
+    }
+  }
+}

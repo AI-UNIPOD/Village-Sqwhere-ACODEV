@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-19
 
+- feat(web): show the signed-in developer's initials in the header with a menu to the profile and sign out
 - feat(web): let a visitor with reduced motion turn animations on
 - feat(web): search the feed and choose its order from the address
 - fix(web): say when the server, not the connection, failed to save a hub signature

@@ -145,6 +145,10 @@ header has scrolled out of view it turns into a pill near the top (`app/frame-pi
 line in `PLACES` and one word in `app/app-frame-copy.ts`. The profile is kept for the visit, so
 a screen opened later shows at once; a screen that changes it calls `loadMe()` or `keepMe()`.
 The frame asks for the profile itself when no screen has, sharing one request with the screen.
+It also shows who is signed in on every screen: a round avatar with their initials at the end of the
+header (`app/profile-menu.tsx`, letters from `app/initials.ts`) that opens a menu with their name,
+"Profile and settings" and the way out ("Sign out", or "Leave the demo" for the demo account). A
+locked screen and onboarding do not show it.
 Screens crossfade with React's `<ViewTransition>` (`globals.css`), and a sticky row at the
 bottom of a screen uses `var(--app-bottom)` to sit above the bar.
 

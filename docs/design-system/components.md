@@ -287,6 +287,10 @@ tile, no coloured edge. Errors use `role="alert"`, everything else `role="status
 trigger over `--dur-menu` and leave in 120ms. Menu items are 40px high. Arrow keys move,
 Esc closes, and focus returns to the trigger.
 
+The profile menu is the one in the header (`apps/web/app/profile-menu.tsx`): a 36px round avatar
+with the person's initials inside a 44px tap area, a menu that opens under it on its trailing edge,
+a name block (long names break inside their word) above two 40px items, Profile and the way out.
+
 A tooltip takes the small corner from Corner radius (`--radius-xs`), not `--radius-m`. It says
 what the button does in the same words as its `aria-label`, so screen readers skip it. A mouse
 gets it after `--delay-spinner`, the keyboard at once, a finger never, and the next one opens
