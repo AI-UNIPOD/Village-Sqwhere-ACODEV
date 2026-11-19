@@ -10,6 +10,7 @@ its number:
 
 ## 2026-11-19
 
+- fix(api): log a failed sign-in callback by its error type
 - feat(api): give the demo real match scores from vectors measured once
 - perf(api): load a signed-in person in 7 queries instead of 11 on every request
 - feat(api): fall back to claude and openai in the interview steps

@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
@@ -42,6 +43,7 @@ from app.schemas.auth import (
 from app.services.provider_emails import find_signup_email
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # OAuth states, login codes and revoked refresh tokens live in the database, so any API instance
 # can finish what another started. See docs/decisions/2026-11-19-sign-in-state-in-postgres.md.
@@ -318,7 +320,9 @@ async def oauth_callback(
         )
         await db.commit()
 
-    except Exception:
+    except Exception as error:
+        # the type only: the message of a database or HTTP error can hold the code or a token
+        logger.error("GitHub sign-in callback failed: %s", type(error).__name__)
         return _redirect_with_error("OAUTH_EXCHANGE_FAILED")
 
     redirect_url = f"{FRONTEND_URL}/auth/callback?login_code={login_code}"
