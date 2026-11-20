@@ -93,6 +93,85 @@
   }
 }
 
+/* Phones: each question is a card of its own, numbered like the steps above, its chevron in a
+   round button. The open one rises a little: a stronger edge, a raised surface and a filled
+   button. The answer opens as on wider screens, and at once with reduced motion. */
+@media (max-width: 767px) {
+  .list {
+    display: grid;
+    gap: var(--space-3);
+    border-bottom: 0;
+    counter-reset: faq;
+  }
+
+  .item {
+    padding-inline: var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    background: var(--surface);
+    counter-increment: faq;
+    transition:
+      border-color var(--dur-menu) var(--ease-out),
+      background-color var(--dur-menu) var(--ease-out),
+      box-shadow var(--dur-menu) var(--ease-out);
+  }
+
+  .item[open] {
+    border-color: var(--line-strong);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-2);
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-3);
+  }
+
+  /* the number is for the eye only: screen readers read the question */
+  .summary::before {
+    content: counter(faq, decimal-leading-zero);
+    content: counter(faq, decimal-leading-zero) / "";
+    align-self: start;
+    padding-block-start: calc(var(--space-1) / 2);
+    color: var(--text-muted);
+    font: var(--type-mono-label);
+    letter-spacing: 0.04em;
+  }
+
+  .item[open] .summary::before {
+    color: var(--text);
+  }
+
+  .chevron {
+    box-sizing: content-box;
+    padding: var(--space-1);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+    transition:
+      transform var(--dur-menu) var(--ease-out),
+      stroke var(--dur-menu) var(--ease-out),
+      background-color var(--dur-menu) var(--ease-out);
+  }
+
+  .item[open] .chevron {
+    background: var(--text);
+    stroke: var(--bg);
+  }
+
+  .answer {
+    padding-inline-start: calc(2ch + var(--space-3));
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .item,
+  .chevron {
+    transition-property: border-color, background-color, box-shadow, stroke;
+  }
+}
+
 /* wide screens: the heading on the left, the questions beside it, so the column is not half empty */
 @media (min-width: 1100px) {
   .layout {

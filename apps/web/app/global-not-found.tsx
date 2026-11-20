@@ -7,6 +7,10 @@ import { NOT_FOUND_TITLES } from "./page-not-found/metadata";
 import { NotFoundPage } from "./page-not-found/not-found-page";
 import { TabTitle } from "./page-not-found/tab-title";
 
+// the same browser bars and notch handling as the layout's pages, so the dark default reaches
+// the browser's bars here too
+export { viewport } from "./viewport";
+
 // Runs before first paint. Next builds this document once and sends it for every address that
 // matches no page, so the server cannot know the address's language: this reads it from the
 // address, and globals.css shows that language's page. Then the saved theme, as in the layout.

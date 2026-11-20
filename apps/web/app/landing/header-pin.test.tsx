@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -115,3 +118,81 @@ function fireAnimationEnd(el: Element) {
     el.dispatchEvent(new Event("animationend", { bubbles: true }));
   });
 }
+
+// ---------- leaving with the footer ----------
+
+// the page's header and its footer; jsdom has no layout, so the footer's place is set by hand
+function withFooter() {
+  let top = 2000;
+  let height = 400;
+  const view = render(
+    <>
+      <div data-header-slot="">
+        <header>
+          <nav aria-label="Main">
+            <a href="#how">How</a>
+          </nav>
+        </header>
+      </div>
+      <footer>footer</footer>
+      <HeaderPin />
+    </>,
+  );
+  const footer = view.container.querySelector("footer")!;
+  vi.spyOn(footer, "getBoundingClientRect").mockImplementation(() => ({ top, height, bottom: top + height }) as DOMRect);
+  const header = view.container.querySelector<HTMLElement>("header")!;
+  const scrollTo = (footerTop: number, footerHeight = 400) => {
+    top = footerTop;
+    height = footerHeight;
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+  };
+  return { header, scrollTo, leave: () => header.style.getPropertyValue("--leave") };
+}
+
+test("as the footer comes into view the pill leaves with it, and comes back the same way", () => {
+  vi.stubGlobal("IntersectionObserver", FakeObserver);
+  vi.stubGlobal("innerHeight", 800);
+  // the next frame at once; it reports no frame pending, as a real one has run by the next scroll
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+    cb(0);
+    return 0;
+  });
+  const { header, scrollTo, leave } = withFooter();
+  // the footer still below the screen: the pill stays
+  scrollTo(900);
+  expect(leave()).toBe("0.000");
+  expect(header.hasAttribute("data-away")).toBe(false);
+  // a quarter of the footer in, then three quarters: the pill is that far on its way out
+  scrollTo(700);
+  expect(leave()).toBe("0.250");
+  expect(header.hasAttribute("data-away")).toBe(false);
+  scrollTo(500);
+  expect(leave()).toBe("0.750");
+  expect(header.hasAttribute("data-away")).toBe(true);
+  // all of it in: gone
+  scrollTo(300);
+  expect(leave()).toBe("1.000");
+  // scrolling back up brings it back by the same steps
+  scrollTo(700);
+  expect(leave()).toBe("0.250");
+  expect(header.hasAttribute("data-away")).toBe(false);
+  // a footer taller than the screen: the pill is gone once a screen of it is in
+  scrollTo(400, 1200);
+  expect(leave()).toBe("0.500");
+  scrollTo(0, 1200);
+  expect(leave()).toBe("1.000");
+});
+
+// jsdom has no layout, so this reads the stylesheet: with motion the pill slides by --leave, all
+// the way off the screen; with reduced motion it does not slide and is hidden once away.
+test("the pill slides out with the footer, or with reduced motion is simply hidden", () => {
+  const css = readFileSync(join(__dirname, "landing-page.module.css"), "utf8").replace(/\s+/g, " ");
+  expect(css).toContain(
+    ".nav[data-pinned] { translate: 0 calc(var(--leave, 0) * -1 * (var(--pill-top) + env(safe-area-inset-top, 0px) + 100% + var(--space-4))); }",
+  );
+  expect(css).toContain(".nav[data-pinned]:focus-within { translate: none; }");
+  const reduced = css.slice(css.lastIndexOf("@media (prefers-reduced-motion: reduce) {"));
+  expect(reduced).toContain(".nav[data-pinned] { translate: none; } .nav[data-pinned][data-away] { visibility: hidden; }");
+});

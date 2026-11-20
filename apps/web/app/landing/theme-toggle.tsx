@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
-import { Tooltip } from "../tooltip";
 import { parseEasing, parseSeconds } from "./gather";
 import styles from "./landing-page.module.css";
 import { THEME_KEY } from "./theme";
@@ -19,18 +18,15 @@ function notify() {
 
 function subscribe(onChange: () => void) {
   listeners.add(onChange);
-  const system = window.matchMedia("(prefers-color-scheme: dark)");
-  system.addEventListener("change", onChange);
   return () => {
     listeners.delete(onChange);
-    system.removeEventListener("change", onChange);
   };
 }
 
+// The early script (theme.ts) sets the theme before the first paint; if it has not, the site's
+// default is dark, whatever the system says.
 function pageTheme(): Theme {
-  const chosen = document.documentElement.getAttribute("data-theme");
-  if (chosen === "dark" || chosen === "light") return chosen;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
 }
 
 // the theme the visitor last asked for while a change is still running or queued, or null
@@ -41,8 +37,20 @@ function shownTheme(): Theme {
   return wanted ?? pageTheme();
 }
 
+// The browser's own bars (theme-color, set in [lang]/layout.tsx) follow the system setting. Once
+// the visitor has chosen a theme they take that theme's background instead, read from the page.
+function matchBrowserBars() {
+  if (!document.documentElement.hasAttribute("data-theme")) return;
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+  if (!bg) return;
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+    meta.content = bg;
+  });
+}
+
 function apply(next: Theme) {
   document.documentElement.setAttribute("data-theme", next);
+  matchBrowserBars();
   try {
     localStorage.setItem(THEME_KEY, next);
   } catch {
@@ -340,9 +348,12 @@ function ThemeIcons() {
 
 // The theme switch, an icon button in a header: the caller's class places and sizes it.
 export function ThemeButton({ toDark, toLight, className }: ThemeToggleProps & { className: string }) {
-  const theme = useSyncExternalStore(subscribe, shownTheme, () => "light" as Theme);
+  // drawn on the server before the early script has run: the default, dark
+  const theme = useSyncExternalStore(subscribe, shownTheme, () => "dark" as Theme);
   const dark = theme === "dark";
   const button = useRef<HTMLButtonElement>(null);
+  // a choice saved on an earlier visit is already on the page (THEME_INIT_SCRIPT)
+  useEffect(matchBrowserBars, []);
   useEffect(() => {
     const own = button.current;
     if (!own) return;
@@ -360,7 +371,6 @@ export function ThemeButton({ toDark, toLight, className }: ThemeToggleProps & {
       onClick={press}
     >
       <ThemeIcons />
-      <Tooltip label={dark ? toLight : toDark} side="left" />
     </button>
   );
 }

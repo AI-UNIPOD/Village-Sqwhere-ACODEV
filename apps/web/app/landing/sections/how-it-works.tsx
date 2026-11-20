@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 import type { Lang } from "../../locales";
 import { HeadingText } from "../heading-text";
@@ -10,6 +10,9 @@ import styles from "../landing-page.module.css";
 
 // The step being read is the one crossing a thin band just above the middle of the screen.
 const READING_BAND = "-47% 0px -47% 0px";
+// Phones, with motion allowed: the steps stack as cards that layer over each other as the page
+// scrolls (how-it-works.module.css). Otherwise, and on wider screens, they stay a list.
+const STACK = "(max-width: 767px) and (prefers-reduced-motion: no-preference)";
 
 function Check() {
   return (
@@ -162,6 +165,62 @@ export function HowItWorks({ lang }: { lang: Lang }) {
   const t = copy[lang];
   const [active, setActive] = useState(0);
   const stepRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const listRef = useRef<HTMLOListElement>(null);
+
+  // The stack: each card's height goes to the stylesheet, which settles a card taller than the
+  // screen only once its bottom is in view. As the next card slides up over one, --cover runs
+  // from 0 to 1 and the one underneath sinks back. Written on the elements, so scrolling never
+  // re-renders the section.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(STACK);
+    const cards = Array.from(list.children) as HTMLElement[];
+    let frame = 0;
+    const measure = () => {
+      for (const card of cards) card.style.setProperty("--h", `${card.offsetHeight}px`);
+    };
+    const depth = () => {
+      frame = 0;
+      const screen = window.innerHeight;
+      cards.forEach((card, i) => {
+        const next = cards[i + 1];
+        if (!next) return;
+        const settle = parseFloat(getComputedStyle(next).top) || 0;
+        const cover = (screen - next.getBoundingClientRect().top) / Math.max(1, screen - settle);
+        card.style.setProperty("--cover", Math.min(1, Math.max(0, cover)).toFixed(3));
+      });
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(depth);
+    };
+    const resized = typeof ResizeObserver === "function" ? new ResizeObserver(() => (measure(), onScroll())) : null;
+    const apply = () => {
+      if (query.matches) {
+        list.setAttribute("data-stack", "");
+        measure();
+        for (const card of cards) resized?.observe(card);
+        window.addEventListener("scroll", onScroll, { passive: true });
+        depth();
+        return;
+      }
+      list.removeAttribute("data-stack");
+      resized?.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      for (const card of cards) {
+        card.style.removeProperty("--h");
+        card.style.removeProperty("--cover");
+      }
+    };
+    apply();
+    query.addEventListener?.("change", apply);
+    return () => {
+      query.removeEventListener?.("change", apply);
+      resized?.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window.IntersectionObserver !== "function") return;
@@ -186,7 +245,7 @@ export function HowItWorks({ lang }: { lang: Lang }) {
         <p className={styles.lead}>{t.lead}</p>
 
         <div className={s.story}>
-          <ol className={s.steps}>
+          <ol className={s.steps} ref={listRef}>
             {t.steps.map((step, i) => (
               <li
                 key={step.title}
@@ -195,6 +254,7 @@ export function HowItWorks({ lang }: { lang: Lang }) {
                 }}
                 className={s.step}
                 data-active={active === i}
+                style={{ "--i": i } as CSSProperties}
               >
                 <span className={s.stepNum}>{`0${i + 1}`}</span>
                 <h3 className={s.stepTitle}>{step.title}</h3>

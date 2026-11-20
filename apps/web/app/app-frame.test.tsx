@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -152,14 +153,14 @@ test("the language link opens the same screen in the other language", () => {
   expect(link.closest("[translate]")?.getAttribute("translate")).toBe("no");
 });
 
-test("the theme switch says what a press does, and does it", () => {
+test("the theme switch says what a press does, and does it, from the dark default", () => {
   signIn();
   render(<AppFrame lang="en" path="village">screen</AppFrame>);
-  fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
-  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-  expect(localStorage.getItem("vs-theme")).toBe("dark");
   fireEvent.click(screen.getByRole("button", { name: "Switch to light mode" }));
   expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  expect(localStorage.getItem("vs-theme")).toBe("light");
+  fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
+  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
 });
 
 test("onboarding gets the header only, with sign out, because there is nowhere to go yet", () => {
@@ -322,4 +323,20 @@ test("with a profile on screen, a failed refresh changes nothing", async () => {
   render(<Name />);
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   expect(screen.getByText("Aminata Ndiaye")).toBeTruthy();
+});
+
+// jsdom has no layout or keyboard, so this reads the stylesheet: on phones, while a text field
+// has focus, the bottom bar steps aside and sticky rows drop to the bottom edge, but the page
+// keeps its bottom room, so nothing jumps.
+test("on phones the bottom bar steps aside while a text field has focus, and the page keeps its room", () => {
+  const css = readFileSync(join(__dirname, "app-frame.module.css"), "utf8").replace(/\s+/g, " ");
+  const phone = css.slice(css.indexOf("@media (max-width: 767px) {"));
+  const typing = ":has(:is(input:not([type=\"checkbox\"]";
+  expect(phone).toMatch(/\.page\[data-places\]:has\(:is\(input:not\(\[type="checkbox"\][^{]*textarea[^{]*\):focus\) \{ --app-bottom: 0px; \}/);
+  // the floating bar goes down by its height and the gap under it, off the screen
+  expect(phone).toMatch(/:focus\) \.places \{ visibility: hidden; transform: translateY\(calc\(100% \+ var\(--space-4\) \+ env\(safe-area-inset-bottom, 0px\)\)\);/);
+  // the page's room is written with --places-clear, which typing does not change
+  expect(phone).toContain("padding-block-end: calc(var(--places-clear) + var(--space-2));");
+  expect(phone).not.toMatch(/padding-block-end: calc\(var\(--app-bottom\)/);
+  expect(css.indexOf(typing)).toBeGreaterThan(css.indexOf("@media (max-width: 767px) {"));
 });

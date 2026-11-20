@@ -13,7 +13,8 @@ export function Faq({ lang }: { lang: Lang }) {
         <h2 id="faq-title">
           <HeadingText text={t.title} />
         </h2>
-        <div className={own.list}>
+        {/* the back-to-top button steps aside while the questions pass under it */}
+        <div className={own.list} data-clear-of-to-top="">
           {t.items.map((item) => (
             <details className={own.item} name="faq" key={item.q}>
               <summary className={own.summary}>

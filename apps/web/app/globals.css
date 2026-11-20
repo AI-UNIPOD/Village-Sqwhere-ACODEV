@@ -38,11 +38,26 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  /* the page may draw under a phone's notch (viewport-fit=cover in [lang]/layout.tsx): turned
+     sideways, the content keeps clear of it */
+  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
   color: var(--text);
   background: var(--bg);
   font: var(--type-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* A tap shows no grey box, which reads as a web page. Buttons keep their own press states; on a
+   touch screen a link dims while pressed instead, as native lists do. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) {
+  :where(a[href]):active {
+    opacity: 0.7;
+  }
 }
 
 a {

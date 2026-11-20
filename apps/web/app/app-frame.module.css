@@ -30,7 +30,11 @@
   }
 }
 
-.brand { min-block-size: var(--tap-min); }
+/* on a narrow phone only the logo shows: the link stays a 44px target around it */
+.brand {
+  min-block-size: var(--tap-min);
+  min-inline-size: var(--tap-min);
+}
 
 /* ---------- the header, pinned ---------- */
 /* frame-pin.tsx sets data-pinned once the header has scrolled out of view: the same header, now
@@ -268,7 +272,9 @@
 
   .page[data-places] {
     --app-bottom: var(--places-clear);
-    padding-block-end: calc(var(--app-bottom) + var(--space-2));
+    /* written with --places-clear, not var(--app-bottom): the room stays while typing, so the
+       page never jumps when the bar steps aside */
+    padding-block-end: calc(var(--places-clear) + var(--space-2));
   }
 
   .places {
@@ -295,6 +301,23 @@
     -webkit-backdrop-filter: blur(var(--blur-bar));
     backdrop-filter: blur(var(--blur-bar));
     box-shadow: var(--shadow-float);
+    transition: transform var(--dur-menu) var(--ease-out);
+  }
+
+  /* While a text field has focus the on-screen keyboard is up. The bar steps aside, as a
+     native tab bar does, and sticky rows (a form's Post or Save) drop to the bottom edge, so
+     the field keeps the room. It comes back when the field loses focus. */
+  .page[data-places]:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"], [type="range"], [type="color"], [type="file"], [type="image"]), textarea, [contenteditable]:not([contenteditable="false"])):focus) {
+    --app-bottom: 0px;
+  }
+
+  /* the floating bar goes down by its own height and the gap under it, off the screen */
+  .page[data-places]:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"], [type="range"], [type="color"], [type="file"], [type="image"]), textarea, [contenteditable]:not([contenteditable="false"])):focus) .places {
+    visibility: hidden;
+    transform: translateY(calc(100% + var(--space-4) + env(safe-area-inset-bottom, 0px)));
+    transition:
+      transform var(--dur-menu-out) var(--ease-out),
+      visibility 0s linear var(--dur-menu-out);
   }
 
   /* where the blur is missing or unwanted, the bar is solid so the names stay readable */
@@ -374,11 +397,26 @@
   .theme:hover { background: var(--surface-sunken); }
 }
 
-/* reduced motion: a press shows in the colour, not in a scale */
+/* reduced motion: a press shows in the colour, not in a scale, and the bar fades aside while
+   typing instead of sliding */
 @media (prefers-reduced-motion: reduce) {
   .theme:active,
   .place:active {
     transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (max-width: 767px) {
+  .places {
+    transition-property: opacity;
+  }
+
+  .page[data-places]:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"], [type="range"], [type="color"], [type="file"], [type="image"]), textarea, [contenteditable]:not([contenteditable="false"])):focus) .places {
+    opacity: 0;
+    transform: none;
+    transition:
+      opacity var(--dur-menu-out) var(--ease-out),
+      visibility 0s linear var(--dur-menu-out);
   }
 }
 

@@ -4,6 +4,7 @@ import type { Lang } from "../locales";
 import { Logo } from "../logo";
 import { AccountNavLink } from "../session/session-ui";
 import { copy } from "./copy";
+import { BackToTop } from "./back-to-top";
 import { DemoButton, DemoNote } from "./demo-button";
 import { GatherHero } from "./gather-hero";
 import { HeaderPin } from "./header-pin";
@@ -76,7 +77,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
           </div>
           {/* what the demo is, then how opening it is going */}
           <p className={styles.note} id="demo-note" data-hero-note="">
-            <DemoNote lang={lang} />
+            <DemoNote lang={lang} short />
           </p>
         </GatherHero>
 
@@ -87,6 +88,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
         <Principles lang={lang} />
         <Faq lang={lang} />
         <ClosingBand lang={lang} />
+        <BackToTop label={t.toTop} />
       </main>
 
       <footer className={styles.foot}>
@@ -130,10 +132,14 @@ export function LandingPage({ lang }: { lang: Lang }) {
               {t.footCopy}
             </span>
             <span>{t.footLang}</span>
-            <span>
+            <span className={styles.credit}>
               {t.footCredit.before}{" "}
               <a className={styles.creditLink} href={UNIPOD_URL} target="_blank" rel="noopener noreferrer">
-                {t.footCredit.link} <span className={styles.srOnly}>({t.footCredit.newTab})</span>
+                {t.footCredit.link}{" "}
+                <svg className={styles.creditArrow} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M7 17 17 7M9 7h8v8" />
+                </svg>
+                <span className={styles.srOnly}>({t.footCredit.newTab})</span>
               </a>{" "}
               {t.footCredit.after}
             </span>

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -160,4 +163,52 @@ test.each([
 // New hubs sign version 2 of the hub agreement (#195), so the sample team shows it.
 test.each(["en", "fr"] as const)("the %s sample team shows version 2 of the hub agreement", (lang) => {
   expect(copy[lang].team.agreement).toMatch(/^Version 2 /);
+});
+
+// ---------- phones: the stack of cards ----------
+
+const phone = (motion: boolean) =>
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      // the stack asks for a phone width and motion in one query
+      matches: query.includes("max-width: 767px") && motion,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+
+test("on a phone with motion allowed the steps stack as cards, each knowing its place and height", () => {
+  phone(true);
+  const { container } = render(<HowItWorks lang="en" />);
+  const list = container.querySelector("ol")!;
+  expect(list.hasAttribute("data-stack")).toBe(true);
+  stepsOf(container).forEach((step, i) => {
+    expect(step.style.getPropertyValue("--i")).toBe(String(i));
+    // jsdom has no layout, so every height reads 0px; a browser writes the real one
+    expect(step.style.getPropertyValue("--h")).toBe("0px");
+  });
+  vi.unstubAllGlobals();
+});
+
+test("with reduced motion the steps stay a plain list of cards, with nothing stacked", () => {
+  phone(false);
+  const { container } = render(<HowItWorks lang="en" />);
+  expect(container.querySelector("ol")!.hasAttribute("data-stack")).toBe(false);
+  for (const step of stepsOf(container)) expect(step.style.getPropertyValue("--h")).toBe("");
+  vi.unstubAllGlobals();
+});
+
+// jsdom has no layout, so this reads the stylesheet: the cards stick only inside the phone
+// query and only once the script has said so; a card taller than the screen settles once its
+// bottom is in view.
+test("the stack's cards stick only on phones, under the pill, cascading and never cut off", () => {
+  const css = readFileSync(join(__dirname, "how-it-works.module.css"), "utf8").replace(/\s+/g, " ");
+  const phoneCss = css.slice(css.indexOf("@media (max-width: 767px) {"));
+  expect(phoneCss).toMatch(/\.steps\[data-stack\] \.step \{ position: sticky; top: min\( calc\(var\(--stack-top\) \+ var\(--i, 0\) \* var\(--space-3\)\), calc\(100svh - var\(--h, 0px\) - var\(--space-4\)\) \);/);
+  // the only stacking rule is the phone one
+  expect(css.indexOf(".steps[data-stack] .step { position: sticky")).toBeGreaterThan(
+    css.indexOf("@media (max-width: 767px) {"),
+  );
+  expect(css.split(".steps[data-stack] .step { position: sticky")).toHaveLength(2);
 });

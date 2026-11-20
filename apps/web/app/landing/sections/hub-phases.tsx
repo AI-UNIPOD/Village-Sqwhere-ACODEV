@@ -105,7 +105,30 @@ export function HubPhases({ lang }: { lang: Lang }) {
   // true while the first phase waits, unseen, to play its entrance
   const [waiting, setWaiting] = useState(false);
   const demoRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  // On a phone the tabs scroll sideways: say which edges have more past them, so the stylesheet
+  // fades those edges. Written on the element, so scrolling never re-renders the section.
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const mark = () => {
+      const start = scroller.scrollLeft > 1;
+      const end = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1;
+      const more = start && end ? "both" : start ? "start" : end ? "end" : null;
+      if (more) scroller.setAttribute("data-more", more);
+      else scroller.removeAttribute("data-more");
+    };
+    mark();
+    scroller.addEventListener("scroll", mark, { passive: true });
+    const resized = typeof ResizeObserver === "function" ? new ResizeObserver(mark) : null;
+    resized?.observe(scroller);
+    return () => {
+      scroller.removeEventListener("scroll", mark);
+      resized?.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const demo = demoRef.current;
@@ -164,7 +187,7 @@ export function HubPhases({ lang }: { lang: Lang }) {
         <p className={styles.lead}>{t.lead}</p>
 
         <div className={s.demo} ref={demoRef} data-waiting={waiting}>
-          <div className={s.scroller}>
+          <div className={s.scroller} ref={scrollerRef}>
             <div className={s.track}>
               <div className={s.tabs} role="tablist" aria-label={t.tablist} onKeyDown={onKeyDown}>
                 {t.phases.map((phase, i) => (

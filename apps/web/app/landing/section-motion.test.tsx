@@ -24,11 +24,16 @@ class FakeObserver {
   }
 }
 
-// tell every observer watching `el` that it entered or left view
-function scrollTo(el: Element, inView: boolean) {
+// tell every observer watching `el` that it entered or left view, filling `share` of an 800px screen
+function scrollTo(el: Element, inView: boolean, share = 1) {
   for (const w of watchers) {
     if (!w.targets.has(el)) continue;
-    const entry = { target: el, isIntersecting: inView } as IntersectionObserverEntry;
+    const entry = {
+      target: el,
+      isIntersecting: inView,
+      intersectionRect: { height: inView ? share * 800 : 0 },
+      rootBounds: { height: 800 },
+    } as unknown as IntersectionObserverEntry;
     w.callback([entry], {} as IntersectionObserver);
   }
 }
@@ -120,6 +125,32 @@ test("marks the header link of the section being read", () => {
   scrollTo(container.querySelector("#matcher")!, true);
   expect(matcher.getAttribute("aria-current")).toBe("location");
   expect(hub.hasAttribute("aria-current")).toBe(false);
+});
+
+// The mark follows the linked section filling the most of the screen, so a section stays marked
+// all the time it is being read, entered from above or from below, not only near its top.
+test("a section stays marked while it fills the screen, whichever way it is scrolled into", () => {
+  vi.stubGlobal("IntersectionObserver", FakeObserver);
+  const { container } = render(<LandingPage lang="en" />);
+  const header = within(container.querySelector("header")!);
+  const hub = header.getByRole("link", { name: "Hub" });
+  const faq = header.getByRole("link", { name: "FAQ" });
+  const current = () => [hub, faq].filter((l) => l.getAttribute("aria-current") === "location");
+
+  // coming down: the hub's top is in, its lower part still below
+  scrollTo(container.querySelector("#hub")!, true, 0.6);
+  expect(current()).toEqual([hub]);
+  // further down, the FAQ fills more of the screen than what is left of the hub
+  scrollTo(container.querySelector("#faq")!, true, 0.7);
+  scrollTo(container.querySelector("#hub")!, true, 0.25);
+  expect(current()).toEqual([faq]);
+  // coming back up from the FAQ: the hub's bottom fills most of the screen again
+  scrollTo(container.querySelector("#faq")!, true, 0.2);
+  scrollTo(container.querySelector("#hub")!, true, 0.75);
+  expect(current()).toEqual([hub]);
+  // a sliver of a section, while something else fills the screen, marks nothing
+  scrollTo(container.querySelector("#hub")!, true, 0.1);
+  expect(current()).toEqual([]);
 });
 
 test("at the end of the page the last section is marked, even on a screen too tall to scroll it up", () => {

@@ -49,6 +49,29 @@ test("the line under the button says what the demo is", () => {
   expect(screen.getByRole("button", { name: "Try the demo" }).getAttribute("aria-describedby")).toBe("demo-note");
 });
 
+test.each([
+  ["en", "No sign-up. Look around everything in read-only mode. A short tour is inside.", "(no sign up)"],
+  ["fr", "Sans inscription. Parcourez tout en lecture seule. Une courte visite guidée est incluse.", "(sans inscription)"],
+] as const)("in %s the short line holds the full sentence and its phone form, until the demo opens", async (lang, full, short) => {
+  fetchMock.mockImplementation(() => new Promise(() => {}));
+  render(
+    <>
+      <DemoButton lang={lang} className="demo" note="demo-note">
+        Try the demo
+      </DemoButton>
+      <p id="demo-note">
+        <DemoNote lang={lang} short />
+      </p>
+    </>,
+  );
+  const parts = () => Array.from(document.querySelectorAll("#demo-note > span > span")).map((s) => s.textContent);
+  expect(parts()).toEqual([full, short]);
+  // once it is opening, the line reports that in one piece, at every width
+  fireEvent.click(screen.getByRole("button", { name: "Try the demo" }));
+  expect(parts()).toEqual([]);
+  expect(note()).toBe(lang === "en" ? "Opening the demo" : "Ouverture de la démo");
+});
+
 test("pressing it signs in as the demo account, keeps the session and opens the village", async () => {
   fetchMock.mockImplementation(() => answer(200, { data: { ...tokens, user: { is_demo: true } } }));
   pair("fr");

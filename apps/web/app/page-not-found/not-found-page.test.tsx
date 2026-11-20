@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import LangNotFound, { generateMetadata } from "../[lang]/not-found";
-import GlobalNotFound, { NOT_FOUND_INIT_SCRIPT } from "../global-not-found";
+import { viewport as layoutViewport } from "../[lang]/layout";
+import GlobalNotFound, { NOT_FOUND_INIT_SCRIPT, viewport } from "../global-not-found";
 import { LOCALES } from "../locales";
 import { SESSION_KEY } from "../session/session";
 import { NotFoundPage } from "./not-found-page";
@@ -175,6 +176,30 @@ test.each([
   new Function(NOT_FOUND_INIT_SCRIPT)();
   expect(document.documentElement.lang).toBe(lang);
   expect(document.title).toBe(title);
+});
+
+// Like every other page, the not-found page opens in dark before anything is painted, unless the
+// visitor saved light.
+test.each([
+  [null, "dark"],
+  ["dark", "dark"],
+  ["light", "light"],
+])("its script opens the page in the saved theme, or dark: saved %s gives %s", (saved, theme) => {
+  localStorage.clear();
+  if (saved) localStorage.setItem("vs-theme", saved);
+  document.documentElement.removeAttribute("data-theme");
+  new Function(NOT_FOUND_INIT_SCRIPT)();
+  expect(document.documentElement.getAttribute("data-theme")).toBe(theme);
+  document.documentElement.removeAttribute("data-theme");
+  localStorage.clear();
+});
+
+// It has its own document, so it says how to colour the browser's bars itself: the same way as
+// the layout's pages, which the early script then turns to the theme the page opened in.
+test("the document for an unmatched address colours the browser's bars like every other page", () => {
+  expect(viewport).toBe(layoutViewport);
+  expect(viewport.themeColor).toHaveLength(2);
+  expect(viewport.viewportFit).toBe("cover");
 });
 
 test("the tab title follows the document's language once the page is running", () => {

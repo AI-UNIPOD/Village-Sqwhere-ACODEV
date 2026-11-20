@@ -10,7 +10,8 @@ type Copy = {
   signIn: string;
   signOut: string;
   /** Under "Try the demo": what it is, then how opening it is going. */
-  demo: { idle: string; opening: string; unavailable: string; network: string; failed: string };
+  // idleShort: the hero's line on a phone, cut to its first promise so it stays on one line
+  demo: { idle: string; idleShort: string; opening: string; unavailable: string; network: string; failed: string };
   toDark: string;
   toLight: string;
   pause: string;
@@ -28,6 +29,8 @@ type Copy = {
   footLang: string;
   // the place it was built, linked to its own site: words before, the link, words after
   footCredit: { before: string; link: string; after: string; newTab: string };
+  // the round button that takes the visitor back to the top of the page
+  toTop: string;
 };
 
 const en: Copy = {
@@ -42,6 +45,7 @@ const en: Copy = {
   signOut: "Sign out",
   demo: {
     idle: "No sign-up. Look around everything in read-only mode. A short tour is inside.",
+    idleShort: "(no sign up)",
     opening: "Opening the demo",
     unavailable: "The demo is not available right now. You can still sign in with GitHub.",
     network: "We couldn't reach Village Sqwhere. Check your connection and try again.",
@@ -62,6 +66,7 @@ const en: Copy = {
   footFlag: "Nigeria flag",
   footLang: "Available in English and French.",
   footCredit: { before: "Built at", link: "AI UniPod, University of Lagos", after: "for ACODev 2026.", newTab: "opens in a new tab" },
+  toTop: "Back to top",
 };
 
 // Needs a native French review before launch.
@@ -77,6 +82,7 @@ const fr: Copy = {
   signOut: "Déconnexion",
   demo: {
     idle: "Sans inscription. Parcourez tout en lecture seule. Une courte visite guidée est incluse.",
+    idleShort: "(sans inscription)",
     opening: "Ouverture de la démo",
     unavailable: "La démo n'est pas disponible pour le moment. Vous pouvez toujours vous connecter avec GitHub.",
     network: "Nous n'avons pas pu joindre Village Sqwhere. Vérifiez votre connexion et réessayez.",
@@ -97,6 +103,7 @@ const fr: Copy = {
   footFlag: "Drapeau du Nigeria",
   footLang: "Disponible en anglais et en français.",
   footCredit: { before: "Conçu à", link: "l'AI UniPod de l'Université de Lagos", after: "pour l'ACODev 2026.", newTab: "s'ouvre dans un nouvel onglet" },
+  toTop: "Retour en haut",
 };
 
 export const copy: Record<Lang, Copy> = { en, fr };

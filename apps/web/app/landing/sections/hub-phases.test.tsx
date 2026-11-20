@@ -219,3 +219,28 @@ test.each([
   // no label calls the views made up or a sample
   expect(`${t.lead} ${t.closing}`).not.toMatch(/made-up|sample|inventé|exemple/i);
 });
+
+// jsdom has no layout, so the row's sizes are set by hand: the edges with more tabs past them
+// are marked, and the stylesheet fades those edges.
+test("on a phone the tab row marks the edges that have more tabs past them as it scrolls", () => {
+  render(<HubPhases lang="en" />);
+  const scroller = screen.getByRole("tablist").parentElement!.parentElement!;
+  let left = 0;
+  Object.defineProperty(scroller, "scrollWidth", { configurable: true, get: () => 600 });
+  Object.defineProperty(scroller, "clientWidth", { configurable: true, get: () => 358 });
+  Object.defineProperty(scroller, "scrollLeft", { configurable: true, get: () => left });
+  const scrollTo = (x: number) => {
+    left = x;
+    fireEvent.scroll(scroller);
+  };
+  scrollTo(0);
+  expect(scroller.getAttribute("data-more")).toBe("end");
+  scrollTo(120);
+  expect(scroller.getAttribute("data-more")).toBe("both");
+  scrollTo(242);
+  expect(scroller.getAttribute("data-more")).toBe("start");
+  // wide screens: the four tabs fit, nothing is marked
+  Object.defineProperty(scroller, "scrollWidth", { configurable: true, get: () => 358 });
+  scrollTo(0);
+  expect(scroller.hasAttribute("data-more")).toBe(false);
+});
