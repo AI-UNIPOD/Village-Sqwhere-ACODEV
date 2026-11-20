@@ -19,15 +19,18 @@ its number:
 - feat(api): give the demo real match scores from vectors measured once
 - perf(api): load a signed-in person in 7 queries instead of 11 on every request
 - feat(api): fall back to claude and openai in the interview steps
-- fix(web): say nothing was saved when the demo refuses a topic choice
 - feat(web): show the signed-in developer's initials in the header with a menu to the profile and sign out
 - feat(web): let a visitor with reduced motion turn animations on
 - feat(web): search the feed and choose its order from the address
 - fix(web): say when the server, not the connection, failed to save a hub signature
-- fix(api): keep sign-in state in the database so any instance finishes it
+- fix(api): keep sign-in state in the database so any instance finishes it (#253)
 - perf(web): save the five onboarding answers together instead of one after another
 - feat(web): filter the feed by kind and by topic from the address
+- feat: make the match vectors with openai instead of gemini (#255)
+- feat(api): rank the feed for you and add post search and sort (#256)
 - fix(web): say the demo's tour has six steps, not every screen
+- fix(web): say nothing was saved when the demo refuses outside the feed (#252)
+- fix(web): offer no team actions to the owner of an archived hub (#251)
 - fix(api): end a verification attempt whose analysis failed on every try
 - fix(web): say nothing was saved when the demo refuses a topic choice
 - fix(web): show an untitled post's first line as text, not a link-coloured paragraph
