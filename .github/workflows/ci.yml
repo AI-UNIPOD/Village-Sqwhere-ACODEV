@@ -1,7 +1,7 @@
 name: ci
 
 # Every job runs on every pull request, so a check is never skipped by accident.
-# The same commands run locally: see AGENTS.md section 8.
+# The same commands run locally: see CONTRIBUTING.md.
 
 on:
   pull_request:
@@ -38,9 +38,9 @@ jobs:
           fetch-depth: 0
       - name: No em dashes or en dashes in changed files
         run: |
-          # lockfiles and the block Next.js writes into apps/web/AGENTS.md are generated
+          # lockfiles are generated
           changed=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }}...HEAD -- \
-            ':!pnpm-lock.yaml' ':!apps/api/uv.lock' ':!apps/web/AGENTS.md')
+            ':!pnpm-lock.yaml' ':!apps/api/uv.lock')
           if [ -z "$changed" ]; then
             echo "No changed files to check."
             exit 0

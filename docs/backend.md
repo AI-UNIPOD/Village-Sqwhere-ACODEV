@@ -81,7 +81,7 @@ Throughout Village Sqwhere, lookups (roles, technologies, topics) are identified
 * **Why use slugs instead of display names?**
   * Display names contain spaces, slashes, and symbols (e.g., `AI / ML Engineer`, `Node.js`, `CI/CD`). Slugs avoid URL encoding and whitespace bugs.
   * Display names can be rebranded or localized in the UI without breaking backend API contracts or database foreign keys.
-* **The Golden Rule for Frontend Developers & Agents:**
+* **The Golden Rule for Frontend Developers:**
   * **Displaying in UI:** Always show `name` to human users (e.g., "DevOps & Cloud Engineer").
   * **Sending to API:** Always send `slug` in request payloads, path parameters, and query parameters (e.g., `"devops-cloud-engineer"`).
 * **Single Taxonomy Notice:** The `technologies` lookup table is the platform's single source of truth for developer skills, project requirements, and feed topic tags. That is why both `PUT /v1/me/technologies` and `PUT /v1/me/feed-topics` accept lists of technology slugs.

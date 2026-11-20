@@ -40,6 +40,6 @@ whole pixels), and no lockup with the name until one is drawn.
   `next/font`, uses the logo as the tab icon, and the home page is drawn from the tokens.
 - Tests in `apps/web` check that `tokens.json` and `tokens.css` agree, that the `Logo`
   component and `icon.svg` match the logo files, and that no app stylesheet uses a raw
-  colour. `AGENTS.md` tells every agent to build screens from the design system.
+  colour.
 - The lockup of the mark with the name, and real photography with signed releases, are
   still to do.

@@ -64,8 +64,8 @@ Good: feat(api): add idea embedding endpoint
 Bad:  Added new feature.
 ```
 
-The `commit-msg` hook in `.githooks/` checks every commit, and the merge agent checks pull
-request titles the same way, because the title becomes the commit on `main`.
+The `commit-msg` hook in `.githooks/` checks every commit, and the automatic merge check
+validates pull request titles the same way, because the title becomes the commit on `main`.
 
 ## How a change gets to `main`
 
@@ -78,10 +78,9 @@ request titles the same way, because the title becomes the commit on `main`.
 
 2. **Build in small steps.** Commit as you go; every message is one line in the
    conventional format, for example `feat(web): add the idea form`.
-3. **Document it in the same branch:** one line in `CHANGELOG.md` under today's date with
-   the pull request number, a decision record in `docs/decisions/` if you made a choice
-   someone might question, and any README or doc your change makes wrong (`README.md` and
-   `README.fr.md` stay in step).
+3. **Document it in the same branch:** a decision record in `docs/decisions/` if you made a
+   choice someone might question, and any README or doc your change makes wrong
+   (`README.md` and `README.fr.md` stay in step).
 4. **Run the checks** and fix what fails:
 
    ```bash
@@ -92,7 +91,7 @@ request titles the same way, because the title becomes the commit on `main`.
 5. **Push and open a pull request** into `main`. The title is a one-line conventional
    commit, because we squash merge and the title becomes the commit on `main`. Fill in the
    template.
-6. **The merge agent takes it from there** (below): within a few minutes it runs the checks,
+6. **The automatic merge check takes it from there** (below): within a few minutes it runs the checks,
    squash merges the pull request if they all pass and deletes the branch. To hold it back,
    for example for a review, add the `do-not-merge` label.
 7. **If it flags the pull request, fix it on the branch.** It runs the checks again on the
@@ -117,22 +116,14 @@ GitHub Actions runs `.github/workflows/ci.yml` on every pull request and on ever
 If a check fails, click it to read the log, fix the problem on your branch and push again.
 CI re-runs on its own.
 
-### The merge agent
+### The automatic merge check
 
 GitHub Actions is off for now (billing limit), so the checks above run on Tanny's PC instead.
-Tanny's merge agent, which lives on that PC and not in this repository, checks every open pull
-request into `main` every 5 minutes, merged with the latest `main`. Then:
-
-| You see | It means | You do |
-| --- | --- | --- |
-| The pull request merged and the branch gone | Every check passed | Nothing |
-| `agent: checks failed` and a comment | A check failed; the comment says which and why | Fix it and push |
-| `agent: conflicts` and a comment | Conflicts it would not or could not resolve | Merge `main` in, resolve, push |
-| `agent: review conflicts` and a comment | It resolved conflicts and the checks passed | Read the resolution, then remove the label |
-
-Removing an `agent:` label makes it try the same commit again. Why it works this way:
-[`docs/decisions/2026-11-13-merge-agent.md`](docs/decisions/2026-11-13-merge-agent.md). Questions
-about it go to Tanny.
+That check, which lives on that PC and not in this repository, looks at every open pull request
+into `main` every 5 minutes, merged with the latest `main`. When every check passes it squash
+merges the pull request and deletes the branch. When one fails, or a conflict is left, it
+leaves a comment that says which and why: fix it on the branch and push, and it runs again.
+Questions about it go to Tanny.
 
 The app deploys to Vercel from `vercel.json` at the repository root: the web app, the API and
 the verification worker as one project (see `infra/README.md`).

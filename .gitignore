@@ -7,8 +7,6 @@
 
 # testing
 /coverage
-# browser test output (screenshots, page snapshots, console logs)
-.playwright-mcp/
 
 # next.js
 /.next/

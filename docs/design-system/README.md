@@ -1,8 +1,7 @@
 # Village Sqwhere design system
 
-The rules for how Village Sqwhere looks, moves and speaks. People and coding agents follow
-the same rules. If something you need is not here, ask before you invent it, and add the
-answer here in the same pull request.
+The rules for how Village Sqwhere looks, moves and speaks. If something you need is not
+here, ask before you invent it, and add the answer here in the same pull request.
 
 ## What is in this folder
 
@@ -47,7 +46,7 @@ drift, if the logo paths change, or if an app stylesheet uses a raw colour.
 }
 ```
 
-## Rules for agents
+## Before you build a screen
 
 - Read this file, then the doc for the part you are building, before writing UI code.
 - Take values from `tokens.json` or `tokens.css`. Do not guess a colour from a screenshot.
