@@ -1,17 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import styles from "./landing-page.module.css";
 
 // "Back to top", once the visitor is a screen down. It sits at the end of <main>, sticky to the
 // bottom of the screen: it floats over the sections as they scroll and stops just above the
-// footer instead of covering it. The pill menu is at the top, so the two never meet.
+// footer instead of covering it. The pill menu is at the top, so the two never meet. It steps
+// aside while a list marked data-clear-of-to-top passes under it (the FAQ's questions), so it
+// never covers a row's own control.
 export function BackToTop({ label }: { label: string }) {
   const [shown, setShown] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const check = () => setShown(window.scrollY > window.innerHeight);
+    const check = () => {
+      const spot = button.current?.getBoundingClientRect();
+      const underIt = (el: Element) => {
+        const list = el.getBoundingClientRect();
+        return !!spot && list.top < spot.bottom && list.bottom > spot.top;
+      };
+      const clear = ![...document.querySelectorAll("[data-clear-of-to-top]")].some(underIt);
+      setShown(window.scrollY > window.innerHeight && clear);
+    };
     check();
     window.addEventListener("scroll", check, { passive: true });
     return () => window.removeEventListener("scroll", check);
@@ -30,6 +41,7 @@ export function BackToTop({ label }: { label: string }) {
   return (
     <div className={styles.toTopDock}>
       <button
+        ref={button}
         type="button"
         className={styles.toTop}
         aria-label={label}

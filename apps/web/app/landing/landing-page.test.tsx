@@ -279,6 +279,36 @@ test.each([
   expect(container.querySelector("main")!.lastElementChild!.contains(button)).toBe(true);
 });
 
+test("back to top steps aside while the questions pass under it, so it never covers a question's arrow", () => {
+  render(<LandingPage lang="en" />);
+  const button = screen.getByRole("button", { name: "Back to top", hidden: true });
+  const questions = document.querySelector("#faq [data-clear-of-to-top]")!;
+  expect(questions.querySelectorAll("details").length).toBeGreaterThan(3);
+  // the button floats 660 to 704 px down the screen
+  let listTop = 2000;
+  const box = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (this === button) return { top: 660, bottom: 704 } as DOMRect;
+    if (this === questions) return { top: listTop, bottom: listTop + 900 } as DOMRect;
+    return { top: 0, bottom: 0 } as DOMRect;
+  });
+  Object.defineProperty(window, "scrollY", { configurable: true, value: window.innerHeight + 1 });
+  const scroll = (top: number) => {
+    listTop = top;
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+  };
+
+  scroll(2000); // the questions are further down
+  expect(button.hasAttribute("data-shown")).toBe(true);
+  scroll(500); // they pass under the button
+  expect(button.hasAttribute("data-shown")).toBe(false);
+  scroll(-1000); // they have gone by
+  expect(button.hasAttribute("data-shown")).toBe(true);
+  box.mockRestore();
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+});
+
 test("back to top shows once a screen down, then takes the page and the keyboard to the top", () => {
   const { container } = render(<LandingPage lang="en" />);
   const button = screen.getByRole("button", { name: "Back to top", hidden: true });
