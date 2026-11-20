@@ -27,6 +27,9 @@ fifteen minutes on every route. Tracker row 109 asks for a short-lived ticket in
 - A ticket stored in the database. Not chosen: it would be one more table for something that
   lives a minute, and sign-in state is already in memory.
 
+Update, 2026-11-20: tickets are now signed and the `token` query parameter is gone
+(`2026-11-20-signed-interview-ticket.md`).
+
 ## Consequences
 
 The web makes one more request before each interview. Once the web change is merged, the

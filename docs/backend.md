@@ -635,24 +635,24 @@ provider without a key is skipped. The run fails only when every provider fails.
 
 #### `POST /v1/me/verifications/{session_id}/interview-ticket`
 
-The applicant asks for a one-use ticket just before opening the interview socket, so the access
+The applicant asks for a ticket just before opening the interview socket, so the access
 token never goes in a URL, where servers and proxies log it. No body. Answers `201` with
-`{"data": {"ticket": "...", "expires_at": "..."}}`. The ticket works once, for about 60
-seconds, only for this attempt and this person, and is kept in the API's memory (one process,
-unlike the sign-in codes, which are in the database).
+`{"data": {"ticket": "...", "expires_at": "..."}}`. The ticket is signed, so any API instance
+accepts it. It works for about 60 seconds, only for this attempt and this person, and it is
+not one-use.
 
 * **Errors:** `401`, `403 DEMO_READ_ONLY` (the demo cannot take an interview), `404 NOT_FOUND`
   (no such attempt of yours), `409 INTERVIEW_NOT_AVAILABLE` (the attempt is not at its
   interview).
-* Why: `docs/decisions/2026-11-15-interview-ticket.md`.
+* Why: `docs/decisions/2026-11-15-interview-ticket.md` and
+  `docs/decisions/2026-11-20-signed-interview-ticket.md`.
 
 #### `WS /v1/me/verifications/{session_id}/interview`
 
 The applicant opens this WebSocket after the session reaches `technical_defence`, with the
-ticket from `POST .../interview-ticket` as the `ticket` query parameter. A used, expired or
+ticket from `POST .../interview-ticket` as the `ticket` query parameter. An expired or
 unknown ticket, or one for another attempt, is refused like a bad token (close code `1008`).
-The older `token` query parameter (the access token itself) still works but is deprecated: it
-goes once the web sends tickets. The server
+The access token in the URL is no longer accepted. The server
 sends `assistant_message`, `question`, `answer_saved`, `audio_buffered`, `error`,
 `interview_complete`, and `interview_incomplete` events. An `assistant_message` has a `kind` of
 `welcome`, `acknowledgement`, or `closing`, plus its text. The welcome explains the interview

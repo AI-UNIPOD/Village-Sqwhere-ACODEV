@@ -27,8 +27,11 @@ def async_database_url(url: str) -> str:
 def engine_options(environ: Mapping[str, str]) -> dict[str, Any]:
     """On Vercel, each request can run on a fresh event loop, and a pooled asyncpg
     connection from an earlier request fails when it is reset there. Open one per session.
-    SQL is echoed only locally: on Vercel it slowed every request and logged user data."""
-    return {"poolclass": NullPool} if environ.get("VERCEL") else {"echo": True}
+    SQL is echoed only when SQL_ECHO=true: every statement is logged with its values, which
+    include interview answers, emails and token hashes, so no host does it by default."""
+    if environ.get("VERCEL"):
+        return {"poolclass": NullPool}
+    return {"echo": True} if environ.get("SQL_ECHO", "").strip().lower() == "true" else {}
 
 
 ASYNC_DATABASE_URL = async_database_url(DATABASE_URL)

@@ -1,5 +1,4 @@
-import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
@@ -18,7 +17,11 @@ from app.config import (
     OPENAI_INTERVIEW_MODEL,
     VERIFICATION_INTERVIEW_MAX_TURNS,
 )
-from app.core.security import decode_access_token
+from app.core.security import (
+    decode_access_token,
+    sign_interview_ticket,
+    verify_interview_ticket,
+)
 from app.database import async_session
 from app.models.users import (
     InterviewStatus,
@@ -56,32 +59,26 @@ from app.services.providers import ClaudeJson, OpenAIJson
 
 router = APIRouter()
 
-# One-use tickets to open the interview socket, so the access token never goes in a URL, where
-# servers and proxies log it. Kept in memory like the sign-in codes in auth.py: the API runs
-# as one process. ticket -> (user id, session id, expires at)
+# Short-lived tickets to open the interview socket, so the access token never goes in a URL,
+# where servers and proxies log it. A ticket is signed, so any API instance can check it.
+# shortcut: valid for 60 seconds but not one-use, because remembering used tickets across
+# instances needs a table; add one if a replayed ticket becomes a concern.
 TICKET_LIFETIME = timedelta(seconds=60)
-_TICKETS: dict[str, tuple[UUID, UUID, datetime]] = {}
 
 
 def issue_ticket(user_id: UUID, session_id: UUID) -> tuple[str, datetime]:
-    now = datetime.now(UTC)
-    for key in [key for key, value in _TICKETS.items() if value[2] <= now]:
-        del _TICKETS[key]
-    ticket = secrets.token_urlsafe(32)
-    expires_at = now + TICKET_LIFETIME
-    _TICKETS[ticket] = (user_id, session_id, expires_at)
-    return ticket, expires_at
+    return sign_interview_ticket(user_id, session_id, TICKET_LIFETIME)
 
 
 def redeem_ticket(ticket: str, session_id: UUID) -> UUID | None:
-    """The user a ticket was issued to, once, while it lasts and only for its own session."""
-    found = _TICKETS.pop(ticket, None)
-    if found is None:
+    """The user a ticket was issued to, while it lasts and only for its own session."""
+    payload = verify_interview_ticket(ticket)
+    if payload is None or payload.get("sid") != str(session_id):
         return None
-    user_id, ticket_session_id, expires_at = found
-    if ticket_session_id != session_id or expires_at <= datetime.now(UTC):
+    try:
+        return UUID(str(payload["sub"]))
+    except (KeyError, ValueError):
         return None
-    return user_id
 
 
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
@@ -245,11 +242,7 @@ async def create_interview_ticket(
 async def interview_stream(websocket: WebSocket, session_id: UUID) -> None:
     async with async_session() as db:
         ticket = websocket.query_params.get("ticket")
-        if ticket is not None:
-            user = await ticket_user(ticket, session_id, db)
-        else:
-            # deprecated: a token in the URL ends up in logs; removed once the web sends tickets
-            user = await websocket_user(websocket.query_params.get("token"), db)
+        user = await ticket_user(ticket, session_id, db) if ticket else None
         if not user:
             await websocket.close(code=1008, reason="Authentication required.")
             return

@@ -37,6 +37,27 @@ def decode_access_token(token: str) -> dict[str, object] | None:
         return None
 
 
+def sign_interview_ticket(
+    user_id: UUID | str, session_id: UUID | str, lifetime: timedelta
+) -> tuple[str, datetime]:
+    expires_at = datetime.now(UTC) + lifetime
+    payload = {
+        "sub": str(user_id),
+        "sid": str(session_id),
+        "type": "interview_ticket",
+        "exp": expires_at,
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM), expires_at
+
+
+def verify_interview_ticket(ticket: str) -> dict[str, object] | None:
+    try:
+        payload = jwt.decode(ticket, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except jwt.PyJWTError:
+        return None
+    return payload if payload.get("type") == "interview_ticket" else None
+
+
 def create_refresh_token(user_id: UUID | str) -> tuple[str, datetime]:
     now = datetime.now(UTC)
     expire = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)

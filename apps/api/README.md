@@ -102,7 +102,8 @@ stateDiagram-v2
 ```
 
 The worker does the slow parts (reading public repositories, writing the report) outside any
-request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS`. The repositories
+request, retrying a failed analysis up to `VERIFICATION_MAX_ANALYSIS_ATTEMPTS` and a failed
+report up to `VERIFICATION_MAX_REPORT_ATTEMPTS`, after which the attempt ends. The repositories
 check, the interview and the report use Groq, then Claude, then OpenAI when one fails, in the
 language the attempt started in. Claude takes part only where `CLAUDE_ENABLED=true`; until the
 Anthropic account passes identity verification it is off, so OpenAI follows Groq. A provider
@@ -140,7 +141,8 @@ Or run it from this folder: `uv sync`, then `uv run fastapi dev app/main.py`.
 
 Settings come from environment variables or a root `.env` file (see the root `.env.example`).
 `JWT_SECRET_KEY` is required: the API will not start without it. GitHub sign-in also needs
-`GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+`GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`. SQL is logged with its values only when
+`SQL_ECHO=true`, so leave it off anywhere real people sign in.
 
 Sign-in keeps nothing in the API's memory, so it works with any number of API instances.
 OAuth states, login codes and revoked refresh tokens are rows in PostgreSQL
