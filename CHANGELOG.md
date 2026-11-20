@@ -23,14 +23,14 @@ its number:
 - feat(web): let a visitor with reduced motion turn animations on
 - feat(web): search the feed and choose its order from the address
 - fix(web): say when the server, not the connection, failed to save a hub signature
-- fix(api): keep sign-in state in the database so any instance finishes it (#253)
+- fix(api): keep sign-in state in the database so any instance finishes it
 - perf(web): save the five onboarding answers together instead of one after another
 - feat(web): filter the feed by kind and by topic from the address
-- feat: make the match vectors with openai instead of gemini (#255)
-- feat(api): rank the feed for you and add post search and sort (#256)
+- feat: make the match vectors with openai instead of gemini
+- feat(api): rank the feed for you and add post search and sort
 - fix(web): say the demo's tour has six steps, not every screen
-- fix(web): say nothing was saved when the demo refuses outside the feed (#252)
-- fix(web): offer no team actions to the owner of an archived hub (#251)
+- fix(web): say nothing was saved when the demo refuses outside the feed
+- fix(web): offer no team actions to the owner of an archived hub
 - fix(api): end a verification attempt whose analysis failed on every try
 - fix(web): say nothing was saved when the demo refuses a topic choice
 - fix(web): show an untitled post's first line as text, not a link-coloured paragraph
