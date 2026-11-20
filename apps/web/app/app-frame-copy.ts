@@ -13,7 +13,7 @@ type Copy = {
   /** Shown to the shared demo account on every screen, and what it says when a change is refused. */
   demo: { line: string; refused: string; leave: string; tour: string };
   /** The avatar in the header: what the button is called, and its link to the profile. */
-  account: { menu: string; profile: string };
+  account: { menu: string; menuOf: string; profile: string };
 };
 
 // The names of the places a signed-in developer can go, short enough for a phone's bottom bar.
@@ -25,7 +25,7 @@ export const copy: Record<Lang, Copy> = {
       leave: "Leave the demo",
       tour: "Take the tour",
     },
-    account: { menu: "Account menu", profile: "Profile and settings" },
+    account: { menu: "Account menu", menuOf: "Account menu: {name}", profile: "Profile and settings" },
   },
   // Needs a native French review before launch.
   fr: { navLabel: "Principale", village: "Village", feed: "Fil", ideas: "Idées", hubs: "Espaces", reviews: "Revues", profile: "Profil", invited: "une invitation vous attend",
@@ -35,6 +35,6 @@ export const copy: Record<Lang, Copy> = {
       leave: "Quitter la démo",
       tour: "Faire la visite",
     },
-    account: { menu: "Menu du compte", profile: "Profil et réglages" },
+    account: { menu: "Menu du compte", menuOf: "Menu du compte : {name}", profile: "Profil et réglages" },
   },
 };

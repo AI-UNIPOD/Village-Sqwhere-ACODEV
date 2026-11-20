@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { copy } from "./app-frame-copy";
 import { initials } from "./initials";
 import type { Lang } from "./locales";
+import { fill } from "./onboarding/copy";
 import styles from "./profile-menu.module.css";
 import { signOut } from "./session/session";
 
@@ -73,7 +74,7 @@ export function ProfileMenu({ lang, name, username, leave }: { lang: Lang; name:
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-label={`${t.menu}: ${name}`}
+        aria-label={fill(t.menuOf, { name })}
         onClick={() => setOpen((now) => !now)}
       >
         <span className={styles.avatar} aria-hidden="true">

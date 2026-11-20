@@ -36,7 +36,9 @@ test("the early theme script is a plain inline script, the first thing in the bo
     params: Promise.resolve({ lang: "en" }),
   } as LayoutProps<"/[lang]">);
   const html = renderToStaticMarkup(layout);
-  expect(html).toContain(`<body><script>${THEME_INIT_SCRIPT}</script><p>page</p>`);
+  // the skip link comes right after it, before the page
+  expect(html).toContain(`<body><script>${THEME_INIT_SCRIPT}</script><a `);
+  expect(html).toContain(">Skip to main content</a><p>page</p>");
 });
 
 // On a phone the browser's bars take the page's background from the tokens, and the page may

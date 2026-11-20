@@ -71,15 +71,6 @@
   overflow: visible;
 }
 
-/* where the tree should be: nobody is under it */
-.outline {
-  fill: none;
-  stroke: var(--line-strong);
-  stroke-width: 0.3;
-  stroke-dasharray: 0.9 0.9;
-  stroke-linecap: round;
-}
-
 /* Each person stands at their own place (--sx, --sy) and walks to their place in the tree
    (--tx, --ty) when called, one a moment after the other. The values are on the element
    itself, so calling everyone is one change of an attribute. */
@@ -97,16 +88,12 @@
   animation: wander calc(var(--dur-drift) * var(--pace)) ease-in-out calc(var(--i) * var(--delay-stagger) * -1) infinite alternate;
 }
 
-/* the whole tree, which takes the place of the people once they stand in its shape */
+/* the whole tree, which takes the place of the people once they stand in its shape. The logo
+   only ever fades in: it is never scaled, moved or outlined (docs/design-system/logo.md). */
 .tree {
   fill: var(--logo);
   opacity: 0;
-  transform: scale(0.96);
-  transform-box: fill-box;
-  transform-origin: center;
-  transition:
-    opacity var(--dur-press) var(--ease-out),
-    transform var(--dur-press) var(--ease-out);
+  transition: opacity var(--dur-press) var(--ease-out);
 }
 
 /* Called back: they walk in, then fade as the tree appears where they stand. This happens
@@ -124,16 +111,9 @@
 
 .stage[data-gathered] .body { animation-play-state: paused; }
 
-.stage[data-gathered] .outline { opacity: 0; }
-
-.outline { transition: opacity var(--dur-reveal) var(--ease-out); }
-
 .stage[data-gathered] .tree {
   opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--dur-reveal) var(--ease-out) calc(var(--dur-moment) + var(--delay-stagger) * 7),
-    transform var(--dur-moment) var(--ease-strong) calc(var(--dur-moment) + var(--delay-stagger) * 7);
+  transition: opacity var(--dur-reveal) var(--ease-out) calc(var(--dur-moment) + var(--delay-stagger) * 7);
 }
 
 .caption {
@@ -195,7 +175,6 @@
 
   .tree,
   .stage[data-gathered] .tree {
-    transform: none;
     transition: opacity var(--dur-reveal) var(--ease-out);
   }
 }

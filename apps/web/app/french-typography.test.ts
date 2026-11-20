@@ -5,6 +5,8 @@ import { copy as authCallback } from "./auth-callback/copy";
 import { copy as feed } from "./feed/copy";
 import { copy as hubs } from "./hubs/copy";
 import { copy as ideas } from "./ideas/copy";
+import { headlineEdit } from "./landing/hero-headline-copy";
+import { heroTeamCopy } from "./landing/hero-team-copy";
 import { copy as landing } from "./landing/copy";
 import { copy as matcherDemo } from "./landing/sections/matcher-demo-copy";
 import { copy as closingBand } from "./landing/sections/closing-band-copy";
@@ -15,11 +17,14 @@ import { copy as hubPhases } from "./landing/sections/hub-phases-copy";
 import { copy as principles } from "./landing/sections/principles-copy";
 import { copy as onboarding } from "./onboarding/copy";
 import { ROLES, TECHNOLOGIES, TOPICS } from "./onboarding/options";
+import { copy as pageError } from "./page-error/copy";
+import { copy as pageNotFound } from "./page-not-found/copy";
 import { copy as people } from "./people/copy";
 import { copy as profile } from "./profile/copy";
 import { copy as reducedMotionNotice } from "./reduced-motion-notice-copy";
 import { copy as reviews } from "./reviews/copy";
 import { copy as signIn } from "./sign-in/copy";
+import { copy as skipLink } from "./skip-link-copy";
 import { copy as tour } from "./tour/copy";
 import { copy as interview } from "./verification-interview/copy";
 import { copy as verification } from "./verification/copy";
@@ -46,6 +51,11 @@ const french = strings([
   hubs.fr,
   ideas.fr,
   landing.fr,
+  headlineEdit.fr,
+  heroTeamCopy.fr,
+  pageError.fr,
+  pageNotFound.fr,
+  skipLink.fr,
   matcherDemo.fr,
   closingBand.fr,
   faq.fr,

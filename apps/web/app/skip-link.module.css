@@ -1,0 +1,19 @@
+/* Off screen until the keyboard reaches it, then pinned top left above everything. */
+.link {
+  position: fixed;
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  z-index: 100;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: var(--type-label);
+  transform: translateY(-200%);
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.link:focus-visible {
+  transform: none;
+}

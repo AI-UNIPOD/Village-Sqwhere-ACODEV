@@ -21,7 +21,7 @@ const HOME: ReadonlyArray<readonly [number, number]> = [
 
 const round = (n: number) => Math.round(n * 10) / 10;
 
-// Where they wander, around the tree's outline. A fixed spread (each a golden angle from the
+// Where they wander, around the tree. A fixed spread (each a golden angle from the
 // last), so the server and the browser draw the same picture.
 const PEOPLE = HOME.map(([tx, ty], i) => {
   const angle = i * 2.39996;
@@ -40,7 +40,7 @@ const PEOPLE = HOME.map(([tx, ty], i) => {
 });
 
 // The scene beside the message. This is a page nobody is at, so the people who would gather
-// under the palaver tree are wandering around its outline. The button calls them back: they
+// under the palaver tree are wandering around where it will stand. The button calls them back: they
 // walk in, and the tree is whole. It changes nothing about the page being missing, and says so.
 export function Gathering({ lang }: { lang: Lang }) {
   const t = copy[lang].stage;
@@ -48,9 +48,6 @@ export function Gathering({ lang }: { lang: Lang }) {
   return (
     <div className={styles.stage} data-gathered={gathered || undefined}>
       <svg className={styles.scene} viewBox="-20 -10 72 52" aria-hidden="true" focusable="false">
-        {LOGO_PATHS.map((d) => (
-          <path key={d} className={styles.outline} d={d} />
-        ))}
         <g className={styles.tree}>
           {LOGO_PATHS.map((d) => (
             <path key={d} d={d} />
