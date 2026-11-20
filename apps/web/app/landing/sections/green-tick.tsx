@@ -63,7 +63,8 @@ export function GreenTick({ lang }: { lang: Lang }) {
   const play = useCallback(() => {
     timers.current.forEach((id) => window.clearTimeout(id));
     setStage(0);
-    timers.current = STAGES.map((ms, i) => window.setTimeout(() => setStage(i + 1), ms));
+    // the same array, so the effect's cleanup clears the timers of every replay
+    timers.current.splice(0, timers.current.length, ...STAGES.map((ms, i) => window.setTimeout(() => setStage(i + 1), ms)));
   }, []);
 
   useEffect(() => {

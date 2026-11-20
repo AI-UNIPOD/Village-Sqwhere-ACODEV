@@ -98,7 +98,8 @@ export function useInterview(attemptId: string) {
       if (!(error instanceof SignedOutError) && alive.current) setStatus("refused");
       return;
     }
-    if (!alive.current) return;
+    // left while the ticket was on its way: the interview was never opened, so there is nothing to end
+    if (!alive.current || over.current) return;
     const ws = new WebSocket(`${API_URL.replace(/^http/, "ws")}${attempt}/interview?ticket=${encodeURIComponent(ticket)}`);
     socket.current = ws;
     ws.onmessage = (event) => {
@@ -134,7 +135,10 @@ export function useInterview(attemptId: string) {
   // The server confirms with interview_incomplete and closes; the screen does not wait for it.
   const leave = () => {
     over.current = true;
-    socket.current?.send(JSON.stringify({ type: "abandon" }));
+    const ws = socket.current;
+    // a socket still connecting cannot send; closing it ends the attempt on the server too
+    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "abandon" }));
+    else ws?.close();
     setStatus("left");
   };
 
