@@ -36,6 +36,8 @@ type Copy = {
   flags: { guard_not_configured: string; prompt_injection_suspected: string };
   repoCheck: string;
   criterionScore: string;
+  /** The checker's criteria by the slug the API sends; anything else is shown from its slug. */
+  criteriaNames: Record<string, string>;
   aiTitle: string;
   aiLabel: string;
   reportLanguage: string;
@@ -106,6 +108,12 @@ const en: Copy = {
   },
   repoCheck: "Repositories check",
   criterionScore: "{n} of 25",
+  criteriaNames: {
+    structure: "Structure",
+    test_coverage: "Test coverage",
+    role_relevance: "Relevance to the role",
+    engineering_practice: "Engineering practice",
+  },
   aiTitle: "The AI's report",
   aiLabel: "Written by the AI checker. A suggestion, not a decision.",
   reportLanguage: "Report language: {language}",
@@ -178,6 +186,12 @@ const fr: Copy = {
   },
   repoCheck: "Analyse des dépôts",
   criterionScore: "{n} sur 25",
+  criteriaNames: {
+    structure: "Structure",
+    test_coverage: "Couverture des tests",
+    role_relevance: "Pertinence pour le rôle",
+    engineering_practice: "Pratiques d'ingénierie",
+  },
   aiTitle: "Le rapport de l'IA",
   aiLabel: "Rédigé par l'IA de vérification. Une suggestion, pas une décision.",
   reportLanguage: "Langue du rapport\u202f: {language}",

@@ -132,7 +132,7 @@ test("a press outside closes it, a press inside does not", () => {
 test("choosing the profile closes the menu, and signing out signs out once", () => {
   render(<ProfileMenu lang="fr" name="Aminata Ndiaye" username="aminata-n" leave="Déconnexion" />);
   open();
-  expect(button().getAttribute("aria-label")).toBe("Menu du compte: Aminata Ndiaye");
+  expect(button().getAttribute("aria-label")).toBe("Menu du compte : Aminata Ndiaye");
   fireEvent.click(screen.getByRole("menuitem", { name: "Profil et réglages" }));
   expect(screen.queryByRole("menu")).toBeNull();
 

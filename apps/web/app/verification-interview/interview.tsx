@@ -248,7 +248,7 @@ function Composer({
         }}
       />
       {problem && (
-        <p id="answer-problem" className={`${onboarding.error} ${styles.problem}`}>
+        <p id="answer-problem" role="alert" className={`${onboarding.error} ${styles.problem}`}>
           <AlertCircle />
           {t.problems[problem]}
         </p>

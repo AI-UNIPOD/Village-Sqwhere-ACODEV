@@ -143,8 +143,10 @@ function Interview({ lang, read }: { lang: Lang; read: Read }) {
   );
 }
 
-// "error_handling" reads "Error handling"
-const criterionName = (name: string) => {
+// The four criteria the checker uses have names in both languages; any other slug reads from its
+// words: "error_handling" is "Error handling".
+const criterionName = (names: Record<string, string>, name: string) => {
+  if (names[name]) return names[name];
   const words = name.replaceAll("_", " ").trim();
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
@@ -158,7 +160,7 @@ function RepositoriesCheck({ lang, analysis }: { lang: Lang; analysis: Read["ana
         {analysis.criteria.map((criterion, index) => (
           <li key={index} className={styles.criterion}>
             <h3 className={styles.itemTitle}>
-              {criterionName(criterion.name)}
+              {criterionName(t.criteriaNames, criterion.name)}
               {criterion.score !== null && <span className={styles.mono}>{fill(t.criterionScore, { n: criterion.score })}</span>}
             </h3>
             {criterion.rationale && <p className={styles.text}>{criterion.rationale}</p>}

@@ -238,7 +238,7 @@ test("an empty answer is not sent", async () => {
   const socket = await begun();
   answer("   ");
   expect(socket.sent).toHaveLength(0);
-  expect(screen.getByText("Write your answer before sending it.")).toBeTruthy();
+  expect(screen.getByRole("alert").textContent).toContain("Write your answer before sending it.");
   expect(field().getAttribute("aria-invalid")).toBe("true");
 });
 

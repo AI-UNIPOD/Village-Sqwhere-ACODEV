@@ -345,6 +345,20 @@ test("while the case loads the page says so", () => {
   expect(screen.getByRole("status").textContent).toBe("Opening the attempt");
 });
 
+test("a known criterion is named in the page's language, an unknown one from its slug", async () => {
+  const analysis = (criterion: string) => ({
+    ...full,
+    codebase_analysis: { ...full.codebase_analysis, criterion_assessments: [{ criterion, score: 20, rationale: "Reason.", evidence: [] }] },
+  });
+  api(json({ data: attempt(analysis("test_coverage")) }));
+  render(<ReviewCase lang="fr" />);
+  expect(await screen.findByRole("heading", { level: 3, name: /Couverture des tests/ })).toBeTruthy();
+  cleanup();
+  api(json({ data: attempt(analysis("error_handling")) }));
+  render(<ReviewCase lang="fr" />);
+  expect(await screen.findByRole("heading", { level: 3, name: /Error handling/ })).toBeTruthy();
+});
+
 test("the case is written in French, the language switch keeps the case", async () => {
   api(json({ data: attempt() }));
   render(<ReviewCase lang="fr" />);

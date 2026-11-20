@@ -5,6 +5,7 @@ import { copy } from "../landing/copy";
 import { THEME_INIT_SCRIPT } from "../landing/theme";
 import { LOCALES, hasLocale } from "../locales";
 import { ReducedMotionNotice } from "../reduced-motion-notice";
+import { SkipLink } from "../skip-link";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -38,6 +39,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
             beforeInteractive only runs once Next's own scripts have loaded, after the first
             paint, which flashed light on a light-mode phone. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {hasLocale(lang) && <SkipLink lang={lang} />}
         {children}
         {hasLocale(lang) && <ReducedMotionNotice lang={lang} />}
       </body>
