@@ -280,7 +280,6 @@ apps/
 infra/          Postgres + pgvector in Docker, the schema scripts      (infra/README.md)
 docs/           architecture, API reference, decisions, design system  (docs/README.md)
 .github/        CI workflow and pull request template
-CHANGELOG.md    what changed, newest first
 ```
 
 ### Quality checks
@@ -291,7 +290,7 @@ pnpm lint:api && pnpm test:api                     # Ruff, 839 pytest tests agai
 ```
 
 Every pull request is one feature or fix, with tests for each change in behaviour, a one-line
-conventional commit title and a changelog line. Web tests cover loading, empty, error and
+conventional commit title. Web tests cover loading, empty, error and
 success states, both languages and 360px phone layouts.
 
 ### Security

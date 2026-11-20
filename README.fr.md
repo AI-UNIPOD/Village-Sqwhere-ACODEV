@@ -289,7 +289,6 @@ apps/
 infra/          Postgres + pgvector dans Docker, scripts du schéma                (infra/README.md)
 docs/           architecture, référence de l'API, décisions, design system        (docs/README.md)
 .github/        workflow CI et modèle de pull request
-CHANGELOG.md    ce qui a changé, du plus récent au plus ancien
 ```
 
 ### Contrôles qualité
@@ -300,8 +299,7 @@ pnpm lint:api && pnpm test:api                     # Ruff, 839 tests pytest sur 
 ```
 
 Chaque pull request porte une seule fonctionnalité ou correction, avec des tests pour chaque
-changement de comportement, un titre de commit conventionnel sur une ligne et une ligne de
-changelog. Les tests web couvrent les états de chargement, vide, erreur et succès, les deux
+changement de comportement, un titre de commit conventionnel sur une ligne. Les tests web couvrent les états de chargement, vide, erreur et succès, les deux
 langues et l'affichage sur téléphone à 360px.
 
 ### Sécurité
