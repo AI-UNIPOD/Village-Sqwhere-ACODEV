@@ -266,6 +266,45 @@ test("picking an idea runs the matcher line by line, then suggests three develop
   expect(section().getByText("The matcher suggests. The owner decides.")).toBeTruthy();
 });
 
+test("the suggestions keep their height while hidden, so the sections below never move", () => {
+  vi.useFakeTimers();
+  let seen: IntersectionObserverCallback = () => {};
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback: IntersectionObserverCallback) {
+        seen = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  // the section starts below the screen, and the suggestions the server drew are 1,234 px tall
+  const box = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    return { top: this.id === "matcher" ? 5000 : 0, height: this.dataset.phase ? 1234 : 0 } as DOMRect;
+  });
+  render(<MatcherDemo lang="en" />);
+  const panel = document.querySelector<HTMLElement>("#matcher [data-phase]")!;
+
+  // hidden until seen, at the height they will have
+  expect(panel.dataset.phase).toBe("idle");
+  expect(panel.style.minBlockSize).toBe("1234px");
+
+  act(() => seen([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+  expect(panel.dataset.phase).toBe("running");
+  expect(panel.style.minBlockSize).toBe("1234px");
+
+  // shown: the suggestions take the place themselves
+  beats(4, 450);
+  expect(panel.dataset.phase).toBe("results");
+  expect(panel.style.minBlockSize).toBe("");
+
+  // a pick keeps the height of what was on show while the matcher runs again
+  fireEvent.click(section().getByRole("radio", { name: /Clinic queue/ }));
+  expect(panel.style.minBlockSize).toBe("1234px");
+  box.mockRestore();
+});
+
 test("inviting the three shows each signature, then the closing line", () => {
   vi.useFakeTimers();
   render(<MatcherDemo lang="en" />);
