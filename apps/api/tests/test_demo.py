@@ -136,7 +136,9 @@ def test_switching_the_demo_off_ends_its_sessions(
 
 def test_the_demo_cannot_take_an_interview(demo: dict, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(interviews_api, "async_session", db_session)
-    url = f"/v1/me/verifications/{uuid4()}/interview?token={demo['access_token']}"
+    session_id = uuid4()
+    ticket, _ = interviews_api.issue_ticket(UUID(demo["user"]["id"]), session_id)
+    url = f"/v1/me/verifications/{session_id}/interview?ticket={ticket}"
     with pytest.raises(WebSocketDisconnect) as closed:
         with client.websocket_connect(url) as websocket:
             websocket.receive_json()

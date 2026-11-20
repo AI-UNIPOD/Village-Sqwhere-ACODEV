@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.config import VERIFICATION_MAX_ANALYSIS_ATTEMPTS
+from app.config import VERIFICATION_MAX_ANALYSIS_ATTEMPTS, VERIFICATION_MAX_REPORT_ATTEMPTS
 from app.models.users import (
     UserRole,
     VerificationInterview,
@@ -106,14 +106,29 @@ async def process_verification_report(
         for turn in session.interview.turns
     ]
     codebase_result = (session.ai_result or {}).get("codebase_analysis", {})
-    report = await evaluator.evaluate(
-        session.user_role.role.slug,
-        codebase_result,
-        turns,
-        session.language,
-    )
+    try:
+        report = await evaluator.evaluate(
+            session.user_role.role.slug,
+            codebase_result,
+            turns,
+            session.language,
+        )
+    except Exception:
+        # Counted in ai_result, which needs no new column. Without a cap the worker would call
+        # every provider again every few seconds for ever when an answer can never pass.
+        failures = (session.ai_result or {}).get("report_failures", 0) + 1
+        session.ai_result = {**(session.ai_result or {}), "report_failures": failures}
+        if failures >= VERIFICATION_MAX_REPORT_ATTEMPTS:
+            session.status = VerificationStatus.ABANDONED
+            session.last_error = "The report failed on every try, so the attempt ended."
+        await db.commit()
+        raise
     session.ai_result = {
-        **(session.ai_result or {}),
+        **{
+            key: value
+            for key, value in (session.ai_result or {}).items()
+            if key != "report_failures"
+        },
         "interview_transcript": {
             "welcome": session.interview.welcome_message,
             "turns": turns,

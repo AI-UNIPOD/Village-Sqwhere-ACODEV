@@ -1,7 +1,7 @@
 import asyncio
 import io
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
@@ -49,6 +49,7 @@ from app.services.verification import (
     run_codebase_analysis,
 )
 from app.workers import runner
+from app.workers import verification as verification_worker
 from app.workers.verification import process_codebase_analysis, process_verification_report
 from tests.conftest import test_async_session as db_session
 
@@ -390,9 +391,7 @@ def test_interview_websocket_runs_conversation_and_completes(sign_in, monkeypatc
             await db.commit()
 
     asyncio.run(_prepare())
-    with client.websocket_connect(
-        f"/v1/me/verifications/{session_id}/interview?token={data['access_token']}"
-    ) as websocket:
+    with client.websocket_connect(interview_url(data, session_id)) as websocket:
         welcome = websocket.receive_json()
         assert welcome["type"] == "assistant_message"
         assert welcome["kind"] == "welcome"
@@ -518,9 +517,7 @@ def test_interview_abandon_marks_transcript_incomplete(sign_in, monkeypatch) -> 
     user_id = UUID(data["user"]["id"])
     session_id = prepare_interview_session(data)
 
-    with client.websocket_connect(
-        f"/v1/me/verifications/{session_id}/interview?token={data['access_token']}"
-    ) as websocket:
+    with client.websocket_connect(interview_url(data, session_id)) as websocket:
         assert websocket.receive_json()["kind"] == "welcome"
         assert websocket.receive_json()["type"] == "question"
         websocket.send_json({"type": "abandon"})
@@ -540,9 +537,7 @@ def test_interview_flags_each_answer_when_the_guard_is_not_configured(sign_in, m
     user_id = UUID(data["user"]["id"])
     session_id = prepare_interview_session(data)
 
-    with client.websocket_connect(
-        f"/v1/me/verifications/{session_id}/interview?token={data['access_token']}"
-    ) as websocket:
+    with client.websocket_connect(interview_url(data, session_id)) as websocket:
         assert websocket.receive_json()["kind"] == "welcome"
         assert websocket.receive_json()["type"] == "question"
         websocket.send_json({"type": "answer", "text": "I kept the services small."})
@@ -565,8 +560,7 @@ def test_interview_audio_answer_sends_an_allowed_audio_type_on(sign_in, monkeypa
     session_id = prepare_interview_session(data)
 
     with client.websocket_connect(
-        f"/v1/me/verifications/{session_id}/interview"
-        f"?token={data['access_token']}&audio_content_type=audio/webm;codecs=opus"
+        interview_url(data, session_id, "&audio_content_type=audio/webm;codecs=opus")
     ) as websocket:
         assert websocket.receive_json()["kind"] == "welcome"
         assert websocket.receive_json()["type"] == "question"
@@ -600,8 +594,7 @@ def test_interview_audio_answer_refuses_a_type_outside_the_allow_list(
     session_id = prepare_interview_session(data)
 
     with client.websocket_connect(
-        f"/v1/me/verifications/{session_id}/interview"
-        f"?token={data['access_token']}&audio_content_type={audio_type}"
+        interview_url(data, session_id, f"&audio_content_type={audio_type}")
     ) as websocket:
         assert websocket.receive_json()["kind"] == "welcome"
         assert websocket.receive_json()["type"] == "question"
@@ -1081,9 +1074,7 @@ def test_french_attempt_runs_the_interview_and_the_report_in_french(sign_in, mon
     session_id = prepare_interview_session(data, language="fr")
 
     messages: list[dict] = []
-    with client.websocket_connect(
-        f"/v1/me/verifications/{session_id}/interview?token={data['access_token']}"
-    ) as websocket:
+    with client.websocket_connect(interview_url(data, session_id)) as websocket:
         for _ in range(2):
             messages.append(websocket.receive_json())
         for turn in range(5):
@@ -1125,6 +1116,46 @@ def test_french_attempt_runs_the_interview_and_the_report_in_french(sign_in, mon
 
     asyncio.run(_report())
     assert languages == ["fr"]
+    cleanup_user(user_id)
+
+
+def test_a_report_that_keeps_failing_ends_the_attempt(sign_in, monkeypatch) -> None:
+    configure_test_interview(monkeypatch)
+    monkeypatch.setattr(verification_worker, "VERIFICATION_MAX_REPORT_ATTEMPTS", 2)
+    data = sign_in("github-code-ada")
+    user_id = UUID(data["user"]["id"])
+    session_id = prepare_interview_session(data)
+    with client.websocket_connect(interview_url(data, session_id)) as websocket:
+        websocket.receive_json()
+        websocket.receive_json()
+        for turn in range(5):
+            websocket.send_json({"type": "answer", "text": f"Answer {turn}."})
+            stop = "interview_complete" if turn == 4 else "question"
+            while websocket.receive_json()["type"] != stop:
+                pass
+
+    calls: list[int] = []
+
+    class NeverPassingEvaluator:
+        async def evaluate(self, *args) -> VerificationReport:
+            calls.append(1)
+            raise RuntimeError("every provider failed")
+
+    async def _try() -> object:
+        async with db_session() as db:
+            try:
+                return await process_verification_report(db, session_id, NeverPassingEvaluator())
+            except RuntimeError:
+                return "failed"
+
+    assert asyncio.run(_try()) == "failed"
+    assert get_interview_session(session_id).status == VerificationStatus.IN_PROGRESS
+    assert asyncio.run(_try()) == "failed"
+    ended = get_interview_session(session_id)
+    assert ended.status == VerificationStatus.ABANDONED
+    assert ended.last_error == "The report failed on every try, so the attempt ended."
+    assert asyncio.run(_try()) is None  # nothing left for the worker to pick up
+    assert len(calls) == 2
     cleanup_user(user_id)
 
 
@@ -1327,6 +1358,11 @@ def interview_ticket(data: dict, session_id: UUID):
     return client.post(f"/v1/me/verifications/{session_id}/interview-ticket", headers=bearer(data))
 
 
+def interview_url(data: dict, session_id: UUID, extra: str = "") -> str:
+    ticket = interview_ticket(data, session_id).json()["data"]["ticket"]
+    return f"/v1/me/verifications/{session_id}/interview?ticket={ticket}{extra}"
+
+
 def socket_refused(url: str) -> bool:
     from starlette.websockets import WebSocketDisconnect
 
@@ -1338,21 +1374,18 @@ def socket_refused(url: str) -> bool:
     return False
 
 
-def test_a_ticket_opens_the_interview_once(sign_in, monkeypatch) -> None:
+def test_a_ticket_opens_the_interview(sign_in, monkeypatch) -> None:
     configure_test_interview(monkeypatch)
     data = sign_in("github-code-moussa")
     session_id = prepare_interview_session(data)
 
     issued = interview_ticket(data, session_id)
     assert issued.status_code == 201, issued.text
-    ticket = issued.json()["data"]["ticket"]
     assert issued.json()["data"]["expires_at"]
-    url = f"/v1/me/verifications/{session_id}/interview?ticket={ticket}"
+    url = f"/v1/me/verifications/{session_id}/interview?ticket={issued.json()['data']['ticket']}"
     with client.websocket_connect(url) as websocket:
         assert websocket.receive_json()["kind"] == "welcome"
         assert websocket.receive_json()["type"] == "question"
-
-    assert socket_refused(url)  # used once already
     cleanup_user(UUID(data["user"]["id"]))
 
 
@@ -1366,10 +1399,20 @@ def test_an_expired_unknown_or_other_session_ticket_is_refused(sign_in, monkeypa
     other = interview_ticket(data, session_id).json()["data"]["ticket"]
     assert socket_refused(f"/v1/me/verifications/{UUID(int=0)}/interview?ticket={other}")
 
+    monkeypatch.setattr(interviews_api, "TICKET_LIFETIME", timedelta(seconds=-5))
     expired = interview_ticket(data, session_id).json()["data"]["ticket"]
-    user_id, ticket_session, _ = interviews_api._TICKETS[expired]
-    interviews_api._TICKETS[expired] = (user_id, ticket_session, datetime.now(UTC))
     assert socket_refused(f"{base}?ticket={expired}")
+    cleanup_user(UUID(data["user"]["id"]))
+
+
+def test_only_a_ticket_opens_the_interview_not_an_access_token(sign_in, monkeypatch) -> None:
+    configure_test_interview(monkeypatch)
+    data = sign_in("github-code-moussa")
+    session_id = prepare_interview_session(data)
+    base = f"/v1/me/verifications/{session_id}/interview"
+
+    assert socket_refused(f"{base}?token={data['access_token']}")
+    assert socket_refused(f"{base}?ticket={data['access_token']}")
     cleanup_user(UUID(data["user"]["id"]))
 
 

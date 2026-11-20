@@ -213,4 +213,3 @@ Each check is an effect you can see, and none needs a secret.
 | Limit | Effect | Plan |
 |---|---|---|
 | The interview runs over a WebSocket | A function's maximum duration caps one interview | Raise the API function's duration if interviews are cut short |
-| The API logs every SQL statement (`echo=True` in `app/database.py`) | Noisy, costly logs | Turn it off outside development |
