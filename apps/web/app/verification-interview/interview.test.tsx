@@ -16,6 +16,9 @@ vi.mock("next/navigation", () => ({
 // A WebSocket the test drives by hand: it records what was sent and what was opened.
 class FakeSocket {
   static all: FakeSocket[] = [];
+  static OPEN = 1;
+  // 0 is still connecting, where a real socket refuses to send
+  readyState = 1;
   sent: string[] = [];
   closed = false;
   onmessage: ((event: { data: string }) => void) | null = null;
@@ -25,6 +28,7 @@ class FakeSocket {
     FakeSocket.all.push(this);
   }
   send(data: string) {
+    if (this.readyState !== FakeSocket.OPEN) throw new Error("InvalidStateError");
     this.sent.push(data);
   }
   close() {
@@ -326,6 +330,33 @@ test("leaving asks first, then sends abandon and says the attempt has ended", as
   expect(screen.getByText("You left the interview")).toBeTruthy();
   expect(screen.getByText("This attempt has ended.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Leave the interview" })).toBeNull();
+});
+
+test("leaving while the socket is still connecting closes it and says the attempt has ended", async () => {
+  fireEvent.click(await intro());
+  await waitFor(() => expect(FakeSocket.all).toHaveLength(1));
+  const socket = FakeSocket.all[0];
+  socket.readyState = 0;
+  fireEvent.click(screen.getByRole("button", { name: "Leave the interview" }));
+  fireEvent.click(screen.getByRole("button", { name: "Leave and end the attempt" }));
+  expect(socket.sent).toHaveLength(0);
+  expect(socket.closed).toBe(true);
+  expect(screen.getByText("You left the interview")).toBeTruthy();
+});
+
+test("leaving before the ticket arrives opens no socket afterwards", async () => {
+  let release: (response: Response) => void = () => {};
+  const waiting = new Promise<Response>((resolve) => (release = resolve));
+  fetchMock.mockImplementation(async (url: string) => (String(url).endsWith("/interview-ticket") ? waiting : ready()));
+  render(<Interview lang="en" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Begin the interview" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Leave the interview" }));
+  fireEvent.click(screen.getByRole("button", { name: "Leave and end the attempt" }));
+  await act(async () => {
+    release(new Response(JSON.stringify({ data: { ticket: "ticket-xyz", expires_at: "2099-01-01T00:00:00Z" } }), { status: 201 }));
+  });
+  expect(FakeSocket.all).toHaveLength(0);
+  expect(screen.getByText("You left the interview")).toBeTruthy();
 });
 
 test("the browser warns before unloading only while the interview is live", async () => {

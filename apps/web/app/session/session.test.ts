@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { SESSION_KEY, SignedOutError, accessToken, apiFetch, parseSession, signOut } from "./session";
+import { SESSION_KEY, SignedOutError, apiFetch, parseSession, signOut } from "./session";
 
 const fetchMock = vi.fn();
 const replace = vi.fn();
@@ -89,23 +89,6 @@ test("a refused refresh forgets the session and says the person is signed out", 
   expect(localStorage.getItem(SESSION_KEY)).toBeNull();
 });
 
-test("the access token for a socket is the stored one while it is fresh", async () => {
-  store("2026-11-12T10:10:00Z");
-  expect(await accessToken()).toBe("access-old");
-  expect(fetchMock).not.toHaveBeenCalled();
-});
-
-test("the access token for a socket is refreshed first when it is about to expire", async () => {
-  store("2026-11-12T10:00:20Z");
-  fetchMock.mockResolvedValueOnce(tokens("access-new", "rt_new"));
-  expect(await accessToken()).toBe("access-new");
-  expect(stored().refresh_token).toBe("rt_new");
-});
-
-test("with no session there is no access token", async () => {
-  await expect(accessToken()).rejects.toBeInstanceOf(SignedOutError);
-});
-
 test("with no session, nothing is sent", async () => {
   await expect(apiFetch("/v1/me")).rejects.toBeInstanceOf(SignedOutError);
   expect(fetchMock).not.toHaveBeenCalled();
@@ -180,4 +163,41 @@ test("a change refused for the demo account is noticed once, and the screen can 
   });
   expect(count.result.current).toBe(1);
   resetDemo();
+});
+
+// last: a second copy of the module would split the demo counter from the one imported above
+test("two tabs refreshing the same token take turns, so neither is signed out", async () => {
+  // the browser's lock: one holder at a time, in order
+  let tail: Promise<unknown> = Promise.resolve();
+  Object.defineProperty(navigator, "locks", {
+    configurable: true,
+    value: {
+      request: (_name: string, work: () => Promise<unknown>) => {
+        const run = tail.then(work);
+        tail = run.catch(() => {});
+        return run;
+      },
+    },
+  });
+  // a second tab is a second copy of the module, with its own memory and the same storage
+  const tabA = await import("./session");
+  vi.resetModules();
+  const tabB = await import("./session");
+  store("2026-11-12T09:59:00Z");
+  let rotated = false;
+  fetchMock.mockImplementation(async (url: string) => {
+    if (!url.endsWith("/v1/auth/token")) return reply(200);
+    // the API rotates the token on the first request and refuses the old one after that
+    if (rotated) return reply(401, { detail: { code: "REFRESH_TOKEN_INVALID" } });
+    rotated = true;
+    await Promise.resolve();
+    return tokens("access-new", "rt_new");
+  });
+
+  const [a, b] = await Promise.all([tabA.apiFetch("/v1/me"), tabB.apiFetch("/v1/me")]);
+
+  expect([a.status, b.status]).toEqual([200, 200]);
+  expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("/v1/auth/token"))).toHaveLength(1);
+  expect(stored().refresh_token).toBe("rt_new");
+  Reflect.deleteProperty(navigator, "locks");
 });

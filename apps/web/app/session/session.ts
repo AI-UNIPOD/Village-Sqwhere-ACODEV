@@ -107,8 +107,23 @@ function forget() {
   announce();
 }
 
+// Two tabs refreshing the same token must take turns: the API rotates it, so the second would
+// be refused as revoked while the first tab's new pair is still on its way to storage.
+async function withRefreshLock<T>(work: () => Promise<T>): Promise<T> {
+  return navigator.locks ? navigator.locks.request("village-sqwhere-refresh", work) : work();
+}
+
 // Trades the refresh token for a new pair. The API rotates it, so the old one stops working.
-async function exchangeRefresh(refreshToken: string): Promise<Session> {
+function exchangeRefresh(refreshToken: string): Promise<Session> {
+  return withRefreshLock(async () => {
+    // another tab refreshed while this one waited for its turn: take its pair
+    const waited = parseSession(readRaw());
+    if (waited && waited.refresh_token !== refreshToken) return waited;
+    return exchange(refreshToken);
+  });
+}
+
+async function exchange(refreshToken: string): Promise<Session> {
   const response = await fetch(`${API_URL}/v1/auth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -146,11 +161,6 @@ async function currentSession(): Promise<Session> {
   const session = parseSession(readRaw());
   if (!session) throw new SignedOutError();
   return Date.parse(session.expires_at) - 30_000 < Date.now() ? refresh(session) : session;
-}
-
-// For the one call that cannot go through apiFetch: a WebSocket address carries the token.
-export async function accessToken(): Promise<string> {
-  return (await currentSession()).access_token;
 }
 
 // Calls the API as the signed-in person. A 401 gets one refresh and one retry. Throws

@@ -110,3 +110,13 @@ test("Watch it again plays the rows once more, and not while it is playing", () 
   act(() => vi.advanceTimersByTime(3300));
   expect(pills()).toEqual(["Done", "Done", "Done"]);
 });
+
+test("leaving the page mid-animation leaves no timer running", () => {
+  vi.useFakeTimers();
+  stubObserver();
+  const view = render(<GreenTick lang="en" />);
+  act(() => intersect());
+  expect(vi.getTimerCount()).toBeGreaterThan(0);
+  view.unmount();
+  expect(vi.getTimerCount()).toBe(0);
+});
